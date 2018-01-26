@@ -65,7 +65,7 @@ namespace RhinoCommon.Rest
     {
       if (string.IsNullOrWhiteSpace(Secret))
         return Nancy.HttpStatusCode.OK;
-      var request_secret = new System.Collections.Generic.List<string>(this.Request.Headers["secret"]);
+      var request_secret = new System.Collections.Generic.List<string>(Request.Headers["secret"]);
       if (request_secret[0].Equals(Secret, StringComparison.Ordinal))
         return Nancy.HttpStatusCode.OK;
       return Nancy.HttpStatusCode.Unauthorized;
