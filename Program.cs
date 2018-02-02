@@ -9,6 +9,11 @@ namespace RhinoCommon.Rest
   {
     static void Main(string[] args)
     {
+      // You may need to configure the Windows Namespace reservation to assign
+      // rights to use the port that you set below.
+      // See: https://github.com/NancyFx/Nancy/wiki/Self-Hosting-Nancy
+      // Use cmd.exe or PowerShell in Administrator mode with the following command:
+      // netsh http add urlacl url=http://+:80/ user=Everyone
       int port = 80;
       string secret = null;
       bool https = false;
