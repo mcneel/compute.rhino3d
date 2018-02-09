@@ -79,7 +79,7 @@ namespace RhinoCommon.Rest
     public RhinoModule()
     {
       var endpoints = EndPointDictionary.GetDictionary();
-      foreach(var kv in endpoints)
+      foreach (var kv in endpoints)
       {
         Get[kv.Key] = _ =>
         {
@@ -94,7 +94,21 @@ namespace RhinoCommon.Rest
           if (authCheck != Nancy.HttpStatusCode.OK)
             return authCheck;
           var jsonString = Request.Body.AsString();
-          return kv.Value.HandlePost(jsonString);
+
+          // In order to enable CORS, we add the proper headers to the response
+          var resp = new Nancy.Response();
+          resp.Headers.Add("Access-Control-Allow-Origin", "*");
+          resp.Headers.Add("Access-Control-Allow-Methods", "POST,GET");
+          resp.Headers.Add("Access-Control-Allow-Headers", "Accept, Origin, Content-type");
+          resp.Contents = (e) =>
+          {
+            using (var sw = new System.IO.StreamWriter(e))
+            {
+              sw.Write(kv.Value.HandlePost(jsonString));
+              sw.Flush();
+            }
+          };
+          return resp;
         };
       }
     }
