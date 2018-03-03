@@ -1,2 +1,20 @@
 # RhinoCommon.Rest
 REST geometry server based on RhinoCommon and headless Rhino
+
+
+## Set up for Google Compute Engine
+- Compile RhinoCommon.REST in release
+- Create a Windows Server 2016 VM
+- Remote desktop onto server
+- copy x64/Release directory to desktop
+- Install IIS
+    - Start PowerShell as admin
+    - `Install-WindowsFeature -name Web-Server -IncludeManagementTools`
+- Install Rhino
+    - Go to Release/deployment directory
+    - Run PowerShell with the `downloadrhino.ps1` script
+    - This will download the Rhino installer and place it in the deployment directory
+    - Double click on Rhino installer and install like you typically would
+- Run Rhino and set up a stand alone license key
+- Copy `RhinoLibrary.dll` in the deployment directory to the installed Rhino system directory.
+- Double click on `RhinoCommon.Rest.exe` to start the server
