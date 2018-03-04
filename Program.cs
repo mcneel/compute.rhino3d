@@ -62,6 +62,26 @@ namespace RhinoCommon.Rest
     }
   }
 
+  public class Bootstrapper : Nancy.DefaultNancyBootstrapper
+  {
+    private byte[] favicon;
+
+    protected override byte[] FavIcon
+    {
+      get { return this.favicon ?? (this.favicon = LoadFavIcon()); }
+    }
+
+    private byte[] LoadFavIcon()
+    {
+      using (var resourceStream = GetType().Assembly.GetManifestResourceStream("RhinoCommon.Rest.favicon.ico"))
+      {
+        var memoryStream = new System.IO.MemoryStream();
+        resourceStream.CopyTo(memoryStream);
+        return memoryStream.GetBuffer();
+      }
+    }
+  }
+
   public class RhinoModule : Nancy.NancyModule
   {
     public static string Secret { get; set; }

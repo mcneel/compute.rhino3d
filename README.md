@@ -18,3 +18,8 @@ REST geometry server based on RhinoCommon and headless Rhino
 - Run Rhino and set up a stand alone license key
 - Copy `RhinoLibrary.dll` in the deployment directory to the installed Rhino system directory.
 - Double click on `RhinoCommon.Rest.exe` to start the server
+- Install StackDriver client application
+    - https://cloud.google.com/logging/docs/agent/installation
+    - PowerShell `cd C:\Users\[USERNAME]
+invoke-webrequest https://dl.google.com/cloudagents/windows/StackdriverLogging-v1-8.exe -OutFile StackdriverLogging-v1-8.exe;
+.\StackdriverLogging-v1-8.exe`
