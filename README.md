@@ -23,3 +23,10 @@ REST geometry server based on RhinoCommon and headless Rhino
     - PowerShell `cd C:\Users\[USERNAME]
 invoke-webrequest https://dl.google.com/cloudagents/windows/StackdriverLogging-v1-8.exe -OutFile StackdriverLogging-v1-8.exe;
 .\StackdriverLogging-v1-8.exe`
+
+
+## Optional - set up for load balancer (in progress)
+- Add health check
+    - On the Compute Engine web page, click on "Health Checks"
+    - Click "create a new health check"
+    - Set request path to "/healthcheck"
