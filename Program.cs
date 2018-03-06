@@ -86,12 +86,20 @@ namespace RhinoCommon.Rest
     {
         public static string Secret { get; set; }
 
-        Nancy.HttpStatusCode CheckSecret()
+        string GetApiToken()
         {
-            if (string.IsNullOrWhiteSpace(Secret))
-                return Nancy.HttpStatusCode.OK;
-            var request_secret = new System.Collections.Generic.List<string>(Request.Headers["secret"]);
-            if (request_secret[0].Equals(Secret, StringComparison.Ordinal))
+            var requestId = new System.Collections.Generic.List<string>(Request.Headers["api_token"]);
+            if (requestId.Count != 1)
+                return null;
+            return requestId[0];
+        }
+
+        Nancy.HttpStatusCode CheckAuthorization()
+        {
+            string token = GetApiToken();
+            if (string.IsNullOrWhiteSpace(token))
+                return Nancy.HttpStatusCode.Unauthorized;
+            if (token.Length > 2 && token.Contains("@"))
                 return Nancy.HttpStatusCode.OK;
             return Nancy.HttpStatusCode.Unauthorized;
         }
@@ -105,18 +113,18 @@ namespace RhinoCommon.Rest
             {
                 Get[kv.Key] = _ =>
                 {
-                    Logger.WriteInfo($"GET {kv.Key}");
-                    var authCheck = CheckSecret();
-                    if (authCheck != Nancy.HttpStatusCode.OK)
-                        return authCheck;
+                    Logger.WriteInfo($"GET {kv.Key}", null);
                     return kv.Value.HandleGet();
                 };
                 Post[kv.Key] = _ =>
                 {
-                    Logger.WriteInfo($"POST {kv.Key}");
-                    var authCheck = CheckSecret();
-                    if (authCheck != Nancy.HttpStatusCode.OK)
-                        return authCheck;
+                    Logger.WriteInfo($"POST {kv.Key}", GetApiToken());
+                    if (!string.IsNullOrWhiteSpace(kv.Key) && kv.Key.Length > 1)
+                    {
+                        var authCheck = CheckAuthorization();
+                        if (authCheck != Nancy.HttpStatusCode.OK)
+                            return authCheck;
+                    }
                     var jsonString = Request.Body.AsString();
 
             // In order to enable CORS, we add the proper headers to the response

@@ -29,7 +29,7 @@ namespace RhinoCommon.Rest
         }
 
         static bool _initialized = false;
-        public static void WriteInfo(string message)
+        public static void WriteInfo(string message, string apiToken)
         {
             if (!Enabled)
                 return;
@@ -63,12 +63,19 @@ namespace RhinoCommon.Rest
                 TextPayload = message
             };
 
+            IDictionary<string, string> entryLabels = null;
+            if (!string.IsNullOrWhiteSpace(apiToken))
+            {
+                entryLabels = new Dictionary<string, string>();
+                entryLabels.Add("api_token", apiToken);
+            }
+
             Google.Api.MonitoredResource resource = new Google.Api.MonitoredResource();
             resource.Type = "global";
 
             try
             {
-                Client.WriteLogEntries(logNameToWrite, resource, null, new LogEntry[] { entry });
+                Client.WriteLogEntries(logNameToWrite, resource, entryLabels, new LogEntry[] { entry });
             }
             catch(Exception ex)
             {
