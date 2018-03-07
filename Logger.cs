@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Google.Cloud.Logging.V2;
 
 namespace RhinoCommon.Rest
@@ -66,8 +63,10 @@ namespace RhinoCommon.Rest
             IDictionary<string, string> entryLabels = null;
             if (!string.IsNullOrWhiteSpace(apiToken))
             {
-                entryLabels = new Dictionary<string, string>();
-                entryLabels.Add("api_token", apiToken);
+                entryLabels = new Dictionary<string, string>
+                {
+                    { "api_token", apiToken }
+                };
             }
 
             Google.Api.MonitoredResource resource = new Google.Api.MonitoredResource();

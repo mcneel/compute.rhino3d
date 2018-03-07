@@ -14,20 +14,24 @@ namespace RhinoCommon.Rest
             // See: https://github.com/NancyFx/Nancy/wiki/Self-Hosting-Nancy
             // Use cmd.exe or PowerShell in Administrator mode with the following command:
             // netsh http add urlacl url=http://+:80/ user=Everyone
+            // netsh http add urlacl url=https://+:443/ user=Everyone
+#if DEBUG
             int port = 80;
-            string secret = null;
             bool https = false;
+#else
+            int port = 443;
+            bool https = true;
+#endif
             Topshelf.HostFactory.Run(x =>
             {
                 x.AddCommandLineDefinition("port", p => port = int.Parse(p));
-                x.AddCommandLineDefinition("secret", s => secret = s);
                 x.AddCommandLineDefinition("https", b => https = bool.Parse(b));
                 x.ApplyCommandLine();
                 x.SetStartTimeout(new TimeSpan(0, 1, 0));
                 x.Service<NancySelfHost>(s =>
           {
                   s.ConstructUsing(name => new NancySelfHost());
-                  s.WhenStarted(tc => tc.Start(https, port, secret));
+                  s.WhenStarted(tc => tc.Start(https, port));
                   s.WhenStopped(tc => tc.Stop());
               });
                 x.RunAsPrompt();
@@ -43,9 +47,8 @@ namespace RhinoCommon.Rest
     {
         private NancyHost _nancyHost;
 
-        public void Start(bool https, int port, string secret)
+        public void Start(bool https, int port)
         {
-            RhinoModule.Secret = secret;
             Console.WriteLine($"Launching RhinoCore library as {Environment.UserName}");
             RhinoLib.LaunchInProcess(0, 0);
             var config = new HostConfiguration();
@@ -84,8 +87,6 @@ namespace RhinoCommon.Rest
 
     public class RhinoModule : Nancy.NancyModule
     {
-        public static string Secret { get; set; }
-
         string GetApiToken()
         {
             var requestId = new System.Collections.Generic.List<string>(Request.Headers["api_token"]);
