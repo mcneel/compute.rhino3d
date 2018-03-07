@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using Nancy;
 
 namespace RhinoCommon.Rest
 {
@@ -105,6 +106,11 @@ namespace RhinoCommon.Rest
             string path = Path;
             int index = path.LastIndexOf("/");
             return path.Substring(index + 1);
+        }
+
+        public virtual Nancy.Response HandleGetAsResponse()
+        {
+            return null;
         }
 
         virtual public string HandleGet()
@@ -295,16 +301,64 @@ namespace RhinoCommon.Rest
         public override string HandleGet()
         {
             var sb = new System.Text.StringBuilder("<!DOCTYPE html><html><body>");
-            sb.AppendLine("<p>API<br>");
+
+            var sb_api = new System.Text.StringBuilder();
+            var sb_sdk = new System.Text.StringBuilder();
+            sb_api.AppendLine("<p>API<br>");
             var endpoints = EndPointDictionary.GetDictionary().Values;
             int i = 1;
             foreach (var endpoint in endpoints)
             {
+                if( endpoint is CSharpSdkEndPoint )
+                {
+                    sb_sdk.AppendLine($" <a href=\"/{endpoint.Path}\">C# SDK</a><BR>");
+                    continue;
+                }
                 if (!(endpoint is ListAllEndPoint))
-                    sb.AppendLine((i++).ToString() + $" <a href=\"/{endpoint.Path}\">{endpoint.Path}</a><BR>");
+                    sb_api.AppendLine((i++).ToString() + $" <a href=\"/{endpoint.Path}\">{endpoint.Path}</a><BR>");
             }
+
+
+            sb.Append(sb_sdk);
+            sb.Append(sb_api);
             sb.AppendLine("</p></body></html>");
             return sb.ToString();
+        }
+
+        public override string HandlePost(string body)
+        {
+            return "";
+        }
+    }
+
+    class CSharpSdkEndPoint : EndPoint
+    {
+        public CSharpSdkEndPoint() : base("sdk/csharp", null)
+        {
+        }
+
+        public override Response HandleGetAsResponse()
+        {
+            string content = "";
+            using (var resourceStream = GetType().Assembly.GetManifestResourceStream("RhinoCommon.Rest.RhinoCompute.cs"))
+            {
+                var stream = new System.IO.StreamReader(resourceStream);
+                content = stream.ReadToEnd();
+                stream.Close();
+            }
+
+            var response = new Response();
+
+            response.Headers.Add("Content-Disposition", "attachment; filename=RhinoCompute.cs");
+            response.ContentType = "text/plain";
+            response.Contents = stream => {
+                using (var writer = new System.IO.StreamWriter(stream))
+                {
+                    writer.Write(content);
+                }
+            };
+
+            return response;
         }
 
         public override string HandlePost(string body)
@@ -324,6 +378,8 @@ namespace RhinoCommon.Rest
             _dictionary = new Dictionary<string, EndPoint>();
             var listall = new ListAllEndPoint();
             _dictionary.Add(listall.Path, listall);
+            var csharpsdk = new CSharpSdkEndPoint();
+            _dictionary.Add(csharpsdk.Path, csharpsdk);
             BuildApi(_dictionary, typeof(Rhino.RhinoApp).Assembly, "Rhino.Geometry");
             BuildApi(_dictionary, typeof(Rhino.RhinoApp).Assembly, "Rhino.Geometry.Intersect");
             return _dictionary;

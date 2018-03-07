@@ -115,6 +115,9 @@ namespace RhinoCommon.Rest
                 Get[kv.Key] = _ =>
                 {
                     Logger.WriteInfo($"GET {kv.Key}", null);
+                    var response = kv.Value.HandleGetAsResponse();
+                    if (response != null)
+                        return response;
                     return kv.Value.HandleGet();
                 };
                 Post[kv.Key] = _ =>
