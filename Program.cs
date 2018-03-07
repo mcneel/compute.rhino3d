@@ -46,15 +46,24 @@ namespace RhinoCommon.Rest
     public class NancySelfHost
     {
         private NancyHost _nancyHost;
+        public static bool RunningHttps { get; set; }
 
         public void Start(bool https, int port)
         {
             Console.WriteLine($"Launching RhinoCore library as {Environment.UserName}");
             RhinoLib.LaunchInProcess(0, 0);
             var config = new HostConfiguration();
-            string address = https ? $"https://localhost:{port}" :
-                                     $"http://localhost:{port}";
-            _nancyHost = new NancyHost(config, new Uri(address));
+            string address = $"http://localhost:{port}";
+            if( https )
+            {
+                RunningHttps = true;
+                address = $"https://localhost:{port}";
+                _nancyHost = new NancyHost(config, new Uri(address), new Uri("http://localhost:80"));
+            }
+            else
+            {
+                _nancyHost = new NancyHost(config, new Uri(address));
+            }
             _nancyHost.Start();
             Console.WriteLine("Running on " + address);
         }
@@ -114,6 +123,11 @@ namespace RhinoCommon.Rest
             {
                 Get[kv.Key] = _ =>
                 {
+                    if( NancySelfHost.RunningHttps && !Request.Url.IsSecure )
+                    {
+                        string url = Request.Url.ToString().Replace("http","https");
+                        return new Nancy.Responses.RedirectResponse(url, Nancy.Responses.RedirectResponse.RedirectType.Permanent);
+                    }
                     Logger.WriteInfo($"GET {kv.Key}", null);
                     var response = kv.Value.HandleGetAsResponse();
                     if (response != null)
@@ -122,7 +136,10 @@ namespace RhinoCommon.Rest
                 };
                 Post[kv.Key] = _ =>
                 {
-                    Logger.WriteInfo($"POST {kv.Key}", GetApiToken());
+                    if (NancySelfHost.RunningHttps && !Request.Url.IsSecure)
+                        return Nancy.HttpStatusCode.HttpVersionNotSupported;
+
+                        Logger.WriteInfo($"POST {kv.Key}", GetApiToken());
                     if (!string.IsNullOrWhiteSpace(kv.Key) && kv.Key.Length > 1)
                     {
                         var authCheck = CheckAuthorization();
