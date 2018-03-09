@@ -148,7 +148,7 @@
     <None Include="deployment\compute rhino3d-638d82760ba7.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="deployment\downloadrhino.ps1">
+    <None Include="deployment\headless_admin.ps1">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="packages.config" />
@@ -167,4 +167,9 @@
     </PropertyGroup>
     <Error Condition="!Exists('packages\Grpc.Core.1.7.1\build\net45\Grpc.Core.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Grpc.Core.1.7.1\build\net45\Grpc.Core.targets'))" />
   </Target>
+  <PropertyGroup>
+    <PostBuildEvent>cd $(TargetDir)
+del *.so
+del *.dylib</PostBuildEvent>
+  </PropertyGroup>
 </Project>

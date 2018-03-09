@@ -2,6 +2,7 @@
 using Nancy.Hosting.Self;
 using Nancy.Extensions;
 using Topshelf;
+using Nancy.Conventions;
 
 namespace RhinoCommon.Rest
 {
@@ -30,13 +31,13 @@ namespace RhinoCommon.Rest
                 x.SetStartTimeout(new TimeSpan(0, 1, 0));
                 x.Service<NancySelfHost>(s =>
           {
-                  s.ConstructUsing(name => new NancySelfHost());
-                  s.WhenStarted(tc => tc.Start(https, port));
-                  s.WhenStopped(tc => tc.Stop());
-              });
+              s.ConstructUsing(name => new NancySelfHost());
+              s.WhenStarted(tc => tc.Start(https, port));
+              s.WhenStopped(tc => tc.Stop());
+          });
                 x.RunAsPrompt();
-          //x.RunAsLocalService();
-          x.SetDisplayName("RhinoCommon Geometry Server");
+                //x.RunAsLocalService();
+                x.SetDisplayName("RhinoCommon Geometry Server");
                 x.SetServiceName("RhinoCommon Geometry Server");
             });
             RhinoLib.ExitInProcess();
@@ -54,7 +55,7 @@ namespace RhinoCommon.Rest
             RhinoLib.LaunchInProcess(0, 0);
             var config = new HostConfiguration();
             string address = $"http://localhost:{port}";
-            if( https )
+            if (https)
             {
                 RunningHttps = true;
                 address = $"https://localhost:{port}";
@@ -77,6 +78,12 @@ namespace RhinoCommon.Rest
     public class Bootstrapper : Nancy.DefaultNancyBootstrapper
     {
         private byte[] favicon;
+
+        protected override void ConfigureConventions(NancyConventions nancyConventions)
+        {
+            base.ConfigureConventions(nancyConventions);
+            nancyConventions.StaticContentsConventions.Add(StaticContentConventionBuilder.AddDirectory("docs"));
+        }
 
         protected override byte[] FavIcon
         {
@@ -123,9 +130,9 @@ namespace RhinoCommon.Rest
             {
                 Get[kv.Key] = _ =>
                 {
-                    if( NancySelfHost.RunningHttps && !Request.Url.IsSecure )
+                    if (NancySelfHost.RunningHttps && !Request.Url.IsSecure)
                     {
-                        string url = Request.Url.ToString().Replace("http","https");
+                        string url = Request.Url.ToString().Replace("http", "https");
                         return new Nancy.Responses.RedirectResponse(url, Nancy.Responses.RedirectResponse.RedirectType.Permanent);
                     }
                     Logger.WriteInfo($"GET {kv.Key}", null);
@@ -139,7 +146,7 @@ namespace RhinoCommon.Rest
                     if (NancySelfHost.RunningHttps && !Request.Url.IsSecure)
                         return Nancy.HttpStatusCode.HttpVersionNotSupported;
 
-                        Logger.WriteInfo($"POST {kv.Key}", GetApiToken());
+                    Logger.WriteInfo($"POST {kv.Key}", GetApiToken());
                     if (!string.IsNullOrWhiteSpace(kv.Key) && kv.Key.Length > 1)
                     {
                         var authCheck = CheckAuthorization();
@@ -148,19 +155,20 @@ namespace RhinoCommon.Rest
                     }
                     var jsonString = Request.Body.AsString();
 
-            // In order to enable CORS, we add the proper headers to the response
-            var resp = new Nancy.Response();
+                    // In order to enable CORS, we add the proper headers to the response
+                    var resp = new Nancy.Response();
                     resp.Headers.Add("Access-Control-Allow-Origin", "*");
                     resp.Headers.Add("Access-Control-Allow-Methods", "POST,GET");
                     resp.Headers.Add("Access-Control-Allow-Headers", "Accept, Origin, Content-type");
                     resp.Contents = (e) =>
-            {
-                      using (var sw = new System.IO.StreamWriter(e))
-                      {
-                          sw.Write(kv.Value.HandlePost(jsonString));
-                          sw.Flush();
-                      }
-                  };
+                    {
+                        using (var sw = new System.IO.StreamWriter(e))
+                        {
+                            var postResult = kv.Value.HandlePost(jsonString);
+                            sw.Write(postResult);
+                            sw.Flush();
+                        }
+                    };
                     return resp;
                 };
             }
