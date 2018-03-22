@@ -2,6 +2,9 @@
 using System.Collections.Generic;
 using System.Reflection;
 using Nancy;
+using System.Linq;
+using Newtonsoft.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace RhinoCommon.Rest
 {
@@ -183,10 +186,29 @@ namespace RhinoCommon.Rest
             return sb.ToString();
         }
 
-        virtual public string HandlePost(string jsonString)
+        virtual public string HandlePost(string jsonString, bool multiple)
         {
             object data = string.IsNullOrWhiteSpace(jsonString) ? null : Newtonsoft.Json.JsonConvert.DeserializeObject(jsonString);
             var ja = data as Newtonsoft.Json.Linq.JArray;
+            if (multiple && ja.Count > 1)
+            {
+                var result = new System.Text.StringBuilder("[");
+                for( int i=0; i<ja.Count; i++ )
+                {
+                    if (i > 0)
+                        result.Append(",");
+                    var item = ja[i] as Newtonsoft.Json.Linq.JArray;
+                    result.Append(HandlePostHelper(item));
+                }
+                result.Append("]");
+                return result.ToString();
+            }
+            else
+                return HandlePostHelper(ja);
+        }
+
+        string HandlePostHelper(Newtonsoft.Json.Linq.JArray ja)
+        {
             int tokenCount = ja == null ? 0 : ja.Count;
             if (_methods != null)
             {
@@ -248,8 +270,8 @@ namespace RhinoCommon.Rest
                         }
 
                         if (rc.Length == 1)
-                            return Newtonsoft.Json.JsonConvert.SerializeObject(rc[0]);
-                        return Newtonsoft.Json.JsonConvert.SerializeObject(rc);
+                            return Newtonsoft.Json.JsonConvert.SerializeObject(rc[0], TestResolver.Settings);
+                        return Newtonsoft.Json.JsonConvert.SerializeObject(rc, TestResolver.Settings);
                     }
                 }
             }
@@ -266,24 +288,38 @@ namespace RhinoCommon.Rest
                         var p = constructor.GetParameters();
                         try
                         {
+                            bool skipThisConstructor = false;
                             for (int ip = 0; ip < tokenCount; ip++)
                             {
                                 var generics = p[ip].ParameterType.GetGenericArguments();
                                 if (generics == null || generics.Length != 1)
+                                {
+                                    if( _constructors.Length>0 && p[ip].ParameterType == typeof(Rhino.Geometry.Plane))
+                                    {
+                                        if (ja[ip].Count() < 4)
+                                        {
+                                            skipThisConstructor = true;
+                                            ip = tokenCount;
+                                            continue;
+                                        }
+                                    }
                                     parameters[ip] = ja[ip].ToObject(p[ip].ParameterType);
+                                }
                                 else
                                 {
                                     var arrayType = generics[0].MakeArrayType();
                                     parameters[ip] = ja[ip].ToObject(arrayType);
                                 }
                             }
+                            if (skipThisConstructor)
+                                continue;
                         }
                         catch (Exception)
                         {
                             continue;
                         }
                         var rc = constructor.Invoke(parameters);
-                        return Newtonsoft.Json.JsonConvert.SerializeObject(rc);
+                        return Newtonsoft.Json.JsonConvert.SerializeObject(rc, TestResolver.Settings);
                     }
                 }
             }
@@ -325,7 +361,7 @@ namespace RhinoCommon.Rest
             return sb.ToString();
         }
 
-        public override string HandlePost(string body)
+        public override string HandlePost(string body, bool multiple)
         {
             return "";
         }
@@ -361,7 +397,7 @@ namespace RhinoCommon.Rest
             return response;
         }
 
-        public override string HandlePost(string body)
+        public override string HandlePost(string body, bool multiple)
         {
             return "";
         }
@@ -411,5 +447,41 @@ namespace RhinoCommon.Rest
                 }
             }
         }
+    }
+}
+
+
+public class TestResolver : DefaultContractResolver
+{
+    static JsonSerializerSettings _settings;
+    public static JsonSerializerSettings Settings
+    {
+        get
+        {
+            if (_settings == null)
+                _settings = new JsonSerializerSettings { ContractResolver = new TestResolver() };
+            return _settings;
+        }
+    }
+
+    protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
+    {
+        JsonProperty property = base.CreateProperty(member, memberSerialization);
+        if (property.DeclaringType == typeof(Rhino.Geometry.Circle))
+        {
+            property.ShouldSerialize = _ =>
+            {
+                return property.PropertyName != "IsValid" && property.PropertyName != "BoundingBox" && property.PropertyName != "Diameter" && property.PropertyName != "Circumference";
+            };
+
+        }
+        if (property.DeclaringType == typeof(Rhino.Geometry.Plane))
+        {
+            property.ShouldSerialize = _ =>
+            {
+                return property.PropertyName != "IsValid" && property.PropertyName != "OriginX" && property.PropertyName != "OriginY" && property.PropertyName != "OriginZ";
+            };
+        }
+        return property;
     }
 }

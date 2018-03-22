@@ -164,7 +164,8 @@ namespace RhinoCommon.Rest
                     {
                         using (var sw = new System.IO.StreamWriter(e))
                         {
-                            var postResult = kv.Value.HandlePost(jsonString);
+                            bool multiple = Request.Query.Count > 0 && Request.Query.ContainsKey("multiple");
+                            var postResult = kv.Value.HandlePost(jsonString, multiple);
                             sw.Write(postResult);
                             sw.Flush();
                         }
