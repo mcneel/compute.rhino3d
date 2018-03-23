@@ -164,8 +164,23 @@ namespace RhinoCommon.Rest
                     {
                         using (var sw = new System.IO.StreamWriter(e))
                         {
-                            bool multiple = Request.Query.Count > 0 && Request.Query.ContainsKey("multiple");
-                            var postResult = kv.Value.HandlePost(jsonString, multiple);
+                            bool multiple = false;
+                            System.Collections.Generic.Dictionary<string, string> returnModifiers = null;
+                            foreach(string name in Request.Query)
+                            {
+                                if( name.StartsWith("return.", StringComparison.InvariantCultureIgnoreCase))
+                                {
+                                    if (returnModifiers == null)
+                                        returnModifiers = new System.Collections.Generic.Dictionary<string, string>();
+                                    string dataType = "Rhino.Geometry." + name.Substring("return.".Length);
+                                    string items = Request.Query[name];
+                                    returnModifiers[dataType] = items;
+                                    continue;
+                                }
+                                if (name.Equals("multiple", StringComparison.InvariantCultureIgnoreCase))
+                                    multiple = Request.Query[name];
+                            }
+                            var postResult = kv.Value.HandlePost(jsonString, multiple, returnModifiers);
                             sw.Write(postResult);
                             sw.Flush();
                         }

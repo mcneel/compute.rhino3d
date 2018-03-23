@@ -186,7 +186,7 @@ namespace RhinoCommon.Rest
             return sb.ToString();
         }
 
-        virtual public string HandlePost(string jsonString, bool multiple)
+        virtual public string HandlePost(string jsonString, bool multiple, Dictionary<string,string> returnModifiers)
         {
             object data = string.IsNullOrWhiteSpace(jsonString) ? null : Newtonsoft.Json.JsonConvert.DeserializeObject(jsonString);
             var ja = data as Newtonsoft.Json.Linq.JArray;
@@ -198,16 +198,39 @@ namespace RhinoCommon.Rest
                     if (i > 0)
                         result.Append(",");
                     var item = ja[i] as Newtonsoft.Json.Linq.JArray;
-                    result.Append(HandlePostHelper(item));
+                    result.Append(HandlePostHelper(item, returnModifiers));
                 }
                 result.Append("]");
                 return result.ToString();
             }
             else
-                return HandlePostHelper(ja);
+                return HandlePostHelper(ja, returnModifiers);
         }
 
-        string HandlePostHelper(Newtonsoft.Json.Linq.JArray ja)
+        static object ProcessModifiers(object o, Dictionary<string, string> returnModifiers)
+        {
+            if (returnModifiers != null && returnModifiers.Count > 0)
+            {
+                Type t = o.GetType();
+                if (returnModifiers.ContainsKey(t.FullName))
+                {
+                    string[] items = returnModifiers[t.FullName].Split(',');
+                    object[] mods = new object[items.Length];
+                    for (int i = 0; i < items.Length; i++)
+                    {
+                        PropertyInfo pi = t.GetProperty(items[i]);
+                        mods[i] = pi.GetValue(o);
+                    }
+                    if (mods.Length == 1)
+                        o = mods[0];
+                    else
+                        o = mods;
+                }
+            }
+            return o;
+        }
+
+        string HandlePostHelper(Newtonsoft.Json.Linq.JArray ja, Dictionary<string, string> returnModifiers)
         {
             int tokenCount = ja == null ? 0 : ja.Count;
             if (_methods != null)
@@ -269,6 +292,14 @@ namespace RhinoCommon.Rest
                                 rc[outputSlot++] = invokeParameters[i];
                         }
 
+                        if( returnModifiers!=null && returnModifiers.Count>0 )
+                        {
+                            for( int i=0; i<rc.Length; i++ )
+                            {
+                                rc[i] = ProcessModifiers(rc[i], returnModifiers);
+                            }
+                        }
+
                         if (rc.Length == 1)
                             return Newtonsoft.Json.JsonConvert.SerializeObject(rc[0], TestResolver.Settings);
                         return Newtonsoft.Json.JsonConvert.SerializeObject(rc, TestResolver.Settings);
@@ -319,6 +350,7 @@ namespace RhinoCommon.Rest
                             continue;
                         }
                         var rc = constructor.Invoke(parameters);
+                        rc = ProcessModifiers(rc, returnModifiers);
                         return Newtonsoft.Json.JsonConvert.SerializeObject(rc, TestResolver.Settings);
                     }
                 }
@@ -361,7 +393,7 @@ namespace RhinoCommon.Rest
             return sb.ToString();
         }
 
-        public override string HandlePost(string body, bool multiple)
+        public override string HandlePost(string body, bool multiple, Dictionary<string, string> returnModifiers)
         {
             return "";
         }
@@ -397,7 +429,7 @@ namespace RhinoCommon.Rest
             return response;
         }
 
-        public override string HandlePost(string body, bool multiple)
+        public override string HandlePost(string body, bool multiple, Dictionary<string, string> returnModifiers)
         {
             return "";
         }
