@@ -514,6 +514,25 @@ public class TestResolver : DefaultContractResolver
                 return property.PropertyName != "IsValid" && property.PropertyName != "OriginX" && property.PropertyName != "OriginY" && property.PropertyName != "OriginZ";
             };
         }
+
+        if(property.DeclaringType == typeof(Rhino.Geometry.Point3f) ||
+            property.DeclaringType == typeof(Rhino.Geometry.Point2f) ||
+            property.DeclaringType == typeof(Rhino.Geometry.Vector2f) ||
+            property.DeclaringType == typeof(Rhino.Geometry.Vector3f))
+        {
+            property.ShouldSerialize = _ =>
+            {
+                return property.PropertyName == "X" || property.PropertyName == "Y" || property.PropertyName == "Z";
+            };
+        }
+
+        if(property.DeclaringType == typeof(Rhino.Geometry.MeshFace))
+        {
+            property.ShouldSerialize = _ =>
+            {
+                return property.PropertyName != "IsTriangle" && property.PropertyName != "IsQuad";
+            };
+        }
         return property;
     }
 }
