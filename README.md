@@ -1,41 +1,45 @@
 # RhinoCommon.Rest
+
 REST geometry server based on RhinoCommon and headless Rhino
 
-
 ## Set up for Google Compute Engine
-- Compile RhinoCommon.REST in Release
-- Create a Windows Server 2016 VM
-- Remote desktop onto server
-- copy x64/Release directory to desktop
-- Make http/https access available to Nancy
-    - Start PowerShell as admin
-    - `netsh http add urlacl url="http://+:80/" user="Everyone"`
-    - `netsh http add urlacl url="https://+:443/" user="Everyone"`
-- Install IIS
-    - Start PowerShell as admin
-    - `Install-WindowsFeature -name Web-Server -IncludeManagementTools`
-- Install Rhino
-    - Go to Release/deployment directory
-    - Run PowerShell with the `downloadrhino.ps1` script
-    - This will download the Rhino installer and place it in the deployment directory
-    - Double click on Rhino installer and install like you typically would
-- Run Rhino and set up a stand alone license key
-- Copy `RhinoLibrary.dll` in the deployment directory to the installed Rhino system directory.
-- Add LetsEncrypt SSL Certificate for HTTPS support
+
+1. Build RhinoCommon.REST project in _Release_.
+1. Create a Windows Server 2016 VM.
+1. Remote desktop onto server.
+1. Copy _x64/Release_ directory to desktop of the server.
+1. Make http/https access available to Nancy:
+    - Start PowerShell as Administrator.
+    - `netsh http add urlacl url="http://+:80/" user="Everyone"`.
+    - `netsh http add urlacl url="https://+:443/" user="Everyone"`.
+1. Install IIS:
+    - Start PowerShell as Administrator.
+    - In PowerShell: `Install-WindowsFeature -name Web-Server -IncludeManagementTools`
+1. Install Rhino using PowerShell (as administrator):
+    - In PowerShell: `cd _C:\Users\[USERNAME]\Desktop\Release\deployment\_`.
+    - Run the admin script using: `.\headless_admin.ps1 -updaterhino`.  This will download the Rhino installer and place it in the _deployment_ directory.
+    - Once downloaded, double-click on _rhinoinstaller.exe_ and install like you typically would.
+1. Run Rhino and set up a stand alone license key.  Validate your license.
+1. _(Rhino 6 only; not necessary with Rhino 7)_ Copy `RhinoLibrary.dll` in the deployment directory to the installed Rhino system directory.
+1. Add LetsEncrypt SSL Certificate for HTTPS support:
     - Download from https://github.com/PKISharp/win-acme/releases/tag/v1.9.8.4
-    - Unzip download on server
-    - Start PowerShell as admin
-    - cd to unzipped directory
+    - Unzip download on the server.
+    - Start PowerShell as Administrator.
+    - cd to unzipped directory.
     - `.\letsencrypt.exe`
-    - `N` create new certificate
-    - `4` manually input host names
-    - `compute.rhino3d.com`
-    - `1` default web site
-    - `steve@mcneel.com`
-    - `yes`
-    - `Q` quit
-- Double click on `RhinoCommon.Rest.exe` to start the server
-- Install StackDriver client application
+    - `N` create new certificate.
+    - `4` manually input host names.
+    - `compute.rhino3d.com` (or similar)
+    - `1` for default web site.
+    - `you@yourdomain.com` for the user to receive issues.
+    - `yes` to accept the license agreement.
+    - `Q` to Quit.
+1. Start _RhinoCommon.Rest_ as a service:
+    - Start _cmd.exe_ as Administrator.
+    - In _cmd_: `cd C:\Users\[USERNAME]\Desktop\Release\`
+    - Run `RhinoCommon.Rest.exe install` to install as a service.
+    - In the interactive menu, enter your username in the format `.\\[USERNAME]` (for example:`.\steve`) and use the administrator password for this account (this should be the Windows password created on the Google Compute Engine dashboard). 
+1. _(Optional)_ Install StackDriver client application
     - https://cloud.google.com/logging/docs/agent/installation
     - PowerShell `cd C:\Users\[USERNAME]
 invoke-webrequest https://dl.google.com/cloudagents/windows/StackdriverLogging-v1-8.exe -OutFile StackdriverLogging-v1-8.exe;
