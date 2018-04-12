@@ -21,8 +21,8 @@ if ($updaterhino) {
     # TODO: probably need to stop the RhinoCommon.Rest service
 
     # Download Rhino
-    $url = "http://files.mcneel.com/dujour/exe/20180308/rhino_en-us_6.3.18067.23391.exe"
-    $rhino_installer = $PSScriptRoot + "\rhino6installer.exe"
+    $url = "http://files.mcneel.com/dujour/exe/20180412/rhino_en-us_7.0.18102.07485.exe"
+    $rhino_installer = $PSScriptRoot + "\rhinoinstaller.exe"
     (New-Object System.Net.WebClient).DownloadFile($url, $rhino_installer)
     #Invoke-WebRequest -Uri $url -OutFile $rhino_installer
 
