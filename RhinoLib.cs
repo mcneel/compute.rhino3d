@@ -21,7 +21,7 @@ class RhinoLib
       string rhinoSystemDir = @"C:\dev\github\mcneel\rhino\src4\bin\Debug";
 #else
             string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-            string rhinoSystemDir = System.IO.Path.Combine(programFiles, "Rhino 6", "System");
+            string rhinoSystemDir = System.IO.Path.Combine(programFiles, "Rhino WIP", "System");
 #endif
             Environment.SetEnvironmentVariable("path", envPath + ";" + rhinoSystemDir);
             _pathsSet = true;
