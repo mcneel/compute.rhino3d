@@ -491,7 +491,14 @@ public class TestResolver : DefaultContractResolver
         get
         {
             if (_settings == null)
+            {
                 _settings = new JsonSerializerSettings { ContractResolver = new TestResolver() };
+                // return V6 ON_Objects for now
+                var options = new Rhino.FileIO.SerializationOptions();
+                options.RhinoVersion = 6;
+                options.WriteUserData = true;
+                _settings.Context = new System.Runtime.Serialization.StreamingContext(System.Runtime.Serialization.StreamingContextStates.All, options);
+            }
             return _settings;
         }
     }
