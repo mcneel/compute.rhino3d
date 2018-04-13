@@ -33,20 +33,26 @@ namespace RhinoCommon.Rest
             if(!_initialized)
             {
                 _initialized = true;
-#if DEBUG
-                Console.WriteLine("Logging disabled in debug builds");
+
                 Enabled = false;
-                return;
-#else
+                // look for stackdriver logging key in the deployment folder
                 var assembly = System.Reflection.Assembly.GetExecutingAssembly();
-                if( assembly!=null )
+                if (assembly != null)
                 {
                     var dir = System.IO.Path.GetDirectoryName(assembly.Location);
                     dir = System.IO.Path.Combine(dir, "deployment");
                     var jsonpath = System.IO.Directory.GetFiles(dir, "*.json");
-                    System.Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", jsonpath[0]);
+                    if (jsonpath != null && jsonpath.Length > 0)
+                    {
+                        System.Environment.SetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS", jsonpath[0]);
+                        Enabled = true;
+                    }
                 }
-#endif
+
+                if (Enabled)
+                    Console.WriteLine("Logging enabled");
+                else
+                    Console.WriteLine("Logging disabled");
             }
 
             string logId = "info";

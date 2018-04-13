@@ -14,11 +14,9 @@ class RhinoLib
     {
         if (!_pathsSet)
         {
-            // TODO: Use registry to find RhinoInProcess.dll
-            //        Microsoft.Win32.Registry.LocalMachine.OpenSubKey
             string envPath = Environment.GetEnvironmentVariable("path");
 #if DEBUG
-      string rhinoSystemDir = @"C:\dev\github\mcneel\rhino\src4\bin\Debug";
+            string rhinoSystemDir = @"C:\dev\github\mcneel\rhino\src4\bin\Debug";
 #else
             string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
             string rhinoSystemDir = System.IO.Path.Combine(programFiles, "Rhino WIP", "System");
