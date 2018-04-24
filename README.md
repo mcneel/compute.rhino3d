@@ -2,6 +2,13 @@
 
 REST geometry server based on RhinoCommon and headless Rhino
 
+## Local Debug Builds
+
+1. You need to have the Rhino WIP (V7) installed and run at least once.
+1. Load RhinoCommon.Rest.sln and compile as debug
+1. Start the application in the debugger.
+1. You should be able to go to http://localhost to see the server working.
+
 ## Set up for Google Compute Engine
 
 1. Build RhinoCommon.REST project in _Release_.
