@@ -51,6 +51,14 @@ REST geometry server based on RhinoCommon and headless Rhino
     - PowerShell `cd C:\Users\[USERNAME]
 invoke-webrequest https://dl.google.com/cloudagents/windows/StackdriverLogging-v1-8.exe -OutFile StackdriverLogging-v1-8.exe;
 .\StackdriverLogging-v1-8.exe`
+1. _(Optional)_ Add private logging key
+    - Create a logging account key by
+    - going to https://console.cloud.google.com/apis/credentials
+    - Click "Create Credentials" drop down and select "Service account key"
+    - Make the service account stackdriver
+    - This will download a "key" json file (the file name will match the account key id)
+    - Place this json file in the deployment directory on your server.  compute.rhino3d will notice this file when it starts and use it to perform logging to stackdriver
+    
 
 
 ## Notes for future work
