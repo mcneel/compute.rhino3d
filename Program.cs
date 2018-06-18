@@ -52,7 +52,7 @@ namespace RhinoCommon.Rest
         public void Start(bool https, int port)
         {
             Console.WriteLine($"Launching RhinoCore library as {Environment.UserName}");
-            RhinoLib.LaunchInProcess(0, 0);
+            RhinoLib.LaunchInProcess(RhinoLib.LoadMode.Headless, 0);
             var config = new HostConfiguration();
             string address = $"http://localhost:{port}";
             if (https)

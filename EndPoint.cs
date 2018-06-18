@@ -140,8 +140,25 @@ namespace RhinoCommon.Rest
                             if (!parameter.IsOut)
                                 inParams.Add(new Tuple<Type, string>(parameter.ParameterType, parameter.Name));
                         }
-                        if (!method.IsStatic && outParams.Count == 0)
-                            outParams.Add(new Tuple<Type, string>(_classType, ""));
+                        if( !method.IsStatic )
+                        {
+                            object[] methodAttrs = method.GetCustomAttributes(true);
+                            if(methodAttrs!=null)
+                            {
+                                bool isConst = false;
+                                for( int i=0; i<methodAttrs.Length; i++)
+                                {
+                                    Attribute attr = methodAttrs[i] as Attribute;
+                                    if( attr!=null && attr.ToString().Contains("ConstOperationAttribute"))
+                                    {
+                                        isConst = true;
+                                        break;
+                                    }
+                                }
+                                if(!isConst)
+                                    outParams.Add(new Tuple<Type, string>(_classType, ""));
+                            }
+                        }
                     }
 
                     if (outParams.Count > 1)
@@ -273,8 +290,25 @@ namespace RhinoCommon.Rest
                             if (methodParameters[i].IsOut || methodParameters[i].ParameterType.IsByRef)
                                 outParamCount++;
                         }
-                        if (method.ReturnType == typeof(void) && !method.IsStatic && outParamCount == 0)
-                            outParamCount++;
+                        bool isConst = false;
+                        if (!method.IsStatic)
+                        {
+                            object[] methodAttrs = method.GetCustomAttributes(true);
+                            if (methodAttrs != null)
+                            {
+                                for (int i = 0; i < methodAttrs.Length; i++)
+                                {
+                                    Attribute attr = methodAttrs[i] as Attribute;
+                                    if (attr != null && attr.ToString().Contains("ConstOperationAttribute"))
+                                    {
+                                        isConst = true;
+                                        break;
+                                    }
+                                }
+                                if (!isConst)
+                                    outParamCount++;
+                            }
+                        }
                         if (method.ReturnType != typeof(void))
                             outParamCount++;
                         var invokeResult = method.Invoke(invokeObj, invokeParameters);
@@ -284,7 +318,7 @@ namespace RhinoCommon.Rest
                         int outputSlot = 0;
                         if (method.ReturnType != typeof(void))
                             rc[outputSlot++] = invokeResult;
-                        else if (1 == outParamCount && !method.IsStatic)
+                        else if (!method.IsStatic && !isConst)
                             rc[outputSlot++] = invokeObj;
                         for (int i = 0; i < methodParameters.Length; i++)
                         {
@@ -360,10 +394,27 @@ namespace RhinoCommon.Rest
         }
     }
 
-    class ListAllEndPoint : EndPoint
+    class HomePageEndPoint : EndPoint
     {
-        public ListAllEndPoint() : base("", null)
+        public HomePageEndPoint() : base("", null)
         {
+        }
+
+        public override Response HandleGetAsResponse()
+        {
+            return new Nancy.Responses.RedirectResponse("https://www.rhino3d.com/compute");
+        }
+        public override string HandlePost(string body, bool multiple, Dictionary<string, string> returnModifiers)
+        {
+            return "";
+        }
+    }
+
+    class ListSdkEndPoint : EndPoint
+    { 
+        public ListSdkEndPoint() : base("sdk", null)
+        {
+
         }
 
         public override string HandleGet()
@@ -382,7 +433,7 @@ namespace RhinoCommon.Rest
                     sb_sdk.AppendLine($" <a href=\"/{endpoint.Path}\">C# SDK</a><BR>");
                     continue;
                 }
-                if (!(endpoint is ListAllEndPoint))
+                if (!(endpoint is HomePageEndPoint))
                     sb_api.AppendLine((i++).ToString() + $" <a href=\"/{endpoint.Path}\">{endpoint.Path}</a><BR>");
             }
 
@@ -444,8 +495,10 @@ namespace RhinoCommon.Rest
                 return _dictionary;
 
             _dictionary = new Dictionary<string, EndPoint>();
-            var listall = new ListAllEndPoint();
+            var listall = new HomePageEndPoint();
             _dictionary.Add(listall.Path, listall);
+            var sdk = new ListSdkEndPoint();
+            _dictionary.Add(sdk.Path, sdk);
             var csharpsdk = new CSharpSdkEndPoint();
             _dictionary.Add(csharpsdk.Path, csharpsdk);
             BuildApi(_dictionary, typeof(Rhino.RhinoApp).Assembly, "Rhino.Geometry");

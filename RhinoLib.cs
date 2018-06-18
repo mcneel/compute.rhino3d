@@ -3,6 +3,11 @@ using System.Runtime.InteropServices;
 
 class RhinoLib
 {
+    public enum LoadMode : int
+    {
+        Headless = 0,
+        FullUserInterface = 1
+    }
     static RhinoLib()
     {
         Init();
@@ -21,7 +26,7 @@ class RhinoLib
             // use the Rhino WIP directory for both debug and release builds
 #if DEBUG
             string rhinoSystemDir = @"C:\dev\github\mcneel\rhino\src4\bin\Debug";
-            if(!System.IO.File.Exists(rhinoSystemDir))
+            if(!System.IO.Directory.Exists(rhinoSystemDir))
             {
                 string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
                 rhinoSystemDir = System.IO.Path.Combine(programFiles, "Rhino WIP", "System");
@@ -37,7 +42,7 @@ class RhinoLib
     }
 
     [DllImport("RhinoLibrary.dll")]
-    internal static extern int LaunchInProcess(int reserved1, int reserved2);
+    internal static extern int LaunchInProcess(LoadMode mode, int reserved2);
 
     [DllImport("RhinoLibrary.dll")]
     internal static extern int ExitInProcess();
