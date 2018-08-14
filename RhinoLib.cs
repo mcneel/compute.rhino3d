@@ -38,7 +38,17 @@ class RhinoLib
             Environment.SetEnvironmentVariable("path", envPath + ";" + rhinoSystemDir);
             _pathsSet = true;
             _rhpath = rhinoSystemDir;
+            _rhinocommon = System.Reflection.Assembly.LoadFrom(System.IO.Path.Combine(rhinoSystemDir, "RhinoCommon.dll"));
+            AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
         }
+    }
+
+    static System.Reflection.Assembly _rhinocommon;
+    private static System.Reflection.Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
+    {
+        if (args.Name.Contains("RhinoCommon"))
+            return _rhinocommon;
+        return null;
     }
 
     [DllImport("RhinoLibrary.dll")]
