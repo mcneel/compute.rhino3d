@@ -252,8 +252,10 @@ namespace RhinoCommon.Rest
             int tokenCount = ja == null ? 0 : ja.Count;
             if (_methods != null)
             {
+                int methodIndex = -1;
                 foreach (var method in _methods)
                 {
+                    methodIndex++;
                     int paramCount = method.GetParameters().Length;
                     if (!method.IsStatic)
                         paramCount++;
@@ -272,23 +274,32 @@ namespace RhinoCommon.Rest
                             invokeObj = ja[currentJa++].ToObject(_classType);
 
                         int outParamCount = 0;
-                        for (int i = 0; i < methodParameters.Length; i++)
+                        try
                         {
-                            if (!methodParameters[i].IsOut)
+                            for (int i = 0; i < methodParameters.Length; i++)
                             {
-                                var jsonobject = ja[currentJa++];
-                                var generics = methodParameters[i].ParameterType.GetGenericArguments();
-                                if (generics == null || generics.Length != 1)
-                                    invokeParameters[i] = jsonobject.ToObject(methodParameters[i].ParameterType);
-                                else
+                                if (!methodParameters[i].IsOut)
                                 {
-                                    var arrayType = generics[0].MakeArrayType();
-                                    invokeParameters[i] = jsonobject.ToObject(arrayType);
+                                    var jsonobject = ja[currentJa++];
+                                    var generics = methodParameters[i].ParameterType.GetGenericArguments();
+                                    if (generics == null || generics.Length != 1)
+                                        invokeParameters[i] = jsonobject.ToObject(methodParameters[i].ParameterType);
+                                    else
+                                    {
+                                        var arrayType = generics[0].MakeArrayType();
+                                        invokeParameters[i] = jsonobject.ToObject(arrayType);
+                                    }
                                 }
-                            }
 
-                            if (methodParameters[i].IsOut || methodParameters[i].ParameterType.IsByRef)
-                                outParamCount++;
+                                if (methodParameters[i].IsOut || methodParameters[i].ParameterType.IsByRef)
+                                    outParamCount++;
+                            }
+                        }
+                        catch(Exception ex)
+                        {
+                            if (methodIndex < (_methods.Count() - 1))
+                                continue;
+                            throw ex;
                         }
                         bool isConst = false;
                         if (!method.IsStatic)
