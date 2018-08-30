@@ -167,10 +167,12 @@
     </PropertyGroup>
     <Error Condition="!Exists('packages\Grpc.Core.1.7.1\build\net45\Grpc.Core.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Grpc.Core.1.7.1\build\net45\Grpc.Core.targets'))" />
   </Target>
-  <PropertyGroup>
-    <PostBuildEvent>cd $(TargetDir)
-del *.so
-del *.dylib</PostBuildEvent>
-  </PropertyGroup>
+  <Target Name="AfterBuild">
+    <ItemGroup>
+      <FilesToDelete Include="$(TargetDir)\*.so"/>
+      <FilesToDelete Include="$(TargetDir)\*.dylib"/>
+    </ItemGroup>
+    <Delete Files="@(FilesToDelete)" />
+  </Target>
   <Import Project="packages\RhinoCommon.7.0.18225.21105-wip\build\net45\RhinoCommon.targets" Condition="Exists('packages\RhinoCommon.7.0.18225.21105-wip\build\net45\RhinoCommon.targets')" />
 </Project>
