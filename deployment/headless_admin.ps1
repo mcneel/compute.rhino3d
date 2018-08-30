@@ -11,10 +11,11 @@ if ($initialize) {
     netsh http add urlacl url="https://+:443/" user="Everyone"
 
     # Install IIS
-    Install-WindowsFeature -name Web-Server -IncludeManagementTools
+    Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole
+    Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServer
 
-    # Download/Install LetsEncrypt application for SSL
-    # Download/Install StackDriver client application
+    # TODO: Download/Install LetsEncrypt application for SSL
+    # TODO: Download/Install StackDriver client application
 }
 
 if ($updaterhino) {
