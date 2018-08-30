@@ -17,16 +17,15 @@ namespace RhinoCommon.Rest
             // netsh http add urlacl url=http://+:80/ user=Everyone
             // netsh http add urlacl url=https://+:443/ user=Everyone
 #if DEBUG
-            int port = 80;
             bool https = false;
 #else
-            int port = 443;
             bool https = true;
 #endif
             Topshelf.HostFactory.Run(x =>
             {
-                x.AddCommandLineDefinition("port", p => port = int.Parse(p));
                 x.AddCommandLineDefinition("https", b => https = bool.Parse(b));
+                int port = https ? 443 : 80; // default
+                x.AddCommandLineDefinition("port", p => port = int.Parse(p));
                 x.ApplyCommandLine();
                 x.SetStartTimeout(new TimeSpan(0, 1, 0));
                 x.Service<NancySelfHost>(s =>
