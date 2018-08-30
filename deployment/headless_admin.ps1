@@ -11,6 +11,7 @@ if ($initialize) {
     netsh http add urlacl url="https://+:443/" user="Everyone"
 
     # Install IIS
+    Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
     Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole
     Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServer
 
