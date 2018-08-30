@@ -27,7 +27,6 @@ REST geometry server based on RhinoCommon and headless Rhino
     - Run the admin script using: `.\headless_admin.ps1 -updaterhino`.  This will download the Rhino installer and place it in the _deployment_ directory.
     - Once downloaded, double-click on _rhinoinstaller.exe_ and install like you typically would.
 1. Run Rhino and set up a stand alone license key.  Validate your license.
-1. _(Rhino 6 only; not necessary with Rhino 7)_ Copy `RhinoLibrary.dll` in the deployment directory to the installed Rhino system directory.
 1. Add LetsEncrypt SSL Certificate for HTTPS support:
     - Download from https://github.com/PKISharp/win-acme/releases/tag/v1.9.8.4
     - Unzip download on the server.
