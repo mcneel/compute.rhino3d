@@ -16,7 +16,7 @@ namespace RhinoCommon.Rest
             // Use cmd.exe or PowerShell in Administrator mode with the following command:
             // netsh http add urlacl url=http://+:80/ user=Everyone
             // netsh http add urlacl url=https://+:443/ user=Everyone
-#if DEBUG
+#if !DEBUG
             bool https = false;
 #else
             bool https = true;
