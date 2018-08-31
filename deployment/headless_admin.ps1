@@ -14,6 +14,7 @@ if ($initialize) {
     Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
     Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerRole
     Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServer
+    Enable-WindowsOptionalFeature -Online -FeatureName IIS-WebServerManagementTools
 
     # TODO: Download/Install LetsEncrypt application for SSL
     # TODO: Download/Install StackDriver client application
