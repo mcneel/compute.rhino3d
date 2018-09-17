@@ -115,7 +115,7 @@ namespace RhinoCommon.Rest
             var settings = new GzipCompressionSettings();
             settings.MinimumBytes = 1024;
             pipelines.EnableGzipCompression(settings);
-
+            pipelines.AddRequestId();
             base.ApplicationStartup(container, pipelines);
         }
 
@@ -164,6 +164,7 @@ namespace RhinoCommon.Rest
         public RhinoModule()
         {
             Get["/healthcheck"] = _ => "healthy";
+            Get["/version"] = _ => FixedEndpoints.GetVersion();
 
             var endpoints = EndPointDictionary.GetDictionary();
             foreach (var kv in endpoints)
