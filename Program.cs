@@ -3,6 +3,10 @@ using Nancy.Hosting.Self;
 using Nancy.Extensions;
 using Topshelf;
 using Nancy.Conventions;
+using Nancy.Bootstrapper;
+using Nancy.TinyIoc;
+using Nancy.Gzip;
+using System.Collections.Generic;
 
 namespace RhinoCommon.Rest
 {
@@ -16,25 +20,41 @@ namespace RhinoCommon.Rest
             // Use cmd.exe or PowerShell in Administrator mode with the following command:
             // netsh http add urlacl url=http://+:80/ user=Everyone
             // netsh http add urlacl url=https://+:443/ user=Everyone
+
+            int https_port = 0;
 #if DEBUG
-            int port = 80;
-            bool https = false;
+            int http_port = 8888;
 #else
-            int port = 443;
-            bool https = true;
+            int http_port = 80;
 #endif
+            string sHttpPort = Environment.GetEnvironmentVariable("com.rhino3d.compute.HTTP_PORT");
+
+            if (!string.IsNullOrWhiteSpace(sHttpPort))
+            {
+                if (!int.TryParse(sHttpPort, out http_port))
+                {
+                    Console.WriteLine(string.Format("environment variable com.rhino3d.compute.HTTP_PORT set to '{0}'; unable to parse as integer.", sHttpPort));
+                }
+            }
+
+            string sHttpsPort = Environment.GetEnvironmentVariable("com.rhino3d.compute.HTTPS_PORT");
+            if (!string.IsNullOrWhiteSpace(sHttpsPort))
+            {
+                if (!int.TryParse(sHttpsPort, out https_port))
+                {
+                    Console.WriteLine(string.Format("environment variable com.rhino3d.compute.HTTP_PORT set to '{0}'; unable to parse as integer.", sHttpsPort));
+                }
+            }
             Topshelf.HostFactory.Run(x =>
             {
-                x.AddCommandLineDefinition("port", p => port = int.Parse(p));
-                x.AddCommandLineDefinition("https", b => https = bool.Parse(b));
                 x.ApplyCommandLine();
                 x.SetStartTimeout(new TimeSpan(0, 1, 0));
                 x.Service<NancySelfHost>(s =>
-          {
-              s.ConstructUsing(name => new NancySelfHost());
-              s.WhenStarted(tc => tc.Start(https, port));
-              s.WhenStopped(tc => tc.Stop());
-          });
+                  {
+                      s.ConstructUsing(name => new NancySelfHost());
+                      s.WhenStarted(tc => tc.Start(http_port, https_port));
+                      s.WhenStopped(tc => tc.Stop());
+                  });
                 x.RunAsPrompt();
                 //x.RunAsLocalService();
                 x.SetDisplayName("RhinoCommon Geometry Server");
@@ -49,24 +69,34 @@ namespace RhinoCommon.Rest
         private NancyHost _nancyHost;
         public static bool RunningHttps { get; set; }
 
-        public void Start(bool https, int port)
+        public void Start(int http_port, int https_port)
         {
             Console.WriteLine($"Launching RhinoCore library as {Environment.UserName}");
             RhinoLib.LaunchInProcess(RhinoLib.LoadMode.Headless, 0);
             var config = new HostConfiguration();
-            string address = $"http://localhost:{port}";
-            if (https)
-            {
-                RunningHttps = true;
-                address = $"https://localhost:{port}";
-                _nancyHost = new NancyHost(config, new Uri(address), new Uri("http://localhost:80"));
-            }
+            var listenUriList = new List<Uri>();
+
+            if (http_port > 0)
+                listenUriList.Add(new Uri($"http://localhost:{http_port}"));
+            if (https_port > 0)
+                listenUriList.Add(new Uri($"https://localhost:{https_port}"));
+
+            if (listenUriList.Count > 0)
+                _nancyHost = new NancyHost(config, listenUriList.ToArray());
             else
+                Console.WriteLine("ERROR: neither http_port nor https_port are set; NOT LISTENING!");
+            try
             {
-                _nancyHost = new NancyHost(config, new Uri(address));
+                _nancyHost.Start();
+                foreach (var uri in listenUriList)
+                    Console.WriteLine($"Running on {uri}");
             }
-            _nancyHost.Start();
-            Console.WriteLine("Running on " + address);
+            catch (Nancy.Hosting.Self.AutomaticUrlReservationCreationFailureException)
+            {
+                Console.WriteLine("\r\nERROR: URL Not Reserved:\r\nFrom an elevated command promt, run:\r\n");
+                foreach (var uri in listenUriList)
+                    Console.WriteLine($"netsh http add urlacl url=\"{uri}\" user=\"Everyone\"\r\n");
+            }
         }
 
         public void Stop()
@@ -78,6 +108,16 @@ namespace RhinoCommon.Rest
     public class Bootstrapper : Nancy.DefaultNancyBootstrapper
     {
         private byte[] favicon;
+
+        protected override void ApplicationStartup(TinyIoCContainer container, IPipelines pipelines)
+        {
+            // Enable Compression with Settings
+            var settings = new GzipCompressionSettings();
+            settings.MinimumBytes = 1024;
+            pipelines.EnableGzipCompression(settings);
+
+            base.ApplicationStartup(container, pipelines);
+        }
 
         protected override void ConfigureConventions(NancyConventions nancyConventions)
         {
