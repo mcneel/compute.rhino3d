@@ -12,12 +12,15 @@ namespace RhinoCommon.Rest
 
         public static void AddRequestId(this IPipelines pipelines)
         {
+            pipelines.BeforeRequest += SetRequestId;
             pipelines.AfterRequest += SetHostName;
             pipelines.AfterRequest += AddCORSSupport;
         }
 
         private static Response SetRequestId(NancyContext context)
         {
+            context.Items.Add("x-compute-id", Guid.NewGuid().ToString());
+            context.Items.Add("x-compute-host", GetFQDN());
             return null;
         }
 
@@ -25,8 +28,8 @@ namespace RhinoCommon.Rest
         {
             // TODO: The response ID should be set very early in the response handler and used in our internal logging.
             // Then, that ID should be returned here.
-            context.Response.Headers.Add("x-compute-id", Guid.NewGuid().ToString());
-            context.Response.Headers.Add("x-compute-host", GetFQDN());
+            context.Response.Headers.Add("x-compute-id", context.Items["x-compute-id"] as string);
+            context.Response.Headers.Add("x-compute-host", context.Items["x-compute-host"] as string);
         }
 
         private static void AddCORSSupport(NancyContext context)

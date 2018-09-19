@@ -10,7 +10,7 @@ namespace RhinoCommon.Rest
 {
     public static class FixedEndpoints
     {
-        public static Response GetVersion()
+        public static Response GetVersion(NancyContext ctx)
         {
             var values = new Dictionary<string, string>();
             values.Add("Rhino", Rhino.RhinoApp.Version.ToString());

@@ -164,7 +164,7 @@ namespace RhinoCommon.Rest
         public RhinoModule()
         {
             Get["/healthcheck"] = _ => "healthy";
-            Get["/version"] = _ => FixedEndpoints.GetVersion();
+            Get["/version"] = _ => FixedEndpoints.GetVersion(Context);
 
             var endpoints = EndPointDictionary.GetDictionary();
             foreach (var kv in endpoints)
