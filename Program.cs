@@ -20,31 +20,13 @@ namespace RhinoCommon.Rest
             // Use cmd.exe or PowerShell in Administrator mode with the following command:
             // netsh http add urlacl url=http://+:80/ user=Everyone
             // netsh http add urlacl url=https://+:443/ user=Everyone
-
-            int https_port = 0;
+            int https_port = Env.GetEnvironmentInt("com.rhino3d.compute.HTTPS_PORT", 0);
 #if DEBUG
-            int http_port = 8888;
+            int http_port = Env.GetEnvironmentInt("com.rhino3d.compute.HTTP_PORT", 8888);
 #else
-            int http_port = 80;
+            int http_port = Env.GetEnvironmentInt("com.rhino3d.compute.HTTP_PORT", 80);
 #endif
-            string sHttpPort = Environment.GetEnvironmentVariable("com.rhino3d.compute.HTTP_PORT");
 
-            if (!string.IsNullOrWhiteSpace(sHttpPort))
-            {
-                if (!int.TryParse(sHttpPort, out http_port))
-                {
-                    Console.WriteLine(string.Format("environment variable com.rhino3d.compute.HTTP_PORT set to '{0}'; unable to parse as integer.", sHttpPort));
-                }
-            }
-
-            string sHttpsPort = Environment.GetEnvironmentVariable("com.rhino3d.compute.HTTPS_PORT");
-            if (!string.IsNullOrWhiteSpace(sHttpsPort))
-            {
-                if (!int.TryParse(sHttpsPort, out https_port))
-                {
-                    Console.WriteLine(string.Format("environment variable com.rhino3d.compute.HTTP_PORT set to '{0}'; unable to parse as integer.", sHttpsPort));
-                }
-            }
             Topshelf.HostFactory.Run(x =>
             {
                 x.ApplyCommandLine();
@@ -62,6 +44,8 @@ namespace RhinoCommon.Rest
             });
             RhinoLib.ExitInProcess();
         }
+
+
     }
 
     public class NancySelfHost
@@ -116,6 +100,10 @@ namespace RhinoCommon.Rest
             settings.MinimumBytes = 1024;
             pipelines.EnableGzipCompression(settings);
             pipelines.AddRequestId();
+
+            if (Env.GetEnvironmentBool("com.rhino3d.compute.RHINO_AUTH", false))
+                pipelines.AddRhinoAccountsAuth();
+
             base.ApplicationStartup(container, pipelines);
         }
 
