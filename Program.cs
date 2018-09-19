@@ -198,9 +198,6 @@ namespace RhinoCommon.Rest
 
                     // In order to enable CORS, we add the proper headers to the response
                     var resp = new Nancy.Response();
-                    resp.Headers.Add("Access-Control-Allow-Origin", "*");
-                    resp.Headers.Add("Access-Control-Allow-Methods", "POST,GET");
-                    resp.Headers.Add("Access-Control-Allow-Headers", "Accept, Origin, Content-type");
                     resp.Contents = (e) =>
                     {
                         using (var sw = new System.IO.StreamWriter(e))

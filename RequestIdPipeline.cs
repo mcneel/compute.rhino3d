@@ -13,6 +13,7 @@ namespace RhinoCommon.Rest
         public static void AddRequestId(this IPipelines pipelines)
         {
             pipelines.AfterRequest += SetHostName;
+            pipelines.AfterRequest += AddCORSSupport;
         }
 
         private static Response SetRequestId(NancyContext context)
@@ -26,6 +27,13 @@ namespace RhinoCommon.Rest
             // Then, that ID should be returned here.
             context.Response.Headers.Add("x-compute-id", Guid.NewGuid().ToString());
             context.Response.Headers.Add("x-compute-host", GetFQDN());
+        }
+
+        private static void AddCORSSupport(NancyContext context)
+        {
+            context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+            context.Response.Headers.Add("Access-Control-Allow-Methods", "OPTIONS,POST,GET");
+            context.Response.Headers.Add("Access-Control-Allow-Headers", "*");
         }
 
         public static string GetFQDN()
