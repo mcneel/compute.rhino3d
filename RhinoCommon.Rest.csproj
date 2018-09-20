@@ -54,6 +54,9 @@
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Eto, Version=2.4.6821.30204, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
+      <HintPath>packages\RhinoCommon.7.0.18246.23575-wip\lib\net45\Eto.dll</HintPath>
+    </Reference>
     <Reference Include="Google.Api.CommonProtos, Version=1.1.0.0, Culture=neutral, PublicKeyToken=3ec5ea7f18953e47, processorArchitecture=MSIL">
       <HintPath>packages\Google.Api.CommonProtos.1.1.0\lib\net45\Google.Api.CommonProtos.dll</HintPath>
     </Reference>
@@ -105,9 +108,11 @@
     <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="RhinoCommon">
-      <HintPath>..\rhino\src4\bin\Debug\RhinoCommon.dll</HintPath>
-      <Private>False</Private>
+    <Reference Include="Rhino.UI, Version=7.0.18246.23570, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
+      <HintPath>packages\RhinoCommon.7.0.18246.23575-wip\lib\net45\Rhino.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="RhinoCommon, Version=7.0.18246.23570, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
+      <HintPath>packages\RhinoCommon.7.0.18246.23575-wip\lib\net45\RhinoCommon.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -167,6 +172,7 @@
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
     <Error Condition="!Exists('packages\Grpc.Core.1.7.1\build\net45\Grpc.Core.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Grpc.Core.1.7.1\build\net45\Grpc.Core.targets'))" />
+    <Error Condition="!Exists('packages\RhinoCommon.7.0.18246.23575-wip\build\net45\RhinoCommon.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\RhinoCommon.7.0.18246.23575-wip\build\net45\RhinoCommon.targets'))" />
   </Target>
   <Target Name="AfterBuild">
     <ItemGroup>
@@ -175,4 +181,5 @@
     </ItemGroup>
     <Delete Files="@(FilesToDelete)" />
   </Target>
+  <Import Project="packages\RhinoCommon.7.0.18246.23575-wip\build\net45\RhinoCommon.targets" Condition="Exists('packages\RhinoCommon.7.0.18246.23575-wip\build\net45\RhinoCommon.targets')" />
 </Project>
