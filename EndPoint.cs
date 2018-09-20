@@ -13,6 +13,13 @@ namespace RhinoCommon.Rest
         Type _classType;
         ConstructorInfo[] _constructors;
         MethodInfo[] _methods;
+
+        public static EndPoint Create(string path, Func<NancyContext, Response> getFunction)
+        {
+            GetEndPoint rc = new GetEndPoint(path, getFunction);
+            return rc;
+        }
+
         private EndPoint(Type classType, ConstructorInfo[] constructors)
         {
             _classType = classType;
@@ -21,7 +28,7 @@ namespace RhinoCommon.Rest
             Path = basepath + "/New";
         }
 
-        private EndPoint(Type classType, MethodInfo[] methods)
+        private EndPoint(Type classType, MethodInfo[] methods, bool explicitPath)
         {
             _classType = classType;
             _methods = methods;
@@ -32,7 +39,40 @@ namespace RhinoCommon.Rest
             else if (funcname.StartsWith("set_"))
                 funcname = "Set" + funcname.Substring("set_".Length);
             Path = basepath + "/" + funcname;
+            if(explicitPath)
+            {
+                var parameters = methods[0].GetParameters();
+                bool isStatic = methods[0].IsStatic;
+                var extra = new System.Text.StringBuilder();
+                if(!isStatic)
+                {
+                    extra.Append($"-{classType.Name}");
+                }
+                for(int i=0; i<parameters.Length; i++ )
+                {
+                    if (0 == i && !isStatic)
+                        extra.Append("-");
+                    else
+                        extra.Append("_");
+                        
+
+                    var parameter = parameters[i];
+                    var type = parameter.ParameterType;
+                    string name = type.Name.Replace("&", "");
+                    if (name.StartsWith("IEnumerable"))
+                    {
+                        Type[] genericArgs = type.GetGenericArguments();
+                        name = genericArgs[0].Name + "Array";
+                    }
+                    name = name.Replace("[]", "Array").Replace("Int32","Int").Replace("Boolean","Bool");
+                    extra.Append(name);
+                }
+                Path = Path + extra.ToString();
+            }
         }
+
+        private EndPoint(Type classType, MethodInfo[] methods) : this(classType, methods, false) { }
+        private EndPoint(Type classType, MethodInfo method) : this(classType, new MethodInfo[] { method }, true) { }
 
         protected EndPoint(string path, Type classType)
         {
@@ -81,8 +121,19 @@ namespace RhinoCommon.Rest
                     }
                     break;
                 }
+
+                // This is the general "catch all" endpoint that attempts to figure out the best routine to call
                 EndPoint endpoint = new EndPoint(t, overloads.ToArray());
                 endpoints.Add(endpoint);
+
+                foreach (var overload in overloads)
+                {
+                    var parameters = overload.GetParameters();
+                    if (parameters == null || parameters.Length < 1)
+                        continue;
+                    endpoints.Add(new EndPoint(t, overload)); 
+                }
+
             }
 
             return endpoints;
@@ -111,12 +162,12 @@ namespace RhinoCommon.Rest
             return path.Substring(index + 1);
         }
 
-        public virtual Nancy.Response HandleGetAsResponse()
+        public virtual Nancy.Response HandleGetAsResponse(NancyContext context)
         {
             return null;
         }
 
-        virtual public string HandleGet()
+        public virtual string HandleGet()
         {
             string funcname = FunctionName();
             var sb = new System.Text.StringBuilder("<!DOCTYPE html><html><body>");
@@ -203,7 +254,7 @@ namespace RhinoCommon.Rest
             return sb.ToString();
         }
 
-        virtual public string HandlePost(string jsonString, bool multiple, Dictionary<string,string> returnModifiers)
+        public virtual string HandlePost(string jsonString, bool multiple, Dictionary<string,string> returnModifiers)
         {
             object data = string.IsNullOrWhiteSpace(jsonString) ? null : Newtonsoft.Json.JsonConvert.DeserializeObject(jsonString);
             var ja = data as Newtonsoft.Json.Linq.JArray;
@@ -405,27 +456,36 @@ namespace RhinoCommon.Rest
         }
     }
 
-    class HomePageEndPoint : EndPoint
+    /// <summary>
+    /// Only handles simple get methods
+    /// </summary>
+    class GetEndPoint : EndPoint
     {
-        public HomePageEndPoint() : base("", null)
+        Func<NancyContext, Response> _function;
+
+        public GetEndPoint(string path, Func<NancyContext, Response> getFunction) : base(path, null)
         {
+            _function = getFunction;
         }
 
-        public override Response HandleGetAsResponse()
+        public override Response HandleGetAsResponse(NancyContext context)
         {
-            return new Nancy.Responses.RedirectResponse("https://www.rhino3d.com/compute");
+            if (_function != null)
+                return _function(context);
+            return base.HandleGetAsResponse(context);
         }
-        public override string HandlePost(string body, bool multiple, Dictionary<string, string> returnModifiers)
+
+        public override string HandlePost(string jsonString, bool multiple, Dictionary<string, string> returnModifiers)
         {
-            return "";
+            // this should never be called
+            throw new NotImplementedException();
         }
     }
 
-    class ListSdkEndPoint : EndPoint
+    class ListSdkEndPoint : GetEndPoint
     { 
         public ListSdkEndPoint() : base("sdk", null)
         {
-
         }
 
         public override string HandleGet()
@@ -439,109 +499,16 @@ namespace RhinoCommon.Rest
             int i = 1;
             foreach (var endpoint in endpoints)
             {
-                if( endpoint is CSharpSdkEndPoint )
-                {
-                    sb_sdk.AppendLine($" <a href=\"/{endpoint.Path}\">C# SDK</a><BR>");
-                    continue;
-                }
-                if (!(endpoint is HomePageEndPoint))
-                    sb_api.AppendLine((i++).ToString() + $" <a href=\"/{endpoint.Path}\">{endpoint.Path}</a><BR>");
+                if (!(endpoint is GetEndPoint))
+                    sb_api.AppendLine((i++).ToString() + $" <a href=\"/{endpoint.Path.ToLowerInvariant()}\">{endpoint.Path}</a><BR>");
             }
+            sb_sdk.AppendLine($" <a href=\"/sdk/csharp\">C# SDK</a><BR>");
 
 
             sb.Append(sb_sdk);
             sb.Append(sb_api);
             sb.AppendLine("</p></body></html>");
             return sb.ToString();
-        }
-
-        public override string HandlePost(string body, bool multiple, Dictionary<string, string> returnModifiers)
-        {
-            return "";
-        }
-    }
-
-    class CSharpSdkEndPoint : EndPoint
-    {
-        public CSharpSdkEndPoint() : base("sdk/csharp", null)
-        {
-        }
-
-        public override Response HandleGetAsResponse()
-        {
-            string content = "";
-            using (var resourceStream = GetType().Assembly.GetManifestResourceStream("RhinoCommon.Rest.RhinoCompute.cs"))
-            {
-                var stream = new System.IO.StreamReader(resourceStream);
-                content = stream.ReadToEnd();
-                stream.Close();
-            }
-
-            var response = new Response();
-
-            response.Headers.Add("Content-Disposition", "attachment; filename=RhinoCompute.cs");
-            response.ContentType = "text/plain";
-            response.Contents = stream => {
-                using (var writer = new System.IO.StreamWriter(stream))
-                {
-                    writer.Write(content);
-                }
-            };
-
-            return response;
-        }
-
-        public override string HandlePost(string body, bool multiple, Dictionary<string, string> returnModifiers)
-        {
-            return "";
-        }
-    }
-
-    static class EndPointDictionary
-    {
-        static Dictionary<string, EndPoint> _dictionary;
-        public static Dictionary<string, EndPoint> GetDictionary()
-        {
-            if (_dictionary != null)
-                return _dictionary;
-
-            _dictionary = new Dictionary<string, EndPoint>();
-            var listall = new HomePageEndPoint();
-            _dictionary.Add(listall.Path, listall);
-            var sdk = new ListSdkEndPoint();
-            _dictionary.Add(sdk.Path, sdk);
-            var csharpsdk = new CSharpSdkEndPoint();
-            _dictionary.Add(csharpsdk.Path, csharpsdk);
-            BuildApi(_dictionary, typeof(Rhino.RhinoApp).Assembly, "Rhino.Geometry");
-            BuildApi(_dictionary, typeof(Rhino.RhinoApp).Assembly, "Rhino.Geometry.Intersect");
-            return _dictionary;
-        }
-
-        static void BuildApi(Dictionary<string, EndPoint> dict, Assembly assembly, string nameSpace)
-        {
-            foreach (var export in assembly.GetExportedTypes())
-            {
-                if (!string.Equals(export.Namespace, nameSpace, StringComparison.Ordinal))
-                    continue;
-                if (export.IsInterface || export.IsEnum)
-                    continue;
-                if (export.IsClass || export.IsValueType)
-                {
-                    var endpoints = EndPoint.Create(export);
-                    foreach (var endpoint in endpoints)
-                    {
-                        string key = endpoint.Path.ToLowerInvariant();
-                        try
-                        {
-                            dict.Add(key, endpoint);
-                        }
-                        catch (Exception)
-                        {
-                            //throw away exception for now
-                        }
-                    }
-                }
-            }
         }
     }
 }

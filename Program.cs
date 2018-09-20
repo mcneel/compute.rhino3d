@@ -93,7 +93,7 @@ namespace RhinoCommon.Rest
 
     public class Bootstrapper : Nancy.DefaultNancyBootstrapper
     {
-        private byte[] favicon;
+        private byte[] _favicon;
 
         protected override void ApplicationStartup(TinyIoCContainer container, IPipelines pipelines)
         {
@@ -119,7 +119,7 @@ namespace RhinoCommon.Rest
 
         protected override byte[] FavIcon
         {
-            get { return this.favicon ?? (this.favicon = LoadFavIcon()); }
+            get { return _favicon ?? (_favicon = LoadFavIcon()); }
         }
 
         private byte[] LoadFavIcon()
@@ -138,8 +138,6 @@ namespace RhinoCommon.Rest
         public RhinoModule()
         {
             Get["/healthcheck"] = _ => "healthy";
-            Get["/version"] = _ => FixedEndpoints.GetVersion(Context);
-            Get["/hammertime"] = _ => FixedEndpoints.HammerTime(Context); // for testing auto-scaling
 
             var endpoints = EndPointDictionary.GetDictionary();
             foreach (var kv in endpoints)
@@ -152,11 +150,15 @@ namespace RhinoCommon.Rest
                         return new Nancy.Responses.RedirectResponse(url, Nancy.Responses.RedirectResponse.RedirectType.Permanent);
                     }
                     Logger.WriteInfo($"GET {kv.Key}", null);
-                    var response = kv.Value.HandleGetAsResponse();
+                    var response = kv.Value.HandleGetAsResponse(Context);
                     if (response != null)
                         return response;
                     return kv.Value.HandleGet();
                 };
+
+                if (kv.Value is GetEndPoint)
+                    continue;
+
                 Post[kv.Key] = _ =>
                 {
                     if (NancySelfHost.RunningHttps && !Request.Url.IsSecure)

@@ -147,6 +147,7 @@
     <Compile Include="Authentication\ApiKey.cs" />
     <Compile Include="Authentication\RhinoAccounts.cs" />
     <Compile Include="EndPoint.cs" />
+    <Compile Include="EndPointDictionary.cs" />
     <Compile Include="Environment.cs" />
     <Compile Include="FixedEndpoints.cs" />
     <Compile Include="Logger.cs" />
