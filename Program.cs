@@ -20,11 +20,11 @@ namespace RhinoCommon.Rest
             // Use cmd.exe or PowerShell in Administrator mode with the following command:
             // netsh http add urlacl url=http://+:80/ user=Everyone
             // netsh http add urlacl url=https://+:443/ user=Everyone
-            int https_port = Env.GetEnvironmentInt("com.rhino3d.compute.HTTPS_PORT", 0);
+            int https_port = Env.GetEnvironmentInt("COMPUTE_HTTPS_PORT", 0);
 #if DEBUG
-            int http_port = Env.GetEnvironmentInt("com.rhino3d.compute.HTTP_PORT", 8888);
+            int http_port = Env.GetEnvironmentInt("COMPUTE_HTTP_PORT", 8888);
 #else
-            int http_port = Env.GetEnvironmentInt("com.rhino3d.compute.HTTP_PORT", 80);
+            int http_port = Env.GetEnvironmentInt("COMPUTE_HTTP_PORT", 80);
 #endif
 
             Topshelf.HostFactory.Run(x =>
@@ -101,7 +101,7 @@ namespace RhinoCommon.Rest
             pipelines.EnableGzipCompression(settings);
             pipelines.AddRequestId();
 
-            if (Env.GetEnvironmentBool("com.rhino3d.compute.RHINO_AUTH", false))
+            if (Env.GetEnvironmentBool("COMPUTE_RHINO_AUTH", false))
                 pipelines.AddRhinoAccountsAuth();
 
             base.ApplicationStartup(container, pipelines);
