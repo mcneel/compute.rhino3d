@@ -5,16 +5,13 @@
 )
 
 if ($initialize) {
-
     # Make http/https access available to Nancy
-    netsh http add urlacl url="http://+:80/" user="Everyone"
-    netsh http add urlacl url="https://+:443/" user="Everyone"
-
-    # Install IIS
-    Install-WindowsFeature -name Web-Server -IncludeManagementTools
-
-    # Download/Install LetsEncrypt application for SSL
-    # Download/Install StackDriver client application
+    if (${env:com.rhino3d.compute.HTTP_PORT}) {
+      netsh http add urlacl url="http://+:${env:com.rhino3d.compute.HTTP_PORT}/" user="Everyone"
+    }
+    if (${env:com.rhino3d.compute.HTTPS_PORT}) {
+      netsh http add urlacl url="https://+:${env:com.rhino3d.compute.HTTPS_PORT}/" user="Everyone"
+    }
 }
 
 if ($updaterhino) {
