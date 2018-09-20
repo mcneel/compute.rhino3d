@@ -93,7 +93,7 @@ namespace RhinoCommon.Rest
 
     public class Bootstrapper : Nancy.DefaultNancyBootstrapper
     {
-        private byte[] favicon;
+        private byte[] _favicon;
 
         protected override void ApplicationStartup(TinyIoCContainer container, IPipelines pipelines)
         {
@@ -119,7 +119,7 @@ namespace RhinoCommon.Rest
 
         protected override byte[] FavIcon
         {
-            get { return this.favicon ?? (this.favicon = LoadFavIcon()); }
+            get { return _favicon ?? (_favicon = LoadFavIcon()); }
         }
 
         private byte[] LoadFavIcon()
@@ -138,8 +138,6 @@ namespace RhinoCommon.Rest
         public RhinoModule()
         {
             Get["/healthcheck"] = _ => "healthy";
-            Get["/version"] = _ => FixedEndpoints.GetVersion(Context);
-            Get["/hammertime"] = _ => FixedEndpoints.HammerTime(Context); // for testing auto-scaling
 
             var endpoints = EndPointDictionary.GetDictionary();
             foreach (var kv in endpoints)
@@ -152,11 +150,15 @@ namespace RhinoCommon.Rest
                         return new Nancy.Responses.RedirectResponse(url, Nancy.Responses.RedirectResponse.RedirectType.Permanent);
                     }
                     Logger.WriteInfo($"GET {kv.Key}", null);
-                    var response = kv.Value.HandleGetAsResponse();
+                    var response = kv.Value.HandleGetAsResponse(Context);
                     if (response != null)
                         return response;
                     return kv.Value.HandleGet();
                 };
+
+                if (kv.Value is GetEndPoint)
+                    continue;
+
                 Post[kv.Key] = _ =>
                 {
                     if (NancySelfHost.RunningHttps && !Request.Url.IsSecure)
@@ -167,20 +169,19 @@ namespace RhinoCommon.Rest
                         Logger.WriteInfo($"POST {kv.Key}", auth_user as string);
                     var jsonString = Request.Body.AsString();
 
-                    // In order to enable CORS, we add the proper headers to the response
                     var resp = new Nancy.Response();
                     resp.Contents = (e) =>
                     {
                         using (var sw = new System.IO.StreamWriter(e))
                         {
                             bool multiple = false;
-                            System.Collections.Generic.Dictionary<string, string> returnModifiers = null;
+                            Dictionary<string, string> returnModifiers = null;
                             foreach(string name in Request.Query)
                             {
                                 if( name.StartsWith("return.", StringComparison.InvariantCultureIgnoreCase))
                                 {
                                     if (returnModifiers == null)
-                                        returnModifiers = new System.Collections.Generic.Dictionary<string, string>();
+                                        returnModifiers = new Dictionary<string, string>();
                                     string dataType = "Rhino.Geometry." + name.Substring("return.".Length);
                                     string items = Request.Query[name];
                                     returnModifiers[dataType] = items;

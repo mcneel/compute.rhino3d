@@ -7,6 +7,11 @@ namespace RhinoCommon.Rest
 {
     public static class FixedEndpoints
     {
+        public static Response HomePage(NancyContext ctx)
+        {
+            return new Nancy.Responses.RedirectResponse("https://www.rhino3d.com/compute");
+        }
+
         public static Response GetVersion(NancyContext ctx)
         {
             var values = new Dictionary<string, string>();
@@ -14,6 +19,29 @@ namespace RhinoCommon.Rest
             values.Add("Compute", Assembly.GetExecutingAssembly().GetName().Version.ToString());
             var response = (Nancy.Response)Newtonsoft.Json.JsonConvert.SerializeObject(values);
             response.ContentType = "application/json";
+            return response;
+        }
+
+        public static Response CSharpSdk(NancyContext ctx)
+        {
+            string content = "";
+            using (var resourceStream = typeof(FixedEndpoints).Assembly.GetManifestResourceStream("RhinoCommon.Rest.RhinoCompute.cs"))
+            {
+                var stream = new System.IO.StreamReader(resourceStream);
+                content = stream.ReadToEnd();
+                stream.Close();
+            }
+
+            var response = new Response();
+
+            response.Headers.Add("Content-Disposition", "attachment; filename=RhinoCompute.cs");
+            response.ContentType = "text/plain";
+            response.Contents = stream => {
+                using (var writer = new System.IO.StreamWriter(stream))
+                {
+                    writer.Write(content);
+                }
+            };
             return response;
         }
 
@@ -58,3 +86,4 @@ namespace RhinoCommon.Rest
         }
     }
 }
+
