@@ -73,13 +73,14 @@ namespace RhinoCommon.Rest
             {
                 _nancyHost.Start();
                 foreach (var uri in listenUriList)
-                    Console.WriteLine($"Running on {uri}");
+                    Console.WriteLine($"Running on {uri.OriginalString}");
             }
             catch (Nancy.Hosting.Self.AutomaticUrlReservationCreationFailureException)
             {
-                Console.WriteLine("\r\nERROR: URL Not Reserved:\r\nFrom an elevated command promt, run:\r\n");
+                Console.WriteLine(Environment.NewLine + "ERROR: URL Not Reserved. From an elevated command promt, run:" + Environment.NewLine);
                 foreach (var uri in listenUriList)
-                    Console.WriteLine($"netsh http add urlacl url=\"{uri}\" user=\"Everyone\"\r\n");
+                    Console.WriteLine($"netsh http add urlacl url=\"{uri.Scheme}://+:{uri.Port}/\" user=\"Everyone\"");
+                Environment.Exit(1);
             }
         }
 
