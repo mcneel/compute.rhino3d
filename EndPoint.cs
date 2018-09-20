@@ -42,19 +42,17 @@ namespace RhinoCommon.Rest
             if(explicitPath)
             {
                 var parameters = methods[0].GetParameters();
-                bool isStatic = methods[0].IsStatic;
                 var extra = new System.Text.StringBuilder();
-                if(!isStatic)
+                bool dashAdded = false;
+                if(!methods[0].IsStatic)
                 {
                     extra.Append($"-{classType.Name}");
+                    dashAdded = true;
                 }
                 for(int i=0; i<parameters.Length; i++ )
                 {
-                    if (0 == i && !isStatic)
-                        extra.Append("-");
-                    else
-                        extra.Append("_");
-                        
+                    extra.Append(dashAdded ? "_" : "-");
+                    dashAdded = true;
 
                     var parameter = parameters[i];
                     var type = parameter.ParameterType;
@@ -159,7 +157,11 @@ namespace RhinoCommon.Rest
         {
             string path = Path;
             int index = path.LastIndexOf("/");
-            return path.Substring(index + 1);
+            string funcname = path.Substring(index + 1);
+            index = funcname.IndexOf("-");
+            if (index > 0)
+                funcname = funcname.Substring(0, index);
+            return funcname;
         }
 
         public virtual Nancy.Response HandleGetAsResponse(NancyContext context)

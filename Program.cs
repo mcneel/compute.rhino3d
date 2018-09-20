@@ -169,20 +169,19 @@ namespace RhinoCommon.Rest
                         Logger.WriteInfo($"POST {kv.Key}", auth_user as string);
                     var jsonString = Request.Body.AsString();
 
-                    // In order to enable CORS, we add the proper headers to the response
                     var resp = new Nancy.Response();
                     resp.Contents = (e) =>
                     {
                         using (var sw = new System.IO.StreamWriter(e))
                         {
                             bool multiple = false;
-                            System.Collections.Generic.Dictionary<string, string> returnModifiers = null;
+                            Dictionary<string, string> returnModifiers = null;
                             foreach(string name in Request.Query)
                             {
                                 if( name.StartsWith("return.", StringComparison.InvariantCultureIgnoreCase))
                                 {
                                     if (returnModifiers == null)
-                                        returnModifiers = new System.Collections.Generic.Dictionary<string, string>();
+                                        returnModifiers = new Dictionary<string, string>();
                                     string dataType = "Rhino.Geometry." + name.Substring("return.".Length);
                                     string items = Request.Query[name];
                                     returnModifiers[dataType] = items;
