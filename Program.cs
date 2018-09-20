@@ -154,6 +154,7 @@ namespace RhinoCommon.Rest
         {
             Get["/healthcheck"] = _ => "healthy";
             Get["/version"] = _ => FixedEndpoints.GetVersion(Context);
+            Get["/hammertime"] = _ => FixedEndpoints.HammerTime(Context); // for testing auto-scaling
 
             var endpoints = EndPointDictionary.GetDictionary();
             foreach (var kv in endpoints)
