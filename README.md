@@ -1,5 +1,7 @@
 # RhinoCommon.Rest
 
+[![Build status](https://ci.appveyor.com/api/projects/status/unmnwi57we5nvnfi/branch/master?svg=true)](https://ci.appveyor.com/project/mcneel/compute-rhino3d/branch/master)
+
 REST geometry server based on RhinoCommon and headless Rhino
 
 ## Local Debug Builds
@@ -44,7 +46,7 @@ REST geometry server based on RhinoCommon and headless Rhino
     - Start _cmd.exe_ as Administrator.
     - In _cmd_: `cd C:\Users\[USERNAME]\Desktop\Release\`
     - Run `RhinoCommon.Rest.exe install` to install as a service.
-    - In the interactive menu, enter your username in the format `.\\[USERNAME]` (for example:`.\steve`) and use the administrator password for this account (this should be the Windows password created on the Google Compute Engine dashboard). 
+    - In the interactive menu, enter your username in the format `.\\[USERNAME]` (for example:`.\steve`) and use the administrator password for this account (this should be the Windows password created on the Google Compute Engine dashboard).
 1. _(Optional)_ Install StackDriver client application
     - https://cloud.google.com/logging/docs/agent/installation
     - PowerShell `cd C:\Users\[USERNAME]
@@ -57,7 +59,7 @@ invoke-webrequest https://dl.google.com/cloudagents/windows/StackdriverLogging-v
     - Make the service account stackdriver
     - This will download a "key" json file (the file name will match the account key id)
     - Place this json file in the deployment directory on your server.  compute.rhino3d will notice this file when it starts and use it to perform logging to stackdriver
-    
+
 
 
 ## Notes for future work
