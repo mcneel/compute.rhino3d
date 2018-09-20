@@ -97,14 +97,12 @@ namespace RhinoCommon.Rest
 
         protected override void ApplicationStartup(TinyIoCContainer container, IPipelines pipelines)
         {
-            // Enable Compression with Settings
-            var settings = new GzipCompressionSettings();
-            settings.MinimumBytes = 1024;
-            pipelines.EnableGzipCompression(settings);
             pipelines.AddRequestId();
+            pipelines.EnableGzipCompression(new GzipCompressionSettings() { MinimumBytes = 1024 });
 
             if (Env.GetEnvironmentBool("COMPUTE_AUTH_RHINOACCOUNT", false))
                 pipelines.AddAuthRhinoAccount();
+            pipelines.AddRequestStashing();
             if (Env.GetEnvironmentBool("COMPUTE_AUTH_APIKEY", false))
                 pipelines.AddAuthApiKey();
 
