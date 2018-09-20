@@ -1,16 +1,16 @@
-﻿namespace RhinoCommon.Rest
-{
-    using System;
-    using System.Net;
-    using Nancy;
-    using Nancy.Bootstrapper;
+﻿using System;
+using System.Net;
+using Nancy;
+using Nancy.Bootstrapper;
 
-    public static class RhinoAccountsPipeline
+namespace RhinoCommon.Rest.Authentication
+{
+    public static class RhinoAccounts
     {
-        public static void AddRhinoAccountsAuth(this IPipelines pipelines)
+        public static void AddAuthRhinoAccount(this IPipelines pipelines)
         {
             pipelines.BeforeRequest += VerifyRhinoAccount;
-            Console.WriteLine("RhinoAccounts autnentication enabled");
+            Console.WriteLine("RhinoAccounts authentication enabled");
         }
         private static Response VerifyRhinoAccount(NancyContext context)
         {
@@ -32,6 +32,11 @@
                 var audience = (string)json["audience"];
                 if (string.IsNullOrWhiteSpace(audience) || audience != "compute")
                     return NotAuthenticatedResponse();
+
+                body = client.DownloadString("https://accounts.rhino3d.com/oauth2/userinfo");
+                json = Newtonsoft.Json.Linq.JObject.Parse(body);
+                var email = (string)json["email"];
+                context.Items["auth_user"] = email;
             }
             catch
             {

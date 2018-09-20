@@ -139,6 +139,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Authentication\ApiKey.cs" />
+    <Compile Include="Authentication\RhinoAccounts.cs" />
     <Compile Include="EndPoint.cs" />
     <Compile Include="Environment.cs" />
     <Compile Include="FixedEndpoints.cs" />
@@ -147,7 +149,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="RhinoCompute.cs" />
     <Compile Include="RequestIdPipeline.cs" />
-    <Compile Include="RhinoAccountsPipeline.cs" />
     <Compile Include="RhinoLib.cs" />
   </ItemGroup>
   <ItemGroup>

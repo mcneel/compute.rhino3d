@@ -7,6 +7,7 @@ using Nancy.Bootstrapper;
 using Nancy.TinyIoc;
 using Nancy.Gzip;
 using System.Collections.Generic;
+using RhinoCommon.Rest.Authentication;
 
 namespace RhinoCommon.Rest
 {
@@ -101,8 +102,10 @@ namespace RhinoCommon.Rest
             pipelines.EnableGzipCompression(settings);
             pipelines.AddRequestId();
 
-            if (Env.GetEnvironmentBool("COMPUTE_RHINO_AUTH", false))
-                pipelines.AddRhinoAccountsAuth();
+            if (Env.GetEnvironmentBool("COMPUTE_AUTH_RHINOACCOUNT", false))
+                pipelines.AddAuthRhinoAccount();
+            if (Env.GetEnvironmentBool("COMPUTE_AUTH_APIKEY", false))
+                pipelines.AddAuthApiKey();
 
             base.ApplicationStartup(container, pipelines);
         }
@@ -131,24 +134,6 @@ namespace RhinoCommon.Rest
 
     public class RhinoModule : Nancy.NancyModule
     {
-        string GetApiToken()
-        {
-            var requestId = new System.Collections.Generic.List<string>(Request.Headers["api_token"]);
-            if (requestId.Count != 1)
-                return null;
-            return requestId[0];
-        }
-
-        Nancy.HttpStatusCode CheckAuthorization()
-        {
-            string token = GetApiToken();
-            if (string.IsNullOrWhiteSpace(token))
-                return Nancy.HttpStatusCode.Unauthorized;
-            if (token.Length > 2 && token.Contains("@"))
-                return Nancy.HttpStatusCode.OK;
-            return Nancy.HttpStatusCode.Unauthorized;
-        }
-
         public RhinoModule()
         {
             Get["/healthcheck"] = _ => "healthy";
@@ -175,13 +160,9 @@ namespace RhinoCommon.Rest
                     if (NancySelfHost.RunningHttps && !Request.Url.IsSecure)
                         return Nancy.HttpStatusCode.HttpVersionNotSupported;
 
-                    Logger.WriteInfo($"POST {kv.Key}", GetApiToken());
-                    if (!string.IsNullOrWhiteSpace(kv.Key) && kv.Key.Length > 1)
-                    {
-                        var authCheck = CheckAuthorization();
-                        if (authCheck != Nancy.HttpStatusCode.OK)
-                            return authCheck;
-                    }
+                    object auth_user = null;
+                    if (Context.Items.TryGetValue("auth_user", out auth_user))
+                        Logger.WriteInfo($"POST {kv.Key}", auth_user as string);
                     var jsonString = Request.Body.AsString();
 
                     // In order to enable CORS, we add the proper headers to the response
