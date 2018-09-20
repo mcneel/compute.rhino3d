@@ -14,6 +14,9 @@
         }
         private static Response VerifyRhinoAccount(NancyContext context)
         {
+            if (context.Request.Method == "GET" || context.Request.Method == "OPTIONS")
+                return null; // GET and OPTIONS requests are free :)
+
             var authHeader = context.Request.Headers.Authorization;
             if (string.IsNullOrWhiteSpace(authHeader))
                 return NotAuthenticatedResponse();
@@ -34,7 +37,6 @@
             {
                 return NotAuthenticatedResponse();
             }
-
 
             return null;
         }
