@@ -63,23 +63,23 @@ invoke-webrequest https://dl.google.com/cloudagents/windows/StackdriverLogging-v
 ## Configuration Options ##
 All configuration of Compute is done via environment varibles.
 
-**COMPUTE_HTTP_PORT**: integer, Default=80 (release builds) or 8888 (debug builds)
+**COMPUTE_HTTP_PORT**: `integer`, Default: `80` (release builds) or `8888` (debug builds)
 
 Port to run HTTP server. 
 
-**COMPUTE_HTTPS_PORT**: integer, default=0. 
+**COMPUTE_HTTPS_PORT**: `integer`, Default: `0`. 
 
 Port to run HTTPS server
 
-**COMPUTE_AUTH_APIKEY**: bool, default = 0
+**COMPUTE_AUTH_APIKEY**: `bool`, Default: `0`
 
 Enables athentication via simple API key that looks like an email address.
 
-**COMPUTE_AUTH_RHINOACCOUNT**: bool, default=0
+**COMPUTE_AUTH_RHINOACCOUNT**: `bool`, Default: `0`
 
-Enables authentication via Rhino Accounts OAuth2 Token.
+Enables authentication via Rhino Accounts OAuth2 Token. Get your token at https://www.rhino3d.com/compute/login and pass it using a Bearer Authentication header in your HTTP request: `Authorization: Bearer <YOUR TOKEN>`
 
-**COMPUTE_LOG_TEMPFILE**: bool, default=1
+**COMPUTE_LOG_TEMPFILE**: `bool`, Default: `1`
 
 Enables logging to the temp directory.
 
@@ -87,27 +87,27 @@ Enables logging to the temp directory.
 
 Delete log files after 10 days.
 
-**COMPUTE_STASH_TEMPFILE**: bool, default=0
+**COMPUTE_STASH_TEMPFILE**: `bool`, Default: `0`
 
 Enables stashing POST input data to a temp file.
 
-**COMPUTE_STASH_AMAZONS3**: bool, default=0
+**COMPUTE_STASH_AMAZONS3**: `bool`, Default: `0`
 
 Enables stashing POST input data to an Amazon S3 bucket
 
-**COMPUTE_STASH_S3_BUCKET**: string
+**COMPUTE_STASH_S3_BUCKET**: `string`
 
 Name of the bucket where POST input data should be stashed.
 
-**AWS_ACCESS_KEY**: string
+**AWS_ACCESS_KEY**: `string`
 
 Amazon Web Services Access Key for your account. If compute is running on EC2, consider using [EC2 Instance Profiles](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html); Compute will find and use your credentials so they don't need to be on your instance.
 
-**AWS_SECRET_ACCESS_KEY**: string
+**AWS_SECRET_ACCESS_KEY**: `string`
 
 Amazon Web Services Secrete Access Key for your account. If compute is running on EC2, consider using [EC2 Instance Profiles](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html); Compute will find and use your credentials so they don't need to be on your instance.
 
-**AWS_REGION_ENDPOINT**: string, default="us-east-1""
+**AWS_REGION_ENDPOINT**: `string`, Default: `"us-east-1"`
 
 Amazon Web Services [Region Endpoint](https://docs.aws.amazon.com/general/latest/gr/rande.html)
 
