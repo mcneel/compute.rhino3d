@@ -10,7 +10,7 @@ namespace RhinoCommon.Rest.Authentication
         public static void AddAuthRhinoAccount(this IPipelines pipelines)
         {
             pipelines.BeforeRequest += VerifyRhinoAccount;
-            Console.WriteLine("RhinoAccounts authentication enabled");
+            Logger.Info(null, "RhinoAccounts authentication enabled");
         }
         private static Response VerifyRhinoAccount(NancyContext context)
         {

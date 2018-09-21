@@ -17,17 +17,19 @@ namespace RhinoCommon.Rest
 
     public static class RequestStashing
     {
+        static bool _s3bucket_created = false;
+
         public static void AddRequestStashing(this IPipelines pipelines)
         {
             if (Env.GetEnvironmentBool("COMPUTE_STASH_TEMPFILE", false))
             {
                 pipelines.BeforeRequest += TempFileStasher;
-                Console.WriteLine("Request stashing enabled via TempFileStasher");
+                Logger.Info(null, "Request stashing enabled via TempFileStasher");
             }
             if (Env.GetEnvironmentBool("COMPUTE_STASH_AMAZONS3", false))
             {
                 pipelines.BeforeRequest += AmazonS3RequestStasher;
-                Console.WriteLine("Request stashing enabled via AmazonS3RequestStasher");
+                Logger.Info(null, "Request stashing enabled via AmazonS3RequestStasher");
             }
         }
         public static Response AmazonS3RequestStasher(NancyContext context)
@@ -37,20 +39,27 @@ namespace RhinoCommon.Rest
 
             object request_id = null;
             if (!context.Items.TryGetValue("x-compute-id", out request_id))
+            {
                 return null;
+            }
 
             var bucket = Environment.GetEnvironmentVariable("COMPUTE_STASH_S3_BUCKET");
             if (string.IsNullOrWhiteSpace(bucket))
             {
-                Console.WriteLine("ERROR: COMPUTE_STASH_S3_BUCKET not set");
+                Logger.Warning(context, "COMPUTE_STASH_S3_BUCKET not set");
                 return null;
             }
 
+            
             var client = new AmazonS3Client(Amazon.RegionEndpoint.USEast1);
-            var pbr = new Amazon.S3.Model.PutBucketRequest();
-            pbr.BucketName = bucket;
-            pbr.UseClientRegion = true;
-            client.PutBucket(pbr);
+            if (!_s3bucket_created)
+            {
+                var pbr = new Amazon.S3.Model.PutBucketRequest();
+                pbr.BucketName = bucket;
+                pbr.UseClientRegion = true;
+                client.PutBucket(pbr);
+                _s3bucket_created = true;
+            }
 
             var por = new Amazon.S3.Model.PutObjectRequest();
             por.Key = request_id as string;
@@ -67,6 +76,8 @@ namespace RhinoCommon.Rest
 
             var request = new JObject();
             request.Add("body", body);  // Do not assume that the body is valid, parsable JSON; save it as it arrives.
+            request.Add("path", context.Request.Url.Path);
+            request.Add("query", context.Request.Url.Query);
             object auth_user = null;
             if (context.Items.TryGetValue("auth_user", out auth_user))
                 request.Add("auth_user", auth_user as string);
@@ -85,7 +96,7 @@ namespace RhinoCommon.Rest
             if (context.Request.Method != "POST")
                 return null;
 
-            var stashDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "Compute Requests");
+            var stashDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "Compute", "Requests");
             if (!System.IO.Directory.Exists(stashDir))
                 System.IO.Directory.CreateDirectory(stashDir);
 

@@ -9,7 +9,7 @@ namespace RhinoCommon.Rest.Authentication
         public static void AddAuthApiKey(this IPipelines pipelines)
         {
             pipelines.BeforeRequest += VerifyApiKey;
-            Console.WriteLine("RhinoAccounts autnentication enabled");
+            Logger.Info(null, "API Key authentication enabled");
         }
 
         private static Response VerifyApiKey(NancyContext context)

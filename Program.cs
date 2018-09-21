@@ -56,7 +56,8 @@ namespace RhinoCommon.Rest
 
         public void Start(int http_port, int https_port)
         {
-            Console.WriteLine($"Launching RhinoCore library as {Environment.UserName}");
+            Logger.Init(new TempFileLogger());
+            Logger.Info(null, $"Launching RhinoCore library as {Environment.UserName}");
             RhinoLib.LaunchInProcess(RhinoLib.LoadMode.Headless, 0);
             var config = new HostConfiguration();
             var listenUriList = new List<Uri>();
@@ -69,18 +70,18 @@ namespace RhinoCommon.Rest
             if (listenUriList.Count > 0)
                 _nancyHost = new NancyHost(config, listenUriList.ToArray());
             else
-                Console.WriteLine("ERROR: neither http_port nor https_port are set; NOT LISTENING!");
+                Logger.Info(null, "ERROR: neither http_port nor https_port are set; NOT LISTENING!");
             try
             {
                 _nancyHost.Start();
                 foreach (var uri in listenUriList)
-                    Console.WriteLine($"Running on {uri.OriginalString}");
+                    Logger.Info(null, $"Running on {uri.OriginalString}");
             }
             catch (Nancy.Hosting.Self.AutomaticUrlReservationCreationFailureException)
             {
-                Console.WriteLine(Environment.NewLine + "ERROR: URL Not Reserved. From an elevated command promt, run:" + Environment.NewLine);
+                Logger.Error(null, Environment.NewLine + "URL Not Reserved. From an elevated command promt, run:" + Environment.NewLine);
                 foreach (var uri in listenUriList)
-                    Console.WriteLine($"netsh http add urlacl url=\"{uri.Scheme}://+:{uri.Port}/\" user=\"Everyone\"");
+                    Logger.Error(null, $"netsh http add urlacl url=\"{uri.Scheme}://+:{uri.Port}/\" user=\"Everyone\"");
                 Environment.Exit(1);
             }
         }
@@ -97,6 +98,7 @@ namespace RhinoCommon.Rest
 
         protected override void ApplicationStartup(TinyIoCContainer container, IPipelines pipelines)
         {
+            Logger.Debug(null, "ApplicationStartup");
             pipelines.AddRequestId();
             pipelines.EnableGzipCompression(new GzipCompressionSettings() { MinimumBytes = 1024 });
 
@@ -147,7 +149,6 @@ namespace RhinoCommon.Rest
                         string url = Request.Url.ToString().Replace("http", "https");
                         return new Nancy.Responses.RedirectResponse(url, Nancy.Responses.RedirectResponse.RedirectType.Permanent);
                     }
-                    Logger.WriteInfo($"GET {kv.Key}", null);
                     var response = kv.Value.HandleGetAsResponse(Context);
                     if (response != null)
                         return response;
@@ -162,9 +163,6 @@ namespace RhinoCommon.Rest
                     if (NancySelfHost.RunningHttps && !Request.Url.IsSecure)
                         return Nancy.HttpStatusCode.HttpVersionNotSupported;
 
-                    object auth_user = null;
-                    if (Context.Items.TryGetValue("auth_user", out auth_user))
-                        Logger.WriteInfo($"POST {kv.Key}", auth_user as string);
                     var jsonString = Request.Body.AsString();
 
                     var resp = new Nancy.Response();
