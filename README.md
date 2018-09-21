@@ -64,12 +64,15 @@ invoke-webrequest https://dl.google.com/cloudagents/windows/StackdriverLogging-v
 All configuration of Compute is done via environment varibles.
 
 **COMPUTE_HTTP_PORT**: integer, Default=80 (release builds) or 8888 (debug builds)
+
 Port to run HTTP server. 
 
 **COMPUTE_HTTPS_PORT**: integer, default=0. 
+
 Port to run HTTPS server
 
 **COMPUTE_AUTH_APIKEY**: bool, default = 0
+
 Enables athentication via simple API key that looks like an email address.
 
 **COMPUTE_AUTH_RHINOACCOUNT**: bool, default=0
