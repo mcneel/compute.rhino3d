@@ -73,30 +73,39 @@ Port to run HTTPS server
 Enables athentication via simple API key that looks like an email address.
 
 **COMPUTE_AUTH_RHINOACCOUNT**: bool, default=0
+
 Enables authentication via Rhino Accounts OAuth2 Token.
 
 **COMPUTE_LOG_TEMPFILE**: bool, default=1
+
 Enables logging to the temp directory.
 
 **COMPUTE_LOG_RETAIN_DAYS**: integer, default=10
+
 Delete log files after 10 days.
 
 **COMPUTE_STASH_TEMPFILE**: bool, default=0
+
 Enables stashing POST input data to a temp file.
 
 **COMPUTE_STASH_AMAZONS3**: bool, default=0
+
 Enables stashing POST input data to an Amazon S3 bucket
 
 **COMPUTE_STASH_S3_BUCKET**: string
+
 Name of the bucket where POST input data should be stashed.
 
 **AWS_ACCESS_KEY**: string
+
 Amazon Web Services Access Key for your account. If compute is running on EC2, consider using [EC2 Instance Profiles](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html); Compute will find and use your credentials so they don't need to be on your instance.
 
 **AWS_SECRET_ACCESS_KEY**: string
+
 Amazon Web Services Secrete Access Key for your account. If compute is running on EC2, consider using [EC2 Instance Profiles](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html); Compute will find and use your credentials so they don't need to be on your instance.
 
 **AWS_REGION_ENDPOINT**: string, default="us-east-1""
+
 Amazon Web Services [Region Endpoint](https://docs.aws.amazon.com/general/latest/gr/rande.html)
 
 ## Notes for future work
