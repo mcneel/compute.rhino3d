@@ -63,12 +63,12 @@ namespace RhinoCommon.Rest
 
             if (string.IsNullOrWhiteSpace(m_logfile))
             {
-                var now = DateTime.UtcNow.ToString("yyyy-MM-dd HHmmss");
+                var now = DateTime.UtcNow.ToString("yyyy-MM-dd");
                 m_logfile = Path.Combine(LogFolder, string.Format("{0}.log", now));
                 m_logStartDay = DateTime.UtcNow;
             }
 
-            m_writer = new StreamWriter(File.Open(m_logfile, FileMode.Create, FileAccess.Write, FileShare.Read), Encoding.UTF8);
+            m_writer = new StreamWriter(File.Open(m_logfile, FileMode.Create|FileMode.Append, FileAccess.Write, FileShare.Read), Encoding.UTF8);
         }
 
         public void Log(LogLevels severity, JObject log)
@@ -86,6 +86,15 @@ namespace RhinoCommon.Rest
     class Logger
     {
         private static ILogger m_logger = null;
+
+        public static void Init()
+        {
+            if (Env.GetEnvironmentBool("COMPUTE_LOG_TEMPFILE", true))
+            {
+                Init(new TempFileLogger());
+            }
+        }
+
         public static void Init(ILogger sink)
         {
             m_logger = sink;

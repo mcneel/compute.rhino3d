@@ -30,5 +30,14 @@ namespace RhinoCommon.Rest
             Console.WriteLine($"environment variable {variable} set to '{value}'; unable to parse as integer.");
             return defaultValue;
         }
+
+        public static string GetEnvironmentString(string variable, string defaultValue)
+        {
+            string value = System.Environment.GetEnvironmentVariable(variable);
+            if (string.IsNullOrWhiteSpace(value))
+                return defaultValue;
+
+            return value;
+        }
     }
 }

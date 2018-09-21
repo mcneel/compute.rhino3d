@@ -50,8 +50,17 @@ namespace RhinoCommon.Rest
                 return null;
             }
 
-            
-            var client = new AmazonS3Client(Amazon.RegionEndpoint.USEast1);
+            var aws_key = Environment.GetEnvironmentVariable("AWS_ACCESS_KEY");
+            var aws_secret_key = Environment.GetEnvironmentVariable("AWS_SECRET_ACCESS_KEY");
+            var aws_region_endpoint_env = Env.GetEnvironmentString("AWS_REGION_ENDPOINT", "us-east-1");
+            var aws_region_endpoint = Amazon.RegionEndpoint.GetBySystemName(aws_region_endpoint_env);
+
+            AmazonS3Client client = null;
+            if (!string.IsNullOrWhiteSpace(aws_key) && !string.IsNullOrWhiteSpace(aws_secret_key))
+                client = new AmazonS3Client(aws_key, aws_secret_key, aws_region_endpoint);
+            else
+                client = new AmazonS3Client(aws_region_endpoint);
+
             if (!_s3bucket_created)
             {
                 var pbr = new Amazon.S3.Model.PutBucketRequest();
@@ -73,6 +82,7 @@ namespace RhinoCommon.Rest
         static string GetRequestJson(NancyContext context)
         {
             var body = context.Request.Body.AsString();
+            context.Items["request-body"] = body;
 
             var request = new JObject();
             request.Add("body", body);  // Do not assume that the body is valid, parsable JSON; save it as it arrives.

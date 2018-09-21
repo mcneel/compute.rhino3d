@@ -1,6 +1,6 @@
 # RhinoCommon.Rest
 
-[![Build status](https://ci.appveyor.com/api/projects/status/unmnwi57we5nvnfi/branch/master?svg=true)](https://ci.appveyor.com/project/mcneel/compute-rhino3d/branch/master) [![Discourse users](https://img.shields.io/discourse/https/discourse.mcneel.com/users.svg)](https://discourse.mcneel.com/c/serengeti/compute-rhino3d)
+[![Build status](https://ci.appveyor.com/api/projects/status/unmnwi57we5nvnfi/branch/master?svg=true)](https://ci.appveyor.com/project/mcneel/compute-rhino3d/branch/master)
 
 REST geometry server based on RhinoCommon and headless Rhino
 
@@ -60,7 +60,44 @@ invoke-webrequest https://dl.google.com/cloudagents/windows/StackdriverLogging-v
     - This will download a "key" json file (the file name will match the account key id)
     - Place this json file in the deployment directory on your server.  compute.rhino3d will notice this file when it starts and use it to perform logging to stackdriver
 
+## Configuration Options ##
+All configuration of Compute is done via environment varibles.
 
+**COMPUTE_HTTP_PORT**: integer, Default=80 (release builds) or 8888 (debug builds)
+Port to run HTTP server. 
+
+**COMPUTE_HTTPS_PORT**: integer, default=0. 
+Port to run HTTPS server
+
+**COMPUTE_AUTH_APIKEY**: bool, default = 0
+Enables athentication via simple API key that looks like an email address.
+
+**COMPUTE_AUTH_RHINOACCOUNT**: bool, default=0
+Enables authentication via Rhino Accounts OAuth2 Token.
+
+**COMPUTE_LOG_TEMPFILE**: bool, default=1
+Enables logging to the temp directory.
+
+**COMPUTE_LOG_RETAIN_DAYS**: integer, default=10
+Delete log files after 10 days.
+
+**COMPUTE_STASH_TEMPFILE**: bool, default=0
+Enables stashing POST input data to a temp file.
+
+**COMPUTE_STASH_AMAZONS3**: bool, default=0
+Enables stashing POST input data to an Amazon S3 bucket
+
+**COMPUTE_STASH_S3_BUCKET**: string
+Name of the bucket where POST input data should be stashed.
+
+**AWS_ACCESS_KEY**: string
+Amazon Web Services Access Key for your account. If compute is running on EC2, consider using [EC2 Instance Profiles](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html); Compute will find and use your credentials so they don't need to be on your instance.
+
+**AWS_SECRET_ACCESS_KEY**: string
+Amazon Web Services Secrete Access Key for your account. If compute is running on EC2, consider using [EC2 Instance Profiles](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html); Compute will find and use your credentials so they don't need to be on your instance.
+
+**AWS_REGION_ENDPOINT**: string, default="us-east-1""
+Amazon Web Services [Region Endpoint](https://docs.aws.amazon.com/general/latest/gr/rande.html)
 
 ## Notes for future work
 - There is a health check URL in case we want to set up a load balancer

@@ -56,7 +56,7 @@ namespace RhinoCommon.Rest
 
         public void Start(int http_port, int https_port)
         {
-            Logger.Init(new TempFileLogger());
+            Logger.Init();
             Logger.Info(null, $"Launching RhinoCore library as {Environment.UserName}");
             RhinoLib.LaunchInProcess(RhinoLib.LoadMode.Headless, 0);
             var config = new HostConfiguration();
@@ -163,7 +163,13 @@ namespace RhinoCommon.Rest
                     if (NancySelfHost.RunningHttps && !Request.Url.IsSecure)
                         return Nancy.HttpStatusCode.HttpVersionNotSupported;
 
-                    var jsonString = Request.Body.AsString();
+                    // Stashing middleware may have already read the body
+                    object requestBody = null;
+                    string jsonString = null;
+                    if (Context.Items.TryGetValue("request-body", out requestBody))
+                        jsonString = requestBody as string;
+                    else
+                        jsonString = Request.Body.AsString();
 
                     var resp = new Nancy.Response();
                     resp.Contents = (e) =>
