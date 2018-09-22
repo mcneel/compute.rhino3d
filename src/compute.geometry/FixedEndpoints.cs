@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Nancy;
 
-namespace RhinoCommon.Rest
+namespace compute.geometry
 {
     public static class FixedEndpoints
     {

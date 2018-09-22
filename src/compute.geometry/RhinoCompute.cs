@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 
 namespace Rhino.Compute
 {
-    public static class ComputeServer
+    public static class Client
     {
         public static string WebAddress { get; set; } = "https://compute.rhino3d.com";
         public static string ApiToken { get; set; }
