@@ -1,5 +1,6 @@
-/obj
-/.vs
-/bin
-/packages
-/RhinoCommon.Rest.csproj.user
+obj/
+.vs/
+.git/
+bin/
+packages/
+*.csproj.user

@@ -6,7 +6,7 @@ using System.Linq;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
 
-namespace RhinoCommon.Rest
+namespace compute.geometry
 {
     class EndPoint
     {

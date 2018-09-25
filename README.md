@@ -1,34 +1,36 @@
-# RhinoCommon.Rest
+# Rhino Compute Server
 
 [![Build status](https://ci.appveyor.com/api/projects/status/unmnwi57we5nvnfi/branch/master?svg=true)](https://ci.appveyor.com/project/mcneel/compute-rhino3d/branch/master)
 
-REST geometry server based on RhinoCommon and headless Rhino
+A REST api exposing Rhino's geometry core. This project has two web services: `compute.geometry` which provides the REST API, and `compute.frontend` that provides authentication, request stashing (saving POST data for diagnostics), logging, and configuration of request and response headers. `compute.frontend` creates the `compute.geometry` process, monitors its health, and restarts `compute.geometry` as necessary.
 
 ## Local Debug Builds
 
-1. You need to have the Rhino WIP (V7) installed and run at least once.
-1. Load RhinoCommon.Rest.sln and compile as debug
+1. Install [Rhino WIP](https://www.rhino3d.com/download/rhino-for-windows/wip).
+1. Start Rhino WIP to configure its license.
+1. Load compute.sln and compile as `Debug`.
+1. In `Solution Explorer`, right-click `Solution 'compute'`, then click `Properties`
+1. In the `Startup Project` tab, select `Multiple Startup Projects`, then set both `compute.frontend` and `compute.geometry` to `Start`.
 1. Start the application in the debugger.
-1. You should be able to go to http://localhost to see the server working.
+1. Browse to http://localhost:8888/version or http://localhost:8888/sdk
 
-## Set up for Google Compute Engine
+## Getting Started
 
-1. Build RhinoCommon.REST project in _Release_.
-1. Create a Windows Server 2016 VM.
+1. Build `compute.sln` as `Release`.
+1. Create a Windows Server 2016 computer.
 1. Remote desktop onto server.
-1. Copy _x64/Release_ directory to desktop of the server.
-1. Make http/https access available to Nancy:
-    - Start PowerShell as Administrator.
-    - `netsh http add urlacl url="http://+:80/" user="Everyone"`.
-    - `netsh http add urlacl url="https://+:443/" user="Everyone"`.
-1. Install IIS:
-    - Start PowerShell as Administrator.
-    - In PowerShell: `Install-WindowsFeature -name Web-Server -IncludeManagementTools`
+1. Copy `src/bin/Release` to the server.
 1. Install Rhino using PowerShell (as administrator):
     - In PowerShell: `cd _C:\Users\[USERNAME]\Desktop\Release\deployment\_`.
     - Run the admin script using: `.\headless_admin.ps1 -updaterhino`.  This will download the Rhino installer and place it in the _deployment_ directory.
     - Once downloaded, double-click on _rhinoinstaller.exe_ and install like you typically would.
-1. Run Rhino and set up a stand alone license key.  Validate your license.
+1. Run and license Rhino. Be sure to validate your license.
+
+## Optional Configuration
+1. Release builds of `compute` listen on all available IP addreses by default. For this to work, you must:
+    - Start PowerShell as Administrator.
+    - `netsh http add urlacl url="http://+:80/" user="Everyone"`.
+    - `netsh http add urlacl url="https://+:443/" user="Everyone"`. (only if using HTTPS)
 1. Add LetsEncrypt SSL Certificate for HTTPS support:
     - Download from https://github.com/PKISharp/win-acme/releases/tag/v1.9.8.4
     - Unzip download on the server.
@@ -42,26 +44,16 @@ REST geometry server based on RhinoCommon and headless Rhino
     - `you@yourdomain.com` for the user to receive issues.
     - `yes` to accept the license agreement.
     - `Q` to Quit.
+
+## To Run RhinoCommon.REST as a service when Windows starts:
 1. Start _RhinoCommon.Rest_ as a service:
     - Start _cmd.exe_ as Administrator.
     - In _cmd_: `cd C:\Users\[USERNAME]\Desktop\Release\`
     - Run `RhinoCommon.Rest.exe install` to install as a service.
     - In the interactive menu, enter your username in the format `.\\[USERNAME]` (for example:`.\steve`) and use the administrator password for this account (this should be the Windows password created on the Google Compute Engine dashboard).
-1. _(Optional)_ Install StackDriver client application
-    - https://cloud.google.com/logging/docs/agent/installation
-    - PowerShell `cd C:\Users\[USERNAME]
-invoke-webrequest https://dl.google.com/cloudagents/windows/StackdriverLogging-v1-8.exe -OutFile StackdriverLogging-v1-8.exe;
-.\StackdriverLogging-v1-8.exe`
-1. _(Optional)_ Add private logging key
-    - Create a logging account key by
-    - going to https://console.cloud.google.com/apis/credentials
-    - Click "Create Credentials" drop down and select "Service account key"
-    - Make the service account stackdriver
-    - This will download a "key" json file (the file name will match the account key id)
-    - Place this json file in the deployment directory on your server.  compute.rhino3d will notice this file when it starts and use it to perform logging to stackdriver
 
-## Configuration Options ##
-All configuration of Compute is done via environment varibles.
+## Environment Variables ##
+All configuration of Compute is done via environment variables.
 
 **COMPUTE_HTTP_PORT**: `integer`, Default: `80` (release builds) or `8888` (debug builds)
 
@@ -71,33 +63,40 @@ Port to run HTTP server.
 
 Port to run HTTPS server
 
-**COMPUTE_AUTH_APIKEY**: `bool`, Default: `0`
+**COMPUTE_SPAWN_GEOMETRY_SERVER** `bool`, Default: `1` (release builds) or `0` (debug builds)
 
-Enables athentication via simple API key that looks like an email address.
+When True, `compute.frontend` will spawn `compute.geometry` at http://localhost on port `COMPUTE_BACKEND_PORT`.
 
-**COMPUTE_AUTH_RHINOACCOUNT**: `bool`, Default: `0`
+Defaults to `0` in debug so that you can run both `compute.geometry` and `compute.frontend` in the debugger. Configure this in `Solution > Properties > Startup Project`.
 
-Enables authentication via Rhino Accounts OAuth2 Token. Get your token at https://www.rhino3d.com/compute/login and pass it using a Bearer Authentication header in your HTTP request: `Authorization: Bearer <YOUR TOKEN>`
+**COMPUTE_BACKEND_PORT** `integer`, Default: `8081`
 
-**COMPUTE_LOG_TEMPFILE**: `bool`, Default: `1`
+Sets the TCP port where `compute.geometry` runs.
 
-Enables logging to the temp directory.
+**COMPUTE_AUTH_METHOD**: `string`, Default: ``
+
+`RHINO_ACCOUNT`: Enables authentication via Rhino Accounts OAuth2 Token. Get your token at https://www.rhino3d.com/compute/login and pass it using a Bearer Authentication header in your HTTP request: `Authorization: Bearer <YOUR TOKEN>`
+
+`API_KEY`: Enables athentication via simple API key that looks like an email address.
+
+
+**COMPUTE_LOG_METHOD**: `string`, Default: `TEMPFILE`
+
+`TEMPFILE`: Enables logging to the temp directory.
 
 **COMPUTE_LOG_RETAIN_DAYS**: integer, default=10
 
 Delete log files after 10 days.
 
-**COMPUTE_STASH_TEMPFILE**: `bool`, Default: `0`
+**COMPUTE_STASH_METHOD**: `string`, Default: `TEMPFILE`
 
-Enables stashing POST input data to a temp file.
+`TEMPFILE`: Enables stashing POST input data to a temp file.
 
-**COMPUTE_STASH_AMAZONS3**: `bool`, Default: `0`
-
-Enables stashing POST input data to an Amazon S3 bucket
+`AMAZONS3`: Enables stashing POST input data to an Amazon S3 bucket
 
 **COMPUTE_STASH_S3_BUCKET**: `string`
 
-Name of the bucket where POST input data should be stashed.
+Name of the Amazon S3 bucket where POST input data should be stashed. Requires `COMPUTE_STASH_METHOD=AMAZONS3`
 
 **AWS_ACCESS_KEY**: `string`
 

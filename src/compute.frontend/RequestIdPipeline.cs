@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
-namespace RhinoCommon.Rest
+namespace compute.frontend
 {
     using System.Net;
     using System.Net.NetworkInformation;
@@ -20,8 +21,19 @@ namespace RhinoCommon.Rest
 
         private static Response SetRequestId(NancyContext context)
         {
-            context.Items.Add("x-compute-id", Guid.NewGuid().ToString());
-            context.Items.Add("x-compute-host", GetFQDN());
+            var request_id = context.Request.Headers["x-compute-id"].FirstOrDefault();
+            var compute_host = context.Request.Headers["x-compute-host"].FirstOrDefault();
+
+            if (string.IsNullOrEmpty(request_id))
+                context.Items.Add("x-compute-id", Guid.NewGuid().ToString());
+            else
+                context.Items.Add("x-compute-id", request_id);
+
+            if (string.IsNullOrEmpty(request_id))
+                context.Items.Add("x-compute-host", GetFQDN());
+            else
+                context.Items.Add("x-compute-host", compute_host);
+
             context.Items.Add("x-start-ticks", DateTime.UtcNow.Ticks);
             return null;
         }
@@ -33,7 +45,7 @@ namespace RhinoCommon.Rest
             context.Response.Headers.Add("x-compute-id", context.Items["x-compute-id"] as string);
             context.Response.Headers.Add("x-compute-host", context.Items["x-compute-host"] as string);
             var data = new Dictionary<string, string>();
-            data.Add("message", "complete");
+            data.Add("statusCode", ((int)context.Response.StatusCode).ToString());
 
             var now = DateTime.UtcNow.Ticks;
             object start;

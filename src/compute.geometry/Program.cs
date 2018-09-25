@@ -5,28 +5,15 @@ using Topshelf;
 using Nancy.Conventions;
 using Nancy.Bootstrapper;
 using Nancy.TinyIoc;
-using Nancy.Gzip;
 using System.Collections.Generic;
-using RhinoCommon.Rest.Authentication;
 
-namespace RhinoCommon.Rest
+namespace compute.geometry
 {
     class Program
     {
         static void Main(string[] args)
         {
-            // You may need to configure the Windows Namespace reservation to assign
-            // rights to use the port that you set below.
-            // See: https://github.com/NancyFx/Nancy/wiki/Self-Hosting-Nancy
-            // Use cmd.exe or PowerShell in Administrator mode with the following command:
-            // netsh http add urlacl url=http://+:80/ user=Everyone
-            // netsh http add urlacl url=https://+:443/ user=Everyone
-            int https_port = Env.GetEnvironmentInt("COMPUTE_HTTPS_PORT", 0);
-#if DEBUG
-            int http_port = Env.GetEnvironmentInt("COMPUTE_HTTP_PORT", 8888);
-#else
-            int http_port = Env.GetEnvironmentInt("COMPUTE_HTTP_PORT", 80);
-#endif
+            int backendPort = Env.GetEnvironmentInt("COMPUTE_BACKEND_PORT", 8081);
 
             Topshelf.HostFactory.Run(x =>
             {
@@ -35,59 +22,59 @@ namespace RhinoCommon.Rest
                 x.Service<NancySelfHost>(s =>
                   {
                       s.ConstructUsing(name => new NancySelfHost());
-                      s.WhenStarted(tc => tc.Start(http_port, https_port));
+                      s.WhenStarted(tc => tc.Start(backendPort));
                       s.WhenStopped(tc => tc.Stop());
                   });
                 x.RunAsPrompt();
                 //x.RunAsLocalService();
-                x.SetDisplayName("RhinoCommon Geometry Server");
-                x.SetServiceName("RhinoCommon Geometry Server");
+                x.SetDisplayName("compute.geometry");
+                x.SetServiceName("compute.geometry");
             });
             RhinoLib.ExitInProcess();
         }
-
-
     }
 
     public class NancySelfHost
     {
         private NancyHost _nancyHost;
+        private System.Diagnostics.Process _backendProcess = null;
         public static bool RunningHttps { get; set; }
 
-        public void Start(int http_port, int https_port)
+        public void Start(int http_port)
         {
             Logger.Init();
             Logger.Info(null, $"Launching RhinoCore library as {Environment.UserName}");
             RhinoLib.LaunchInProcess(RhinoLib.LoadMode.Headless, 0);
             var config = new HostConfiguration();
+            config.RewriteLocalhost = false;  // Don't require URL registration since geometry service always runs on localhost
             var listenUriList = new List<Uri>();
 
             if (http_port > 0)
                 listenUriList.Add(new Uri($"http://localhost:{http_port}"));
-            if (https_port > 0)
-                listenUriList.Add(new Uri($"https://localhost:{https_port}"));
 
             if (listenUriList.Count > 0)
                 _nancyHost = new NancyHost(config, listenUriList.ToArray());
             else
-                Logger.Info(null, "ERROR: neither http_port nor https_port are set; NOT LISTENING!");
+                Logger.Error(null, "Neither http_port nor https_port are set; NOT LISTENING!");
             try
             {
                 _nancyHost.Start();
                 foreach (var uri in listenUriList)
-                    Logger.Info(null, $"Running on {uri.OriginalString}");
+                    Logger.Info(null, $"compute.geometry server running on {uri.OriginalString}");
             }
             catch (Nancy.Hosting.Self.AutomaticUrlReservationCreationFailureException)
             {
                 Logger.Error(null, Environment.NewLine + "URL Not Reserved. From an elevated command promt, run:" + Environment.NewLine);
                 foreach (var uri in listenUriList)
-                    Logger.Error(null, $"netsh http add urlacl url=\"{uri.Scheme}://+:{uri.Port}/\" user=\"Everyone\"");
+                    Logger.Error(null, $"netsh http add urlacl url={uri.Scheme}://+:{uri.Port}/ user=Everyone");
                 Environment.Exit(1);
             }
         }
 
         public void Stop()
         {
+            if (_backendProcess != null)
+                _backendProcess.Kill();
             _nancyHost.Stop();
         }
     }
@@ -99,15 +86,6 @@ namespace RhinoCommon.Rest
         protected override void ApplicationStartup(TinyIoCContainer container, IPipelines pipelines)
         {
             Logger.Debug(null, "ApplicationStartup");
-            pipelines.AddRequestId();
-            pipelines.EnableGzipCompression(new GzipCompressionSettings() { MinimumBytes = 1024 });
-
-            if (Env.GetEnvironmentBool("COMPUTE_AUTH_RHINOACCOUNT", false))
-                pipelines.AddAuthRhinoAccount();
-            pipelines.AddRequestStashing();
-            if (Env.GetEnvironmentBool("COMPUTE_AUTH_APIKEY", false))
-                pipelines.AddAuthApiKey();
-
             base.ApplicationStartup(container, pipelines);
         }
 
@@ -124,7 +102,7 @@ namespace RhinoCommon.Rest
 
         private byte[] LoadFavIcon()
         {
-            using (var resourceStream = GetType().Assembly.GetManifestResourceStream("RhinoCommon.Rest.favicon.ico"))
+            using (var resourceStream = GetType().Assembly.GetManifestResourceStream("compute.geometry.favicon.ico"))
             {
                 var memoryStream = new System.IO.MemoryStream();
                 resourceStream.CopyTo(memoryStream);
@@ -178,9 +156,9 @@ namespace RhinoCommon.Rest
                         {
                             bool multiple = false;
                             Dictionary<string, string> returnModifiers = null;
-                            foreach(string name in Request.Query)
+                            foreach (string name in Request.Query)
                             {
-                                if( name.StartsWith("return.", StringComparison.InvariantCultureIgnoreCase))
+                                if (name.StartsWith("return.", StringComparison.InvariantCultureIgnoreCase))
                                 {
                                     if (returnModifiers == null)
                                         returnModifiers = new Dictionary<string, string>();
@@ -201,5 +179,6 @@ namespace RhinoCommon.Rest
                 };
             }
         }
+
     }
 }

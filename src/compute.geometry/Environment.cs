@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace RhinoCommon.Rest
+namespace compute.geometry
 {
     internal static class Env
     {

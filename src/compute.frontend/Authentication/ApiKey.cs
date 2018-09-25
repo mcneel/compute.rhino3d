@@ -2,7 +2,7 @@
 using Nancy;
 using Nancy.Bootstrapper;
 
-namespace RhinoCommon.Rest.Authentication
+namespace compute.frontend.Authentication
 {
     public static class ApiKeyAuth
     {

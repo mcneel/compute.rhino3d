@@ -5,7 +5,7 @@ using Newtonsoft.Json.Linq;
 using System.IO;
 using System.Text;
 
-namespace RhinoCommon.Rest
+namespace compute.geometry
 {
     public enum LogLevels
     {
@@ -64,7 +64,8 @@ namespace RhinoCommon.Rest
             if (string.IsNullOrWhiteSpace(m_logfile))
             {
                 var now = DateTime.UtcNow.ToString("yyyy-MM-dd");
-                m_logfile = Path.Combine(LogFolder, string.Format("{0}.log", now));
+                var suffix = "-geometry";
+                m_logfile = Path.Combine(LogFolder, string.Format("{0}{1}.log", now, suffix));
                 m_logStartDay = DateTime.UtcNow;
             }
 
@@ -89,7 +90,8 @@ namespace RhinoCommon.Rest
 
         public static void Init()
         {
-            if (Env.GetEnvironmentBool("COMPUTE_LOG_TEMPFILE", true))
+            var method = Env.GetEnvironmentString("COMPUTE_LOG_METHOD", "TEMPFILE");
+            if (method == "TEMPFILE")
             {
                 Init(new TempFileLogger());
             }
@@ -140,11 +142,7 @@ namespace RhinoCommon.Rest
 
         static void Write(NancyContext context, LogLevels severity, string format, params object[] args)
         {
-            if (m_logger == null)
-                return;
-
             var message = string.Format(format, args);
-            Console.WriteLine(string.Format("{0}: {1}", severity.ToString(), message));
             var data = new Dictionary<string, string>();
             data.Add("message", message);
             Write(context, severity, data);
@@ -152,10 +150,29 @@ namespace RhinoCommon.Rest
 
         static void Write(NancyContext context, LogLevels severity, Dictionary<string, string> data)
         {
+#if DEBUG
+            StringBuilder sb = new StringBuilder();
+
+            sb.Append("GEOM ");
+
+            sb.Append(severity.ToString()).Append(": ");
+
+            if (context?.Request?.Url != null)
+                sb.Append(context.Request.Method).Append(" ").Append(context.Request.Url.Path).Append(": ");
+            if (context?.Response?.StatusCode != null)
+                sb.Append((int)context.Response.StatusCode).Append(" ");
+            if (data.ContainsKey("message"))
+                sb.Append(data["message"]).Append(" ");
+            if (data.ContainsKey("elapsedTime"))
+                sb.Append(data["elapsedTime"]).Append("ms");
+
+            Console.WriteLine(sb.ToString());
+#endif
             if (m_logger == null)
                 return;
 
             var log = new JObject();
+            log.Add("layer", "geometry");
             log.Add("dateTime", DateTime.UtcNow.ToString("o")); // ISO 8601 format
             log.Add("severity", severity.ToString());
 

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace RhinoCommon.Rest
+namespace compute.geometry
 {
     /// <summary>
     /// Master list of all endpoints (URLs) that the compute server supports
