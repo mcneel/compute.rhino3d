@@ -2,7 +2,7 @@ version: '{build}'
 image: Visual Studio 2017
 configuration: Release
 before_build:
-  - nuget restore
+  - nuget restore src\compute.sln
 build:
-  project: RhinoCommon.Rest.sln
+  project: src\compute.sln
   verbosity: minimal
