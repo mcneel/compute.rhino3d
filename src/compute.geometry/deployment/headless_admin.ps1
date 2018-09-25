@@ -15,7 +15,7 @@ if ($initialize) {
 }
 
 if ($updaterhino) {
-    # TODO: probably need to stop the RhinoCommon.Rest service
+    # TODO: probably need to stop the compute.geometry and compute.frontend service
 
     # Download Rhino
     $url = "http://files.mcneel.com/dujour/exe/20180812/rhino_en-us_7.0.18224.20205.exe"

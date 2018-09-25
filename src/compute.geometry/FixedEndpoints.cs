@@ -25,7 +25,7 @@ namespace compute.geometry
         public static Response CSharpSdk(NancyContext ctx)
         {
             string content = "";
-            using (var resourceStream = typeof(FixedEndpoints).Assembly.GetManifestResourceStream("RhinoCommon.Rest.RhinoCompute.cs"))
+            using (var resourceStream = typeof(FixedEndpoints).Assembly.GetManifestResourceStream("compute.geometry.RhinoCompute.cs"))
             {
                 var stream = new System.IO.StreamReader(resourceStream);
                 content = stream.ReadToEnd();
