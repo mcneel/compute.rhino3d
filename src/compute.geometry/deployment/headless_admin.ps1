@@ -6,11 +6,22 @@
 
 if ($initialize) {
     # Make http/https access available to Nancy
-    if (${env:com.rhino3d.compute.HTTP_PORT}) {
-      netsh http add urlacl url="http://+:${env:com.rhino3d.compute.HTTP_PORT}/" user="Everyone"
+    if (${env:COMPUTE_HTTP_PORT}) {
+      netsh http add urlacl url="http://+:${env:COMPUTE_HTTP_PORT}/" user="Everyone"
     }
-    if (${env:com.rhino3d.compute.HTTPS_PORT}) {
-      netsh http add urlacl url="https://+:${env:com.rhino3d.compute.HTTPS_PORT}/" user="Everyone"
+    else {
+      netsh http add urlacl url="http://+:80/" user="Everyone"
+    }
+
+    if (${env:COMPUTE_HTTPS_PORT}) {
+      netsh http add urlacl url="https://+:${env:COMPUTE_HTTPS_PORT}/" user="Everyone"
+    }
+
+    if (${env:COMPUTE_BACKEND_PORT}) {
+      netsh http add urlacl url="http://+:${env:COMPUTE_BACKEND_PORT}/" user="Everyone"
+    }
+    else {
+      netsh http add urlacl url="http://+:8081/" user="Everyone"
     }
 }
 

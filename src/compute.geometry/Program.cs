@@ -46,7 +46,9 @@ namespace compute.geometry
             Logger.Info(null, $"Launching RhinoCore library as {Environment.UserName}");
             RhinoLib.LaunchInProcess(RhinoLib.LoadMode.Headless, 0);
             var config = new HostConfiguration();
+#if DEBUG
             config.RewriteLocalhost = false;  // Don't require URL registration since geometry service always runs on localhost
+#endif
             var listenUriList = new List<Uri>();
 
             if (http_port > 0)
