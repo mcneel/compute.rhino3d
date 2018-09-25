@@ -45,12 +45,12 @@ A REST api exposing Rhino's geometry core. This project has two web services: `c
     - `yes` to accept the license agreement.
     - `Q` to Quit.
 
-## To Run RhinoCommon.REST as a service when Windows starts:
-1. Start _RhinoCommon.Rest_ as a service:
+## To Run compute as a service when Windows starts:
+1. Start `compute` as a service:
     - Start _cmd.exe_ as Administrator.
     - In _cmd_: `cd C:\Users\[USERNAME]\Desktop\Release\`
-    - Run `RhinoCommon.Rest.exe install` to install as a service.
-    - In the interactive menu, enter your username in the format `.\\[USERNAME]` (for example:`.\steve`) and use the administrator password for this account (this should be the Windows password created on the Google Compute Engine dashboard).
+    - Run `compute.frontend install` to install as a service.
+    - In the interactive menu, enter your username in the format `.\\[USERNAME]` (for example:`.\steve`) and use the administrator password for this account.
 
 ## Environment Variables ##
 All configuration of Compute is done via environment variables.
