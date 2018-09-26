@@ -67,9 +67,9 @@ namespace compute.geometry
                 foreach (var uri in listenUriList)
                     Log.Information("compute.geometry running on {Uri}", uri.OriginalString);
             }
-            catch (AutomaticUrlReservationCreationFailureException ex)
+            catch (AutomaticUrlReservationCreationFailureException)
             {
-                Log.Error(ex, GetAutomaticUrlReservationCreationFailureExceptionMessage(listenUriList));
+                Log.Error(GetAutomaticUrlReservationCreationFailureExceptionMessage(listenUriList));
                 Environment.Exit(1);
             }
         }

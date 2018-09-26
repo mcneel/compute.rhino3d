@@ -83,9 +83,9 @@ namespace compute.frontend
                 foreach (var uri in listenUriList)
                     Log.Information("compute.frontend running on {Uri}", uri.OriginalString);
             }
-            catch (AutomaticUrlReservationCreationFailureException ex)
+            catch (AutomaticUrlReservationCreationFailureException)
             {
-                Log.Error(ex, GetAutomaticUrlReservationCreationFailureExceptionMessage(listenUriList));
+                Log.Error(GetAutomaticUrlReservationCreationFailureExceptionMessage(listenUriList));
                 Environment.Exit(1);
             }
         }
@@ -181,6 +181,5 @@ namespace compute.frontend
                 return memoryStream.GetBuffer();
             }
         }
-
     }
 }
