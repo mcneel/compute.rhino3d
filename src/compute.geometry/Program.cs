@@ -1,11 +1,13 @@
 ﻿using System;
-using Nancy.Hosting.Self;
-using Nancy.Extensions;
-using Topshelf;
-using Nancy.Conventions;
-using Nancy.Bootstrapper;
-using Nancy.TinyIoc;
 using System.Collections.Generic;
+using System.Text;
+using Nancy.Bootstrapper;
+using Nancy.Conventions;
+using Nancy.Extensions;
+using Nancy.Hosting.Self;
+using Nancy.TinyIoc;
+using Serilog;
+using Topshelf;
 
 namespace compute.geometry
 {
@@ -13,10 +15,12 @@ namespace compute.geometry
     {
         static void Main(string[] args)
         {
+            Logging.Init();
             int backendPort = Env.GetEnvironmentInt("COMPUTE_BACKEND_PORT", 8081);
 
             Topshelf.HostFactory.Run(x =>
             {
+                x.UseSerilog();
                 x.ApplyCommandLine();
                 x.SetStartTimeout(new TimeSpan(0, 1, 0));
                 x.Service<NancySelfHost>(s =>
@@ -41,8 +45,7 @@ namespace compute.geometry
 
         public void Start(int http_port)
         {
-            Logger.Init();
-            Logger.Info(null, $"Launching RhinoCore library as {Environment.UserName}");
+            Log.Information("Launching RhinoCore library as {User}", Environment.UserName);
             RhinoLib.LaunchInProcess(RhinoLib.LoadMode.Headless, 0);
             var config = new HostConfiguration();
 #if DEBUG
@@ -56,20 +59,29 @@ namespace compute.geometry
             if (listenUriList.Count > 0)
                 _nancyHost = new NancyHost(config, listenUriList.ToArray());
             else
-                Logger.Error(null, "Neither http_port nor https_port are set; NOT LISTENING!");
+                Log.Error("Neither COMPUTE_HTTP_PORT nor COMPIUTE_HTTPS_PORT are set. Not listening!");
             try
             {
                 _nancyHost.Start();
                 foreach (var uri in listenUriList)
-                    Logger.Info(null, $"compute.geometry server running on {uri.OriginalString}");
+                    Log.Information("compute.geometry running on {Uri}", uri.OriginalString);
             }
-            catch (Nancy.Hosting.Self.AutomaticUrlReservationCreationFailureException)
+            catch (AutomaticUrlReservationCreationFailureException)
             {
-                Logger.Error(null, Environment.NewLine + "URL Not Reserved. From an elevated command promt, run:" + Environment.NewLine);
-                foreach (var uri in listenUriList)
-                    Logger.Error(null, $"netsh http add urlacl url={uri.Scheme}://+:{uri.Port}/ user=Everyone");
+                Log.Error(GetAutomaticUrlReservationCreationFailureExceptionMessage(listenUriList));
                 Environment.Exit(1);
             }
+        }
+
+        // TODO: move this somewhere else
+        string GetAutomaticUrlReservationCreationFailureExceptionMessage(List<Uri> listenUriList)
+        {
+            var msg = new StringBuilder();
+            msg.AppendLine("Url not reserved. From an elevated command promt, run:");
+            msg.AppendLine();
+            foreach (var uri in listenUriList)
+                msg.AppendLine($"netsh http add urlacl url=\"{uri.Scheme}://+:{uri.Port}/\" user=\"Everyone\"");
+            return msg.ToString();
         }
 
         public void Stop()
@@ -86,7 +98,7 @@ namespace compute.geometry
 
         protected override void ApplicationStartup(TinyIoCContainer container, IPipelines pipelines)
         {
-            Logger.Debug(null, "ApplicationStartup");
+            Log.Debug("ApplicationStartup");
             base.ApplicationStartup(container, pipelines);
         }
 

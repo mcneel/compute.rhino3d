@@ -4,6 +4,7 @@ using Nancy.Bootstrapper;
 using Nancy.Extensions;
 using Newtonsoft.Json.Linq;
 using Amazon.S3;
+using Serilog;
 
 
 namespace compute.frontend
@@ -27,13 +28,13 @@ namespace compute.frontend
                 case "TEMPFILE":
                 {
                     pipelines.BeforeRequest += TempFileStasher;
-                    Logger.Info(null, "Request stashing enabled via TempFileStasher");
+                    Log.Information("Request stashing enabled via TempFileStasher");
                     break;
                 }
                 case "AMAZONS3":
                 {
                     pipelines.BeforeRequest += AmazonS3RequestStasher;
-                    Logger.Info(null, "Request stashing enabled via AmazonS3RequestStasher");
+                    Log.Information("Request stashing enabled via AmazonS3RequestStasher");
                     break;
                 }
             }
@@ -44,7 +45,7 @@ namespace compute.frontend
                 return null;
 
             object request_id_obj = null;
-            if (!context.Items.TryGetValue("x-compute-id", out request_id_obj))
+            if (!context.Items.TryGetValue("RequestId", out request_id_obj))
             {
                 return null;
             }
@@ -53,7 +54,8 @@ namespace compute.frontend
             var bucket = Environment.GetEnvironmentVariable("COMPUTE_STASH_S3_BUCKET");
             if (string.IsNullOrWhiteSpace(bucket))
             {
-                Logger.Warning(context, "COMPUTE_STASH_S3_BUCKET not set");
+                Log.ForContext("RequestId", requestId)
+                    .Warning("COMPUTE_STASH_S3_BUCKET not set");
                 return null;
             }
 
@@ -82,7 +84,7 @@ namespace compute.frontend
             por.BucketName = bucket;
             por.ContentBody = GetRequestJson(context);
             client.PutObjectAsync(por).ContinueWith(c => {
-                Logger.Info(context, $"Stashed request to {requestId}");
+                Log.Information("Stashed request to {RequestId}", requestId);
             });
 
             return null;
@@ -97,11 +99,11 @@ namespace compute.frontend
             if (!System.IO.Directory.Exists(stashDir))
                 System.IO.Directory.CreateDirectory(stashDir);
 
-            string requestId = context.Items["x-compute-id"] as string;
+            string requestId = context.Items["RequestId"] as string;
             string filename = System.IO.Path.Combine(stashDir, $"{requestId}.request.log");
 
             System.IO.File.WriteAllText(filename, GetRequestJson(context));
-            Logger.Info(context, $"Stashed request to {requestId}");
+            Log.Information("Stashed request to {RequestId}", requestId);
 
             return null;
         }

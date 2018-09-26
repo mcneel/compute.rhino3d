@@ -2,6 +2,7 @@
 using System.Net;
 using Nancy;
 using Nancy.Bootstrapper;
+using Serilog;
 
 namespace compute.frontend.Authentication
 {
@@ -10,7 +11,7 @@ namespace compute.frontend.Authentication
         public static void AddAuthRhinoAccount(this IPipelines pipelines)
         {
             pipelines.BeforeRequest += VerifyRhinoAccount;
-            Logger.Info(null, "RhinoAccounts authentication enabled");
+            Log.Information("RhinoAccounts authentication enabled");
         }
         private static Response VerifyRhinoAccount(NancyContext context)
         {

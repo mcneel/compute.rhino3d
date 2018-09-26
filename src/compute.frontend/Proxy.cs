@@ -9,6 +9,8 @@ namespace compute.frontend
         {
             int backendPort = Env.GetEnvironmentInt("COMPUTE_BACKEND_PORT", 8081);
 
+            Get["/frontendinfo"] = _ => "Hello World!";
+
             Get["/"] =
             Get["/{uri*}"] = _ =>
             {
@@ -70,8 +72,8 @@ namespace compute.frontend
                     continue;
                 client.DefaultRequestHeaders.Add(header.Key, header.Value);
             }
-            client.DefaultRequestHeaders.Add("x-compute-id", (string)Context.Items["x-compute-id"]);
-            client.DefaultRequestHeaders.Add("x-compute-host", (string)Context.Items["x-compute-host"]);
+            client.DefaultRequestHeaders.Add("X-Compute-Id", (string)Context.Items["RequestId"]);
+            client.DefaultRequestHeaders.Add("X-Compute-Host", (string)Context.Items["Hostname"]);
             return client;
         }
 
