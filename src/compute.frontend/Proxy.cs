@@ -51,12 +51,17 @@ namespace compute.frontend
 
         string GetProxyUrl(string path, int backendPort)
         {
+            if (string.IsNullOrWhiteSpace(path))
+                return $"http://localhost:{backendPort}/";
+
             return $"http://localhost:{backendPort}/{path}";
         }
 
         HttpClient CreateProxyClient(Nancy.NancyContext context)
         {
-            var client = new HttpClient();
+            var handler = new HttpClientHandler();
+            handler.AllowAutoRedirect = false;
+            var client = new HttpClient(handler);
             foreach (var header in Context.Request.Headers)
             {
                 if (header.Key == "Content-Length")
