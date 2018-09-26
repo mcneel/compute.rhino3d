@@ -17,7 +17,7 @@ namespace compute.frontend
             if (_enabled)
                 return;
 
-            var path = Path.Combine(Path.GetTempPath(), "Compute", "Logs", "log-.txt"); // log-20180925.txt, etc.
+            var path = Path.Combine(Path.GetTempPath(), "Compute", "Logs", "log-frontend-.txt"); // log-20180925.txt, etc.
             var limit = Env.GetEnvironmentInt("COMPUTE_LOG_RETAIN_DAYS", 10);
 
             Log.Logger = new LoggerConfiguration()
@@ -30,6 +30,8 @@ namespace compute.frontend
                 .WriteTo.File(new JsonFormatter(), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit)
                 // TODO: cloudwatch, stackdriver
                 .CreateLogger();
+
+            Log.Debug("Logging to {LogPath}", Path.GetDirectoryName(path));
 
             _enabled = true;
         }

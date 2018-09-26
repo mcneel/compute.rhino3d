@@ -17,7 +17,7 @@ namespace compute.geometry
             if (_enabled)
                 return;
 
-            var path = Path.Combine(Path.GetTempPath(), "Compute", "Logs", "log-.txt"); // log-20180925.txt, etc.
+            var path = Path.Combine(Path.GetTempPath(), "Compute", "Logs", "log-geometry-.txt"); // log-20180925.txt, etc.
             var limit = Env.GetEnvironmentInt("COMPUTE_LOG_RETAIN_DAYS", 10);
 
             Log.Logger = new LoggerConfiguration()
