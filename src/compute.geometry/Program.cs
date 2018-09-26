@@ -42,7 +42,6 @@ namespace compute.geometry
     {
         private NancyHost _nancyHost;
         private System.Diagnostics.Process _backendProcess = null;
-        public static bool RunningHttps { get; set; }
 
         public void Start(int http_port)
         {
@@ -134,65 +133,9 @@ namespace compute.geometry
             var endpoints = EndPointDictionary.GetDictionary();
             foreach (var kv in endpoints)
             {
-                Get[kv.Key] = _ =>
-                {
-                    if (NancySelfHost.RunningHttps && !Request.Url.IsSecure)
-                    {
-                        string url = Request.Url.ToString().Replace("http", "https");
-                        return new Nancy.Responses.RedirectResponse(url, Nancy.Responses.RedirectResponse.RedirectType.Permanent);
-                    }
-                    var response = kv.Value.HandleGetAsResponse(Context);
-                    if (response != null)
-                        return response;
-                    return kv.Value.HandleGet();
-                };
-
-                if (kv.Value is GetEndPoint)
-                    continue;
-
-                Post[kv.Key] = _ =>
-                {
-                    if (NancySelfHost.RunningHttps && !Request.Url.IsSecure)
-                        return Nancy.HttpStatusCode.HttpVersionNotSupported;
-
-                    // Stashing middleware may have already read the body
-                    object requestBody = null;
-                    string jsonString = null;
-                    if (Context.Items.TryGetValue("request-body", out requestBody))
-                        jsonString = requestBody as string;
-                    else
-                        jsonString = Request.Body.AsString();
-
-                    var resp = new Nancy.Response();
-                    resp.Contents = (e) =>
-                    {
-                        using (var sw = new System.IO.StreamWriter(e))
-                        {
-                            bool multiple = false;
-                            Dictionary<string, string> returnModifiers = null;
-                            foreach (string name in Request.Query)
-                            {
-                                if (name.StartsWith("return.", StringComparison.InvariantCultureIgnoreCase))
-                                {
-                                    if (returnModifiers == null)
-                                        returnModifiers = new Dictionary<string, string>();
-                                    string dataType = "Rhino.Geometry." + name.Substring("return.".Length);
-                                    string items = Request.Query[name];
-                                    returnModifiers[dataType] = items;
-                                    continue;
-                                }
-                                if (name.Equals("multiple", StringComparison.InvariantCultureIgnoreCase))
-                                    multiple = Request.Query[name];
-                            }
-                            var postResult = kv.Value.HandlePost(jsonString, multiple, returnModifiers);
-                            sw.Write(postResult);
-                            sw.Flush();
-                        }
-                    };
-                    return resp;
-                };
+                Get[kv.Key] = _ => kv.Value.Get(Context);
+                Post[kv.Key] = _ => kv.Value.Post(Context);
             }
         }
-
     }
 }

@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Reflection;
 using Nancy;
-using System.Linq;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
 
@@ -10,487 +8,55 @@ namespace compute.geometry
 {
     class EndPoint
     {
-        Type _classType;
-        ConstructorInfo[] _constructors;
-        MethodInfo[] _methods;
-
-        public static EndPoint Create(string path, Func<NancyContext, Response> getFunction)
+        public EndPoint()
         {
-            GetEndPoint rc = new GetEndPoint(path, getFunction);
-            return rc;
         }
-
-        private EndPoint(Type classType, ConstructorInfo[] constructors)
-        {
-            _classType = classType;
-            _constructors = constructors;
-            string basepath = _classType.FullName.Replace('.', '/');
-            Path = basepath + "/New";
-        }
-
-        private EndPoint(Type classType, MethodInfo[] methods, bool explicitPath)
-        {
-            _classType = classType;
-            _methods = methods;
-            string basepath = _classType.FullName.Replace('.', '/');
-            string funcname = methods[0].Name;
-            if (funcname.StartsWith("get_"))
-                funcname = "Get" + funcname.Substring("get_".Length);
-            else if (funcname.StartsWith("set_"))
-                funcname = "Set" + funcname.Substring("set_".Length);
-            Path = basepath + "/" + funcname;
-            if(explicitPath)
-            {
-                var parameters = methods[0].GetParameters();
-                var extra = new System.Text.StringBuilder();
-                bool dashAdded = false;
-                if(!methods[0].IsStatic)
-                {
-                    extra.Append($"-{classType.Name}");
-                    dashAdded = true;
-                }
-                for(int i=0; i<parameters.Length; i++ )
-                {
-                    extra.Append(dashAdded ? "_" : "-");
-                    dashAdded = true;
-
-                    var parameter = parameters[i];
-                    var type = parameter.ParameterType;
-                    string name = type.Name.Replace("&", "");
-                    if (name.StartsWith("IEnumerable"))
-                    {
-                        Type[] genericArgs = type.GetGenericArguments();
-                        name = genericArgs[0].Name + "Array";
-                    }
-                    name = name.Replace("[]", "Array").Replace("Int32","Int").Replace("Boolean","Bool");
-                    extra.Append(name);
-                }
-                Path = Path + extra.ToString();
-            }
-        }
-
-        private EndPoint(Type classType, MethodInfo[] methods) : this(classType, methods, false) { }
-        private EndPoint(Type classType, MethodInfo method) : this(classType, new MethodInfo[] { method }, true) { }
-
-        protected EndPoint(string path, Type classType)
+        public EndPoint(string path)
         {
             Path = path;
-            _classType = classType;
+        }
+        Func<NancyContext, Response> _getFunction;
+        Func<NancyContext, Response> _postFunction;
+        public static EndPoint Create(string path, Func<NancyContext, Response> getFunction, Func<NancyContext, Response> postFunction)
+        {
+            var endpoint = new EndPoint();
+            endpoint.Path = path;
+            endpoint._getFunction = getFunction;
+            endpoint._postFunction = postFunction;
+            return endpoint;
+        }
+        public static EndPoint CreateGet(string path, Func<NancyContext, Response> getFunction)
+        {
+            return Create(path, getFunction, null);
+        }
+        public static EndPoint CreatePost(string path, Func<NancyContext, Response> postFunction)
+        {
+            return Create(path, null, postFunction);
         }
 
-        public static EndPoint Get(string path)
+        public virtual Response Get(NancyContext context)
         {
-            if (path.StartsWith("/"))
-                path = path.Substring(1);
-            var dict = EndPointDictionary.GetDictionary();
-            EndPoint rc = null;
-            dict.TryGetValue(path.ToLowerInvariant(), out rc);
-            return rc;
+            if (_getFunction != null)
+                return _getFunction(context);
+            return null;
         }
-
-        public static List<EndPoint> Create(Type t)
+        public virtual Response Post(NancyContext context)
         {
-            List<EndPoint> endpoints = new List<EndPoint>();
-            if (!t.IsAbstract)
-            {
-                var constructors = t.GetConstructors(BindingFlags.Instance | BindingFlags.Public);
-                if (constructors != null && constructors.Length > 0)
-                {
-                    EndPoint endpoint = new EndPoint(t, constructors);
-                    endpoints.Add(endpoint);
-                }
-            }
-
-            var methods = t.GetMethods(BindingFlags.Public | BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Static);
-            var methodlist = new List<MethodInfo>(methods);
-            methodlist.Sort((a, b) => a.Name.CompareTo(b.Name));
-            for (int i = 0; i < methodlist.Count; i++)
-            {
-                string funcname = methodlist[i].Name;
-                var overloads = new List<MethodInfo>();
-                overloads.Add(methodlist[i]);
-                for (int j = i + 1; j < methodlist.Count; j++)
-                {
-                    if (funcname.Equals(methodlist[j].Name))
-                    {
-                        i = j;
-                        overloads.Add(methodlist[i]);
-                        continue;
-                    }
-                    break;
-                }
-
-                // This is the general "catch all" endpoint that attempts to figure out the best routine to call
-                EndPoint endpoint = new EndPoint(t, overloads.ToArray());
-                endpoints.Add(endpoint);
-
-                foreach (var overload in overloads)
-                {
-                    var parameters = overload.GetParameters();
-                    if (parameters == null || parameters.Length < 1)
-                        continue;
-                    endpoints.Add(new EndPoint(t, overload)); 
-                }
-
-            }
-
-            return endpoints;
-        }
-
-        public string Path { get; private set; }
-
-        protected static string PrettyString(Type t)
-        {
-            string rc = t.ToString().Replace("&", "");
-            if (rc.Equals("System.Double", StringComparison.Ordinal))
-                return "double";
-            if (rc.Equals("System.Int32", StringComparison.Ordinal))
-                return "int";
-            if (rc.Equals("System.Boolean", StringComparison.Ordinal))
-                return "bool";
-            if (rc.Equals("System.Single", StringComparison.Ordinal))
-                return "float";
-            return rc;
-        }
-
-        string FunctionName()
-        {
-            string path = Path;
-            int index = path.LastIndexOf("/");
-            string funcname = path.Substring(index + 1);
-            index = funcname.IndexOf("-");
-            if (index > 0)
-                funcname = funcname.Substring(0, index);
-            return funcname;
-        }
-
-        public virtual Nancy.Response HandleGetAsResponse(NancyContext context)
-        {
+            if (_postFunction != null)
+                return _postFunction(context);
             return null;
         }
 
-        public virtual string HandleGet()
-        {
-            string funcname = FunctionName();
-            var sb = new System.Text.StringBuilder("<!DOCTYPE html><html><body>");
-            sb.AppendLine($"<H1>{funcname}</H1>");
-            sb.AppendLine("<p>");
-            if (_methods != null)
-            {
-                foreach (var method in _methods)
-                {
-                    var inParams = new List<Tuple<Type, string>>();
-                    var outParams = new List<Tuple<Type, string>>();
-                    {
-                        if (!method.IsStatic)
-                            inParams.Add(new Tuple<Type, string>(_classType, "self"));
-                        if (method.ReturnType != typeof(void))
-                            outParams.Add(new Tuple<Type, string>(method.ReturnType, ""));
-                        foreach (var parameter in method.GetParameters())
-                        {
-                            if (parameter.IsOut || parameter.ParameterType.IsByRef)
-                                outParams.Add(new Tuple<Type, string>(parameter.ParameterType, parameter.Name));
-                            if (!parameter.IsOut)
-                                inParams.Add(new Tuple<Type, string>(parameter.ParameterType, parameter.Name));
-                        }
-                        if( !method.IsStatic )
-                        {
-                            object[] methodAttrs = method.GetCustomAttributes(true);
-                            if(methodAttrs!=null)
-                            {
-                                bool isConst = false;
-                                for( int i=0; i<methodAttrs.Length; i++)
-                                {
-                                    Attribute attr = methodAttrs[i] as Attribute;
-                                    if( attr!=null && attr.ToString().Contains("ConstOperationAttribute"))
-                                    {
-                                        isConst = true;
-                                        break;
-                                    }
-                                }
-                                if(!isConst)
-                                    outParams.Add(new Tuple<Type, string>(_classType, ""));
-                            }
-                        }
-                    }
-
-                    if (outParams.Count > 1)
-                        sb.Append("[");
-                    for (int i = 0; i < outParams.Count; i++)
-                    {
-                        sb.Append($"{PrettyString(outParams[i].Item1)}");
-                        if (outParams[i].Item2 != "")
-                            sb.Append($" {outParams[i].Item2}");
-                        if (i < (outParams.Count - 1))
-                            sb.Append(", ");
-                    }
-                    sb.Append(outParams.Count > 1 ? "] " : " ");
-
-                    sb.Append($"{funcname}(");
-
-                    for (int i = 0; i < inParams.Count; i++)
-                    {
-                        sb.Append($"{PrettyString(inParams[i].Item1)} {inParams[i].Item2}");
-                        if (i < (inParams.Count - 1))
-                            sb.Append(", ");
-                    }
-                    sb.AppendLine(")<br>");
-                }
-            }
-            if (_constructors != null)
-            {
-                foreach (var constructor in _constructors)
-                {
-                    sb.Append($"{_classType.Name} {funcname}(");
-                    var parameters = constructor.GetParameters();
-                    for (int pi = 0; pi < parameters.Length; pi++)
-                    {
-                        sb.Append($"{PrettyString(parameters[pi].ParameterType)} {parameters[pi].Name}");
-                        if (pi < (parameters.Length - 1))
-                            sb.Append(", ");
-                    }
-                    sb.AppendLine(")<br>");
-                }
-            }
-            sb.AppendLine("</p></body></html>");
-            return sb.ToString();
-        }
-
-        public virtual string HandlePost(string jsonString, bool multiple, Dictionary<string,string> returnModifiers)
-        {
-            object data = string.IsNullOrWhiteSpace(jsonString) ? null : Newtonsoft.Json.JsonConvert.DeserializeObject(jsonString);
-            var ja = data as Newtonsoft.Json.Linq.JArray;
-            if (multiple && ja.Count > 1)
-            {
-                var result = new System.Text.StringBuilder("[");
-                for( int i=0; i<ja.Count; i++ )
-                {
-                    if (i > 0)
-                        result.Append(",");
-                    var item = ja[i] as Newtonsoft.Json.Linq.JArray;
-                    result.Append(HandlePostHelper(item, returnModifiers));
-                }
-                result.Append("]");
-                return result.ToString();
-            }
-            else
-                return HandlePostHelper(ja, returnModifiers);
-        }
-
-        static object ProcessModifiers(object o, Dictionary<string, string> returnModifiers)
-        {
-            if (returnModifiers != null && returnModifiers.Count > 0)
-            {
-                Type t = o.GetType();
-                if (returnModifiers.ContainsKey(t.FullName))
-                {
-                    string[] items = returnModifiers[t.FullName].Split(',');
-                    object[] mods = new object[items.Length];
-                    for (int i = 0; i < items.Length; i++)
-                    {
-                        PropertyInfo pi = t.GetProperty(items[i]);
-                        mods[i] = pi.GetValue(o);
-                    }
-                    if (mods.Length == 1)
-                        o = mods[0];
-                    else
-                        o = mods;
-                }
-            }
-            return o;
-        }
-
-        string HandlePostHelper(Newtonsoft.Json.Linq.JArray ja, Dictionary<string, string> returnModifiers)
-        {
-            int tokenCount = ja == null ? 0 : ja.Count;
-            if (_methods != null)
-            {
-                int methodIndex = -1;
-                foreach (var method in _methods)
-                {
-                    methodIndex++;
-                    int paramCount = method.GetParameters().Length;
-                    if (!method.IsStatic)
-                        paramCount++;
-                    foreach (var parameter in method.GetParameters())
-                    {
-                        if (parameter.IsOut)
-                            paramCount--;
-                    }
-                    if (paramCount == tokenCount)
-                    {
-                        var methodParameters = method.GetParameters();
-                        object invokeObj = null;
-                        object[] invokeParameters = new object[methodParameters.Length];
-                        int currentJa = 0;
-                        if (!method.IsStatic)
-                            invokeObj = ja[currentJa++].ToObject(_classType);
-
-                        int outParamCount = 0;
-                        try
-                        {
-                            for (int i = 0; i < methodParameters.Length; i++)
-                            {
-                                if (!methodParameters[i].IsOut)
-                                {
-                                    var jsonobject = ja[currentJa++];
-                                    var generics = methodParameters[i].ParameterType.GetGenericArguments();
-                                    if (generics == null || generics.Length != 1)
-                                        invokeParameters[i] = jsonobject.ToObject(methodParameters[i].ParameterType);
-                                    else
-                                    {
-                                        var arrayType = generics[0].MakeArrayType();
-                                        invokeParameters[i] = jsonobject.ToObject(arrayType);
-                                    }
-                                }
-
-                                if (methodParameters[i].IsOut || methodParameters[i].ParameterType.IsByRef)
-                                    outParamCount++;
-                            }
-                        }
-                        catch(Exception ex)
-                        {
-                            if (methodIndex < (_methods.Count() - 1))
-                                continue;
-                            throw ex;
-                        }
-                        bool isConst = false;
-                        if (!method.IsStatic)
-                        {
-                            object[] methodAttrs = method.GetCustomAttributes(true);
-                            if (methodAttrs != null)
-                            {
-                                for (int i = 0; i < methodAttrs.Length; i++)
-                                {
-                                    Attribute attr = methodAttrs[i] as Attribute;
-                                    if (attr != null && attr.ToString().Contains("ConstOperationAttribute"))
-                                    {
-                                        isConst = true;
-                                        break;
-                                    }
-                                }
-                                if (!isConst)
-                                    outParamCount++;
-                            }
-                        }
-                        if (method.ReturnType != typeof(void))
-                            outParamCount++;
-                        var invokeResult = method.Invoke(invokeObj, invokeParameters);
-                        if (outParamCount < 1)
-                            return "";
-                        object[] rc = new object[outParamCount];
-                        int outputSlot = 0;
-                        if (method.ReturnType != typeof(void))
-                            rc[outputSlot++] = invokeResult;
-                        else if (!method.IsStatic && !isConst)
-                            rc[outputSlot++] = invokeObj;
-                        for (int i = 0; i < methodParameters.Length; i++)
-                        {
-                            if (methodParameters[i].IsOut || methodParameters[i].ParameterType.IsByRef)
-                                rc[outputSlot++] = invokeParameters[i];
-                        }
-
-                        if( returnModifiers!=null && returnModifiers.Count>0 )
-                        {
-                            for( int i=0; i<rc.Length; i++ )
-                            {
-                                rc[i] = ProcessModifiers(rc[i], returnModifiers);
-                            }
-                        }
-
-                        if (rc.Length == 1)
-                            return Newtonsoft.Json.JsonConvert.SerializeObject(rc[0], TestResolver.Settings);
-                        return Newtonsoft.Json.JsonConvert.SerializeObject(rc, TestResolver.Settings);
-                    }
-                }
-            }
-
-            if (_constructors != null)
-            {
-                for (int k = 0; k < _constructors.Length; k++)
-                {
-                    var constructor = _constructors[k];
-                    int paramCount = constructor.GetParameters().Length;
-                    if (paramCount == tokenCount)
-                    {
-                        object[] parameters = new object[tokenCount];
-                        var p = constructor.GetParameters();
-                        try
-                        {
-                            bool skipThisConstructor = false;
-                            for (int ip = 0; ip < tokenCount; ip++)
-                            {
-                                var generics = p[ip].ParameterType.GetGenericArguments();
-                                if (generics == null || generics.Length != 1)
-                                {
-                                    if( _constructors.Length>0 && p[ip].ParameterType == typeof(Rhino.Geometry.Plane))
-                                    {
-                                        if (ja[ip].Count() < 4)
-                                        {
-                                            skipThisConstructor = true;
-                                            ip = tokenCount;
-                                            continue;
-                                        }
-                                    }
-                                    parameters[ip] = ja[ip].ToObject(p[ip].ParameterType);
-                                }
-                                else
-                                {
-                                    var arrayType = generics[0].MakeArrayType();
-                                    parameters[ip] = ja[ip].ToObject(arrayType);
-                                }
-                            }
-                            if (skipThisConstructor)
-                                continue;
-                        }
-                        catch (Exception)
-                        {
-                            continue;
-                        }
-                        var rc = constructor.Invoke(parameters);
-                        rc = ProcessModifiers(rc, returnModifiers);
-                        return Newtonsoft.Json.JsonConvert.SerializeObject(rc, TestResolver.Settings);
-                    }
-                }
-            }
-
-            return "";
-        }
+        public string Path { get; protected set; }
     }
 
-    /// <summary>
-    /// Only handles simple get methods
-    /// </summary>
-    class GetEndPoint : EndPoint
-    {
-        Func<NancyContext, Response> _function;
-
-        public GetEndPoint(string path, Func<NancyContext, Response> getFunction) : base(path, null)
-        {
-            _function = getFunction;
-        }
-
-        public override Response HandleGetAsResponse(NancyContext context)
-        {
-            if (_function != null)
-                return _function(context);
-            return base.HandleGetAsResponse(context);
-        }
-
-        public override string HandlePost(string jsonString, bool multiple, Dictionary<string, string> returnModifiers)
-        {
-            // this should never be called
-            throw new NotImplementedException();
-        }
-    }
-
-    class ListSdkEndPoint : GetEndPoint
+    class ListSdkEndPoint : EndPoint
     { 
-        public ListSdkEndPoint() : base("sdk", null)
+        public ListSdkEndPoint(string path) : base(path)
         {
         }
 
-        public override string HandleGet()
+        public override Response Get(NancyContext context)
         {
             var sb = new System.Text.StringBuilder("<!DOCTYPE html><html><body>");
 
@@ -501,7 +67,7 @@ namespace compute.geometry
             int i = 1;
             foreach (var endpoint in endpoints)
             {
-                if (!(endpoint is GetEndPoint))
+                if (!(endpoint.GetType().IsAssignableFrom(typeof(EndPoint))))
                     sb_api.AppendLine((i++).ToString() + $" <a href=\"/{endpoint.Path.ToLowerInvariant()}\">{endpoint.Path}</a><BR>");
             }
             sb_sdk.AppendLine($" <a href=\"/sdk/csharp\">C# SDK</a><BR>");
