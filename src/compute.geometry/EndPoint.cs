@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using Nancy;
+using Nancy.Extensions;
 using System.Linq;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
@@ -10,17 +11,56 @@ namespace compute.geometry
 {
     class EndPoint
     {
+        public EndPoint()
+        {
+
+        }
+        public EndPoint(string path)
+        {
+            Path = path;
+        }
+        Func<NancyContext, Response> _getFunction;
+        Func<NancyContext, Response> _postFunction;
+        public static EndPoint Create(string path, Func<NancyContext, Response> getFunction, Func<NancyContext, Response> postFunction)
+        {
+            var endpoint = new EndPoint();
+            endpoint.Path = path;
+            endpoint._getFunction = getFunction;
+            endpoint._postFunction = postFunction;
+            return endpoint;
+        }
+        public static EndPoint CreateGet(string path, Func<NancyContext, Response> getFunction)
+        {
+            return Create(path, getFunction, null);
+        }
+        public static EndPoint CreatePost(string path, Func<NancyContext, Response> postFunction)
+        {
+            return Create(path, null, postFunction);
+        }
+
+        public virtual Response Get(NancyContext context)
+        {
+            if (_getFunction != null)
+                return _getFunction(context);
+            return null;
+        }
+        public virtual Response Post(NancyContext context)
+        {
+            if (_postFunction != null)
+                return _postFunction(context);
+            return null;
+        }
+
+        public string Path { get; protected set; }
+    }
+
+    class GeometryEndPoint : EndPoint
+    {
         Type _classType;
         ConstructorInfo[] _constructors;
         MethodInfo[] _methods;
 
-        public static EndPoint Create(string path, Func<NancyContext, Response> getFunction)
-        {
-            GetEndPoint rc = new GetEndPoint(path, getFunction);
-            return rc;
-        }
-
-        private EndPoint(Type classType, ConstructorInfo[] constructors)
+        private GeometryEndPoint(Type classType, ConstructorInfo[] constructors)
         {
             _classType = classType;
             _constructors = constructors;
@@ -28,7 +68,7 @@ namespace compute.geometry
             Path = basepath + "/New";
         }
 
-        private EndPoint(Type classType, MethodInfo[] methods, bool explicitPath)
+        private GeometryEndPoint(Type classType, MethodInfo[] methods, bool explicitPath)
         {
             _classType = classType;
             _methods = methods;
@@ -69,10 +109,10 @@ namespace compute.geometry
             }
         }
 
-        private EndPoint(Type classType, MethodInfo[] methods) : this(classType, methods, false) { }
-        private EndPoint(Type classType, MethodInfo method) : this(classType, new MethodInfo[] { method }, true) { }
+        private GeometryEndPoint(Type classType, MethodInfo[] methods) : this(classType, methods, false) { }
+        private GeometryEndPoint(Type classType, MethodInfo method) : this(classType, new MethodInfo[] { method }, true) { }
 
-        protected EndPoint(string path, Type classType)
+        protected GeometryEndPoint(string path, Type classType)
         {
             Path = path;
             _classType = classType;
@@ -88,15 +128,15 @@ namespace compute.geometry
             return rc;
         }
 
-        public static List<EndPoint> Create(Type t)
+        public static List<GeometryEndPoint> Create(Type t)
         {
-            List<EndPoint> endpoints = new List<EndPoint>();
+            List<GeometryEndPoint> endpoints = new List<GeometryEndPoint>();
             if (!t.IsAbstract)
             {
                 var constructors = t.GetConstructors(BindingFlags.Instance | BindingFlags.Public);
                 if (constructors != null && constructors.Length > 0)
                 {
-                    EndPoint endpoint = new EndPoint(t, constructors);
+                    GeometryEndPoint endpoint = new GeometryEndPoint(t, constructors);
                     endpoints.Add(endpoint);
                 }
             }
@@ -121,7 +161,7 @@ namespace compute.geometry
                 }
 
                 // This is the general "catch all" endpoint that attempts to figure out the best routine to call
-                EndPoint endpoint = new EndPoint(t, overloads.ToArray());
+                GeometryEndPoint endpoint = new GeometryEndPoint(t, overloads.ToArray());
                 endpoints.Add(endpoint);
 
                 foreach (var overload in overloads)
@@ -129,15 +169,13 @@ namespace compute.geometry
                     var parameters = overload.GetParameters();
                     if (parameters == null || parameters.Length < 1)
                         continue;
-                    endpoints.Add(new EndPoint(t, overload)); 
+                    endpoints.Add(new GeometryEndPoint(t, overload)); 
                 }
 
             }
 
             return endpoints;
         }
-
-        public string Path { get; private set; }
 
         protected static string PrettyString(Type t)
         {
@@ -164,12 +202,7 @@ namespace compute.geometry
             return funcname;
         }
 
-        public virtual Nancy.Response HandleGetAsResponse(NancyContext context)
-        {
-            return null;
-        }
-
-        public virtual string HandleGet()
+        public override Response Get(NancyContext context)
         {
             string funcname = FunctionName();
             var sb = new System.Text.StringBuilder("<!DOCTYPE html><html><body>");
@@ -256,14 +289,34 @@ namespace compute.geometry
             return sb.ToString();
         }
 
-        public virtual string HandlePost(string jsonString, bool multiple, Dictionary<string,string> returnModifiers)
+        public override Response Post(NancyContext context)
         {
+            var jsonString = context.Request.Body.AsString();
+            var resp = new Nancy.Response();
+
+            bool multiple = false;
+            Dictionary<string, string> returnModifiers = null;
+            foreach (string name in context.Request.Query)
+            {
+                if (name.StartsWith("return.", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    if (returnModifiers == null)
+                        returnModifiers = new Dictionary<string, string>();
+                    string dataType = "Rhino.Geometry." + name.Substring("return.".Length);
+                    string items = context.Request.Query[name];
+                    returnModifiers[dataType] = items;
+                    continue;
+                }
+                if (name.Equals("multiple", StringComparison.InvariantCultureIgnoreCase))
+                    multiple = context.Request.Query[name];
+            }
+
             object data = string.IsNullOrWhiteSpace(jsonString) ? null : Newtonsoft.Json.JsonConvert.DeserializeObject(jsonString);
             var ja = data as Newtonsoft.Json.Linq.JArray;
             if (multiple && ja.Count > 1)
             {
                 var result = new System.Text.StringBuilder("[");
-                for( int i=0; i<ja.Count; i++ )
+                for (int i = 0; i < ja.Count; i++)
                 {
                     if (i > 0)
                         result.Append(",");
@@ -458,39 +511,13 @@ namespace compute.geometry
         }
     }
 
-    /// <summary>
-    /// Only handles simple get methods
-    /// </summary>
-    class GetEndPoint : EndPoint
-    {
-        Func<NancyContext, Response> _function;
-
-        public GetEndPoint(string path, Func<NancyContext, Response> getFunction) : base(path, null)
-        {
-            _function = getFunction;
-        }
-
-        public override Response HandleGetAsResponse(NancyContext context)
-        {
-            if (_function != null)
-                return _function(context);
-            return base.HandleGetAsResponse(context);
-        }
-
-        public override string HandlePost(string jsonString, bool multiple, Dictionary<string, string> returnModifiers)
-        {
-            // this should never be called
-            throw new NotImplementedException();
-        }
-    }
-
-    class ListSdkEndPoint : GetEndPoint
+    class ListSdkEndPoint : EndPoint
     { 
-        public ListSdkEndPoint() : base("sdk", null)
+        public ListSdkEndPoint(string path) : base(path)
         {
         }
 
-        public override string HandleGet()
+        public override Response Get(NancyContext context)
         {
             var sb = new System.Text.StringBuilder("<!DOCTYPE html><html><body>");
 
@@ -501,7 +528,7 @@ namespace compute.geometry
             int i = 1;
             foreach (var endpoint in endpoints)
             {
-                if (!(endpoint is GetEndPoint))
+                if (!(endpoint.GetType().IsAssignableFrom(typeof(EndPoint))))
                     sb_api.AppendLine((i++).ToString() + $" <a href=\"/{endpoint.Path.ToLowerInvariant()}\">{endpoint.Path}</a><BR>");
             }
             sb_sdk.AppendLine($" <a href=\"/sdk/csharp\">C# SDK</a><BR>");

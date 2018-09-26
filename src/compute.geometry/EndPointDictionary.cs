@@ -12,7 +12,7 @@ namespace compute.geometry
         static Dictionary<string, EndPoint> _dictionary;
 
         /// <summary>
-        /// Dictionary of all endpoints in the form of a URL and a EndPoint
+        /// Dictionary of all endpoints in the form of a URL and a GeometryEndpoint
         /// handler for that endpoint. We use a dictionary instead of a simple
         /// list to ensure there are no conflicting endpoints that are trying
         /// to use the same URL (this would throw an ArgumentException when
@@ -27,12 +27,12 @@ namespace compute.geometry
                 return _dictionary;
 
             _dictionary = new Dictionary<string, EndPoint>();
-            AddEndPoint(_dictionary, EndPoint.Create("", FixedEndpoints.HomePage));
-            AddEndPoint(_dictionary, EndPoint.Create("version", FixedEndpoints.GetVersion));
-            AddEndPoint(_dictionary, EndPoint.Create("sdk/csharp", FixedEndpoints.CSharpSdk));
-            AddEndPoint(_dictionary, EndPoint.Create("hammertime", FixedEndpoints.HammerTime));
+            AddEndPoint(_dictionary, EndPoint.CreateGet("", FixedEndpoints.HomePage));
+            AddEndPoint(_dictionary, EndPoint.CreateGet("version", FixedEndpoints.GetVersion));
+            AddEndPoint(_dictionary, EndPoint.CreateGet("sdk/csharp", FixedEndpoints.CSharpSdk));
+            AddEndPoint(_dictionary, EndPoint.CreateGet("hammertime", FixedEndpoints.HammerTime));
 
-            AddEndPoint(_dictionary, new ListSdkEndPoint());
+            AddEndPoint(_dictionary, new ListSdkEndPoint("sdk"));
             BuildApi(_dictionary, typeof(Rhino.RhinoApp).Assembly, "Rhino.Geometry");
             BuildApi(_dictionary, typeof(Rhino.RhinoApp).Assembly, "Rhino.Geometry.Intersect");
             return _dictionary;
@@ -54,7 +54,7 @@ namespace compute.geometry
                     continue;
                 if (export.IsClass || export.IsValueType)
                 {
-                    var endpoints = EndPoint.Create(export);
+                    var endpoints = GeometryEndPoint.Create(export);
                     foreach (var endpoint in endpoints)
                     {
                         string key = endpoint.Path.ToLowerInvariant();
