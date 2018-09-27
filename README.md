@@ -1,22 +1,13 @@
 # Rhino Compute Server
 
-[![Build status](https://ci.appveyor.com/api/projects/status/unmnwi57we5nvnfi/branch/master?svg=true)](https://ci.appveyor.com/project/mcneel/compute-rhino3d/branch/master)
+[![Build status](https://ci.appveyor.com/api/projects/status/unmnwi57we5nvnfi/branch/master?svg=true)](https://ci.appveyor.com/project/mcneel/compute-rhino3d/branch/master) [![Discourse users](https://img.shields.io/discourse/https/discourse.mcneel.com/users.svg)](https://discourse.mcneel.com/c/serengeti/compute-rhino3d)
 
 A REST api exposing Rhino's geometry core. This project has two web services: `compute.geometry` which provides the REST API, and `compute.frontend` that provides authentication, request stashing (saving POST data for diagnostics), logging, and configuration of request and response headers. `compute.frontend` creates the `compute.geometry` process, monitors its health, and restarts `compute.geometry` as necessary.
 
-## Local Debug Builds
-
-1. Install [Rhino WIP](https://www.rhino3d.com/download/rhino-for-windows/wip).
-1. Start Rhino WIP to configure its license.
-1. Load compute.sln and compile as `Debug`.
-1. In `Solution Explorer`, right-click `Solution 'compute'`, then click `Properties`
-1. In the `Startup Project` tab, select `Multiple Startup Projects`, then set both `compute.frontend` and `compute.geometry` to `Start`.
-1. Start the application in the debugger.
-1. Browse to http://localhost:8888/version or http://localhost:8888/sdk
 
 ## Getting Started
 
-1. Build `compute.sln` as `Release`.
+1. Get the [latest build from the `master` branch](https://ci.appveyor.com/project/mcneel/compute-rhino3d/branch/master/artifacts).
 1. Create a Windows Server 2016 computer.
 1. Remote desktop onto server.
 1. Copy `src/bin/Release` to the server.
@@ -27,6 +18,7 @@ A REST api exposing Rhino's geometry core. This project has two web services: `c
 1. Run and license Rhino. Be sure to validate your license.
 
 ## Optional Configuration
+
 1. Release builds of `compute` listen on all available IP addreses by default. For this to work, you must:
     - Start PowerShell as Administrator.
     - `netsh http add urlacl url="http://+:80/" user="Everyone"`.
@@ -46,6 +38,7 @@ A REST api exposing Rhino's geometry core. This project has two web services: `c
     - `Q` to Quit.
 
 ## To Run compute as a service when Windows starts:
+
 1. Start `compute` as a service:
     - Start _cmd.exe_ as Administrator.
     - In _cmd_: `cd C:\Users\[USERNAME]\Desktop\Release\`
@@ -53,6 +46,7 @@ A REST api exposing Rhino's geometry core. This project has two web services: `c
     - In the interactive menu, enter your username in the format `.\\[USERNAME]` (for example:`.\steve`) and use the administrator password for this account.
 
 ## Environment Variables ##
+
 All configuration of Compute is done via environment variables.
 
 **COMPUTE_HTTP_PORT**: `integer`, Default: `80` (release builds) or `8888` (debug builds)
@@ -110,8 +104,16 @@ Amazon Web Services Secrete Access Key for your account. If compute is running o
 
 Amazon Web Services [Region Endpoint](https://docs.aws.amazon.com/general/latest/gr/rande.html)
 
-## Notes for future work
-- There is a health check URL in case we want to set up a load balancer
-    - On the Compute Engine web page, click on "Health Checks"
-    - Click "create a new health check"
-    - Set request path to "/healthcheck"
+## Building from source
+
+1. Install [Rhino WIP](https://www.rhino3d.com/download/rhino-for-windows/wip).
+1. Start Rhino WIP to configure its license.
+1. Load compute.sln and compile as `Debug`.
+1. In `Solution Explorer`, right-click `Solution 'compute'`, then click `Properties`
+1. In the `Startup Project` tab, select `Multiple Startup Projects`, then set both `compute.frontend` and `compute.geometry` to `Start`.
+1. Start the application in the debugger.
+1. Browse to http://localhost:8888/version or http://localhost:8888/sdk
+
+## Notes
+
+- There is a health check URL (`/healthcheck`) in case you want to set up a load balancer
