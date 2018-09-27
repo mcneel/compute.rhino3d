@@ -7,7 +7,7 @@ A REST api exposing Rhino's geometry core. This project has two web services: `c
 
 ## Getting Started
 
-1. Get the [latest build from the `master` branch](https://ci.appveyor.com/project/mcneel/compute-rhino3d/branch/master/artifacts).
+1. Get the [latest build](https://ci.appveyor.com/project/mcneel/compute-rhino3d/branch/master/artifacts) from the `master` branch (or [build from source](#building-from-source)).
 1. Create a Windows Server 2016 computer.
 1. Remote desktop onto server.
 1. Copy `src/bin/Release` to the server.
