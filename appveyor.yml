@@ -6,3 +6,7 @@ before_build:
 build:
   project: src\compute.sln
   verbosity: minimal
+after_build:
+  - 7z a -tzip -r compute-%APPVEYOR_BUILD_VERSION%.zip src\bin\Release\*
+artifacts:
+  - path: compute-$(APPVEYOR_BUILD_VERSION).zip
