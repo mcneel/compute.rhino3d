@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
 using Nancy.Bootstrapper;
 using Nancy.Conventions;
 using Nancy.Extensions;
 using Nancy.Hosting.Self;
+using Nancy.Routing;
 using Nancy.TinyIoc;
 using Serilog;
 using Topshelf;
@@ -126,16 +128,69 @@ namespace compute.geometry
 
     public class RhinoModule : Nancy.NancyModule
     {
-        public RhinoModule()
+        private IEnumerable<GeometryEndPoint> CreateEndpoints(Assembly assembly, string nameSpace)
         {
-            Get["/healthcheck"] = _ => "healthy";
-
-            var endpoints = EndPointDictionary.GetDictionary();
-            foreach (var kv in endpoints)
+            foreach (var export in assembly.GetExportedTypes())
             {
-                Get[kv.Key] = _ => kv.Value.Get(Context);
-                Post[kv.Key] = _ => kv.Value.Post(Context);
+                if (!string.Equals(export.Namespace, nameSpace, StringComparison.Ordinal))
+                    continue;
+                if (export.IsInterface || export.IsEnum)
+                    continue;
+                if (export.IsClass || export.IsValueType)
+                {
+                    var endpoints = GeometryEndPoint.Create(export);
+                    foreach (var endpoint in endpoints)
+                    {
+                        yield return endpoint;
+                    }
+                }
             }
+        }
+
+        public RhinoModule(IRouteCacheProvider routeCacheProvider)
+        {
+            Get[""] = _ => FixedEndpoints.HomePage(Context);
+            Get["/healthcheck"] = _ => "healthy";
+            Get["version"] = _ => FixedEndpoints.GetVersion(Context);
+            Get["sdk/csharp"] = _ => FixedEndpoints.CSharpSdk(Context);
+            Post["hammertime"] = _ => FixedEndpoints.HammerTime(Context);
+
+            Get["/sdk"] = _ =>
+            {
+                var result = new StringBuilder("<!DOCTYPE html><html><body>");
+                var cache = routeCacheProvider.GetCache();
+                result.AppendLine($" <a href=\"/sdk/csharp\">C# SDK</a><BR>");
+                result.AppendLine("<p>API<br>");
+
+                int route_index = 0;
+                foreach (var module in cache)
+                {
+                    foreach (var route in module.Value)
+                    {
+                        var method = route.Item2.Method;
+                        var path = route.Item2.Path;
+                        if (method == "GET")
+                        {
+                            route_index += 1;
+                            result.AppendLine($"{route_index} <a href='{path}'>{path}</a><BR>");
+                        }
+                    }
+                }
+
+                result.AppendLine("</p></body></html>");
+                return result.ToString();
+            };
+
+            foreach (string nameSpace in new List<string>() {"Rhino.Geometry", "Rhino.Geometry.Intersect"})
+            {
+                foreach (var endpoint in CreateEndpoints(typeof(Rhino.RhinoApp).Assembly, nameSpace))
+                {
+                    string key = endpoint.Path.ToLowerInvariant();
+                    Get[key] = _ => endpoint.Get(Context);
+                    Post[key] = _ => endpoint.Post(Context);
+                }
+            }
+
         }
     }
 }

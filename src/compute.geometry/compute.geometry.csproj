@@ -115,8 +115,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="EndPoint.cs" />
-    <Compile Include="EndPointDictionary.cs" />
     <Compile Include="Environment.cs" />
     <Compile Include="FixedEndpoints.cs" />
     <Compile Include="GeometryEndPoint.cs" />

@@ -4,14 +4,17 @@ using System.Reflection;
 using Nancy;
 using Nancy.Extensions;
 using System.Linq;
+using Newtonsoft.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace compute.geometry
 {
-    class GeometryEndPoint : EndPoint
+    class GeometryEndPoint
     {
         Type _classType;
         ConstructorInfo[] _constructors;
         MethodInfo[] _methods;
+        public string Path { get; }
 
         private GeometryEndPoint(Type classType, ConstructorInfo[] constructors)
         {
@@ -69,16 +72,6 @@ namespace compute.geometry
         {
             Path = path;
             _classType = classType;
-        }
-
-        public static EndPoint Get(string path)
-        {
-            if (path.StartsWith("/"))
-                path = path.Substring(1);
-            var dict = EndPointDictionary.GetDictionary();
-            EndPoint rc = null;
-            dict.TryGetValue(path.ToLowerInvariant(), out rc);
-            return rc;
         }
 
         public static List<GeometryEndPoint> Create(Type t)
@@ -155,7 +148,7 @@ namespace compute.geometry
             return funcname;
         }
 
-        public override Response Get(NancyContext context)
+        public Response Get(NancyContext context)
         {
             string funcname = FunctionName();
             var sb = new System.Text.StringBuilder("<!DOCTYPE html><html><body>");
@@ -242,7 +235,7 @@ namespace compute.geometry
             return sb.ToString();
         }
 
-        public override Response Post(NancyContext context)
+        public Response Post(NancyContext context)
         {
             var jsonString = context.Request.Body.AsString();
             var resp = new Nancy.Response();
@@ -461,6 +454,68 @@ namespace compute.geometry
             }
 
             return "";
+        }
+    }
+
+
+    public class TestResolver : DefaultContractResolver
+    {
+        static JsonSerializerSettings _settings;
+        public static JsonSerializerSettings Settings
+        {
+            get
+            {
+                if (_settings == null)
+                {
+                    _settings = new JsonSerializerSettings { ContractResolver = new TestResolver() };
+                    // return V6 ON_Objects for now
+                    var options = new Rhino.FileIO.SerializationOptions();
+                    options.RhinoVersion = 6;
+                    options.WriteUserData = true;
+                    _settings.Context = new System.Runtime.Serialization.StreamingContext(System.Runtime.Serialization.StreamingContextStates.All, options);
+                }
+                return _settings;
+            }
+        }
+
+        protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)
+        {
+            JsonProperty property = base.CreateProperty(member, memberSerialization);
+            if (property.DeclaringType == typeof(Rhino.Geometry.Circle))
+            {
+                property.ShouldSerialize = _ =>
+                {
+                    return property.PropertyName != "IsValid" && property.PropertyName != "BoundingBox" && property.PropertyName != "Diameter" && property.PropertyName != "Circumference";
+                };
+
+            }
+            if (property.DeclaringType == typeof(Rhino.Geometry.Plane))
+            {
+                property.ShouldSerialize = _ =>
+                {
+                    return property.PropertyName != "IsValid" && property.PropertyName != "OriginX" && property.PropertyName != "OriginY" && property.PropertyName != "OriginZ";
+                };
+            }
+
+            if (property.DeclaringType == typeof(Rhino.Geometry.Point3f) ||
+                property.DeclaringType == typeof(Rhino.Geometry.Point2f) ||
+                property.DeclaringType == typeof(Rhino.Geometry.Vector2f) ||
+                property.DeclaringType == typeof(Rhino.Geometry.Vector3f))
+            {
+                property.ShouldSerialize = _ =>
+                {
+                    return property.PropertyName == "X" || property.PropertyName == "Y" || property.PropertyName == "Z";
+                };
+            }
+
+            if (property.DeclaringType == typeof(Rhino.Geometry.MeshFace))
+            {
+                property.ShouldSerialize = _ =>
+                {
+                    return property.PropertyName != "IsTriangle" && property.PropertyName != "IsQuad";
+                };
+            }
+            return property;
         }
     }
 
