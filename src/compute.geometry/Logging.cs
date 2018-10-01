@@ -33,7 +33,7 @@ namespace compute.geometry
                 .WriteTo.File(new JsonFormatter(), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
 
             var cloudwatch_enabled = false;
-            var aws_log_group = Env.GetEnvironmentString("COMPUTE_LOG_CLOUDWATCH_GROUP", "/compute/debug");
+            var aws_log_group = Env.GetEnvironmentString("COMPUTE_LOG_CLOUDWATCH_GROUP", "/compute/dev");
 
             if (Env.GetEnvironmentBool("COMPUTE_LOG_CLOUDWATCH", true))
             {
