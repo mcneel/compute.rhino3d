@@ -398,8 +398,8 @@ namespace compute.geometry
                         }
 
                         if (rc.Length == 1)
-                            return Newtonsoft.Json.JsonConvert.SerializeObject(rc[0], TestResolver.Settings);
-                        return Newtonsoft.Json.JsonConvert.SerializeObject(rc, TestResolver.Settings);
+                            return Newtonsoft.Json.JsonConvert.SerializeObject(rc[0], GeometryResolver.Settings);
+                        return Newtonsoft.Json.JsonConvert.SerializeObject(rc, GeometryResolver.Settings);
                     }
                 }
             }
@@ -448,7 +448,7 @@ namespace compute.geometry
                         }
                         var rc = constructor.Invoke(parameters);
                         rc = ProcessModifiers(rc, returnModifiers);
-                        return Newtonsoft.Json.JsonConvert.SerializeObject(rc, TestResolver.Settings);
+                        return Newtonsoft.Json.JsonConvert.SerializeObject(rc, GeometryResolver.Settings);
                     }
                 }
             }
@@ -458,7 +458,7 @@ namespace compute.geometry
     }
 
 
-    public class TestResolver : DefaultContractResolver
+    public class GeometryResolver : DefaultContractResolver
     {
         static JsonSerializerSettings _settings;
         public static JsonSerializerSettings Settings
@@ -467,7 +467,7 @@ namespace compute.geometry
             {
                 if (_settings == null)
                 {
-                    _settings = new JsonSerializerSettings { ContractResolver = new TestResolver() };
+                    _settings = new JsonSerializerSettings { ContractResolver = new GeometryResolver() };
                     // return V6 ON_Objects for now
                     var options = new Rhino.FileIO.SerializationOptions();
                     options.RhinoVersion = 6;
