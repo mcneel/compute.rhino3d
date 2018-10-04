@@ -9,7 +9,7 @@ namespace compute.frontend
         {
             int backendPort = Env.GetEnvironmentInt("COMPUTE_BACKEND_PORT", 8081);
 
-            Get["/frontendinfo"] = _ => "Hello World!";
+            Get["/healthcheck"] = _ => "healthy";
 
             Get["/"] =
             Get["/{uri*}"] = _ =>

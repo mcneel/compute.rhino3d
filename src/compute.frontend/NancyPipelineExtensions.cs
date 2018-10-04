@@ -119,6 +119,9 @@ namespace compute.frontend
 
                 logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
                     "RequestContentType", ctx.Request.Headers.ContentType));
+
+                logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
+                    "Host", ctx.Request.Headers.Host));
             }
         }
     }
