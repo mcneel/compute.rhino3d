@@ -24,9 +24,9 @@ namespace compute.frontend
             var limit = Env.GetEnvironmentInt("COMPUTE_LOG_RETAIN_DAYS", 10);
 
             var logger = new LoggerConfiguration()
-#if DEBUG
+//#if DEBUG
                 .MinimumLevel.Debug()
-#endif
+//#endif
                 .Enrich.FromLogContext()
                 .Enrich.WithProperty("Source", "frontend")
                 .WriteTo.Console(outputTemplate: "{Timestamp:o} {Level:w3}: {Source} {Message:lj} {Properties:j}{NewLine}{Exception}")
