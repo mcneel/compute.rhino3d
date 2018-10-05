@@ -146,7 +146,6 @@ namespace compute.frontend
         protected override void ApplicationStartup(TinyIoCContainer container, IPipelines pipelines)
         {
             Log.Debug("ApplicationStartup");
-            pipelines.AddHeadersAndLogging();
 
             pipelines.EnableGzipCompression(new GzipCompressionSettings() { MinimumBytes = 1024 });
 
@@ -156,6 +155,7 @@ namespace compute.frontend
                 pipelines.AddAuthRhinoAccount();
             else if (auth_method == "API_KEY")
                 pipelines.AddAuthApiKey();
+            pipelines.AddHeadersAndLogging();
             pipelines.AddRequestStashing();
 
             base.ApplicationStartup(container, pipelines);
