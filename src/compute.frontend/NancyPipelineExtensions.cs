@@ -50,8 +50,8 @@ namespace compute.frontend
         private static void AddCORSSupport(NancyContext context)
         {
             context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
-            context.Response.Headers.Add("Access-Control-Allow-Methods", "OPTIONS,POST,GET");
-            context.Response.Headers.Add("Access-Control-Allow-Headers", "*");
+            context.Response.Headers.Add("Access-Control-Allow-Methods", "OPTIONS,POST,GET,HEAD");
+            context.Response.Headers.Add("Access-Control-Allow-Headers", "Authorization,Origin,Accept,Content-Type,Access-Control-Allow-Headers,Access-Control-Request-Method,Access-Control-Request-Headers");
         }
 
         private static void LogResponse(NancyContext context)
