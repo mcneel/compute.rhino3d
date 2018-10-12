@@ -27,6 +27,8 @@ deploy:
     bucket: files.na.mcneel.com
     folder: compute/deploy
 # deploy to staging
-# TODO: master branch only
 after_deploy:
-  - aws deploy create-deployment --application-name AWSTutorialSeries --s3-location bucket=files.na.mcneel.com,key=compute/deploy/compute-deploy-%APPVEYOR_BUILD_VERSION%.zip,bundleType=zip --deployment-group-name AWSTutorialSeries
+  - ps: |
+      if($env:APPVEYOR_REPO_BRANCH -eq 'master') {
+        aws deploy create-deployment --application-name AWSTutorialSeries --s3-location bucket=files.na.mcneel.com,key=compute/deploy/compute-deploy-%APPVEYOR_BUILD_VERSION%.zip,bundleType=zip --deployment-group-name AWSTutorialSeries
+      }
