@@ -30,5 +30,5 @@ deploy:
 after_deploy:
   - ps: |
       if($env:APPVEYOR_REPO_BRANCH -eq 'master') {
-        aws deploy create-deployment --application-name AWSTutorialSeries --s3-location bucket=files.na.mcneel.com,key=compute/deploy/compute-deploy-%APPVEYOR_BUILD_VERSION%.zip,bundleType=zip --deployment-group-name AWSTutorialSeries
+        aws deploy create-deployment --application-name AWSTutorialSeries --s3-location bucket=files.na.mcneel.com,key=compute/deploy/compute-deploy-${env:APPVEYOR_BUILD_VERSION}.zip,bundleType=zip --deployment-group-name AWSTutorialSeries
       }
