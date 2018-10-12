@@ -1,6 +1,8 @@
 version: '{build}'
 image: Visual Studio 2017
 configuration: Release
+environment:
+  AWS_DEFAULT_REGION: us-east-1
 before_build:
   - nuget restore src\compute.sln
 build:
@@ -8,5 +10,25 @@ build:
   verbosity: minimal
 after_build:
   - 7z a -tzip -r compute-%APPVEYOR_BUILD_VERSION%.zip src\bin\Release\*
+  - ps: |
+      md dist\src\bin
+      cp -r src\bin\Release dist\src\bin\
+      cp -r .codedeploy\* dist\
+      7z a -tzip -r compute-deploy-${env:APPVEYOR_BUILD_VERSION}.zip ${env:APPVEYOR_BUILD_FOLDER}\dist\*
 artifacts:
   - path: compute-$(APPVEYOR_BUILD_VERSION).zip
+  - path: compute-deploy-$(APPVEYOR_BUILD_VERSION).zip
+# before_deploy:
+deploy:
+  - provider: S3
+    region: $(AWS_DEFAULT_REGION)
+    access_key_id: $(AWS_ACCESS_KEY_ID)
+    secret_access_key: $(AWS_SECRET_ACCESS_KEY)
+    bucket: files.na.mcneel.com
+    folder: compute/deploy
+# deploy to staging
+after_deploy:
+  - ps: |
+      if($env:APPVEYOR_REPO_BRANCH -eq 'master') {
+        aws deploy create-deployment --application-name AWSTutorialSeries --s3-location bucket=files.na.mcneel.com,key=compute/deploy/compute-deploy-%APPVEYOR_BUILD_VERSION%.zip,bundleType=zip --deployment-group-name AWSTutorialSeries
+      }
