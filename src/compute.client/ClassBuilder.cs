@@ -48,12 +48,11 @@ namespace computegen
 
     class ClassBuilder
     {
-        static Dictionary<string, ClassBuilder> _allClasses;
-        public static Dictionary<string, ClassBuilder> AllClasses {  get { return _allClasses; } }
+        public static Dictionary<string, ClassBuilder> AllClasses { get; private set; }
 
         public static void BuildClassDictionary(string sourcePath)
         {
-            _allClasses = new Dictionary<string, ClassBuilder>();
+            AllClasses = new Dictionary<string, ClassBuilder>();
             var options = new Microsoft.CodeAnalysis.CSharp.CSharpParseOptions().WithPreprocessorSymbols("RHINO_SDK").WithDocumentationMode(Microsoft.CodeAnalysis.DocumentationMode.Parse);
             foreach (var file in AllSourceFiles(sourcePath))
             {
@@ -76,10 +75,10 @@ namespace computegen
         public static ClassBuilder Get(string className)
         {
             ClassBuilder cb;
-            if (_allClasses.TryGetValue(className, out cb))
+            if (AllClasses.TryGetValue(className, out cb))
                 return cb;
             cb = new ClassBuilder(className);
-            _allClasses[className] = cb;
+            AllClasses[className] = cb;
             return cb;
         }
 
@@ -109,11 +108,7 @@ namespace computegen
             }
         }
 
-        readonly List<Tuple<MethodDeclarationSyntax, DocumentationCommentTriviaSyntax>> _methods = new List<Tuple<MethodDeclarationSyntax, DocumentationCommentTriviaSyntax>>();
-        public void AddMethod(MethodDeclarationSyntax method, DocumentationCommentTriviaSyntax comment)
-        {
-            _methods.Add(new Tuple<MethodDeclarationSyntax, DocumentationCommentTriviaSyntax>(method, comment));
-        }
+        public List<Tuple<MethodDeclarationSyntax, DocumentationCommentTriviaSyntax>> Methods { get; } = new List<Tuple<MethodDeclarationSyntax, DocumentationCommentTriviaSyntax>>();
 
         public string EndPoint(MethodDeclarationSyntax method)
         {
@@ -139,181 +134,6 @@ namespace computegen
                 url.Append(method.ParameterList.Parameters[i].Type.ToString());
             }
             return url.ToString().ToLower();
-        }
-
-        public string ToComputeString()
-        {
-            var sb = new StringBuilder();
-
-            sb.AppendLine($"    public static class {ClassName}Compute");
-            sb.AppendLine("    {");
-            sb.AppendLine("        static string ApiAddress([CallerMemberName] string caller = null)");
-            sb.AppendLine("        {");
-            sb.AppendLine($"            return Client.ApiAddress(typeof({ClassName}), caller);");
-            sb.AppendLine("        }");
-
-
-            foreach (var (method, comment) in _methods)
-            {
-                if (comment != null)
-                    sb.Append("        " + comment.ToFullString());
-                bool useAsReturnType;
-                if (method.IsNonConst(out useAsReturnType) && useAsReturnType)
-                    sb.Append($"        public static {ClassName} {method.Identifier}(");
-                else
-                    sb.Append($"        public static {method.ReturnType} {method.Identifier}(");
-                
-                int paramCount = 0;
-                if (!method.IsStatic())
-                {
-                    sb.Append($"this {ClassName} {ClassName.ToLower()}");
-                    paramCount++;
-                }
-                if (method.IsNonConst(out useAsReturnType) && !useAsReturnType)
-                {
-                    if (paramCount > 0)
-                        sb.Append(", ");
-                    sb.Append($"out {ClassName} updatedInstance");
-                    paramCount++;
-                }
-                for ( int i=0; i<method.ParameterList.Parameters.Count; i++ )
-                {
-                    if (paramCount > 0)
-                        sb.Append(", ");
-                    sb.Append($"{method.ParameterList.Parameters[i].ToFullString()}");
-                    paramCount++;
-                }
-                sb.AppendLine(")");
-                sb.AppendLine("        {");
-
-                int outParamIndex = -1;
-                for( int i=0; i<method.ParameterList.Parameters.Count; i++ )
-                {
-                    foreach(var modifier in method.ParameterList.Parameters[i].Modifiers)
-                    {
-                        if(modifier.Text == "out")
-                        {
-                            outParamIndex = i;
-                            break;
-                        }
-                    }
-                    if (outParamIndex >= 0)
-                        break;
-                }
-
-                if (outParamIndex < 0)
-                {
-                    if( method.IsNonConst(out useAsReturnType))
-                    {
-                        if( useAsReturnType )
-                            sb.Append($"            return Client.Post<{ClassName}>(ApiAddress(), ");
-                        else
-                            sb.Append($"            return Client.Post<{method.ReturnType}, {ClassName}>(ApiAddress(), out updatedInstance, ");
-                    }
-                    else
-                        sb.Append($"            return Client.Post<{method.ReturnType}>(ApiAddress(), ");
-                }
-                else
-                {
-                    var parameter = method.ParameterList.Parameters[outParamIndex];
-                    sb.Append($"            return Client.Post<{method.ReturnType}, {parameter.Type}>(ApiAddress(), out {parameter.Identifier}, ");
-                }
-                if (!method.IsStatic())
-                {
-                    sb.Append($"{ClassName.ToLower()}");
-                    if (method.ParameterList.Parameters.Count > 0)
-                        sb.Append(", ");
-                }
-
-                List<ParameterSyntax> orderedParams = new List<ParameterSyntax>();
-                foreach (var p in method.ParameterList.Parameters)
-                {
-                    if (p.Modifiers.Count == 0)
-                        orderedParams.Add(p);
-                }
-
-                for (int i = 0; i < orderedParams.Count; i++)
-                {
-                    if (i > 0)
-                        sb.Append(", ");
-                    var p = orderedParams[i];
-                    sb.Append(p.Modifiers.Count > 0 ? $"{p.Modifiers} {p.Identifier}" : $"{p.Identifier}");
-                }
-                sb.AppendLine(");");
-                sb.AppendLine("        }");
-            }
-            sb.AppendLine("  }");
-            return sb.ToString();
-        }
-
-        static string CamelCase(string text)
-        {
-            string s = text.Substring(0, 1).ToLower() + text.Substring(1);
-            return s;
-        }
-
-        const string T1 = "    ";
-        const string T2 = "        ";
-        const string T3 = "            ";
-
-        public string ToComputeJavascript()
-        {
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine();
-            sb.AppendLine($"{T1}{ClassName} : {{");
-            int iMethod = 0;
-            int overloadIndex = 0;
-            string prevMethodName = "";
-            foreach (var (method, comment) in _methods)
-            {
-                string methodName = CamelCase(method.Identifier.ToString());
-                if (methodName.Equals(prevMethodName))
-                {
-                    overloadIndex++;
-                    methodName = $"{methodName}{overloadIndex}";
-                }
-                else
-                {
-                    overloadIndex = 0;
-                    prevMethodName = methodName;
-                }
-                sb.Append($"{T2}{methodName} : function(");
-                List<string> parameters = new List<string>();
-                if (!method.IsStatic())
-                {
-                    parameters.Add(ClassName.ToLower());
-                }
-                for (int i = 0; i < method.ParameterList.Parameters.Count; i++)
-                {
-                    parameters.Add(method.ParameterList.Parameters[i].Identifier.ToString());
-                }
-
-                for(int i=0; i<parameters.Count; i++)
-                {
-                    sb.Append(parameters[i]);
-                    if (i < (parameters.Count - 1))
-                        sb.Append(", ");
-                }
-                sb.AppendLine(") {");
-                sb.Append($"{T3}args = [");
-                for(int i=0; i<parameters.Count; i++ )
-                {
-                    sb.Append(parameters[i]);
-                    if (i < (parameters.Count - 1))
-                        sb.Append(", ");
-                }
-                sb.AppendLine("];");
-                string endpoint = method.Identifier.ToString();
-                sb.AppendLine($"{T3}var promise = RhinoCompute.computeFetch(\"{EndPoint(method)}\", args);");
-                sb.AppendLine($"{T3}return promise;");
-                sb.AppendLine($"{T2}}},");
-
-                iMethod++;
-                if(iMethod < _methods.Count)
-                    sb.AppendLine();
-            }
-            sb.AppendLine("    },");
-            return sb.ToString();
         }
     }
 
@@ -408,7 +228,7 @@ namespace computegen
                     if (refCount == 0 && outCount < 2)
                     {
                         var docComment = node.GetLeadingTrivia().Select(i => i.GetStructure()).OfType<DocumentationCommentTriviaSyntax>().FirstOrDefault();
-                        ClassBuilder.Get(_visitingClass).AddMethod(node, docComment);
+                        ClassBuilder.Get(_visitingClass).Methods.Add(new Tuple<MethodDeclarationSyntax, DocumentationCommentTriviaSyntax>(node, docComment));
                     }
                 }
             }
