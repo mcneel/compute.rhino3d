@@ -129,9 +129,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ClassBuilder.cs" />
+    <Compile Include="ComputeClient.cs" />
+    <Compile Include="DotNetClient.cs" />
     <Compile Include="JavascriptClient.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="PythonClient.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

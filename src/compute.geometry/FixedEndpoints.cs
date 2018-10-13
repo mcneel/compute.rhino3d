@@ -42,7 +42,7 @@ namespace compute.geometry
                     writer.Write(content);
                 }
             };
-            return response;
+            return response.AsAttachment("RhinoCompute.cs", "text/plain" );
         }
 
         /// <summary>

@@ -1,43 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace computegen
 {
-    static class JavascriptClient
+    class JavascriptClient : ComputeClient
     {
-        public static void Write(Dictionary<string,ClassBuilder> classes, string path)
+        protected override string Prefix
         {
-            StringBuilder javascript = new StringBuilder();
-            javascript.Append(prefix);
-
-            // just do mesh for now
-            string[] filter = new string[] { ".Mesh", ".Brep", ".Curve" };
-            foreach (var kv in ClassBuilder.AllClasses)
+            get
             {
-                if (kv.Key.StartsWith("Rhino.Geometry."))
-                {
-                    bool skip = true;
-                    foreach(var f in filter)
-                    {
-                        if (kv.Key.EndsWith(f))
-                            skip = false;
-                    }
-                    if (skip)
-                        continue;
-                    javascript.Append(kv.Value.ToComputeJavascript());
-                }
-            }
-            javascript.AppendLine("}");
-
-            System.IO.File.WriteAllText(path, javascript.ToString());
-        }
-
-        static string prefix =
-@"
-var RhinoCompute = {
+                return 
+@"var RhinoCompute = {
     url: ""https://compute.rhino3d.com/"",
 
     authToken: null,
@@ -68,5 +42,73 @@ var RhinoCompute = {
         }).then(r=>r.json());
     },
 ";
+            }
+        }
+
+        protected override string Suffix
+        {
+            get { return "};"; }
+        }
+
+        protected override string ToComputeClient(ClassBuilder cb)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine();
+            sb.AppendLine($"{T1}{cb.ClassName} : {{");
+            int iMethod = 0;
+            int overloadIndex = 0;
+            string prevMethodName = "";
+            foreach (var (method, comment) in cb.Methods)
+            {
+                string methodName = CamelCase(method.Identifier.ToString());
+                if (methodName.Equals(prevMethodName))
+                {
+                    overloadIndex++;
+                    methodName = $"{methodName}{overloadIndex}";
+                }
+                else
+                {
+                    overloadIndex = 0;
+                    prevMethodName = methodName;
+                }
+                sb.Append($"{T2}{methodName} : function(");
+                List<string> parameters = new List<string>();
+                if (!method.IsStatic())
+                {
+                    parameters.Add(cb.ClassName.ToLower());
+                }
+                for (int i = 0; i < method.ParameterList.Parameters.Count; i++)
+                {
+                    parameters.Add(method.ParameterList.Parameters[i].Identifier.ToString());
+                }
+
+                for (int i = 0; i < parameters.Count; i++)
+                {
+                    sb.Append(parameters[i]);
+                    if (i < (parameters.Count - 1))
+                        sb.Append(", ");
+                }
+                sb.AppendLine(") {");
+                sb.Append($"{T3}args = [");
+                for (int i = 0; i < parameters.Count; i++)
+                {
+                    sb.Append(parameters[i]);
+                    if (i < (parameters.Count - 1))
+                        sb.Append(", ");
+                }
+                sb.AppendLine("];");
+                string endpoint = method.Identifier.ToString();
+                sb.AppendLine($"{T3}var promise = RhinoCompute.computeFetch(\"{cb.EndPoint(method)}\", args);");
+                sb.AppendLine($"{T3}return promise;");
+                sb.AppendLine($"{T3}}},");
+
+                iMethod++;
+                if (iMethod < cb.Methods.Count)
+                    sb.AppendLine();
+            }
+            sb.AppendLine($"{T1}}},");
+            return sb.ToString();
+        }
+
     }
 }
