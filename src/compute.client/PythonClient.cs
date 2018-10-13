@@ -13,7 +13,7 @@ namespace computegen
             var initpy = System.IO.Path.Combine(packageBase, "__init__.py");
             System.IO.File.WriteAllText(initpy, "");
 
-            var utilPath = System.IO.Path.Combine(packageBase, "util.py");
+            var utilPath = System.IO.Path.Combine(packageBase, "Util.py");
             System.IO.File.WriteAllText(utilPath, UtilModuleContents);
 
             foreach (var kv in ClassBuilder.AllClasses)
@@ -42,7 +42,7 @@ namespace computegen
         {
             get
             {
-                return @"import utility
+                return @"import Util
 
 ";
             }
@@ -64,8 +64,8 @@ def ComputeFetch(endpoint, arglist):
             args.append(item)
     req = urllib2.Request(url + endpoint)
     req.add_header('Content-Type', 'application/json')
-    req.add_header('Authorization', 'Bearer ' + auth_token)
-    response = urllib2.urlopen(req, json.dumps(functionArgs))
+    req.add_header('Authorization', 'Bearer ' + authToken)
+    response = urllib2.urlopen(req, json.dumps(args))
     return json.loads(response.read())
 
 ";
@@ -117,7 +117,7 @@ def ComputeFetch(endpoint, arglist):
                 }
                 sb.AppendLine("]");
                 string endpoint = method.Identifier.ToString();
-                sb.AppendLine($"{T1}response = utility.ComputeFetch(\"{cb.EndPoint(method)}\", args)");
+                sb.AppendLine($"{T1}response = Util.ComputeFetch(\"{cb.EndPoint(method)}\", args)");
                 sb.AppendLine($"{T1}return response");
                 sb.AppendLine();
 
