@@ -100,7 +100,7 @@ namespace computegen
                 string endpoint = method.Identifier.ToString();
                 sb.AppendLine($"{T3}var promise = RhinoCompute.computeFetch(\"{cb.EndPoint(method)}\", args);");
                 sb.AppendLine($"{T3}return promise;");
-                sb.AppendLine($"{T3}}},");
+                sb.AppendLine($"{T2}}},");
 
                 iMethod++;
                 if (iMethod < cb.Methods.Count)
