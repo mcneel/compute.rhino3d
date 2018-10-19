@@ -77,12 +77,16 @@ hooks:
 # During the ApplicationStop deployment lifecycle event, run the commands 
 #   in the script specified in "location" starting from the root of the 
 #   revision's file bundle.
-  ApplicationStop:
-    - location: scripts/stop.bat
-      timeout: 300
+#   ApplicationStop:
+#     - location: scripts/stop.bat
+#       timeout: 300
 # During the BeforeInstall deployment lifecycle event, run the commands 
 #   in the script specified in "location".
+# NOTE: Run stop.bat here because it needs to be run for the first deployment
+# to new instances in an ASG.
   BeforeInstall:
+    - location: scripts/stop.bat
+      timeout: 300
     - location: scripts/clean.bat
       timeout: 300
 # During the AfterInstall deployment lifecycle event, run the commands 
