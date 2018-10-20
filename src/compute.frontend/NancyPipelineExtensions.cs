@@ -31,7 +31,7 @@ namespace compute.frontend
         {
             // TODO: get request id from X-Amzn-Trace-Id
             context.Items.Add("RequestId", Guid.NewGuid().ToString());
-            context.Items.Add("Hostname", GetFQDN());
+            context.Items.Add("Hostname", GetMachineId());
             context.Items.Add("StartTicks", DateTime.UtcNow.Ticks);
 
             Log.ForContext<Nancy.Request>()
@@ -62,11 +62,32 @@ namespace compute.frontend
                     context.Request.Path, (int)context.Response.StatusCode, context.Request.Headers.UserAgent);
         }
 
-        public static string GetFQDN()
+
+
+        public static string GetMachineId()
         {
+            // if we already have a machine identifier, return it
             if (!string.IsNullOrWhiteSpace(_hostname))
                 return _hostname;
 
+            // if we're running on EC2, use the instance id
+            try
+            {
+               _hostname = Amazon.Util.EC2InstanceMetadata.InstanceId;
+            }
+            catch { }
+
+            if (!string.IsNullOrWhiteSpace(_hostname))
+                return _hostname;
+
+            // fallback to the "fully qualified domain name"
+            _hostname = GetFQDN();
+
+            return _hostname;
+        }
+
+        public static string GetFQDN()
+        {
             string domainName = IPGlobalProperties.GetIPGlobalProperties().DomainName;
             string hostName = Dns.GetHostName();
 
@@ -76,8 +97,7 @@ namespace compute.frontend
                 hostName += domainName; // add the domain name part
             }
 
-            _hostname = hostName;
-            return _hostname;
+            return hostName;
         }
     }
 
