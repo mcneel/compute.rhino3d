@@ -56,12 +56,6 @@
     <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="Rhino.UI, Version=7.0.18246.23570, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
-      <HintPath>..\packages\RhinoCommon.7.0.18246.23575-wip\lib\net45\Rhino.UI.dll</HintPath>
-    </Reference>
-    <Reference Include="RhinoCommon, Version=7.0.18246.23570, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
-      <HintPath>..\packages\RhinoCommon.7.0.18246.23575-wip\lib\net45\RhinoCommon.dll</HintPath>
-    </Reference>
     <Reference Include="Serilog, Version=2.0.0.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
       <HintPath>..\packages\Serilog.2.7.1\lib\net46\Serilog.dll</HintPath>
     </Reference>
@@ -141,5 +135,4 @@
     </ItemGroup>
     <Delete Files="@(FilesToDelete)" />
   </Target>
-  <Import Project="..\packages\RhinoCommon.7.0.18246.23575-wip\build\net45\RhinoCommon.targets" Condition="Exists('packages\RhinoCommon.7.0.18246.23575-wip\build\net45\RhinoCommon.targets')" />
 </Project>
