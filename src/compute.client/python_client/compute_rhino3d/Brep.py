@@ -27,19 +27,19 @@ def CreateDevelopableLoft(crv0, crv1, reverse0, reverse1, density):
 
 def CreateDevelopableLoft1(rail0, rail1, fixedRulings):
     args = [rail0, rail1, fixedRulings]
-    response = Util.ComputeFetch("rhino/geometry/brep/createdevelopableloft-nurbscurve_nurbscurve_ienumerable<point2d>", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createdevelopableloft-nurbscurve_nurbscurve_point2darray", args)
     return response
 
 
 def CreatePlanarBreps(inputLoops):
     args = [inputLoops]
-    response = Util.ComputeFetch("rhino/geometry/brep/createplanarbreps-ienumerable<curve>", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createplanarbreps-curvearray", args)
     return response
 
 
 def CreatePlanarBreps1(inputLoops, tolerance):
     args = [inputLoops, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/brep/createplanarbreps-ienumerable<curve>_double", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createplanarbreps-curvearray_double", args)
     return response
 
 
@@ -81,7 +81,7 @@ def CreateFromCornerPoints1(corner1, corner2, corner3, corner4, tolerance):
 
 def CreateEdgeSurface(curves):
     args = [curves]
-    response = Util.ComputeFetch("rhino/geometry/brep/createedgesurface-ienumerable<curve>", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createedgesurface-curvearray", args)
     return response
 
 
@@ -105,7 +105,7 @@ def CreateFromOffsetFace(face, offsetDistance, offsetTolerance, bothSides, creat
 
 def CreateSolid(breps, tolerance):
     args = [breps, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/brep/createsolid-ienumerable<brep>_double", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createsolid-breparray_double", args)
     return response
 
 
@@ -129,19 +129,19 @@ def MergeSurfaces2(brep0, brep1, tolerance, angleToleranceRadians, point0, point
 
 def CreatePatch(geometry, startingSurface, tolerance):
     args = [geometry, startingSurface, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/brep/createpatch-ienumerable<geometrybase>_surface_double", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createpatch-geometrybasearray_surface_double", args)
     return response
 
 
 def CreatePatch1(geometry, uSpans, vSpans, tolerance):
     args = [geometry, uSpans, vSpans, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/brep/createpatch-ienumerable<geometrybase>_int_int_double", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createpatch-geometrybasearray_int_int_double", args)
     return response
 
 
 def CreatePatch2(geometry, startingSurface, uSpans, vSpans, trim, tangency, pointSpacing, flexibility, surfacePull, fixEdges, tolerance):
     args = [geometry, startingSurface, uSpans, vSpans, trim, tangency, pointSpacing, flexibility, surfacePull, fixEdges, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/brep/createpatch-ienumerable<geometrybase>_surface_int_int_bool_bool_double_double_double_bool[]_double", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createpatch-geometrybasearray_surface_int_int_bool_bool_double_double_double_boolarray_double", args)
     return response
 
 
@@ -153,7 +153,7 @@ def CreatePipe(rail, radius, localBlending, cap, fitRail, absoluteTolerance, ang
 
 def CreatePipe1(rail, railRadiiParameters, radii, localBlending, cap, fitRail, absoluteTolerance, angleToleranceRadians):
     args = [rail, railRadiiParameters, radii, localBlending, cap, fitRail, absoluteTolerance, angleToleranceRadians]
-    response = Util.ComputeFetch("rhino/geometry/brep/createpipe-curve_ienumerable<double>_ienumerable<double>_bool_pipecapmode_bool_double_double", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createpipe-curve_doublearray_doublearray_bool_pipecapmode_bool_double_double", args)
     return response
 
 
@@ -165,7 +165,7 @@ def CreateFromSweep(rail, shape, closed, tolerance):
 
 def CreateFromSweep1(rail, shapes, closed, tolerance):
     args = [rail, shapes, closed, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/brep/createfromsweep-curve_ienumerable<curve>_bool_double", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createfromsweep-curve_curvearray_bool_double", args)
     return response
 
 
@@ -177,13 +177,13 @@ def CreateFromSweep2(rail1, rail2, shape, closed, tolerance):
 
 def CreateFromSweep3(rail1, rail2, shapes, closed, tolerance):
     args = [rail1, rail2, shapes, closed, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/brep/createfromsweep-curve_curve_ienumerable<curve>_bool_double", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createfromsweep-curve_curve_curvearray_bool_double", args)
     return response
 
 
 def CreateFromSweepInParts(rail1, rail2, shapes, rail_params, closed, tolerance):
     args = [rail1, rail2, shapes, rail_params, closed, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/brep/createfromsweepinparts-curve_curve_ienumerable<curve>_ienumerable<point2d>_bool_double", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createfromsweepinparts-curve_curve_curvearray_point2darray_bool_double", args)
     return response
 
 
@@ -225,7 +225,7 @@ def CreateChamferSurface(face0, uv0, radius0, face1, uv1, radius1, extend, toler
 
 def CreateFilletEdges(brep, edgeIndices, startRadii, endRadii, blendType, railType, tolerance):
     args = [brep, edgeIndices, startRadii, endRadii, blendType, railType, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/brep/createfilletedges-brep_ienumerable<int>_ienumerable<double>_ienumerable<double>_blendtype_railtype_double", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createfilletedges-brep_intarray_doublearray_doublearray_blendtype_railtype_double", args)
     return response
 
 
@@ -237,43 +237,43 @@ def CreateFromJoinedEdges(brep0, edgeIndex0, brep1, edgeIndex1, joinTolerance):
 
 def CreateFromLoft(curves, start, end, loftType, closed):
     args = [curves, start, end, loftType, closed]
-    response = Util.ComputeFetch("rhino/geometry/brep/createfromloft-ienumerable<curve>_point3d_point3d_lofttype_bool", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createfromloft-curvearray_point3d_point3d_lofttype_bool", args)
     return response
 
 
 def CreateFromLoftRebuild(curves, start, end, loftType, closed, rebuildPointCount):
     args = [curves, start, end, loftType, closed, rebuildPointCount]
-    response = Util.ComputeFetch("rhino/geometry/brep/createfromloftrebuild-ienumerable<curve>_point3d_point3d_lofttype_bool_int", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createfromloftrebuild-curvearray_point3d_point3d_lofttype_bool_int", args)
     return response
 
 
 def CreateFromLoftRefit(curves, start, end, loftType, closed, refitTolerance):
     args = [curves, start, end, loftType, closed, refitTolerance]
-    response = Util.ComputeFetch("rhino/geometry/brep/createfromloftrefit-ienumerable<curve>_point3d_point3d_lofttype_bool_double", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createfromloftrefit-curvearray_point3d_point3d_lofttype_bool_double", args)
     return response
 
 
 def CreateBooleanUnion(breps, tolerance):
     args = [breps, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/brep/createbooleanunion-ienumerable<brep>_double", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createbooleanunion-breparray_double", args)
     return response
 
 
 def CreateBooleanUnion1(breps, tolerance, manifoldOnly):
     args = [breps, tolerance, manifoldOnly]
-    response = Util.ComputeFetch("rhino/geometry/brep/createbooleanunion-ienumerable<brep>_double_bool", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createbooleanunion-breparray_double_bool", args)
     return response
 
 
 def CreateBooleanIntersection(firstSet, secondSet, tolerance):
     args = [firstSet, secondSet, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/brep/createbooleanintersection-ienumerable<brep>_ienumerable<brep>_double", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createbooleanintersection-breparray_breparray_double", args)
     return response
 
 
 def CreateBooleanIntersection1(firstSet, secondSet, tolerance, manifoldOnly):
     args = [firstSet, secondSet, tolerance, manifoldOnly]
-    response = Util.ComputeFetch("rhino/geometry/brep/createbooleanintersection-ienumerable<brep>_ienumerable<brep>_double_bool", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createbooleanintersection-breparray_breparray_double_bool", args)
     return response
 
 
@@ -291,13 +291,13 @@ def CreateBooleanIntersection3(firstBrep, secondBrep, tolerance, manifoldOnly):
 
 def CreateBooleanDifference(firstSet, secondSet, tolerance):
     args = [firstSet, secondSet, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/brep/createbooleandifference-ienumerable<brep>_ienumerable<brep>_double", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createbooleandifference-breparray_breparray_double", args)
     return response
 
 
 def CreateBooleanDifference1(firstSet, secondSet, tolerance, manifoldOnly):
     args = [firstSet, secondSet, tolerance, manifoldOnly]
-    response = Util.ComputeFetch("rhino/geometry/brep/createbooleandifference-ienumerable<brep>_ienumerable<brep>_double_bool", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createbooleandifference-breparray_breparray_double_bool", args)
     return response
 
 
@@ -315,19 +315,19 @@ def CreateBooleanDifference3(firstBrep, secondBrep, tolerance, manifoldOnly):
 
 def CreateShell(brep, facesToRemove, distance, tolerance):
     args = [brep, facesToRemove, distance, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/brep/createshell-brep_ienumerable<int>_double_double", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/createshell-brep_intarray_double_double", args)
     return response
 
 
 def JoinBreps(brepsToJoin, tolerance):
     args = [brepsToJoin, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/brep/joinbreps-ienumerable<brep>_double", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/joinbreps-breparray_double", args)
     return response
 
 
 def MergeBreps(brepsToMerge, tolerance):
     args = [brepsToMerge, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/brep/mergebreps-ienumerable<brep>_double", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/mergebreps-breparray_double", args)
     return response
 
 
@@ -429,7 +429,7 @@ def Trim1(brep, cutter, intersectionTolerance):
 
 def UnjoinEdges(brep, edgesToUnjoin):
     args = [brep, edgesToUnjoin]
-    response = Util.ComputeFetch("rhino/geometry/brep/unjoinedges-brep_ienumerable<int>", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/unjoinedges-brep_intarray", args)
     return response
 
 
@@ -441,7 +441,7 @@ def JoinEdges(brep, edgeIndex0, edgeIndex1, joinTolerance, compact):
 
 def TransformComponent(brep, components, xform, tolerance, timeLimit, useMultipleThreads):
     args = [brep, components, xform, tolerance, timeLimit, useMultipleThreads]
-    response = Util.ComputeFetch("rhino/geometry/brep/transformcomponent-brep_ienumerable<componentindex>_transform_double_double_bool", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/transformcomponent-brep_componentindexarray_transform_double_double_bool", args)
     return response
 
 
@@ -495,6 +495,6 @@ def RemoveHoles(brep, tolerance):
 
 def RemoveHoles1(brep, loops, tolerance):
     args = [brep, loops, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/brep/removeholes-brep_ienumerable<componentindex>_double", args)
+    response = Util.ComputeFetch("rhino/geometry/brep/removeholes-brep_componentindexarray_double", args)
     return response
 

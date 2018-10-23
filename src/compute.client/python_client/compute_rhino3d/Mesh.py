@@ -21,7 +21,7 @@ def CreateFromBox1(box, xCount, yCount, zCount):
 
 def CreateFromBox2(corners, xCount, yCount, zCount):
     args = [corners, xCount, yCount, zCount]
-    response = Util.ComputeFetch("rhino/geometry/mesh/createfrombox-ienumerable<point3d>_int_int_int", args)
+    response = Util.ComputeFetch("rhino/geometry/mesh/createfrombox-point3darray_int_int_int", args)
     return response
 
 
@@ -81,7 +81,7 @@ def CreateFromClosedPolyline(polyline):
 
 def CreateFromTessellation(points, edges, plane, allowNewVertices):
     args = [points, edges, plane, allowNewVertices]
-    response = Util.ComputeFetch("rhino/geometry/mesh/createfromtessellation-ienumerable<point3d>_ienumerable<ienumerable<point3d>>_plane_bool", args)
+    response = Util.ComputeFetch("rhino/geometry/mesh/createfromtessellation-point3darray_ienumerable<point3d>array_plane_bool", args)
     return response
 
 
@@ -111,37 +111,37 @@ def CreateFromSurface1(surface, meshingParameters):
 
 def CreatePatch(outerBoundary, angleToleranceRadians, pullbackSurface, innerBoundaryCurves, innerBothSideCurves, innerPoints, trimback, divisions):
     args = [outerBoundary, angleToleranceRadians, pullbackSurface, innerBoundaryCurves, innerBothSideCurves, innerPoints, trimback, divisions]
-    response = Util.ComputeFetch("rhino/geometry/mesh/createpatch-polyline_double_surface_ienumerable<curve>_ienumerable<curve>_ienumerable<point3d>_bool_int", args)
+    response = Util.ComputeFetch("rhino/geometry/mesh/createpatch-polyline_double_surface_curvearray_curvearray_point3darray_bool_int", args)
     return response
 
 
 def CreateBooleanUnion(meshes):
     args = [meshes]
-    response = Util.ComputeFetch("rhino/geometry/mesh/createbooleanunion-ienumerable<mesh>", args)
+    response = Util.ComputeFetch("rhino/geometry/mesh/createbooleanunion-mesharray", args)
     return response
 
 
 def CreateBooleanDifference(firstSet, secondSet):
     args = [firstSet, secondSet]
-    response = Util.ComputeFetch("rhino/geometry/mesh/createbooleandifference-ienumerable<mesh>_ienumerable<mesh>", args)
+    response = Util.ComputeFetch("rhino/geometry/mesh/createbooleandifference-mesharray_mesharray", args)
     return response
 
 
 def CreateBooleanIntersection(firstSet, secondSet):
     args = [firstSet, secondSet]
-    response = Util.ComputeFetch("rhino/geometry/mesh/createbooleanintersection-ienumerable<mesh>_ienumerable<mesh>", args)
+    response = Util.ComputeFetch("rhino/geometry/mesh/createbooleanintersection-mesharray_mesharray", args)
     return response
 
 
 def CreateBooleanSplit(meshesToSplit, meshSplitters):
     args = [meshesToSplit, meshSplitters]
-    response = Util.ComputeFetch("rhino/geometry/mesh/createbooleansplit-ienumerable<mesh>_ienumerable<mesh>", args)
+    response = Util.ComputeFetch("rhino/geometry/mesh/createbooleansplit-mesharray_mesharray", args)
     return response
 
 
 def CreateFromCurvePipe(curve, radius, segments, accuracy, capType, faceted, intervals):
     args = [curve, radius, segments, accuracy, capType, faceted, intervals]
-    response = Util.ComputeFetch("rhino/geometry/mesh/createfromcurvepipe-curve_double_int_int_meshpipecapstyle_bool_ienumerable<interval>", args)
+    response = Util.ComputeFetch("rhino/geometry/mesh/createfromcurvepipe-curve_double_int_int_meshpipecapstyle_bool_intervalarray", args)
     return response
 
 
@@ -165,7 +165,7 @@ def Smooth1(mesh, smoothFactor, bXSmooth, bYSmooth, bZSmooth, bFixBoundaries, co
 
 def Smooth2(mesh, vertexIndices, smoothFactor, bXSmooth, bYSmooth, bZSmooth, bFixBoundaries, coordinateSystem, plane):
     args = [mesh, vertexIndices, smoothFactor, bXSmooth, bYSmooth, bZSmooth, bFixBoundaries, coordinateSystem, plane]
-    response = Util.ComputeFetch("rhino/geometry/mesh/smooth-mesh_ienumerable<int>_double_bool_bool_bool_bool_smoothingcoordinatesystem_plane", args)
+    response = Util.ComputeFetch("rhino/geometry/mesh/smooth-mesh_intarray_double_bool_bool_bool_bool_smoothingcoordinatesystem_plane", args)
     return response
 
 
@@ -177,7 +177,7 @@ def Unweld(mesh, angleToleranceRadians, modifyNormals):
 
 def UnweldEdge(mesh, edgeIndices, modifyNormals):
     args = [mesh, edgeIndices, modifyNormals]
-    response = Util.ComputeFetch("rhino/geometry/mesh/unweldedge-mesh_ienumerable<int>_bool", args)
+    response = Util.ComputeFetch("rhino/geometry/mesh/unweldedge-mesh_intarray_bool", args)
     return response
 
 
@@ -241,15 +241,15 @@ def Split(mesh, plane):
     return response
 
 
-def Split1(thisMesh, mesh):
-    args = [thisMesh, mesh]
+def Split1(mesh, mesh):
+    args = [mesh, mesh]
     response = Util.ComputeFetch("rhino/geometry/mesh/split-mesh_mesh", args)
     return response
 
 
 def Split2(mesh, meshes):
     args = [mesh, meshes]
-    response = Util.ComputeFetch("rhino/geometry/mesh/split-mesh_ienumerable<mesh>", args)
+    response = Util.ComputeFetch("rhino/geometry/mesh/split-mesh_mesharray", args)
     return response
 
 
@@ -339,7 +339,7 @@ def ColorAt1(mesh, faceIndex, t0, t1, t2, t3):
 
 def PullPointsToMesh(mesh, points):
     args = [mesh, points]
-    response = Util.ComputeFetch("rhino/geometry/mesh/pullpointstomesh-mesh_ienumerable<point3d>", args)
+    response = Util.ComputeFetch("rhino/geometry/mesh/pullpointstomesh-mesh_point3darray", args)
     return response
 
 
@@ -393,7 +393,7 @@ def ReleaseUnsafeLock(mesh, meshData):
 
 def WithShutLining(mesh, faceted, tolerance, curves):
     args = [mesh, faceted, tolerance, curves]
-    response = Util.ComputeFetch("rhino/geometry/mesh/withshutlining-mesh_bool_double_ienumerable<shutliningcurveinfo>", args)
+    response = Util.ComputeFetch("rhino/geometry/mesh/withshutlining-mesh_bool_double_shutliningcurveinfoarray", args)
     return response
 
 

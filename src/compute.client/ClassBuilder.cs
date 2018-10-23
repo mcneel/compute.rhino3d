@@ -131,7 +131,27 @@ namespace computegen
                 else
                     url.Append("_");
                 appendDash = false;
-                url.Append(method.ParameterList.Parameters[i].Type.ToString());
+                string name = method.ParameterList.Parameters[i].Type.ToString();
+                var qualifiedType = method.ParameterList.Parameters[i].Type as QualifiedNameSyntax;
+                var genericType = method.ParameterList.Parameters[i].Type as GenericNameSyntax;
+                if (genericType == null && qualifiedType != null)
+                    genericType = qualifiedType.Right as GenericNameSyntax;
+                if (genericType != null)
+                {
+                    name = genericType.TypeArgumentList.Arguments.ToString() + "Array";
+                }
+                if( name.Contains("IEnumerable"))
+                {
+                    int bh = 0;
+                }
+                name = name.Replace("[]", "Array").Replace("Int32", "Int").Replace("Boolean", "Bool");
+
+                url.Append(name);
+            }
+
+            if( url.ToString().Contains("<"))
+            {
+                int bh = 0;
             }
             return url.ToString().ToLower();
         }

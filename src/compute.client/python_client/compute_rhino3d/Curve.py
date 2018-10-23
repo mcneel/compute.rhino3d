@@ -9,19 +9,19 @@ def GetConicSectionType(curve):
 
 def CreateInterpolatedCurve(points, degree):
     args = [points, degree]
-    response = Util.ComputeFetch("rhino/geometry/curve/createinterpolatedcurve-ienumerable<point3d>_int", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/createinterpolatedcurve-point3darray_int", args)
     return response
 
 
 def CreateInterpolatedCurve1(points, degree, knots):
     args = [points, degree, knots]
-    response = Util.ComputeFetch("rhino/geometry/curve/createinterpolatedcurve-ienumerable<point3d>_int_curveknotstyle", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/createinterpolatedcurve-point3darray_int_curveknotstyle", args)
     return response
 
 
 def CreateInterpolatedCurve2(points, degree, knots, startTangent, endTangent):
     args = [points, degree, knots, startTangent, endTangent]
-    response = Util.ComputeFetch("rhino/geometry/curve/createinterpolatedcurve-ienumerable<point3d>_int_curveknotstyle_vector3d_vector3d", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/createinterpolatedcurve-point3darray_int_curveknotstyle_vector3d_vector3d", args)
     return response
 
 
@@ -111,19 +111,19 @@ def CreateTweenCurvesWithSampling1(curve0, curve1, numCurves, numSamples, tolera
 
 def JoinCurves(inputCurves):
     args = [inputCurves]
-    response = Util.ComputeFetch("rhino/geometry/curve/joincurves-ienumerable<curve>", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/joincurves-curvearray", args)
     return response
 
 
 def JoinCurves1(inputCurves, joinTolerance):
     args = [inputCurves, joinTolerance]
-    response = Util.ComputeFetch("rhino/geometry/curve/joincurves-ienumerable<curve>_double", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/joincurves-curvearray_double", args)
     return response
 
 
 def JoinCurves2(inputCurves, joinTolerance, preserveDirection):
     args = [inputCurves, joinTolerance, preserveDirection]
-    response = Util.ComputeFetch("rhino/geometry/curve/joincurves-ienumerable<curve>_double_bool", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/joincurves-curvearray_double_bool", args)
     return response
 
 
@@ -147,13 +147,13 @@ def CreateFilletCurves(curve0, point0, curve1, point1, radius, join, trim, arcEx
 
 def CreateBooleanUnion(curves):
     args = [curves]
-    response = Util.ComputeFetch("rhino/geometry/curve/createbooleanunion-ienumerable<curve>", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/createbooleanunion-curvearray", args)
     return response
 
 
 def CreateBooleanUnion1(curves, tolerance):
     args = [curves, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/curve/createbooleanunion-ienumerable<curve>_double", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/createbooleanunion-curvearray_double", args)
     return response
 
 
@@ -183,13 +183,13 @@ def CreateBooleanDifference1(curveA, curveB, tolerance):
 
 def CreateBooleanDifference2(curveA, subtractors):
     args = [curveA, subtractors]
-    response = Util.ComputeFetch("rhino/geometry/curve/createbooleandifference-curve_ienumerable<curve>", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/createbooleandifference-curve_curvearray", args)
     return response
 
 
 def CreateBooleanDifference3(curveA, subtractors, tolerance):
     args = [curveA, subtractors, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/curve/createbooleandifference-curve_ienumerable<curve>_double", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/createbooleandifference-curve_curvearray_double", args)
     return response
 
 
@@ -219,13 +219,13 @@ def ProjectToMesh(curve, mesh, direction, tolerance):
 
 def ProjectToMesh1(curve, meshes, direction, tolerance):
     args = [curve, meshes, direction, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/curve/projecttomesh-curve_ienumerable<mesh>_vector3d_double", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/projecttomesh-curve_mesharray_vector3d_double", args)
     return response
 
 
 def ProjectToMesh2(curves, meshes, direction, tolerance):
     args = [curves, meshes, direction, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/curve/projecttomesh-ienumerable<curve>_ienumerable<mesh>_vector3d_double", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/projecttomesh-curvearray_mesharray_vector3d_double", args)
     return response
 
 
@@ -237,19 +237,19 @@ def ProjectToBrep(curve, brep, direction, tolerance):
 
 def ProjectToBrep1(curve, breps, direction, tolerance):
     args = [curve, breps, direction, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/curve/projecttobrep-curve_ienumerable<brep>_vector3d_double", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/projecttobrep-curve_breparray_vector3d_double", args)
     return response
 
 
 def ProjectToBrep2(curve, breps, direction, tolerance, brepIndices):
     args = [curve, breps, direction, tolerance, brepIndices]
-    response = Util.ComputeFetch("rhino/geometry/curve/projecttobrep-curve_ienumerable<brep>_vector3d_double_int[]", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/projecttobrep-curve_breparray_vector3d_double_intarray", args)
     return response
 
 
 def ProjectToBrep3(curves, breps, direction, tolerance):
     args = [curves, breps, direction, tolerance]
-    response = Util.ComputeFetch("rhino/geometry/curve/projecttobrep-ienumerable<curve>_ienumerable<brep>_vector3d_double", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/projecttobrep-curvearray_breparray_vector3d_double", args)
     return response
 
 
@@ -375,7 +375,7 @@ def PerpendicularFrameAt(curve, t, plane):
 
 def GetPerpendicularFrames(curve, parameters):
     args = [curve, parameters]
-    response = Util.ComputeFetch("rhino/geometry/curve/getperpendicularframes-curve_ienumerable<double>", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/getperpendicularframes-curve_doublearray", args)
     return response
 
 
@@ -471,25 +471,25 @@ def NormalizedLengthParameter3(curve, s, t, fractionalTolerance, subdomain):
 
 def NormalizedLengthParameters(curve, s, absoluteTolerance):
     args = [curve, s, absoluteTolerance]
-    response = Util.ComputeFetch("rhino/geometry/curve/normalizedlengthparameters-curve_double[]_double", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/normalizedlengthparameters-curve_doublearray_double", args)
     return response
 
 
 def NormalizedLengthParameters1(curve, s, absoluteTolerance, fractionalTolerance):
     args = [curve, s, absoluteTolerance, fractionalTolerance]
-    response = Util.ComputeFetch("rhino/geometry/curve/normalizedlengthparameters-curve_double[]_double_double", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/normalizedlengthparameters-curve_doublearray_double_double", args)
     return response
 
 
 def NormalizedLengthParameters2(curve, s, absoluteTolerance, subdomain):
     args = [curve, s, absoluteTolerance, subdomain]
-    response = Util.ComputeFetch("rhino/geometry/curve/normalizedlengthparameters-curve_double[]_double_interval", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/normalizedlengthparameters-curve_doublearray_double_interval", args)
     return response
 
 
 def NormalizedLengthParameters3(curve, s, absoluteTolerance, fractionalTolerance, subdomain):
     args = [curve, s, absoluteTolerance, fractionalTolerance, subdomain]
-    response = Util.ComputeFetch("rhino/geometry/curve/normalizedlengthparameters-curve_double[]_double_double_interval", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/normalizedlengthparameters-curve_doublearray_double_double_interval", args)
     return response
 
 
@@ -501,7 +501,7 @@ def DivideByCount(curve, segmentCount, includeEnds):
 
 def DivideByCount1(curve, segmentCount, includeEnds, points):
     args = [curve, segmentCount, includeEnds, points]
-    response = Util.ComputeFetch("rhino/geometry/curve/dividebycount-curve_int_bool_point3d[]", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/dividebycount-curve_int_bool_point3darray", args)
     return response
 
 
@@ -519,13 +519,13 @@ def DivideByLength1(curve, segmentLength, includeEnds, reverse):
 
 def DivideByLength2(curve, segmentLength, includeEnds, points):
     args = [curve, segmentLength, includeEnds, points]
-    response = Util.ComputeFetch("rhino/geometry/curve/dividebylength-curve_double_bool_point3d[]", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/dividebylength-curve_double_bool_point3darray", args)
     return response
 
 
 def DivideByLength3(curve, segmentLength, includeEnds, reverse, points):
     args = [curve, segmentLength, includeEnds, reverse, points]
-    response = Util.ComputeFetch("rhino/geometry/curve/dividebylength-curve_double_bool_bool_point3d[]", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/dividebylength-curve_double_bool_bool_point3darray", args)
     return response
 
 
@@ -591,7 +591,7 @@ def Extend2(curve, side, length, style):
 
 def Extend3(curve, side, style, geometry):
     args = [curve, side, style, geometry]
-    response = Util.ComputeFetch("rhino/geometry/curve/extend-curve_curveend_curveextensionstyle_system.collections.generic.ienumerable<geometrybase>", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/extend-curve_curveend_curveextensionstyle_geometrybasearray", args)
     return response
 
 
@@ -615,13 +615,13 @@ def ExtendOnSurface1(curve, side, face):
 
 def ExtendByLine(curve, side, geometry):
     args = [curve, side, geometry]
-    response = Util.ComputeFetch("rhino/geometry/curve/extendbyline-curve_curveend_system.collections.generic.ienumerable<geometrybase>", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/extendbyline-curve_curveend_geometrybasearray", args)
     return response
 
 
 def ExtendByArc(curve, side, geometry):
     args = [curve, side, geometry]
-    response = Util.ComputeFetch("rhino/geometry/curve/extendbyarc-curve_curveend_system.collections.generic.ienumerable<geometrybase>", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/extendbyarc-curve_curveend_geometrybasearray", args)
     return response
 
 
@@ -711,7 +711,7 @@ def OffsetOnSurface1(curve, face, throughPoint, fittingTolerance):
 
 def OffsetOnSurface2(curve, face, curveParameters, offsetDistances, fittingTolerance):
     args = [curve, face, curveParameters, offsetDistances, fittingTolerance]
-    response = Util.ComputeFetch("rhino/geometry/curve/offsetonsurface-curve_brepface_double[]_double[]_double", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/offsetonsurface-curve_brepface_doublearray_doublearray_double", args)
     return response
 
 
@@ -729,7 +729,7 @@ def OffsetOnSurface4(curve, surface, throughPoint, fittingTolerance):
 
 def OffsetOnSurface5(curve, surface, curveParameters, offsetDistances, fittingTolerance):
     args = [curve, surface, curveParameters, offsetDistances, fittingTolerance]
-    response = Util.ComputeFetch("rhino/geometry/curve/offsetonsurface-curve_surface_double[]_double[]_double", args)
+    response = Util.ComputeFetch("rhino/geometry/curve/offsetonsurface-curve_surface_doublearray_doublearray_double", args)
     return response
 
 
