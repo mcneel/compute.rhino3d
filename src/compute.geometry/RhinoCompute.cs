@@ -1022,25 +1022,6 @@ namespace Rhino.Compute
             return ComputeServer.Post<Curve[]>(ApiAddress(), brepToContour, sectionPlane);
         }
         /// <summary>
-        /// Create an array of analysis meshes for the brep using the specified settings.
-        /// Meshes aren't set on the brep.
-        /// </summary>
-        /// <param name="brep"></param>
-        /// <param name="state"> CurvatureAnalysisSettingsState </param>
-        /// <returns>true if meshes were created</returns>
-        public static Mesh[] CreateCurvatureAnalysisMesh(Brep brep, Rhino.ApplicationSettings.CurvatureAnalysisSettingsState state)
-        {
-            return ComputeServer.Post<Mesh[]>(ApiAddress(), brep, state);
-        }
-        /// <summary>
-        /// Gets an array containing all regions in this brep.
-        /// </summary>
-        /// <returns>An array of regions in this brep. This array can be empty, but not null.</returns>
-        public static BrepRegion[] GetRegions(this Brep brep)
-        {
-            return ComputeServer.Post<BrepRegion[]>(ApiAddress(), brep);
-        }
-        /// <summary>
         /// Constructs all the Wireframe curves for this Brep.
         /// </summary>
         /// <param name="density">Wireframe density. Valid values range between -1 and 99.</param>
@@ -2012,35 +1993,6 @@ namespace Rhino.Compute
         public static Curve[] DuplicateSegments(this Curve curve, out Curve updatedInstance)
         {
             return ComputeServer.Post<Curve[], Curve>(ApiAddress(), out updatedInstance, curve);
-        }
-        /// <summary>
-        /// Smooths a curve by averaging the positions of control points in a specified region.
-        /// </summary>
-        /// <param name="smoothFactor">The smoothing factor, which controls how much control points move towards the average of the neighboring control points.</param>
-        /// <param name="bXSmooth">When true control points move in X axis direction.</param>
-        /// <param name="bYSmooth">When true control points move in Y axis direction.</param>
-        /// <param name="bZSmooth">When true control points move in Z axis direction.</param>
-        /// <param name="bFixBoundaries">When true the curve ends don't move.</param>
-        /// <param name="coordinateSystem">The coordinates to determine the direction of the smoothing.</param>
-        /// <returns>The smoothed curve if successful, null otherwise.</returns>
-        public static Curve Smooth(this Curve curve, out Curve updatedInstance, double smoothFactor, bool bXSmooth, bool bYSmooth, bool bZSmooth, bool bFixBoundaries, SmoothingCoordinateSystem coordinateSystem)
-        {
-            return ComputeServer.Post<Curve, Curve>(ApiAddress(), out updatedInstance, curve, smoothFactor, bXSmooth, bYSmooth, bZSmooth, bFixBoundaries, coordinateSystem);
-        }
-        /// <summary>
-        /// Smooths a curve by averaging the positions of control points in a specified region.
-        /// </summary>
-        /// <param name="smoothFactor">The smoothing factor, which controls how much control points move towards the average of the neighboring control points.</param>
-        /// <param name="bXSmooth">When true control points move in X axis direction.</param>
-        /// <param name="bYSmooth">When true control points move in Y axis direction.</param>
-        /// <param name="bZSmooth">When true control points move in Z axis direction.</param>
-        /// <param name="bFixBoundaries">When true the curve ends don't move.</param>
-        /// <param name="coordinateSystem">The coordinates to determine the direction of the smoothing.</param>
-        /// <param name="plane">If SmoothingCoordinateSystem.CPlane specified, then the construction plane.</param>
-        /// <returns>The smoothed curve if successful, null otherwise.</returns>
-        public static Curve Smooth(this Curve curve, out Curve updatedInstance, double smoothFactor, bool bXSmooth, bool bYSmooth, bool bZSmooth, bool bFixBoundaries, SmoothingCoordinateSystem coordinateSystem, Plane plane)
-        {
-            return ComputeServer.Post<Curve, Curve>(ApiAddress(), out updatedInstance, curve, smoothFactor, bXSmooth, bYSmooth, bZSmooth, bFixBoundaries, coordinateSystem, plane);
         }
         /// <summary>
         /// If IsClosed, just return true. Otherwise, decide if curve can be closed as 
@@ -3112,17 +3064,7 @@ namespace Rhino.Compute
         {
             return ComputeServer.Post<Curve[]>(ApiAddress(), curve, surface, curveParameters, offsetDistances, fittingTolerance);
         }
-        /// <summary>
-        /// Pulls this curve to a brep face and returns the result of that operation.
-        /// </summary>
-        /// <param name="face">A brep face.</param>
-        /// <param name="tolerance">A tolerance value.</param>
-        /// <returns>An array containing the resulting curves after pulling. This array could be empty.</returns>
-        /// <exception cref="ArgumentNullException">If face is null.</exception>
-        public static Curve[] PullToBrepFace(this Curve curve, BrepFace face, double tolerance)
-        {
-            return ComputeServer.Post<Curve[]>(ApiAddress(), curve, face, tolerance);
-        }
+
         /// <summary>
         /// Finds a curve by offsetting an existing curve normal to a surface.
         /// The caller is responsible for ensuring that the curve lies on the input surface.
@@ -3493,21 +3435,7 @@ namespace Rhino.Compute
         {
             return ComputeServer.Post<Mesh[]>(ApiAddress(), meshesToSplit, meshSplitters);
         }
-        /// <summary>
-        /// Constructs a new mesh pipe from a curve.
-        /// </summary>
-        /// <param name="curve">A curve to pipe.</param>
-        /// <param name="radius">The radius of the pipe.</param>
-        /// <param name="segments">The number of segments in the pipe.</param>
-        /// <param name="accuracy">The accuracy of the pipe.</param>
-        /// <param name="capType">The type of cap to be created at the end of the pipe.</param>
-        /// <param name="faceted">Specifies whether the pipe is faceted, or not.</param>
-        /// <param name="intervals">A series of intervals to pipe. This value can be null.</param>
-        /// <returns>A new mesh, or null on failure.</returns>
-        public static Mesh CreateFromCurvePipe(Curve curve, double radius, int segments, int accuracy,       MeshPipeCapStyle capType, bool faceted, IEnumerable<Interval> intervals = null)
-        {
-            return ComputeServer.Post<Mesh>(ApiAddress(), curve, radius, segments, accuracy, capType, faceted, intervals);
-        }
+
         /// <summary>
         /// Compute volume of the mesh. 
         /// </summary>
@@ -3515,51 +3443,6 @@ namespace Rhino.Compute
         public static double Volume(this Mesh mesh)
         {
             return ComputeServer.Post<double>(ApiAddress(), mesh);
-        }
-        /// <summary>
-        /// Smooths a mesh by averaging the positions of mesh vertices in a specified region.
-        /// </summary>
-        /// <param name="smoothFactor">The smoothing factor, which controls how much vertices move towards the average of the neighboring vertices.</param>
-        /// <param name="bXSmooth">When true vertices move in X axis direction.</param>
-        /// <param name="bYSmooth">When true vertices move in Y axis direction.</param>
-        /// <param name="bZSmooth">When true vertices move in Z axis direction.</param>
-        /// <param name="bFixBoundaries">When true vertices along naked edges will not be modified.</param>
-        /// <param name="coordinateSystem">The coordinates to determine the direction of the smoothing.</param>
-        /// <returns>True if successful, false otherwise.</returns>
-        public static bool Smooth(this Mesh mesh, out Mesh updatedInstance, double smoothFactor, bool bXSmooth, bool bYSmooth, bool bZSmooth, bool bFixBoundaries, SmoothingCoordinateSystem coordinateSystem)
-        {
-            return ComputeServer.Post<bool, Mesh>(ApiAddress(), out updatedInstance, mesh, smoothFactor, bXSmooth, bYSmooth, bZSmooth, bFixBoundaries, coordinateSystem);
-        }
-        /// <summary>
-        /// Smooths a mesh by averaging the positions of mesh vertices in a specified region.
-        /// </summary>
-        /// <param name="smoothFactor">The smoothing factor, which controls how much vertices move towards the average of the neighboring vertices.</param>
-        /// <param name="bXSmooth">When true vertices move in X axis direction.</param>
-        /// <param name="bYSmooth">When true vertices move in Y axis direction.</param>
-        /// <param name="bZSmooth">When true vertices move in Z axis direction.</param>
-        /// <param name="bFixBoundaries">When true vertices along naked edges will not be modified.</param>
-        /// <param name="coordinateSystem">The coordinates to determine the direction of the smoothing.</param>
-        /// <param name="plane">If SmoothingCoordinateSystem.CPlane specified, then the construction plane.</param>
-        /// <returns>True if successful, false otherwise.</returns>
-        public static bool Smooth(this Mesh mesh, out Mesh updatedInstance, double smoothFactor, bool bXSmooth, bool bYSmooth, bool bZSmooth, bool bFixBoundaries, SmoothingCoordinateSystem coordinateSystem, Plane plane)
-        {
-            return ComputeServer.Post<bool, Mesh>(ApiAddress(), out updatedInstance, mesh, smoothFactor, bXSmooth, bYSmooth, bZSmooth, bFixBoundaries, coordinateSystem, plane);
-        }
-        /// <summary>
-        /// Smooths part of a mesh by averaging the positions of mesh vertices in a specified region.
-        /// </summary>
-        /// <param name="vertexIndices">The mesh vertex indices that specify the part of the mesh to smooth.</param>
-        /// <param name="smoothFactor">The smoothing factor, which controls how much vertices move towards the average of the neighboring vertices.</param>
-        /// <param name="bXSmooth">When true vertices move in X axis direction.</param>
-        /// <param name="bYSmooth">When true vertices move in Y axis direction.</param>
-        /// <param name="bZSmooth">When true vertices move in Z axis direction.</param>
-        /// <param name="bFixBoundaries">When true vertices along naked edges will not be modified.</param>
-        /// <param name="coordinateSystem">The coordinates to determine the direction of the smoothing.</param>
-        /// <param name="plane">If SmoothingCoordinateSystem.CPlane specified, then the construction plane.</param>
-        /// <returns>True if successful, false otherwise.</returns>
-        public static bool Smooth(this Mesh mesh, out Mesh updatedInstance, IEnumerable<int> vertexIndices, double smoothFactor, bool bXSmooth, bool bYSmooth, bool bZSmooth, bool bFixBoundaries, SmoothingCoordinateSystem coordinateSystem, Plane plane)
-        {
-            return ComputeServer.Post<bool, Mesh>(ApiAddress(), out updatedInstance, mesh, vertexIndices, smoothFactor, bXSmooth, bYSmooth, bZSmooth, bFixBoundaries, coordinateSystem, plane);
         }
         /// <summary>
         /// Makes sure that faces sharing an edge and having a difference of normal greater
@@ -3696,9 +3579,9 @@ namespace Rhino.Compute
         /// </summary>
         /// <param name="mesh">Mesh to split with.</param>
         /// <returns>An array of mesh segments representing the split result.</returns>
-        public static Mesh[] Split(this Mesh mesh, Mesh mesh)
+        public static Mesh[] Split(this Mesh thisMesh, Mesh mesh)
         {
-            return ComputeServer.Post<Mesh[]>(ApiAddress(), mesh, mesh);
+            return ComputeServer.Post<Mesh[]>(ApiAddress(), thisMesh, mesh);
         }
         /// <summary>
         /// Split a mesh with a collection of meshes.
@@ -3717,26 +3600,6 @@ namespace Rhino.Compute
         public static Polyline[] GetOutlines(this Mesh mesh, Plane plane)
         {
             return ComputeServer.Post<Polyline[]>(ApiAddress(), mesh, plane);
-        }
-        /// <summary>
-        /// Constructs the outlines of a mesh. The projection information in the
-        /// viewport is used to determine how the outlines are projected.
-        /// </summary>
-        /// <param name="viewport">A viewport to determine projection direction.</param>
-        /// <returns>An array of polylines, or null on error.</returns>
-        public static Polyline[] GetOutlines(this Mesh mesh, Display.RhinoViewport viewport)
-        {
-            return ComputeServer.Post<Polyline[]>(ApiAddress(), mesh, viewport);
-        }
-        /// <summary>
-        /// Constructs the outlines of a mesh.
-        /// </summary>
-        /// <param name="viewportInfo">The viewport info that provides the outline direction.</param>
-        /// <param name="plane">Usually the view's construction plane. If a parallel projection and view plane is parallel to this, then project the results to the plane.</param>
-        /// <returns>An array of polylines, or null on error.</returns>
-        public static Polyline[] GetOutlines(this Mesh mesh, ViewportInfo viewportInfo, Plane plane)
-        {
-            return ComputeServer.Post<Polyline[]>(ApiAddress(), mesh, viewportInfo, plane);
         }
         /// <summary>
         /// Returns all edges of a mesh that are considered "naked" in the
@@ -3859,32 +3722,6 @@ namespace Rhino.Compute
             return ComputeServer.Post<Vector3d>(ApiAddress(), mesh, faceIndex, t0, t1, t2, t3);
         }
         /// <summary>
-        /// Evaluate a mesh color at a set of barycentric coordinates.
-        /// </summary>
-        /// <param name="meshPoint">MeshPoint instance contiaining a valid Face Index and Barycentric coordinates.</param>
-        /// <returns>The interpolated vertex color on the mesh or Color.Transparent if the faceIndex is not valid, 
-        /// if the barycentric coordinates could not be evaluated, or if there are no colors defined on the mesh.</returns>
-        public static Color ColorAt(this Mesh mesh, MeshPoint meshPoint)
-        {
-            return ComputeServer.Post<Color>(ApiAddress(), mesh, meshPoint);
-        }
-        /// <summary>
-        /// Evaluate a mesh normal at a set of barycentric coordinates. Barycentric coordinates must 
-        /// be assigned in accordance with the rules as defined by <see cref="MeshPoint.T">MeshPoint.T</see>.
-        /// </summary>
-        /// <param name="faceIndex">Index of triangle or quad to evaluate.</param>
-        /// <param name="t0">First barycentric coordinate.</param>
-        /// <param name="t1">Second barycentric coordinate.</param>
-        /// <param name="t2">Third barycentric coordinate.</param>
-        /// <param name="t3">Fourth barycentric coordinate. If the face is a triangle, this coordinate will be ignored.</param>
-        /// <returns>The interpolated vertex color on the mesh or Color.Transparent if the faceIndex is not valid, 
-        /// if the barycentric coordinates could not be evaluated, or if there are no colors defined on the mesh.</returns>
-        /// <remarks>Coordinate 0,0,0,0 is not a valid set of barycentric coordinates. The sum of t0 to t3 should be 1.</remarks>
-        public static Color ColorAt(this Mesh mesh, int faceIndex, double t0, double t1, double t2, double t3)
-        {
-            return ComputeServer.Post<Color>(ApiAddress(), mesh, faceIndex, t0, t1, t2, t3);
-        }
-        /// <summary>
         /// Pulls a collection of points to a mesh.
         /// </summary>
         /// <param name="points">An array, a list or any enumerable set of points.</param>
@@ -3977,52 +3814,6 @@ namespace Rhino.Compute
             return ComputeServer.Post<int, Mesh>(ApiAddress(), out updatedInstance, mesh, aspectRatio);
         }
         /// <summary>
-        /// Allows to obtain unsafe pointers to the underlying unmanaged data structures of the mesh.
-        /// </summary>
-        /// <param name="writable">true if user will need to write onto the structure. false otherwise.</param>
-        /// <returns>A lock that needs to be released.</returns>
-        /// <remarks>The lock implements the IDisposable interface, and one call of its
-        /// <see cref="IDisposable.Dispose()"/> or <see cref="ReleaseUnsafeLock"/> will update the data structure as required.
-        /// This can be achieved with a using statement (Using in Vb.Net).</remarks>
-        public static MeshUnsafeLock GetUnsafeLock(this Mesh mesh, out Mesh updatedInstance, bool writable)
-        {
-            return ComputeServer.Post<MeshUnsafeLock, Mesh>(ApiAddress(), out updatedInstance, mesh, writable);
-        }
-        /// <summary>
-        /// Updates the Mesh data with the information that was stored via the <see cref="MeshUnsafeLock"/>.
-        /// </summary>
-        /// <param name="meshData">The data that will be unlocked.</param>
-        public static Mesh ReleaseUnsafeLock(this Mesh mesh, MeshUnsafeLock meshData)
-        {
-            return ComputeServer.Post<Mesh>(ApiAddress(), mesh, meshData);
-        }
-        /// <summary>
-        /// Constructs new mesh from the current one, with shut lining applied to it.
-        /// </summary>
-        /// <param name="faceted">Specifies whether the shutline is faceted.</param>
-        /// <param name="tolerance">The tolerance of the shutline.</param>
-        /// <param name="curves">A collection of curve arguments.</param>
-        /// <returns>A new mesh with shutlining. Null on failure.</returns>
-        /// <exception cref="ArgumentNullException">If curves is null.</exception>
-        /// <exception cref="InvalidOperationException">If displacement failed
-        /// because of an error. The exception message specifies the error.</exception>
-        public static Mesh WithShutLining(this Mesh mesh, bool faceted, double tolerance, IEnumerable<ShutLiningCurveInfo> curves)
-        {
-            return ComputeServer.Post<Mesh>(ApiAddress(), mesh, faceted, tolerance, curves);
-        }
-        /// <summary>
-        /// Constructs new mesh from the current one, with displacement applied to it.
-        /// </summary>
-        /// <param name="displacement">Information on mesh displacement.</param>
-        /// <returns>A new mesh with shutlining.</returns>
-        /// <exception cref="ArgumentNullException">If displacer is null.</exception>
-        /// <exception cref="InvalidOperationException">If displacement failed
-        /// because of an error. The exception message specifies the error.</exception>
-        public static Mesh WithDisplacement(this Mesh mesh, MeshDisplacementInfo displacement)
-        {
-            return ComputeServer.Post<Mesh>(ApiAddress(), mesh, displacement);
-        }
-        /// <summary>
         /// Constructs new mesh from the current one, with edge softening applied to it.
         /// </summary>
         /// <param name="softeningRadius">The softening radius.</param>
@@ -4104,31 +3895,6 @@ namespace Rhino.Compute
         public static NurbsCurve CreateFromCircle(Circle circle, int degree, int cvCount)
         {
             return ComputeServer.Post<NurbsCurve>(ApiAddress(), circle, degree, cvCount);
-        }
-        /// <summary>
-        /// Set end condition of a nurbs curve to point, tangent and curvature.
-        /// </summary>
-        /// <param name="bSetEnd">true: set end of curve, false: set start of curve </param>
-        /// <param name="continuity">Position: set strart or end point, Tangency: set point and tangent, Curvature: set point, tangent and curvature </param>
-        /// <param name="point">point to set </param>
-        /// <param name="tangent">tangent to set</param>
-        /// <returns>true on success, false on failure.</returns>
-        public static bool SetEndCondition(this NurbsCurve nurbscurve, out NurbsCurve updatedInstance,       bool bSetEnd,       NurbsCurveEndConditionType continuity,       Point3d point,       Vector3d tangent)
-        {
-            return ComputeServer.Post<bool, NurbsCurve>(ApiAddress(), out updatedInstance, nurbscurve, bSetEnd, continuity, point, tangent);
-        }
-        /// <summary>
-        /// Set end condition of a nurbs curve to point, tangent and curvature.
-        /// </summary>
-        /// <param name="bSetEnd">true: set end of curve, false: set start of curve </param>
-        /// <param name="continuity">Position: set strart or end point, Tangency: set point and tangent, Curvature: set point, tangent and curvature </param>
-        /// <param name="point">point to set </param>
-        /// <param name="tangent">tangent to set</param>
-        /// <param name="curvature">curvature to set</param>
-        /// <returns>true on success, false on failure.</returns>
-        public static bool SetEndCondition(this NurbsCurve nurbscurve, out NurbsCurve updatedInstance,       bool bSetEnd,       NurbsCurveEndConditionType continuity,       Point3d point,       Vector3d tangent,       Vector3d curvature)
-        {
-            return ComputeServer.Post<bool, NurbsCurve>(ApiAddress(), out updatedInstance, nurbscurve, bSetEnd, continuity, point, tangent, curvature);
         }
         /// <summary>
         /// Sets all Greville (Edit) points for this curve.
