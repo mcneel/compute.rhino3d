@@ -101,6 +101,7 @@ namespace compute.geometry
         protected override void ApplicationStartup(TinyIoCContainer container, IPipelines pipelines)
         {
             Log.Debug("ApplicationStartup");
+            Nancy.StaticConfiguration.DisableErrorTraces = false;
             base.ApplicationStartup(container, pipelines);
         }
 
