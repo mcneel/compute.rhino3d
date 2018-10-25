@@ -1,4 +1,4 @@
-import Util
+from . import Util
 
 
 def CreateCubicBeziers(sourceCurve, distanceTolerance, kinkTolerance):

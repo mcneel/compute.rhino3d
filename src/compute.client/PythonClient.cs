@@ -42,31 +42,31 @@ namespace computegen
         {
             get
             {
-                return @"import Util
+                return @"from . import Util
 
 ";
             }
         }
 
-        const string UtilModuleContents = 
-@"import json
-import urllib2
+        const string UtilModuleContents =
+@"import rhino3dm
+import json
+import requests
 
 url = ""https://compute.rhino3d.com/""
 authToken = None
 
-def ComputeFetch(endpoint, arglist):
-    args = []
-    for item in arglist:
-        if hasattr(item, 'Encode'):
-            args.append(item.Encode())
-        else:
-            args.append(item)
-    req = urllib2.Request(url + endpoint)
-    req.add_header('Content-Type', 'application/json')
-    req.add_header('Authorization', 'Bearer ' + authToken)
-    response = urllib2.urlopen(req, json.dumps(args))
-    return json.loads(response.read())
+def ComputeFetch(endpoint, arglist) :
+    class __Rhino3dmEncoder(json.JSONEncoder):
+        def default(self, o):
+            if isinstance(o, rhino3dm.CommonObject) :
+                return o.Encode()
+            return json.JSONEncoder.default(self, o)
+    global authToken
+    postdata = json.dumps(arglist, cls = __Rhino3dmEncoder)
+    headers = {'Authorization': 'Bearer ' + authToken}
+    r = requests.post(url+endpoint, data=postdata, headers=headers)
+    return r.json()
 
 ";
 
@@ -94,7 +94,7 @@ def ComputeFetch(endpoint, arglist):
                 List<string> parameters = new List<string>();
                 if (!method.IsStatic())
                 {
-                    parameters.Add(cb.ClassName.ToLower());
+                    parameters.Add("this" + cb.ClassName);
                 }
                 for (int i = 0; i < method.ParameterList.Parameters.Count; i++)
                 {

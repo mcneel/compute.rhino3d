@@ -31,7 +31,7 @@ Project Hompage at: https://github.com/mcneel/compute.rhino3d
 
 setuptools.setup(
     name="compute_rhino3d",
-    version="0.0.5",
+    version="0.0.6",
     packages=['compute_rhino3d'],
     author="Robert McNeel & Associates",
     author_email="steve@mcneel.com",
@@ -39,6 +39,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/mcneel/compute.rhino3d",
+    install_requires=['requests'],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",

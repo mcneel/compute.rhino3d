@@ -1,8 +1,8 @@
-import Util
+from . import Util
 
 
-def GetConicSectionType(curve):
-    args = [curve]
+def GetConicSectionType(thisCurve):
+    args = [thisCurve]
     response = Util.ComputeFetch("rhino/geometry/curve/getconicsectiontype-curve", args)
     return response
 
@@ -277,68 +277,68 @@ def PlanarCurveCollision(curveA, curveB, testPlane, tolerance):
     return response
 
 
-def DuplicateSegments(curve):
-    args = [curve]
+def DuplicateSegments(thisCurve):
+    args = [thisCurve]
     response = Util.ComputeFetch("rhino/geometry/curve/duplicatesegments-curve", args)
     return response
 
 
-def Smooth(curve, smoothFactor, bXSmooth, bYSmooth, bZSmooth, bFixBoundaries, coordinateSystem):
-    args = [curve, smoothFactor, bXSmooth, bYSmooth, bZSmooth, bFixBoundaries, coordinateSystem]
+def Smooth(thisCurve, smoothFactor, bXSmooth, bYSmooth, bZSmooth, bFixBoundaries, coordinateSystem):
+    args = [thisCurve, smoothFactor, bXSmooth, bYSmooth, bZSmooth, bFixBoundaries, coordinateSystem]
     response = Util.ComputeFetch("rhino/geometry/curve/smooth-curve_double_bool_bool_bool_bool_smoothingcoordinatesystem", args)
     return response
 
 
-def Smooth1(curve, smoothFactor, bXSmooth, bYSmooth, bZSmooth, bFixBoundaries, coordinateSystem, plane):
-    args = [curve, smoothFactor, bXSmooth, bYSmooth, bZSmooth, bFixBoundaries, coordinateSystem, plane]
+def Smooth1(thisCurve, smoothFactor, bXSmooth, bYSmooth, bZSmooth, bFixBoundaries, coordinateSystem, plane):
+    args = [thisCurve, smoothFactor, bXSmooth, bYSmooth, bZSmooth, bFixBoundaries, coordinateSystem, plane]
     response = Util.ComputeFetch("rhino/geometry/curve/smooth-curve_double_bool_bool_bool_bool_smoothingcoordinatesystem_plane", args)
     return response
 
 
-def MakeClosed(curve, tolerance):
-    args = [curve, tolerance]
+def MakeClosed(thisCurve, tolerance):
+    args = [thisCurve, tolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/makeclosed-curve_double", args)
     return response
 
 
-def LcoalClosestPoint(curve, testPoint, seed, t):
-    args = [curve, testPoint, seed, t]
+def LcoalClosestPoint(thisCurve, testPoint, seed, t):
+    args = [thisCurve, testPoint, seed, t]
     response = Util.ComputeFetch("rhino/geometry/curve/lcoalclosestpoint-curve_point3d_double_double", args)
     return response
 
 
-def ClosestPoint(curve, testPoint, t):
-    args = [curve, testPoint, t]
+def ClosestPoint(thisCurve, testPoint, t):
+    args = [thisCurve, testPoint, t]
     response = Util.ComputeFetch("rhino/geometry/curve/closestpoint-curve_point3d_double", args)
     return response
 
 
-def ClosestPoint1(curve, testPoint, t, maximumDistance):
-    args = [curve, testPoint, t, maximumDistance]
+def ClosestPoint1(thisCurve, testPoint, t, maximumDistance):
+    args = [thisCurve, testPoint, t, maximumDistance]
     response = Util.ComputeFetch("rhino/geometry/curve/closestpoint-curve_point3d_double_double", args)
     return response
 
 
-def Contains(curve, testPoint):
-    args = [curve, testPoint]
+def Contains(thisCurve, testPoint):
+    args = [thisCurve, testPoint]
     response = Util.ComputeFetch("rhino/geometry/curve/contains-curve_point3d", args)
     return response
 
 
-def Contains1(curve, testPoint, plane):
-    args = [curve, testPoint, plane]
+def Contains1(thisCurve, testPoint, plane):
+    args = [thisCurve, testPoint, plane]
     response = Util.ComputeFetch("rhino/geometry/curve/contains-curve_point3d_plane", args)
     return response
 
 
-def Contains2(curve, testPoint, plane, tolerance):
-    args = [curve, testPoint, plane, tolerance]
+def Contains2(thisCurve, testPoint, plane, tolerance):
+    args = [thisCurve, testPoint, plane, tolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/contains-curve_point3d_plane_double", args)
     return response
 
 
-def ExtremeParameters(curve, direction):
-    args = [curve, direction]
+def ExtremeParameters(thisCurve, direction):
+    args = [thisCurve, direction]
     response = Util.ComputeFetch("rhino/geometry/curve/extremeparameters-curve_vector3d", args)
     return response
 
@@ -355,392 +355,392 @@ def CreatePeriodicCurve1(curve, smooth):
     return response
 
 
-def PointAtLength(curve, length):
-    args = [curve, length]
+def PointAtLength(thisCurve, length):
+    args = [thisCurve, length]
     response = Util.ComputeFetch("rhino/geometry/curve/pointatlength-curve_double", args)
     return response
 
 
-def PointAtNormalizedLength(curve, length):
-    args = [curve, length]
+def PointAtNormalizedLength(thisCurve, length):
+    args = [thisCurve, length]
     response = Util.ComputeFetch("rhino/geometry/curve/pointatnormalizedlength-curve_double", args)
     return response
 
 
-def PerpendicularFrameAt(curve, t, plane):
-    args = [curve, t, plane]
+def PerpendicularFrameAt(thisCurve, t, plane):
+    args = [thisCurve, t, plane]
     response = Util.ComputeFetch("rhino/geometry/curve/perpendicularframeat-curve_double_plane", args)
     return response
 
 
-def GetPerpendicularFrames(curve, parameters):
-    args = [curve, parameters]
+def GetPerpendicularFrames(thisCurve, parameters):
+    args = [thisCurve, parameters]
     response = Util.ComputeFetch("rhino/geometry/curve/getperpendicularframes-curve_doublearray", args)
     return response
 
 
-def GetLength(curve):
-    args = [curve]
+def GetLength(thisCurve):
+    args = [thisCurve]
     response = Util.ComputeFetch("rhino/geometry/curve/getlength-curve", args)
     return response
 
 
-def GetLength1(curve, fractionalTolerance):
-    args = [curve, fractionalTolerance]
+def GetLength1(thisCurve, fractionalTolerance):
+    args = [thisCurve, fractionalTolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/getlength-curve_double", args)
     return response
 
 
-def GetLength2(curve, subdomain):
-    args = [curve, subdomain]
+def GetLength2(thisCurve, subdomain):
+    args = [thisCurve, subdomain]
     response = Util.ComputeFetch("rhino/geometry/curve/getlength-curve_interval", args)
     return response
 
 
-def GetLength3(curve, fractionalTolerance, subdomain):
-    args = [curve, fractionalTolerance, subdomain]
+def GetLength3(thisCurve, fractionalTolerance, subdomain):
+    args = [thisCurve, fractionalTolerance, subdomain]
     response = Util.ComputeFetch("rhino/geometry/curve/getlength-curve_double_interval", args)
     return response
 
 
-def IsShort(curve, tolerance):
-    args = [curve, tolerance]
+def IsShort(thisCurve, tolerance):
+    args = [thisCurve, tolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/isshort-curve_double", args)
     return response
 
 
-def IsShort1(curve, tolerance, subdomain):
-    args = [curve, tolerance, subdomain]
+def IsShort1(thisCurve, tolerance, subdomain):
+    args = [thisCurve, tolerance, subdomain]
     response = Util.ComputeFetch("rhino/geometry/curve/isshort-curve_double_interval", args)
     return response
 
 
-def RemoveShortSegments(curve, tolerance):
-    args = [curve, tolerance]
+def RemoveShortSegments(thisCurve, tolerance):
+    args = [thisCurve, tolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/removeshortsegments-curve_double", args)
     return response
 
 
-def LengthParameter(curve, segmentLength, t):
-    args = [curve, segmentLength, t]
+def LengthParameter(thisCurve, segmentLength, t):
+    args = [thisCurve, segmentLength, t]
     response = Util.ComputeFetch("rhino/geometry/curve/lengthparameter-curve_double_double", args)
     return response
 
 
-def LengthParameter1(curve, segmentLength, t, fractionalTolerance):
-    args = [curve, segmentLength, t, fractionalTolerance]
+def LengthParameter1(thisCurve, segmentLength, t, fractionalTolerance):
+    args = [thisCurve, segmentLength, t, fractionalTolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/lengthparameter-curve_double_double_double", args)
     return response
 
 
-def LengthParameter2(curve, segmentLength, t, subdomain):
-    args = [curve, segmentLength, t, subdomain]
+def LengthParameter2(thisCurve, segmentLength, t, subdomain):
+    args = [thisCurve, segmentLength, t, subdomain]
     response = Util.ComputeFetch("rhino/geometry/curve/lengthparameter-curve_double_double_interval", args)
     return response
 
 
-def LengthParameter3(curve, segmentLength, t, fractionalTolerance, subdomain):
-    args = [curve, segmentLength, t, fractionalTolerance, subdomain]
+def LengthParameter3(thisCurve, segmentLength, t, fractionalTolerance, subdomain):
+    args = [thisCurve, segmentLength, t, fractionalTolerance, subdomain]
     response = Util.ComputeFetch("rhino/geometry/curve/lengthparameter-curve_double_double_double_interval", args)
     return response
 
 
-def NormalizedLengthParameter(curve, s, t):
-    args = [curve, s, t]
+def NormalizedLengthParameter(thisCurve, s, t):
+    args = [thisCurve, s, t]
     response = Util.ComputeFetch("rhino/geometry/curve/normalizedlengthparameter-curve_double_double", args)
     return response
 
 
-def NormalizedLengthParameter1(curve, s, t, fractionalTolerance):
-    args = [curve, s, t, fractionalTolerance]
+def NormalizedLengthParameter1(thisCurve, s, t, fractionalTolerance):
+    args = [thisCurve, s, t, fractionalTolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/normalizedlengthparameter-curve_double_double_double", args)
     return response
 
 
-def NormalizedLengthParameter2(curve, s, t, subdomain):
-    args = [curve, s, t, subdomain]
+def NormalizedLengthParameter2(thisCurve, s, t, subdomain):
+    args = [thisCurve, s, t, subdomain]
     response = Util.ComputeFetch("rhino/geometry/curve/normalizedlengthparameter-curve_double_double_interval", args)
     return response
 
 
-def NormalizedLengthParameter3(curve, s, t, fractionalTolerance, subdomain):
-    args = [curve, s, t, fractionalTolerance, subdomain]
+def NormalizedLengthParameter3(thisCurve, s, t, fractionalTolerance, subdomain):
+    args = [thisCurve, s, t, fractionalTolerance, subdomain]
     response = Util.ComputeFetch("rhino/geometry/curve/normalizedlengthparameter-curve_double_double_double_interval", args)
     return response
 
 
-def NormalizedLengthParameters(curve, s, absoluteTolerance):
-    args = [curve, s, absoluteTolerance]
+def NormalizedLengthParameters(thisCurve, s, absoluteTolerance):
+    args = [thisCurve, s, absoluteTolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/normalizedlengthparameters-curve_doublearray_double", args)
     return response
 
 
-def NormalizedLengthParameters1(curve, s, absoluteTolerance, fractionalTolerance):
-    args = [curve, s, absoluteTolerance, fractionalTolerance]
+def NormalizedLengthParameters1(thisCurve, s, absoluteTolerance, fractionalTolerance):
+    args = [thisCurve, s, absoluteTolerance, fractionalTolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/normalizedlengthparameters-curve_doublearray_double_double", args)
     return response
 
 
-def NormalizedLengthParameters2(curve, s, absoluteTolerance, subdomain):
-    args = [curve, s, absoluteTolerance, subdomain]
+def NormalizedLengthParameters2(thisCurve, s, absoluteTolerance, subdomain):
+    args = [thisCurve, s, absoluteTolerance, subdomain]
     response = Util.ComputeFetch("rhino/geometry/curve/normalizedlengthparameters-curve_doublearray_double_interval", args)
     return response
 
 
-def NormalizedLengthParameters3(curve, s, absoluteTolerance, fractionalTolerance, subdomain):
-    args = [curve, s, absoluteTolerance, fractionalTolerance, subdomain]
+def NormalizedLengthParameters3(thisCurve, s, absoluteTolerance, fractionalTolerance, subdomain):
+    args = [thisCurve, s, absoluteTolerance, fractionalTolerance, subdomain]
     response = Util.ComputeFetch("rhino/geometry/curve/normalizedlengthparameters-curve_doublearray_double_double_interval", args)
     return response
 
 
-def DivideByCount(curve, segmentCount, includeEnds):
-    args = [curve, segmentCount, includeEnds]
+def DivideByCount(thisCurve, segmentCount, includeEnds):
+    args = [thisCurve, segmentCount, includeEnds]
     response = Util.ComputeFetch("rhino/geometry/curve/dividebycount-curve_int_bool", args)
     return response
 
 
-def DivideByCount1(curve, segmentCount, includeEnds, points):
-    args = [curve, segmentCount, includeEnds, points]
+def DivideByCount1(thisCurve, segmentCount, includeEnds, points):
+    args = [thisCurve, segmentCount, includeEnds, points]
     response = Util.ComputeFetch("rhino/geometry/curve/dividebycount-curve_int_bool_point3darray", args)
     return response
 
 
-def DivideByLength(curve, segmentLength, includeEnds):
-    args = [curve, segmentLength, includeEnds]
+def DivideByLength(thisCurve, segmentLength, includeEnds):
+    args = [thisCurve, segmentLength, includeEnds]
     response = Util.ComputeFetch("rhino/geometry/curve/dividebylength-curve_double_bool", args)
     return response
 
 
-def DivideByLength1(curve, segmentLength, includeEnds, reverse):
-    args = [curve, segmentLength, includeEnds, reverse]
+def DivideByLength1(thisCurve, segmentLength, includeEnds, reverse):
+    args = [thisCurve, segmentLength, includeEnds, reverse]
     response = Util.ComputeFetch("rhino/geometry/curve/dividebylength-curve_double_bool_bool", args)
     return response
 
 
-def DivideByLength2(curve, segmentLength, includeEnds, points):
-    args = [curve, segmentLength, includeEnds, points]
+def DivideByLength2(thisCurve, segmentLength, includeEnds, points):
+    args = [thisCurve, segmentLength, includeEnds, points]
     response = Util.ComputeFetch("rhino/geometry/curve/dividebylength-curve_double_bool_point3darray", args)
     return response
 
 
-def DivideByLength3(curve, segmentLength, includeEnds, reverse, points):
-    args = [curve, segmentLength, includeEnds, reverse, points]
+def DivideByLength3(thisCurve, segmentLength, includeEnds, reverse, points):
+    args = [thisCurve, segmentLength, includeEnds, reverse, points]
     response = Util.ComputeFetch("rhino/geometry/curve/dividebylength-curve_double_bool_bool_point3darray", args)
     return response
 
 
-def DivideEquidistant(curve, distance):
-    args = [curve, distance]
+def DivideEquidistant(thisCurve, distance):
+    args = [thisCurve, distance]
     response = Util.ComputeFetch("rhino/geometry/curve/divideequidistant-curve_double", args)
     return response
 
 
-def DivideAsContour(curve, contourStart, contourEnd, interval):
-    args = [curve, contourStart, contourEnd, interval]
+def DivideAsContour(thisCurve, contourStart, contourEnd, interval):
+    args = [thisCurve, contourStart, contourEnd, interval]
     response = Util.ComputeFetch("rhino/geometry/curve/divideascontour-curve_point3d_point3d_double", args)
     return response
 
 
-def Trim(curve, side, length):
-    args = [curve, side, length]
+def Trim(thisCurve, side, length):
+    args = [thisCurve, side, length]
     response = Util.ComputeFetch("rhino/geometry/curve/trim-curve_curveend_double", args)
     return response
 
 
-def Split(curve, cutter, tolerance):
-    args = [curve, cutter, tolerance]
+def Split(thisCurve, cutter, tolerance):
+    args = [thisCurve, cutter, tolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/split-curve_brep_double", args)
     return response
 
 
-def Split1(curve, cutter, tolerance, angleToleranceRadians):
-    args = [curve, cutter, tolerance, angleToleranceRadians]
+def Split1(thisCurve, cutter, tolerance, angleToleranceRadians):
+    args = [thisCurve, cutter, tolerance, angleToleranceRadians]
     response = Util.ComputeFetch("rhino/geometry/curve/split-curve_brep_double_double", args)
     return response
 
 
-def Split2(curve, cutter, tolerance):
-    args = [curve, cutter, tolerance]
+def Split2(thisCurve, cutter, tolerance):
+    args = [thisCurve, cutter, tolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/split-curve_surface_double", args)
     return response
 
 
-def Split3(curve, cutter, tolerance, angleToleranceRadians):
-    args = [curve, cutter, tolerance, angleToleranceRadians]
+def Split3(thisCurve, cutter, tolerance, angleToleranceRadians):
+    args = [thisCurve, cutter, tolerance, angleToleranceRadians]
     response = Util.ComputeFetch("rhino/geometry/curve/split-curve_surface_double_double", args)
     return response
 
 
-def Extend(curve, t0, t1):
-    args = [curve, t0, t1]
+def Extend(thisCurve, t0, t1):
+    args = [thisCurve, t0, t1]
     response = Util.ComputeFetch("rhino/geometry/curve/extend-curve_double_double", args)
     return response
 
 
-def Extend1(curve, domain):
-    args = [curve, domain]
+def Extend1(thisCurve, domain):
+    args = [thisCurve, domain]
     response = Util.ComputeFetch("rhino/geometry/curve/extend-curve_interval", args)
     return response
 
 
-def Extend2(curve, side, length, style):
-    args = [curve, side, length, style]
+def Extend2(thisCurve, side, length, style):
+    args = [thisCurve, side, length, style]
     response = Util.ComputeFetch("rhino/geometry/curve/extend-curve_curveend_double_curveextensionstyle", args)
     return response
 
 
-def Extend3(curve, side, style, geometry):
-    args = [curve, side, style, geometry]
+def Extend3(thisCurve, side, style, geometry):
+    args = [thisCurve, side, style, geometry]
     response = Util.ComputeFetch("rhino/geometry/curve/extend-curve_curveend_curveextensionstyle_geometrybasearray", args)
     return response
 
 
-def Extend4(curve, side, style, endPoint):
-    args = [curve, side, style, endPoint]
+def Extend4(thisCurve, side, style, endPoint):
+    args = [thisCurve, side, style, endPoint]
     response = Util.ComputeFetch("rhino/geometry/curve/extend-curve_curveend_curveextensionstyle_point3d", args)
     return response
 
 
-def ExtendOnSurface(curve, side, surface):
-    args = [curve, side, surface]
+def ExtendOnSurface(thisCurve, side, surface):
+    args = [thisCurve, side, surface]
     response = Util.ComputeFetch("rhino/geometry/curve/extendonsurface-curve_curveend_surface", args)
     return response
 
 
-def ExtendOnSurface1(curve, side, face):
-    args = [curve, side, face]
+def ExtendOnSurface1(thisCurve, side, face):
+    args = [thisCurve, side, face]
     response = Util.ComputeFetch("rhino/geometry/curve/extendonsurface-curve_curveend_brepface", args)
     return response
 
 
-def ExtendByLine(curve, side, geometry):
-    args = [curve, side, geometry]
+def ExtendByLine(thisCurve, side, geometry):
+    args = [thisCurve, side, geometry]
     response = Util.ComputeFetch("rhino/geometry/curve/extendbyline-curve_curveend_geometrybasearray", args)
     return response
 
 
-def ExtendByArc(curve, side, geometry):
-    args = [curve, side, geometry]
+def ExtendByArc(thisCurve, side, geometry):
+    args = [thisCurve, side, geometry]
     response = Util.ComputeFetch("rhino/geometry/curve/extendbyarc-curve_curveend_geometrybasearray", args)
     return response
 
 
-def Simplify(curve, options, distanceTolerance, angleToleranceRadians):
-    args = [curve, options, distanceTolerance, angleToleranceRadians]
+def Simplify(thisCurve, options, distanceTolerance, angleToleranceRadians):
+    args = [thisCurve, options, distanceTolerance, angleToleranceRadians]
     response = Util.ComputeFetch("rhino/geometry/curve/simplify-curve_curvesimplifyoptions_double_double", args)
     return response
 
 
-def SimplifyEnd(curve, end, options, distanceTolerance, angleToleranceRadians):
-    args = [curve, end, options, distanceTolerance, angleToleranceRadians]
+def SimplifyEnd(thisCurve, end, options, distanceTolerance, angleToleranceRadians):
+    args = [thisCurve, end, options, distanceTolerance, angleToleranceRadians]
     response = Util.ComputeFetch("rhino/geometry/curve/simplifyend-curve_curveend_curvesimplifyoptions_double_double", args)
     return response
 
 
-def Fair(curve, distanceTolerance, angleTolerance, clampStart, clampEnd, iterations):
-    args = [curve, distanceTolerance, angleTolerance, clampStart, clampEnd, iterations]
+def Fair(thisCurve, distanceTolerance, angleTolerance, clampStart, clampEnd, iterations):
+    args = [thisCurve, distanceTolerance, angleTolerance, clampStart, clampEnd, iterations]
     response = Util.ComputeFetch("rhino/geometry/curve/fair-curve_double_double_int_int_int", args)
     return response
 
 
-def Fit(curve, degree, fitTolerance, angleTolerance):
-    args = [curve, degree, fitTolerance, angleTolerance]
+def Fit(thisCurve, degree, fitTolerance, angleTolerance):
+    args = [thisCurve, degree, fitTolerance, angleTolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/fit-curve_int_double_double", args)
     return response
 
 
-def Rebuild(curve, pointCount, degree, preserveTangents):
-    args = [curve, pointCount, degree, preserveTangents]
+def Rebuild(thisCurve, pointCount, degree, preserveTangents):
+    args = [thisCurve, pointCount, degree, preserveTangents]
     response = Util.ComputeFetch("rhino/geometry/curve/rebuild-curve_int_int_bool", args)
     return response
 
 
-def ToPolyline(curve, mainSegmentCount, subSegmentCount, maxAngleRadians, maxChordLengthRatio, maxAspectRatio, tolerance, minEdgeLength, maxEdgeLength, keepStartPoint):
-    args = [curve, mainSegmentCount, subSegmentCount, maxAngleRadians, maxChordLengthRatio, maxAspectRatio, tolerance, minEdgeLength, maxEdgeLength, keepStartPoint]
+def ToPolyline(thisCurve, mainSegmentCount, subSegmentCount, maxAngleRadians, maxChordLengthRatio, maxAspectRatio, tolerance, minEdgeLength, maxEdgeLength, keepStartPoint):
+    args = [thisCurve, mainSegmentCount, subSegmentCount, maxAngleRadians, maxChordLengthRatio, maxAspectRatio, tolerance, minEdgeLength, maxEdgeLength, keepStartPoint]
     response = Util.ComputeFetch("rhino/geometry/curve/topolyline-curve_int_int_double_double_double_double_double_double_bool", args)
     return response
 
 
-def ToPolyline1(curve, mainSegmentCount, subSegmentCount, maxAngleRadians, maxChordLengthRatio, maxAspectRatio, tolerance, minEdgeLength, maxEdgeLength, keepStartPoint, curveDomain):
-    args = [curve, mainSegmentCount, subSegmentCount, maxAngleRadians, maxChordLengthRatio, maxAspectRatio, tolerance, minEdgeLength, maxEdgeLength, keepStartPoint, curveDomain]
+def ToPolyline1(thisCurve, mainSegmentCount, subSegmentCount, maxAngleRadians, maxChordLengthRatio, maxAspectRatio, tolerance, minEdgeLength, maxEdgeLength, keepStartPoint, curveDomain):
+    args = [thisCurve, mainSegmentCount, subSegmentCount, maxAngleRadians, maxChordLengthRatio, maxAspectRatio, tolerance, minEdgeLength, maxEdgeLength, keepStartPoint, curveDomain]
     response = Util.ComputeFetch("rhino/geometry/curve/topolyline-curve_int_int_double_double_double_double_double_double_bool_interval", args)
     return response
 
 
-def ToPolyline2(curve, tolerance, angleTolerance, minimumLength, maximumLength):
-    args = [curve, tolerance, angleTolerance, minimumLength, maximumLength]
+def ToPolyline2(thisCurve, tolerance, angleTolerance, minimumLength, maximumLength):
+    args = [thisCurve, tolerance, angleTolerance, minimumLength, maximumLength]
     response = Util.ComputeFetch("rhino/geometry/curve/topolyline-curve_double_double_double_double", args)
     return response
 
 
-def ToArcsAndLines(curve, tolerance, angleTolerance, minimumLength, maximumLength):
-    args = [curve, tolerance, angleTolerance, minimumLength, maximumLength]
+def ToArcsAndLines(thisCurve, tolerance, angleTolerance, minimumLength, maximumLength):
+    args = [thisCurve, tolerance, angleTolerance, minimumLength, maximumLength]
     response = Util.ComputeFetch("rhino/geometry/curve/toarcsandlines-curve_double_double_double_double", args)
     return response
 
 
-def PullToMesh(curve, mesh, tolerance):
-    args = [curve, mesh, tolerance]
+def PullToMesh(thisCurve, mesh, tolerance):
+    args = [thisCurve, mesh, tolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/pulltomesh-curve_mesh_double", args)
     return response
 
 
-def Offset(curve, plane, distance, tolerance, cornerStyle):
-    args = [curve, plane, distance, tolerance, cornerStyle]
+def Offset(thisCurve, plane, distance, tolerance, cornerStyle):
+    args = [thisCurve, plane, distance, tolerance, cornerStyle]
     response = Util.ComputeFetch("rhino/geometry/curve/offset-curve_plane_double_double_curveoffsetcornerstyle", args)
     return response
 
 
-def Offset1(curve, directionPoint, normal, distance, tolerance, cornerStyle):
-    args = [curve, directionPoint, normal, distance, tolerance, cornerStyle]
+def Offset1(thisCurve, directionPoint, normal, distance, tolerance, cornerStyle):
+    args = [thisCurve, directionPoint, normal, distance, tolerance, cornerStyle]
     response = Util.ComputeFetch("rhino/geometry/curve/offset-curve_point3d_vector3d_double_double_curveoffsetcornerstyle", args)
     return response
 
 
-def OffsetOnSurface(curve, face, distance, fittingTolerance):
-    args = [curve, face, distance, fittingTolerance]
+def OffsetOnSurface(thisCurve, face, distance, fittingTolerance):
+    args = [thisCurve, face, distance, fittingTolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/offsetonsurface-curve_brepface_double_double", args)
     return response
 
 
-def OffsetOnSurface1(curve, face, throughPoint, fittingTolerance):
-    args = [curve, face, throughPoint, fittingTolerance]
+def OffsetOnSurface1(thisCurve, face, throughPoint, fittingTolerance):
+    args = [thisCurve, face, throughPoint, fittingTolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/offsetonsurface-curve_brepface_point2d_double", args)
     return response
 
 
-def OffsetOnSurface2(curve, face, curveParameters, offsetDistances, fittingTolerance):
-    args = [curve, face, curveParameters, offsetDistances, fittingTolerance]
+def OffsetOnSurface2(thisCurve, face, curveParameters, offsetDistances, fittingTolerance):
+    args = [thisCurve, face, curveParameters, offsetDistances, fittingTolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/offsetonsurface-curve_brepface_doublearray_doublearray_double", args)
     return response
 
 
-def OffsetOnSurface3(curve, surface, distance, fittingTolerance):
-    args = [curve, surface, distance, fittingTolerance]
+def OffsetOnSurface3(thisCurve, surface, distance, fittingTolerance):
+    args = [thisCurve, surface, distance, fittingTolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/offsetonsurface-curve_surface_double_double", args)
     return response
 
 
-def OffsetOnSurface4(curve, surface, throughPoint, fittingTolerance):
-    args = [curve, surface, throughPoint, fittingTolerance]
+def OffsetOnSurface4(thisCurve, surface, throughPoint, fittingTolerance):
+    args = [thisCurve, surface, throughPoint, fittingTolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/offsetonsurface-curve_surface_point2d_double", args)
     return response
 
 
-def OffsetOnSurface5(curve, surface, curveParameters, offsetDistances, fittingTolerance):
-    args = [curve, surface, curveParameters, offsetDistances, fittingTolerance]
+def OffsetOnSurface5(thisCurve, surface, curveParameters, offsetDistances, fittingTolerance):
+    args = [thisCurve, surface, curveParameters, offsetDistances, fittingTolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/offsetonsurface-curve_surface_doublearray_doublearray_double", args)
     return response
 
 
-def PullToBrepFace(curve, face, tolerance):
-    args = [curve, face, tolerance]
+def PullToBrepFace(thisCurve, face, tolerance):
+    args = [thisCurve, face, tolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/pulltobrepface-curve_brepface_double", args)
     return response
 
 
-def OffsetNormalToSurface(curve, surface, height):
-    args = [curve, surface, height]
+def OffsetNormalToSurface(thisCurve, surface, height):
+    args = [thisCurve, surface, height]
     response = Util.ComputeFetch("rhino/geometry/curve/offsetnormaltosurface-curve_surface_double", args)
     return response
 

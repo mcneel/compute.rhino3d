@@ -1,8 +1,8 @@
-import Util
+from . import Util
 
 
-def GetWireframe(extrusion):
-    args = [extrusion]
+def GetWireframe(thisExtrusion):
+    args = [thisExtrusion]
     response = Util.ComputeFetch("rhino/geometry/extrusion/getwireframe-extrusion", args)
     return response
 

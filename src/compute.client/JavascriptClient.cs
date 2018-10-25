@@ -10,7 +10,7 @@ namespace computegen
         {
             get
             {
-                return 
+                return
 @"var RhinoCompute = {
     url: ""https://compute.rhino3d.com/"",
 
@@ -21,7 +21,7 @@ namespace computegen
         if( useLocalStorage )
             auth = localStorage[""compute_auth""];
         if (auth == null) {
-            auth = window.prompt(""Rhino Accounts auth token"");
+            auth = window.prompt(""Rhino Accounts auth token\nVisit https://www.rhino3d.com/compute/login"");
             if (auth != null && auth.length>20) {
                 auth = ""Bearer "" + auth;
                 localStorage.setItem(""compute_auth"", auth);
@@ -31,10 +31,6 @@ namespace computegen
     },
 
     computeFetch: function(endpoint, arglist) {
-        for (i = 0; i < arglist.length; i++) {
-            if (arglist[i].encode != null)
-                arglist[i] = arglist[i].encode();
-        }
         return fetch(RhinoCompute.url+endpoint, {
                 ""method"":""POST"",
                 ""body"": JSON.stringify(arglist),

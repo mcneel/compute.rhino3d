@@ -1,4 +1,4 @@
-import Util
+from . import Util
 
 
 def ChangeSeam(face, direction, parameter, tolerance):
@@ -349,152 +349,152 @@ def CreateCurvatureAnalysisMesh(brep, state):
     return response
 
 
-def GetRegions(brep):
-    args = [brep]
+def GetRegions(thisBrep):
+    args = [thisBrep]
     response = Util.ComputeFetch("rhino/geometry/brep/getregions-brep", args)
     return response
 
 
-def GetWireframe(brep, density):
-    args = [brep, density]
+def GetWireframe(thisBrep, density):
+    args = [thisBrep, density]
     response = Util.ComputeFetch("rhino/geometry/brep/getwireframe-brep_int", args)
     return response
 
 
-def ClosestPoint(brep, testPoint):
-    args = [brep, testPoint]
+def ClosestPoint(thisBrep, testPoint):
+    args = [thisBrep, testPoint]
     response = Util.ComputeFetch("rhino/geometry/brep/closestpoint-brep_point3d", args)
     return response
 
 
-def IsPointInside(brep, point, tolerance, strictlyIn):
-    args = [brep, point, tolerance, strictlyIn]
+def IsPointInside(thisBrep, point, tolerance, strictlyIn):
+    args = [thisBrep, point, tolerance, strictlyIn]
     response = Util.ComputeFetch("rhino/geometry/brep/ispointinside-brep_point3d_double_bool", args)
     return response
 
 
-def CapPlanarHoles(brep, tolerance):
-    args = [brep, tolerance]
+def CapPlanarHoles(thisBrep, tolerance):
+    args = [thisBrep, tolerance]
     response = Util.ComputeFetch("rhino/geometry/brep/capplanarholes-brep_double", args)
     return response
 
 
-def Join(brep, otherBrep, tolerance, compact):
-    args = [brep, otherBrep, tolerance, compact]
+def Join(thisBrep, otherBrep, tolerance, compact):
+    args = [thisBrep, otherBrep, tolerance, compact]
     response = Util.ComputeFetch("rhino/geometry/brep/join-brep_brep_double_bool", args)
     return response
 
 
-def JoinNakedEdges(brep, tolerance):
-    args = [brep, tolerance]
+def JoinNakedEdges(thisBrep, tolerance):
+    args = [thisBrep, tolerance]
     response = Util.ComputeFetch("rhino/geometry/brep/joinnakededges-brep_double", args)
     return response
 
 
-def MergeCoplanarFaces(brep, tolerance):
-    args = [brep, tolerance]
+def MergeCoplanarFaces(thisBrep, tolerance):
+    args = [thisBrep, tolerance]
     response = Util.ComputeFetch("rhino/geometry/brep/mergecoplanarfaces-brep_double", args)
     return response
 
 
-def MergeCoplanarFaces1(brep, tolerance, angleTolerance):
-    args = [brep, tolerance, angleTolerance]
+def MergeCoplanarFaces1(thisBrep, tolerance, angleTolerance):
+    args = [thisBrep, tolerance, angleTolerance]
     response = Util.ComputeFetch("rhino/geometry/brep/mergecoplanarfaces-brep_double_double", args)
     return response
 
 
-def Split(brep, splitter, intersectionTolerance):
-    args = [brep, splitter, intersectionTolerance]
+def Split(thisBrep, splitter, intersectionTolerance):
+    args = [thisBrep, splitter, intersectionTolerance]
     response = Util.ComputeFetch("rhino/geometry/brep/split-brep_brep_double", args)
     return response
 
 
-def Split1(brep, splitter, intersectionTolerance, toleranceWasRaised):
-    args = [brep, splitter, intersectionTolerance, toleranceWasRaised]
+def Split1(thisBrep, splitter, intersectionTolerance, toleranceWasRaised):
+    args = [thisBrep, splitter, intersectionTolerance, toleranceWasRaised]
     response = Util.ComputeFetch("rhino/geometry/brep/split-brep_brep_double_bool", args)
     return response
 
 
-def Trim(brep, cutter, intersectionTolerance):
-    args = [brep, cutter, intersectionTolerance]
+def Trim(thisBrep, cutter, intersectionTolerance):
+    args = [thisBrep, cutter, intersectionTolerance]
     response = Util.ComputeFetch("rhino/geometry/brep/trim-brep_brep_double", args)
     return response
 
 
-def Trim1(brep, cutter, intersectionTolerance):
-    args = [brep, cutter, intersectionTolerance]
+def Trim1(thisBrep, cutter, intersectionTolerance):
+    args = [thisBrep, cutter, intersectionTolerance]
     response = Util.ComputeFetch("rhino/geometry/brep/trim-brep_plane_double", args)
     return response
 
 
-def UnjoinEdges(brep, edgesToUnjoin):
-    args = [brep, edgesToUnjoin]
+def UnjoinEdges(thisBrep, edgesToUnjoin):
+    args = [thisBrep, edgesToUnjoin]
     response = Util.ComputeFetch("rhino/geometry/brep/unjoinedges-brep_intarray", args)
     return response
 
 
-def JoinEdges(brep, edgeIndex0, edgeIndex1, joinTolerance, compact):
-    args = [brep, edgeIndex0, edgeIndex1, joinTolerance, compact]
+def JoinEdges(thisBrep, edgeIndex0, edgeIndex1, joinTolerance, compact):
+    args = [thisBrep, edgeIndex0, edgeIndex1, joinTolerance, compact]
     response = Util.ComputeFetch("rhino/geometry/brep/joinedges-brep_int_int_double_bool", args)
     return response
 
 
-def TransformComponent(brep, components, xform, tolerance, timeLimit, useMultipleThreads):
-    args = [brep, components, xform, tolerance, timeLimit, useMultipleThreads]
+def TransformComponent(thisBrep, components, xform, tolerance, timeLimit, useMultipleThreads):
+    args = [thisBrep, components, xform, tolerance, timeLimit, useMultipleThreads]
     response = Util.ComputeFetch("rhino/geometry/brep/transformcomponent-brep_componentindexarray_transform_double_double_bool", args)
     return response
 
 
-def GetArea(brep):
-    args = [brep]
+def GetArea(thisBrep):
+    args = [thisBrep]
     response = Util.ComputeFetch("rhino/geometry/brep/getarea-brep", args)
     return response
 
 
-def GetArea1(brep, relativeTolerance, absoluteTolerance):
-    args = [brep, relativeTolerance, absoluteTolerance]
+def GetArea1(thisBrep, relativeTolerance, absoluteTolerance):
+    args = [thisBrep, relativeTolerance, absoluteTolerance]
     response = Util.ComputeFetch("rhino/geometry/brep/getarea-brep_double_double", args)
     return response
 
 
-def GetVolume(brep):
-    args = [brep]
+def GetVolume(thisBrep):
+    args = [thisBrep]
     response = Util.ComputeFetch("rhino/geometry/brep/getvolume-brep", args)
     return response
 
 
-def GetVolume1(brep, relativeTolerance, absoluteTolerance):
-    args = [brep, relativeTolerance, absoluteTolerance]
+def GetVolume1(thisBrep, relativeTolerance, absoluteTolerance):
+    args = [thisBrep, relativeTolerance, absoluteTolerance]
     response = Util.ComputeFetch("rhino/geometry/brep/getvolume-brep_double_double", args)
     return response
 
 
-def RebuildTrimsForV2(brep, face, nurbsSurface):
-    args = [brep, face, nurbsSurface]
+def RebuildTrimsForV2(thisBrep, face, nurbsSurface):
+    args = [thisBrep, face, nurbsSurface]
     response = Util.ComputeFetch("rhino/geometry/brep/rebuildtrimsforv2-brep_brepface_nurbssurface", args)
     return response
 
 
-def MakeValidForV2(brep):
-    args = [brep]
+def MakeValidForV2(thisBrep):
+    args = [thisBrep]
     response = Util.ComputeFetch("rhino/geometry/brep/makevalidforv2-brep", args)
     return response
 
 
-def Repair(brep, tolerance):
-    args = [brep, tolerance]
+def Repair(thisBrep, tolerance):
+    args = [thisBrep, tolerance]
     response = Util.ComputeFetch("rhino/geometry/brep/repair-brep_double", args)
     return response
 
 
-def RemoveHoles(brep, tolerance):
-    args = [brep, tolerance]
+def RemoveHoles(thisBrep, tolerance):
+    args = [thisBrep, tolerance]
     response = Util.ComputeFetch("rhino/geometry/brep/removeholes-brep_double", args)
     return response
 
 
-def RemoveHoles1(brep, loops, tolerance):
-    args = [brep, loops, tolerance]
+def RemoveHoles1(thisBrep, loops, tolerance):
+    args = [thisBrep, loops, tolerance]
     response = Util.ComputeFetch("rhino/geometry/brep/removeholes-brep_componentindexarray_double", args)
     return response
 
