@@ -92,13 +92,6 @@ namespace compute.geometry
 
         public static Response Grasshopper(NancyContext ctx)
         {
-            //Rhino.RhinoApp.RunScript("_Grasshopper", false);
-            // Load IronPython
-            //PlugIn.LoadPlugIn(new Guid(0x814D908A, 0xE25C, 0x493D, 0x97, 0xE9, 0xEE, 0x38, 0x61, 0x95, 0x7F, 0x49));
-
-            //// Load Grasshopper
-            //PlugIn.LoadPlugIn(new Guid(0xB45A29B1, 0x4343, 0x4035, 0x98, 0x9E, 0x04, 0x4E, 0x85, 0x80, 0xD9, 0xCF));
-
             // load grasshopper file
             var archive = new GH_Archive();
             // TODO: stream to string
@@ -130,7 +123,7 @@ namespace compute.geometry
                     param.CollectData();
                     param.ComputeData();
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     param.Phase = GH_SolutionPhase.Failed;
                     // TODO: throw something better

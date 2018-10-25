@@ -83,7 +83,7 @@ namespace compute.geometry
         {
             Log.Information("Launching RhinoCore library as {User}", Environment.UserName);
             //RhinoLib.LaunchInProcess(RhinoLib.LoadMode.FullUserInterface, 0);
-            Program._rhino = new RhinoCore(new string[] { "/nosplash", "/runscript=\"Grasshopper\"" }, WindowStyle.Normal);
+            Program._rhino = new RhinoCore(new string[] { "/nosplash" }, WindowStyle.Hidden);
 
             // Load IronPython
             Rhino.PlugIns.PlugIn.LoadPlugIn(new Guid(0x814D908A, 0xE25C, 0x493D, 0x97, 0xE9, 0xEE, 0x38, 0x61, 0x95, 0x7F, 0x49));
