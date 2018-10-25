@@ -87,6 +87,11 @@ namespace compute.frontend
                 foreach (var value in header.Value)
                     response.Headers.Add(header.Key, value);
             }
+            foreach (var header in backendResponse.Content.Headers)
+            {
+                foreach (var value in header.Value)
+                    response.Headers.Add(header.Key, value);
+            }
             return response;
         }
     }
