@@ -1,7 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using Nancy;
+using GH_IO.Serialization;
+using Grasshopper.Kernel;
+using Grasshopper.Kernel.Types;
+using Rhino.PlugIns;
 
 namespace compute.geometry
 {
@@ -83,6 +88,77 @@ namespace compute.geometry
             var response = (Response)Newtonsoft.Json.JsonConvert.SerializeObject(values);
             response.ContentType = "application/json";
             return response;
+        }
+
+        public static Response Grasshopper(NancyContext ctx)
+        {
+            //Rhino.RhinoApp.RunScript("_Grasshopper", false);
+            // Load IronPython
+            //PlugIn.LoadPlugIn(new Guid(0x814D908A, 0xE25C, 0x493D, 0x97, 0xE9, 0xEE, 0x38, 0x61, 0x95, 0x7F, 0x49));
+
+            //// Load Grasshopper
+            //PlugIn.LoadPlugIn(new Guid(0xB45A29B1, 0x4343, 0x4035, 0x98, 0x9E, 0x04, 0x4E, 0x85, 0x80, 0xD9, 0xCF));
+
+            // load grasshopper file
+            var archive = new GH_Archive();
+            // TODO: stream to string
+            var body = ctx.Request.Body.ToString();
+            using (var reader = new StreamReader(ctx.Request.Body))
+            {
+                var xml = reader.ReadToEnd();
+                if (!archive.Deserialize_Xml(xml))
+                    throw new Exception();
+            }
+
+            var definition = new GH_Document();
+            if (!archive.ExtractObject(definition, "Definition"))
+                throw new Exception();
+
+            //var outputs = new List<Rhino.Geometry.GeometryBase>();
+            var outputs = new List<double>();
+            foreach (var obj in definition.Objects)
+            {
+                var param = obj as IGH_Param;
+                if (param == null)
+                    continue;
+
+                if (param.Sources.Count == 0 || param.Recipients.Count != 0)
+                    continue;
+
+                try
+                {
+                    param.CollectData();
+                    param.ComputeData();
+                }
+                catch (Exception e)
+                {
+                    param.Phase = GH_SolutionPhase.Failed;
+                    // TODO: throw something better
+                    throw;
+                }
+
+                var output = new List<Rhino.Geometry.GeometryBase>();
+                var volatileData = param.VolatileData;
+                for (int p = 0; p < volatileData.PathCount; p++)
+                {
+                    foreach (var goo in volatileData.get_Branch(p))
+                    {
+                        switch (goo)
+                        {
+                            //case GH_Point point: output.Add(new Rhino.Geometry.Point(point.Value)); break;
+                            //case GH_Curve curve: output.Add(curve.Value); break;
+                            //case GH_Brep brep: output.Add(brep.Value); break;
+                            //case GH_Mesh mesh: output.Add(mesh.Value); break;
+                            case GH_Number number: outputs.Add(number.Value); break;
+                        }
+                    }
+                }
+            }
+
+            if (outputs.Count < 1)
+                throw new Exception(); // TODO
+
+            return outputs[0].ToString();
         }
     }
 }

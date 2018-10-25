@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using System.Text;
 using Nancy.Bootstrapper;
@@ -10,11 +11,43 @@ using Nancy.Routing;
 using Nancy.TinyIoc;
 using Serilog;
 using Topshelf;
+using Rhino.Runtime.InProcess;
 
 namespace compute.geometry
 {
     class Program
     {
+        #region static constructor
+        static Program()
+        {
+            ResolveEventHandler OnRhinoCommonResolve = null;
+            AppDomain.CurrentDomain.AssemblyResolve += OnRhinoCommonResolve = (sender, args) =>
+            {
+                const string rhinoCommonAssemblyName = "RhinoCommon";
+                var assemblyName = new AssemblyName(args.Name).Name;
+
+                //if (assemblyName == "Grasshopper")
+                //    return Assembly.LoadFrom(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Rhino WIP", "Plug-ins", "Grasshopper", "Grasshopper.dll"));
+                if (assemblyName != rhinoCommonAssemblyName)
+                    return null;
+
+
+                AppDomain.CurrentDomain.AssemblyResolve -= OnRhinoCommonResolve;
+#if DEBUG
+                string rhinoSystemDir = @"C:\dev\github\mcneel\rhino\src4\bin\Debug";
+#else
+                string rhinoSystemDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Rhino WIP", "System");
+#endif
+                return Assembly.LoadFrom(Path.Combine(rhinoSystemDir, rhinoCommonAssemblyName + ".dll"));
+
+                
+            };
+        }
+        #endregion
+
+        public static RhinoCore _rhino;
+
+        [System.STAThread]
         static void Main(string[] args)
         {
             Logging.Init();
@@ -36,7 +69,8 @@ namespace compute.geometry
                 x.SetDisplayName("compute.geometry");
                 x.SetServiceName("compute.geometry");
             });
-            RhinoLib.ExitInProcess();
+            //RhinoLib.ExitInProcess();
+            _rhino.Dispose();
         }
     }
 
@@ -48,7 +82,14 @@ namespace compute.geometry
         public void Start(int http_port)
         {
             Log.Information("Launching RhinoCore library as {User}", Environment.UserName);
-            RhinoLib.LaunchInProcess(RhinoLib.LoadMode.Headless, 0);
+            //RhinoLib.LaunchInProcess(RhinoLib.LoadMode.FullUserInterface, 0);
+            Program._rhino = new RhinoCore(new string[] { "/nosplash", "/runscript=\"Grasshopper\"" }, WindowStyle.Normal);
+
+            // Load IronPython
+            Rhino.PlugIns.PlugIn.LoadPlugIn(new Guid(0x814D908A, 0xE25C, 0x493D, 0x97, 0xE9, 0xEE, 0x38, 0x61, 0x95, 0x7F, 0x49));
+            // Load Grasshopper
+            Rhino.PlugIns.PlugIn.LoadPlugIn(new Guid(0xB45A29B1, 0x4343, 0x4035, 0x98, 0x9E, 0x04, 0x4E, 0x85, 0x80, 0xD9, 0xCF));
+
             var config = new HostConfiguration();
 #if DEBUG
             config.RewriteLocalhost = false;  // Don't require URL registration since geometry service always runs on localhost
@@ -155,6 +196,7 @@ namespace compute.geometry
             Get["version"] = _ => FixedEndpoints.GetVersion(Context);
             Get["sdk/csharp"] = _ => FixedEndpoints.CSharpSdk(Context);
             Post["hammertime"] = _ => FixedEndpoints.HammerTime(Context);
+            Post["/grasshopper"] = _ => FixedEndpoints.Grasshopper(Context);
 
             Get["/sdk"] = _ =>
             {
