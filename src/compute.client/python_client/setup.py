@@ -5,7 +5,7 @@ long_description = '''
 Python package providing convenience functions to call compute.rhino3d.com
 geometry web services
 
-Project Hompage at: https://github.com/mcneel/compute.rhino3d
+Project Hompage: https://github.com/mcneel/compute.rhino3d
 
 ### Supported platforms
 * This is a pure python package and should work on all versions of python
@@ -31,7 +31,7 @@ Project Hompage at: https://github.com/mcneel/compute.rhino3d
 
 setuptools.setup(
     name="compute_rhino3d",
-    version="0.0.6",
+    version="0.0.9",
     packages=['compute_rhino3d'],
     author="Robert McNeel & Associates",
     author_email="steve@mcneel.com",

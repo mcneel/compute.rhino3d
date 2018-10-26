@@ -59,7 +59,7 @@ authToken = None
 def ComputeFetch(endpoint, arglist) :
     class __Rhino3dmEncoder(json.JSONEncoder):
         def default(self, o):
-            if isinstance(o, rhino3dm.CommonObject) :
+            if hasattr(o, ""Encode"") :
                 return o.Encode()
             return json.JSONEncoder.default(self, o)
     global authToken
