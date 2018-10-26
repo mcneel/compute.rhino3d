@@ -22,6 +22,25 @@ namespace compute.frontend.Authentication
             if (string.IsNullOrWhiteSpace(authHeader))
                 return NotAuthenticatedResponse();
 
+            try
+            {
+                const double ALLOWED_AUTHORIZED_SPAN_MINUTES = 5;
+                Account acct;
+                if (_accountCache.TryGetValue(authHeader, out acct) && acct != null)
+                {
+                    var span = DateTime.Now - acct.LastChecked;
+                    if (span.TotalMinutes < ALLOWED_AUTHORIZED_SPAN_MINUTES && !string.IsNullOrWhiteSpace(acct.Email))
+                    {
+                        context.Items["auth_user"] = acct.Email;
+                        return null;
+                    }
+                }
+            }
+            catch
+            {
+                // allow the code to continue if an exception occurs here
+            }
+
             // Verify token information
             WebClient client = new WebClient();
             client.Headers["Authorization"] = authHeader;
@@ -38,6 +57,15 @@ namespace compute.frontend.Authentication
                 json = Newtonsoft.Json.Linq.JObject.Parse(body);
                 var email = (string)json["email"];
                 context.Items["auth_user"] = email;
+
+                // Just clear the entire cache once we hit a limit. It won't take
+                // a whole lot to rebuild the cache.
+                const int ACCOUNT_CACHE_LIMIT = 1000;
+                if (_accountCache.Count > ACCOUNT_CACHE_LIMIT)
+                    _accountCache.Clear();
+
+                _accountCache[authHeader] = new Account(email);
+
             }
             catch
             {
@@ -53,5 +81,17 @@ namespace compute.frontend.Authentication
             response.StatusCode = Nancy.HttpStatusCode.Unauthorized;
             return response;
         }
+
+        class Account
+        {
+            public Account(string email)
+            {
+                Email = email;
+                LastChecked = DateTime.Now;
+            }
+            public string Email { get; private set; }
+            public DateTime LastChecked { get; private set; }
+        }
+        static System.Collections.Concurrent.ConcurrentDictionary<string, Account> _accountCache = new System.Collections.Concurrent.ConcurrentDictionary<string, Account>();
     }
 }
