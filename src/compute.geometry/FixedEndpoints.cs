@@ -136,14 +136,15 @@ namespace compute.geometry
                 {
                     foreach (var goo in volatileData.get_Branch(p))
                     {
-                        switch (goo)
-                        {
-                            //case GH_Point point: output.Add(new Rhino.Geometry.Point(point.Value)); break;
-                            //case GH_Curve curve: output.Add(curve.Value); break;
-                            //case GH_Brep brep: output.Add(brep.Value); break;
-                            //case GH_Mesh mesh: output.Add(mesh.Value); break;
-                            case GH_Number number: outputs.Add(number.Value); break;
+                        //case GH_Point point: output.Add(new Rhino.Geometry.Point(point.Value)); break;
+                        //case GH_Curve curve: output.Add(curve.Value); break;
+                        //case GH_Brep brep: output.Add(brep.Value); break;
+                        //case GH_Mesh mesh: output.Add(mesh.Value); break;
+                        if (goo.GetType() == typeof(GH_Number)) {
+                            outputs.Add((goo as GH_Number).Value);
+                            break;
                         }
+
                     }
                 }
             }

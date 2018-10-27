@@ -118,8 +118,8 @@ namespace compute.frontend
                 "RequestId", ctx.Items["RequestId"] as string));
             logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
                 "Hostname", ctx.Items["Hostname"] as string));
-
-            if (ctx.Items.TryGetValue("auth_user", out object auth_user))
+            object auth_user;
+            if (ctx.Items.TryGetValue("auth_user", out auth_user))
             {
                 logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
                     "UserId", auth_user as string));
