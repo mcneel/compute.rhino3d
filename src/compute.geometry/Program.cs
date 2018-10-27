@@ -33,14 +33,10 @@ namespace compute.geometry
 
 
                 AppDomain.CurrentDomain.AssemblyResolve -= OnRhinoCommonResolve;
-#if DEBUG
-                string rhinoSystemDir = @"C:\dev\github\mcneel\rhino\src4\bin\Debug";
-#else
-                string rhinoSystemDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Rhino WIP", "System");
-#endif
-                return Assembly.LoadFrom(Path.Combine(rhinoSystemDir, rhinoCommonAssemblyName + ".dll"));
+                string rhinoSystemDir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+                + @"\Grasshopper\rhino wip\Rhino WIP\Rhino WIP\System";
 
-                
+                return Assembly.LoadFrom(Path.Combine(rhinoSystemDir, rhinoCommonAssemblyName + ".dll"));
             };
         }
         #endregion
