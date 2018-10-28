@@ -71,7 +71,14 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="locustComponent.cs" />
+    <Compile Include="GetLines.cs" />
+    <Compile Include="GetCurves.cs" />
+    <Compile Include="GetPoints.cs" />
+    <Compile Include="GetSurfaces.cs" />
+    <Compile Include="GetBreps.cs" />
+    <Compile Include="GetMeshes.cs" />
+    <Compile Include="GetCircles.cs" />
+    <Compile Include="GetNumbers.cs" />
     <Compile Include="locustInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

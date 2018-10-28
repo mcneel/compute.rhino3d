@@ -8,7 +8,7 @@ using Grasshopper.Kernel.Types;
 
 namespace locust
 {
-    public class GetCircles : GH_Component
+    public class GetLines : GH_Component
     {
         /// <summary>
         /// Each implementation of GH_Component must provide a public 
@@ -17,9 +17,9 @@ namespace locust
         /// Subcategory the panel. If you use non-existing tab or panel names, 
         /// new tabs/panels will automatically be created.
         /// </summary>
-        public GetCircles()
-          : base("circles", "Get Circles",
-              "Get Circle Geometry from compute.rhino3d",
+        public GetLines()
+          : base("lines", "Get Lines",
+              "Get Line Geometry from compute.rhino3d",
               "Locust", "Get")
         {
         }
@@ -37,7 +37,7 @@ namespace locust
         /// </summary>
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddCircleParameter("Circles", "Circles", "Deserialized Circles", GH_ParamAccess.list);
+            pManager.AddCurveParameter("Lines", "Lines", "Deserialized Lines", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -50,7 +50,7 @@ namespace locust
             string input = string.Empty;
             DA.GetData<string>(0, ref input);
 
-            List<GH_Circle> Circles = new List<GH_Circle>();
+            List<GH_Line> Lines = new List<GH_Line>();
 
             GrasshopperOutput objectList = JsonConvert.DeserializeObject<GrasshopperOutput>(input);
             List<GrasshopperOutputItem> items = objectList.Items;
@@ -60,14 +60,14 @@ namespace locust
                 {
                     switch (output.TypeHint)
                     {
-                        case "circle":
-                            GH_Circle circle = new GH_Circle();
-                            var cast = circle.CastFrom(JsonConvert.DeserializeObject<Circle>(output.Data));
-                            Circles.Add(circle); break;
+                        case "line":
+                            GH_Line line = new GH_Line();
+                            var cast = line.CastFrom(JsonConvert.DeserializeObject<Line>(output.Data));
+                            Lines.Add(line); break;
                     }
                 }
             }
-            DA.SetDataList(0, Circles);
+            DA.SetDataList(0, Lines);
         }
 
         /// <summary>
@@ -91,7 +91,7 @@ namespace locust
         /// </summary>
         public override Guid ComponentGuid
         {
-            get { return new Guid("AA2D1529-F5B5-4FEA-AEFE-505AC8184FB8"); }
+            get { return new Guid("20BC44D0-A7F1-4DF6-BE64-D789F504F9C2"); }
         }
     }
 }

@@ -50,8 +50,8 @@ namespace locust
             string input = string.Empty;
             DA.GetData<string>(0, ref input);
 
-            List<GH_Mesh> Meshes = new List<GH_Mesh>();
-
+            List<Mesh> Meshes = new List<Mesh>();
+            List<Point3d> Points = new List<Point3d>();
             GrasshopperOutput objectList = JsonConvert.DeserializeObject<GrasshopperOutput>(input);
             List<GrasshopperOutputItem> items = objectList.Items;
             if (items != null)
@@ -61,8 +61,8 @@ namespace locust
                     switch (output.TypeHint)
                     {
                         case "mesh":
-                            GH_Mesh mesh = new GH_Mesh();
-                            bool cast = mesh.CastFrom(JsonConvert.DeserializeObject<Mesh>(output.Data));
+                            Mesh mesh = JsonConvert.DeserializeObject<Mesh>(output.Data);
+                            Points.Add(mesh.Vertices[0]);
                             Meshes.Add(mesh); break;
                     }
                 }
