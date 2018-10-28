@@ -88,7 +88,7 @@ namespace compute.geometry
 
             var config = new HostConfiguration();
 #if DEBUG
-            config.RewriteLocalhost = false;  // Don't require URL registration since geometry service always runs on localhost
+            //config.RewriteLocalhost = false;  // Don't require URL registration since geometry service always runs on localhost
 #endif
             var listenUriList = new List<Uri>();
 

@@ -59,7 +59,7 @@ namespace compute.frontend
         {
             var config = new HostConfiguration();
 #if DEBUG
-            config.RewriteLocalhost = false;  // Don't require URL registration for localhost when debugging
+            //config.RewriteLocalhost = false;  // Don't require URL registration for localhost when debugging
             if (Env.GetEnvironmentBool("COMPUTE_SPAWN_GEOMETRY_SERVER", false))  // False by default in debug so we can run both services in the debugger
                 SpawnBackendProcess();
 #else
