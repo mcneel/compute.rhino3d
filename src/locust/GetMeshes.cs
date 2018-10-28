@@ -61,8 +61,8 @@ namespace locust
                     switch (output.TypeHint)
                     {
                         case "mesh":
-                            Mesh mesh = JsonConvert.DeserializeObject<Mesh>(output.Data);
-                            Points.Add(mesh.Vertices[0]);
+                            Mesh mesh = null;
+                            mesh = JsonConvert.DeserializeObject<Mesh>(output.Data);
                             Meshes.Add(mesh); break;
                     }
                 }
