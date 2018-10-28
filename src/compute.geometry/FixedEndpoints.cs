@@ -175,14 +175,17 @@ namespace compute.geometry
                         //case GH_Curve curve: output.Add(curve.Value); break;
                         //case GH_Brep brep: output.Add(brep.Value); break;
                         //case GH_Mesh mesh: output.Add(mesh.Value); break;
-                        if (goo.GetType() == typeof(GH_Number)) {
+                        if (goo.GetType() == typeof(GH_Number))
+                        {
 
                             GrasshopperOutputItem item = new GrasshopperOutputItem();
                             item.Data = (goo as GH_Number).Value.ToString();
                             item.TypeHint = "number";
                             outputs.Items.Add(item);
                             //break;
-                        } else if(goo.GetType() == typeof(GH_Mesh)) {
+                        }
+                        else if (goo.GetType() == typeof(GH_Mesh))
+                        {
                             var rhinoMesh = (goo as GH_Mesh).Value;
                             string jsonMesh = JsonConvert.SerializeObject(rhinoMesh);
                             GrasshopperOutputItem item = new GrasshopperOutputItem();
@@ -190,7 +193,9 @@ namespace compute.geometry
                             item.TypeHint = "mesh";
                             outputs.Items.Add(item);
                             //break;
-                        } else if(goo.GetType() == typeof(GH_Circle)) {
+                        }
+                        else if (goo.GetType() == typeof(GH_Circle))
+                        {
                             var rhinoCircles = (goo as GH_Circle).Value;
                             string jsonCircle = JsonConvert.SerializeObject(rhinoCircles);
                             GrasshopperOutputItem item = new GrasshopperOutputItem();
@@ -199,6 +204,68 @@ namespace compute.geometry
                             outputs.Items.Add(item);
                             //break;
                         }
+                        else if (goo.GetType() == typeof(GH_Brep))
+                        {
+                            var rhinoBrep = (goo as GH_Brep).Value;
+                            string jsonBrep = JsonConvert.SerializeObject(rhinoBrep);
+                            GrasshopperOutputItem item = new GrasshopperOutputItem();
+                            item.Data = jsonBrep;
+                            item.TypeHint = "brep";
+                            outputs.Items.Add(item);
+                        }
+                        else if (goo.GetType() == typeof(GH_Line))
+                        {
+                            var rhinoLine = (goo as GH_Line).Value;
+                            string jsonLine = JsonConvert.SerializeObject(rhinoLine);
+                            GrasshopperOutputItem item = new GrasshopperOutputItem();
+                            item.Data = jsonLine;
+                            item.TypeHint = "line";
+                            outputs.Items.Add(item);
+                        }
+                        else if (goo.GetType() == typeof(GH_Arc))
+                        {
+                            var rhinoArc = (goo as GH_Arc).Value;
+                            string jsonArc = JsonConvert.SerializeObject(rhinoArc);
+                            GrasshopperOutputItem item = new GrasshopperOutputItem();
+                            item.Data = jsonArc;
+                            item.TypeHint = "arc";
+                            outputs.Items.Add(item);
+                        }
+                        else if (goo.GetType() == typeof(GH_Point))
+                        {
+                            var rhinoPoint = (goo as GH_Point).Value;
+                            string jsonPoint = JsonConvert.SerializeObject(rhinoPoint);
+                            GrasshopperOutputItem item = new GrasshopperOutputItem();
+                            item.Data = jsonPoint;
+                            item.TypeHint = "point";
+                            outputs.Items.Add(item);
+                        }
+                        else if (goo.GetType() == typeof(GH_Curve))
+                        {
+                            var rhinoCurve = (goo as GH_Curve).Value;
+                            string jsonCurve = JsonConvert.SerializeObject(rhinoCurve);
+                            GrasshopperOutputItem item = new GrasshopperOutputItem();
+                            item.Data = jsonCurve;
+                            item.TypeHint = "curve";
+                            outputs.Items.Add(item);
+                        }
+                        else if (goo.GetType() == typeof(GH_Surface))
+                        {
+                            var rhinoSurface = (goo as GH_Surface).Value;
+                            string jsonSurface = JsonConvert.SerializeObject(rhinoSurface);
+                            GrasshopperOutputItem item = new GrasshopperOutputItem();
+                            item.Data = jsonSurface;
+                            item.TypeHint = "surface";
+                            outputs.Items.Add(item);
+                        }
+                        else if (goo.GetType() == typeof(GH_Boolean))
+                        {
+                            GrasshopperOutputItem item = new GrasshopperOutputItem();
+                            item.Data = (goo as GH_Boolean).Value.ToString();
+                            item.TypeHint = "bool";
+                            outputs.Items.Add(item);
+                        }
+
                     }
                 }
             }
