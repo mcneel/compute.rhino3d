@@ -102,6 +102,23 @@ namespace compute.geometry
             public Dictionary<string, object> Values { get; set; } 
         }
         
+        public class GrasshopperOutput
+        {
+            public GrasshopperOutput() {
+                this.Items = new List<GrasshopperOutputItem>();
+            }
+
+            [JsonProperty(PropertyName = "items")]
+            public List<GrasshopperOutputItem> Items { get; set; }                        
+        }
+
+        public class GrasshopperOutputItem
+        {
+            [JsonProperty(PropertyName = "type")]
+            public string TypeHint { get; set; }
+            [JsonProperty(PropertyName = "data")]
+            public string Data { get; set; }
+        }
 
         public static Response Grasshopper(NancyContext ctx)
         {
@@ -141,7 +158,6 @@ namespace compute.geometry
                     string nick = param.NickName;
                     if (input.Values.ContainsKey(nick)) {
                         var val = input.Values[nick];
-
                         
                         IGH_Structure data = param.VolatileData;
 
@@ -152,7 +168,8 @@ namespace compute.geometry
                 }
             }
                 //var outputs = new List<Rhino.Geometry.GeometryBase>();
-                var outputs = new List<double>();
+                //var outputs = new List<double>();
+            GrasshopperOutput outputs = new GrasshopperOutput();
             foreach (var obj in definition.Objects)
             {
                 var param = obj as IGH_Param;
@@ -186,19 +203,51 @@ namespace compute.geometry
                         //case GH_Brep brep: output.Add(brep.Value); break;
                         //case GH_Mesh mesh: output.Add(mesh.Value); break;
                         if (goo.GetType() == typeof(GH_Number)) {
-                            outputs.Add((goo as GH_Number).Value);
-                            break;
-                        }
 
+                            GrasshopperOutputItem item = new GrasshopperOutputItem();
+                            item.Data = (goo as GH_Number).Value.ToString();
+                            item.TypeHint = "number";
+                            outputs.Items.Add(item);
+                            //break;
+                        } else if(goo.GetType() == typeof(GH_Mesh)) {
+                            var rhinoMesh = (goo as GH_Mesh).Value;
+                            string jsonMesh = JsonConvert.SerializeObject(rhinoMesh);
+                            GrasshopperOutputItem item = new GrasshopperOutputItem();
+                            item.Data = jsonMesh;
+                            item.TypeHint = "mesh";
+                            outputs.Items.Add(item);
+                            //break;
+                        } else if(goo.GetType() == typeof(GH_Circle)) {
+                            var rhinoCircles = (goo as GH_Circle).Value;
+                            string jsonCircle = JsonConvert.SerializeObject(rhinoCircles);
+                            GrasshopperOutputItem item = new GrasshopperOutputItem();
+                            item.Data = jsonCircle;
+                            item.TypeHint = "circle";
+                            outputs.Items.Add(item);
+                            //break;
+                        }
                     }
                 }
             }
 
-            if (outputs.Count < 1)
-                throw new Exception(); // TODO
+            if (outputs.Items.Count < 1)
+                throw new System.Exceptions.DontFuckUpException("Don't mess up, asshole"); // TODO
 
-            return outputs[0].ToString();
+            string returnJson = JsonConvert.SerializeObject(outputs);
+            return returnJson;
         }
+        
+    }
+}
+
+namespace System.Exceptions
+{
+    public class DontFuckUpException : Exception
+    {
+        public DontFuckUpException(string m) : base(m) {
+
+        }
+
     }
 }
 
