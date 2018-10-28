@@ -7,6 +7,9 @@ using GH_IO.Serialization;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
 using Rhino.PlugIns;
+using Newtonsoft.Json;
+using Grasshopper;
+using Grasshopper.Kernel.Data;
 
 namespace compute.geometry
 {
@@ -90,25 +93,66 @@ namespace compute.geometry
             return response;
         }
 
+        public class GrasshopperInput
+        {
+            [JsonProperty(PropertyName = "algo")]
+            public string Algo { get; set; }
+
+            [JsonProperty(PropertyName = "values")]
+            public Dictionary<string, object> Values { get; set; } 
+        }
+        
+
         public static Response Grasshopper(NancyContext ctx)
         {
             // load grasshopper file
             var archive = new GH_Archive();
             // TODO: stream to string
             var body = ctx.Request.Body.ToString();
+            //
+            //var body = input.Algo;
+
+            string json = string.Empty;
             using (var reader = new StreamReader(ctx.Request.Body))
             {
-                var xml = reader.ReadToEnd();
-                if (!archive.Deserialize_Xml(xml))
-                    throw new Exception();
+                json = reader.ReadToEnd();
+
             }
+
+            GrasshopperInput input = Newtonsoft.Json.JsonConvert.DeserializeObject<GrasshopperInput>(json);
+
+            byte[] byteArray = Convert.FromBase64String(input.Algo);
+            string grasshopperXml = System.Text.Encoding.UTF8.GetString(byteArray);
+
+            if (!archive.Deserialize_Xml(grasshopperXml))
+                throw new Exception();
 
             var definition = new GH_Document();
             if (!archive.ExtractObject(definition, "Definition"))
                 throw new Exception();
 
-            //var outputs = new List<Rhino.Geometry.GeometryBase>();
-            var outputs = new List<double>();
+            foreach (var obj in definition.Objects) {
+                var param = obj as IGH_Param;
+
+                if (param == null) continue;
+                
+                //this is an input!
+                if(param.Sources.Count == 0 && param.Recipients.Count != 0) {
+                    string nick = param.NickName;
+                    if (input.Values.ContainsKey(nick)) {
+                        var val = input.Values[nick];
+
+                        
+                        IGH_Structure data = param.VolatileData;
+
+                        GH_Number num = new GH_Number(Convert.ToDouble(val.ToString()));
+
+                        param.AddVolatileData(new GH_Path(0), 0, num);
+                    }
+                }
+            }
+                //var outputs = new List<Rhino.Geometry.GeometryBase>();
+                var outputs = new List<double>();
             foreach (var obj in definition.Objects)
             {
                 var param = obj as IGH_Param;
@@ -136,6 +180,7 @@ namespace compute.geometry
                 {
                     foreach (var goo in volatileData.get_Branch(p))
                     {
+                        if (goo == null) continue;
                         //case GH_Point point: output.Add(new Rhino.Geometry.Point(point.Value)); break;
                         //case GH_Curve curve: output.Add(curve.Value); break;
                         //case GH_Brep brep: output.Add(brep.Value); break;
