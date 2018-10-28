@@ -93,33 +93,6 @@ namespace compute.geometry
             return response;
         }
 
-        public class GrasshopperInput
-        {
-            [JsonProperty(PropertyName = "algo")]
-            public string Algo { get; set; }
-
-            [JsonProperty(PropertyName = "values")]
-            public Dictionary<string, object> Values { get; set; } 
-        }
-        
-        public class GrasshopperOutput
-        {
-            public GrasshopperOutput() {
-                this.Items = new List<GrasshopperOutputItem>();
-            }
-
-            [JsonProperty(PropertyName = "items")]
-            public List<GrasshopperOutputItem> Items { get; set; }                        
-        }
-
-        public class GrasshopperOutputItem
-        {
-            [JsonProperty(PropertyName = "type")]
-            public string TypeHint { get; set; }
-            [JsonProperty(PropertyName = "data")]
-            public string Data { get; set; }
-        }
-
         public static Response Grasshopper(NancyContext ctx)
         {
             // load grasshopper file
