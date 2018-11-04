@@ -95,6 +95,7 @@ namespace compute.geometry
 
         public static Response Grasshopper(NancyContext ctx)
         {
+
             // load grasshopper file
             var archive = new GH_Archive();
             // TODO: stream to string

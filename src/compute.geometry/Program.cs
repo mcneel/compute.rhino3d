@@ -12,6 +12,10 @@ using Nancy.TinyIoc;
 using Serilog;
 using Topshelf;
 using Rhino.Runtime.InProcess;
+using Nancy.Authentication.Stateless;
+using Nancy.Security;
+using System.Security.Claims;
+using System.Net;
 
 namespace compute.geometry
 {
@@ -170,6 +174,7 @@ namespace compute.geometry
     {
         private IEnumerable<GeometryEndPoint> CreateEndpoints(Assembly assembly, string nameSpace)
         {
+            this.RequiresAuthentication();
             foreach (var export in assembly.GetExportedTypes())
             {
                 if (!string.Equals(export.Namespace, nameSpace, StringComparison.Ordinal))
@@ -233,5 +238,11 @@ namespace compute.geometry
             }
 
         }
+    }
+
+    public class JwtToken
+    {
+        public string sub;
+        public long exp;
     }
 }

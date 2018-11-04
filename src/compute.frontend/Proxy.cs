@@ -1,5 +1,6 @@
 ﻿using Nancy.Extensions;
 using System.Net.Http;
+using Nancy.Security;
 
 namespace compute.frontend
 {
@@ -7,6 +8,7 @@ namespace compute.frontend
     {
         public ProxyModule()
         {
+            this.RequiresAuthentication();
             int backendPort = Env.GetEnvironmentInt("COMPUTE_BACKEND_PORT", 8081);
 
             Get["/healthcheck"] = _ => "healthy";

@@ -9,6 +9,13 @@ using Nancy.TinyIoc;
 using Serilog;
 using Topshelf;
 using compute.frontend.Authentication;
+using Nancy.Authentication.Stateless;
+using System.Security.Claims;
+using System.Net;
+using Nancy.Security;
+using Nancy;
+using Jose;
+using System.Security.Principal;
 
 namespace compute.frontend
 {
@@ -158,8 +165,42 @@ namespace compute.frontend
             pipelines.AddHeadersAndLogging();
             pipelines.AddRequestStashing();
 
+            //Auth
+            string SecretKey = Environment.GetEnvironmentVariable("RESThopperSecret");
+            var configuration =
+                new StatelessAuthenticationConfiguration(ctx =>
+                {
+                    var jwtToken = ctx.Request.Headers.Authorization;
+
+                    try
+                    {
+                        var payload = Jose.JWT.Decode<JwtToken>(jwtToken, SecretKey);
+
+                        var tokenExpires = DateTime.FromBinary(payload.exp);
+
+                        if (tokenExpires > DateTime.UtcNow)
+                        {
+                            return (IUserIdentity)new ClaimsPrincipal(new HttpListenerBasicIdentity(payload.sub, null));
+                        }
+
+                        return null;
+
+
+                    }
+                    catch (Exception)
+                    {
+                        return null;
+                    }
+                });
+
+            
+
             base.ApplicationStartup(container, pipelines);
+            StatelessAuthentication.Enable(pipelines, configuration);
+
         }
+
+        
 
         protected override void ConfigureConventions(NancyConventions nancyConventions)
         {
@@ -182,4 +223,11 @@ namespace compute.frontend
             }
         }
     }
+    #region Auth
+    public class JwtToken
+    {
+        public string sub;
+        public long exp;
+    }
+    #endregion Auth
 }
