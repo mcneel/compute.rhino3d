@@ -174,7 +174,7 @@ namespace compute.geometry
     {
         private IEnumerable<GeometryEndPoint> CreateEndpoints(Assembly assembly, string nameSpace)
         {
-            this.RequiresAuthentication();
+            //this.RequiresAuthentication();
             foreach (var export in assembly.GetExportedTypes())
             {
                 if (!string.Equals(export.Namespace, nameSpace, StringComparison.Ordinal))

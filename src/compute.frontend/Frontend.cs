@@ -16,6 +16,7 @@ using Nancy.Security;
 using Nancy;
 using Jose;
 using System.Security.Principal;
+using Nancy.Responses;
 
 namespace compute.frontend
 {
@@ -167,40 +168,40 @@ namespace compute.frontend
 
             //Auth
             string SecretKey = Environment.GetEnvironmentVariable("RESThopperSecret");
-            var configuration =
-                new StatelessAuthenticationConfiguration(ctx =>
-                {
-                    var jwtToken = ctx.Request.Headers.Authorization;
+            var config = new ConfigurationSettings();
+            var settings = new StatelessAuthenticationConfiguration(config.GetConfigurationSettings);
 
-                    try
-                    {
-                        var payload = Jose.JWT.Decode<JwtToken>(jwtToken, SecretKey);
+            //var configuration =
+            //    new StatelessAuthenticationConfiguration(ctx =>
+            //    {
+            //        var jwtToken = ctx.Request.Headers.Authorization;
 
-                        var tokenExpires = DateTime.FromBinary(payload.exp);
+            //        try
+            //        {
+            //            var payload = Jose.JWT.Decode<JwtToken>(jwtToken, SecretKey);
 
-                        if (tokenExpires > DateTime.UtcNow)
-                        {
-                            return (IUserIdentity)new ClaimsPrincipal(new HttpListenerBasicIdentity(payload.sub, null));
-                        }
+            //            var tokenExpires = DateTime.FromBinary(payload.exp);
 
-                        return null;
+            //            if (tokenExpires > DateTime.UtcNow)
+            //            {
+            //                return (IUserIdentity)new ClaimsPrincipal(new HttpListenerBasicIdentity(payload.sub, null));
+            //            }
+            //            JsonResponse response = new JsonResponse("Unauthorized", new DefaultJsonSerializer());
+            //            ctx.Response = response;
+            //            return null;
 
 
-                    }
-                    catch (Exception)
-                    {
-                        return null;
-                    }
-                });
-
-            
+            //        }
+            //        catch (Exception)
+            //        {
+            //            return null;
+            //        }
+            //    });
 
             base.ApplicationStartup(container, pipelines);
-            StatelessAuthentication.Enable(pipelines, configuration);
+            StatelessAuthentication.Enable(pipelines, settings);
 
         }
-
-        
 
         protected override void ConfigureConventions(NancyConventions nancyConventions)
         {
@@ -226,8 +227,98 @@ namespace compute.frontend
     #region Auth
     public class JwtToken
     {
-        public string sub;
-        public long exp;
+        public Guid UserId { get; set; }
+        public string UserName { get; set; }
+        public string UserLogin { get; set; }
+        public DateTime ExpirationDateTime { get; set; }
+    }
+    public class ConfigurationSettings
+    {
+        public IUserIdentity GetConfigurationSettings(NancyContext ctx)
+        {
+            var jwtToken = ctx.Request.Headers.Authorization;
+            try
+            {
+                AuthSettings settings = new AuthSettings(Environment.GetEnvironmentVariable("RESThopperSecret"));
+                var payload = Jose.JWT.Decode<JwtToken>(jwtToken, settings.SecretKeyBase64);
+                var time = payload.ExpirationDateTime;
+                if (payload.ExpirationDateTime < DateTime.UtcNow) return null;
+                var id = new AuthUser(payload.UserName, payload.UserId);
+                return id;
+            }
+            catch (Exception e)
+            {
+                return null;
+            }
+        }
+    }
+
+    public interface IIdentityProvider
+    {
+        ClaimsPrincipal GetUserIdentity(NancyContext context);
+    }
+
+    //internal sealed class IdentityProvider : IIdentityProvider
+    //{
+    //    private readonly AuthSettings _authSettings;
+    //    private const string _bearerDeclaration = "Bearer ";
+
+    //    public IdentityProvider(AuthSettings authSettings)
+    //    {
+    //        _authSettings = authSettings;
+    //    }
+
+    //    public ClaimsPrincipal GetUserIdentity(NancyContext context)
+    //    {
+    //        try
+    //        {
+    //            var authorizationHeader = context.Request.Headers.Authorization;
+    //            var jwt = authorizationHeader.Substring(_bearerDeclaration.Length);
+
+    //            var authToken = Jose.JWT.Decode<JwtToken>(jwt, _authSettings.SecretKey, JwsAlgorithm.HS256);
+
+    //            if (authToken.ExpirationDateTime < DateTime.UtcNow)
+    //                return null;
+
+    //            var authUser = new AuthUser(authToken.UserName, authToken.UserLogin, authToken.UserId);
+    //            return new ClaimsPrincipal(authUser);
+    //        }
+    //        catch (Exception)
+    //        {
+    //            return null;
+    //        }
+    //    }
+    //}
+
+    internal class AuthSettings
+    {
+        public AuthSettings(string secretKey)
+        {
+            this.SecretKey = secretKey;
+        }
+        private string SecretKey { get; set; }
+        public byte[] SecretKeyBase64
+        {
+            get
+            {
+                return System.Text.Encoding.UTF8.GetBytes(SecretKey);
+            }
+        }
+    }
+
+    internal class AuthUser : IUserIdentity
+    {
+        //public string AuthenticationType => "Test";
+        //public bool IsAuthenticated { get; }
+        public string UserName { get; }
+        public IEnumerable<string> Claims { get; }
+        public Guid Id { get; }
+
+        public AuthUser(string userName, Guid id)
+        {
+            UserName = userName;
+            Id = id;
+        }
     }
     #endregion Auth
 }
