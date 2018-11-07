@@ -17,7 +17,7 @@ namespace computegen
 
             // just do a small number of classes to get started
             string[] filter = new string[] {
-                ".Mesh", ".Brep", ".Curve", ".BezierCurve", ".Extrusion", ".NurbsCurve"
+                ".Mesh", ".Brep", ".Curve", ".BezierCurve", ".Extrusion", ".NurbsCurve", ".Intersection"
             };
 
             Console.ForegroundColor = ConsoleColor.Blue;
