@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "compute.frontend", "compute
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "locust", "locust\locust.csproj", "{E22D9805-88A0-455D-AB08-990FAA9BFD15}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Resthopper.GH", "Resthopper.GH\Resthopper.GH.csproj", "{A46F61FE-D591-412A-A8AD-B98A05EEBF11}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -65,6 +67,22 @@ Global
 		{E22D9805-88A0-455D-AB08-990FAA9BFD15}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E22D9805-88A0-455D-AB08-990FAA9BFD15}.Release|x64.ActiveCfg = Release|Any CPU
 		{E22D9805-88A0-455D-AB08-990FAA9BFD15}.Release|x64.Build.0 = Release|Any CPU
+		{A46F61FE-D591-412A-A8AD-B98A05EEBF11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A46F61FE-D591-412A-A8AD-B98A05EEBF11}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A46F61FE-D591-412A-A8AD-B98A05EEBF11}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A46F61FE-D591-412A-A8AD-B98A05EEBF11}.Debug|x64.Build.0 = Debug|Any CPU
+		{A46F61FE-D591-412A-A8AD-B98A05EEBF11}.Debug32|Any CPU.ActiveCfg = Debug|Any CPU
+		{A46F61FE-D591-412A-A8AD-B98A05EEBF11}.Debug32|Any CPU.Build.0 = Debug|Any CPU
+		{A46F61FE-D591-412A-A8AD-B98A05EEBF11}.Debug32|x64.ActiveCfg = Debug|Any CPU
+		{A46F61FE-D591-412A-A8AD-B98A05EEBF11}.Debug32|x64.Build.0 = Debug|Any CPU
+		{A46F61FE-D591-412A-A8AD-B98A05EEBF11}.Debug64|Any CPU.ActiveCfg = Debug|Any CPU
+		{A46F61FE-D591-412A-A8AD-B98A05EEBF11}.Debug64|Any CPU.Build.0 = Debug|Any CPU
+		{A46F61FE-D591-412A-A8AD-B98A05EEBF11}.Debug64|x64.ActiveCfg = Debug|Any CPU
+		{A46F61FE-D591-412A-A8AD-B98A05EEBF11}.Debug64|x64.Build.0 = Debug|Any CPU
+		{A46F61FE-D591-412A-A8AD-B98A05EEBF11}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A46F61FE-D591-412A-A8AD-B98A05EEBF11}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A46F61FE-D591-412A-A8AD-B98A05EEBF11}.Release|x64.ActiveCfg = Release|Any CPU
+		{A46F61FE-D591-412A-A8AD-B98A05EEBF11}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
