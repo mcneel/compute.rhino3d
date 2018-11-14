@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "locust", "locust\locust.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Resthopper.GH", "Resthopper.GH\Resthopper.GH.csproj", "{A46F61FE-D591-412A-A8AD-B98A05EEBF11}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Resthopper.IO", "Resthopper.IO\Resthopper.IO.csproj", "{8A175543-05CF-442A-9045-1A5D9FF8CB84}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +85,22 @@ Global
 		{A46F61FE-D591-412A-A8AD-B98A05EEBF11}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A46F61FE-D591-412A-A8AD-B98A05EEBF11}.Release|x64.ActiveCfg = Release|Any CPU
 		{A46F61FE-D591-412A-A8AD-B98A05EEBF11}.Release|x64.Build.0 = Release|Any CPU
+		{8A175543-05CF-442A-9045-1A5D9FF8CB84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8A175543-05CF-442A-9045-1A5D9FF8CB84}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8A175543-05CF-442A-9045-1A5D9FF8CB84}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8A175543-05CF-442A-9045-1A5D9FF8CB84}.Debug|x64.Build.0 = Debug|Any CPU
+		{8A175543-05CF-442A-9045-1A5D9FF8CB84}.Debug32|Any CPU.ActiveCfg = Debug|Any CPU
+		{8A175543-05CF-442A-9045-1A5D9FF8CB84}.Debug32|Any CPU.Build.0 = Debug|Any CPU
+		{8A175543-05CF-442A-9045-1A5D9FF8CB84}.Debug32|x64.ActiveCfg = Debug|Any CPU
+		{8A175543-05CF-442A-9045-1A5D9FF8CB84}.Debug32|x64.Build.0 = Debug|Any CPU
+		{8A175543-05CF-442A-9045-1A5D9FF8CB84}.Debug64|Any CPU.ActiveCfg = Debug|Any CPU
+		{8A175543-05CF-442A-9045-1A5D9FF8CB84}.Debug64|Any CPU.Build.0 = Debug|Any CPU
+		{8A175543-05CF-442A-9045-1A5D9FF8CB84}.Debug64|x64.ActiveCfg = Debug|Any CPU
+		{8A175543-05CF-442A-9045-1A5D9FF8CB84}.Debug64|x64.Build.0 = Debug|Any CPU
+		{8A175543-05CF-442A-9045-1A5D9FF8CB84}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8A175543-05CF-442A-9045-1A5D9FF8CB84}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8A175543-05CF-442A-9045-1A5D9FF8CB84}.Release|x64.ActiveCfg = Release|Any CPU
+		{8A175543-05CF-442A-9045-1A5D9FF8CB84}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

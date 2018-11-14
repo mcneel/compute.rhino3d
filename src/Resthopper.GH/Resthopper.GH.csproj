@@ -60,6 +60,12 @@
     <Compile Include="Resthopper.GHInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Resthopper.IO\Resthopper.IO.csproj">
+      <Project>{8a175543-05cf-442a-9045-1a5d9ff8cb84}</Project>
+      <Name>Resthopper.IO</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

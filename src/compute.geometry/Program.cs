@@ -30,17 +30,17 @@ namespace compute.geometry
                 const string rhinoCommonAssemblyName = "RhinoCommon";
                 var assemblyName = new AssemblyName(args.Name).Name;
 
-                //if (assemblyName == "Grasshopper")
-                //    return Assembly.LoadFrom(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Rhino WIP", "Plug-ins", "Grasshopper", "Grasshopper.dll"));
                 if (assemblyName != rhinoCommonAssemblyName)
                     return null;
 
 
                 AppDomain.CurrentDomain.AssemblyResolve -= OnRhinoCommonResolve;
-                //string rhinoSystemDir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
-                //+ @"\Grasshopper\rhino wip\Rhino WIP\Rhino WIP\System";
 
-                string rhinoSystemDir = @"C:\Users\pigac\OneDrive\Documents\Grasshopper\Rhino WIP\Rhino WIP\System";
+                string rhinoSystemDir;
+                using (StreamReader reader = new StreamReader("RhinoCommonPath.txt"))
+                {
+                    rhinoSystemDir = reader.ReadLine().Replace("\n", "");
+                }
 
                 return Assembly.LoadFrom(Path.Combine(rhinoSystemDir, rhinoCommonAssemblyName + ".dll"));
             };

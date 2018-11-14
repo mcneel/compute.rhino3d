@@ -6,3 +6,4 @@ packages/
 *.csproj.user
 src/compute.client/python_client/compute_rhino3d.egg-info/
 src/compute.client/python_client/dist/
+src/compute.geometry/RhinoCommonPath.txt

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Grasshopper.Kernel;
 using Rhino.Geometry;
 using Grasshopper.Kernel.Types;
+using Resthopper.IO;
 
 // In order to load the result of this wizard, you will also need to
 // add the output bin/ folder of this project to the list of loaded
@@ -82,7 +83,7 @@ namespace ResthopperGH
                 {
                     Grasshopper.Kernel.Special.GH_Group group = new Grasshopper.Kernel.Special.GH_Group();
                     group.AddObject(obj.InstanceGuid);
-                    group.NickName = "Input";
+                    group.NickName = "RH_IN";
                     group.Colour = System.Drawing.Color.Cyan;
                     inputList.Add(obj.InstanceGuid.ToString());
                     this.doc.AddObject(group, false);
@@ -95,8 +96,8 @@ namespace ResthopperGH
                 {
                     Grasshopper.Kernel.Special.GH_Group group = new Grasshopper.Kernel.Special.GH_Group();
                     group.AddObject(obj.InstanceGuid);
-                    group.NickName = "Output";
-                    group.Colour = System.Drawing.Color.Green;
+                    group.NickName = "RH_OUT";
+                    group.Colour = System.Drawing.Color.LightGreen;
                     outputList.Add(obj.InstanceGuid.ToString());
                     this.doc.AddObject(group, false);
                 }
@@ -134,6 +135,15 @@ namespace ResthopperGH
                 return false;
             }
             
+        }
+
+        private int GetGrasshopperTypeCode(IGH_ActiveObject obj)
+        {
+            if (obj.GetType() == typeof(Grasshopper.Kernel.Special.GH_BooleanToggle)) { return (int)GHTypeCodes.gh_boolean; }
+            else if (obj.GetType() == typeof(Grasshopper.Kernel.Special.GH_NumberSlider)) { return (int)GHTypeCodes.gh_double; }
+            else if (obj.GetType() == typeof(Grasshopper.Kernel.Special.GH_Panel)) { return (int)GHTypeCodes.gh_string; }
+            else if (obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Point)) { return (int)GHTypeCodes.gh_GH_IO_3dPoint; }
+            return 0;
         }
         protected override System.Drawing.Bitmap Icon
         {
