@@ -24,7 +24,7 @@ namespace Resthopper.IO
     public class ResthopperObject
     {
         [JsonProperty(PropertyName = "type")]
-        public string Type { get; set; }
+        public Type Type { get; set; }
 
         [JsonProperty(PropertyName = "data")]
         public string Data { get; set; }
@@ -38,7 +38,7 @@ namespace Resthopper.IO
         public ResthopperObject(object obj)
         {
             this.Data = JsonConvert.SerializeObject(obj);
-            this.Type = obj.GetType().ToString();
+            this.Type = obj.GetType();
         }
 
         public object ExtractData()

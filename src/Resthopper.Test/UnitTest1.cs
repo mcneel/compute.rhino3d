@@ -34,6 +34,18 @@ namespace Resthopper.Test
         }
 
         [TestMethod]
+        public void CanSerializeResthopperObjectBasedOnPoint3d() {
+            ResthopperObject o = new ResthopperObject(new Point3d(10, 20, 30));
+
+            string serialized = JsonConvert.SerializeObject(o);
+            ResthopperObject copy = JsonConvert.DeserializeObject<ResthopperObject>(serialized);
+
+            Assert.AreEqual(o.Type, copy.Type);
+            Assert.AreEqual(o.Data, copy.Data);
+
+        }
+
+        [TestMethod]
         public void CanSerializeTree() {
 
             ResthopperDataTree tree = new ResthopperDataTree();
