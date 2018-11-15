@@ -36,7 +36,7 @@ namespace Resthopper.Test
         [TestMethod]
         public void CanSerializeTree() {
 
-            DataTree<ResthopperObject> tree = new DataTree<ResthopperObject>();
+            ResthopperDataTree tree = new ResthopperDataTree();
 
             var path = new GhPath(new int[] { 0, 1, 2 });
 
@@ -48,9 +48,12 @@ namespace Resthopper.Test
 
             tree.Add(path, list);
 
+            JsonSerializerSettings settings = new JsonSerializerSettings();
+            settings.ContractResolver = new DictionaryAsArrayResolver();
 
-            string serialized = JsonConvert.SerializeObject(tree);
-            DataTree<ResthopperObject> copy = JsonConvert.DeserializeObject<DataTree<ResthopperObject>>(serialized);
+
+            string serialized = JsonConvert.SerializeObject(tree, settings);
+            DataTree<ResthopperObject> copy = JsonConvert.DeserializeObject<DataTree<ResthopperObject>>(serialized, settings);
 
 
         }

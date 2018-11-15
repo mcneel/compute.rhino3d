@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace Resthopper.IO
 {
@@ -58,6 +59,18 @@ namespace Resthopper.IO
     public class ResthopperDataTree : DataTree<ResthopperObject>
     {
         
+    }
+
+    public class DictionaryAsArrayResolver : DefaultContractResolver
+    {
+        protected override JsonContract CreateContract(Type objectType) {
+            if (objectType.GetInterfaces().Any(i => i == typeof(IDictionary) ||
+               (i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>)))) {
+                return base.CreateArrayContract(objectType);
+            }
+
+            return base.CreateContract(objectType);
+        }
     }
 
 
