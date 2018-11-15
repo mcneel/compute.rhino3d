@@ -9,6 +9,10 @@ namespace Resthopper.IO
 {
     public class Schema
     {
+
+        public Schema() {
+            this.Values = new List<DataTree<ResthopperObject>>();
+        }
         
         [JsonProperty(PropertyName = "algo")]
         public string Algo { get; set; }
