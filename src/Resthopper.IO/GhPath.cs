@@ -11,13 +11,6 @@ namespace Resthopper.IO
 {
     public class GhPath
     {
-        //private int[] _path;
-        //private GHTypeCodes _type;
-
-        public GHTypeCodes Type {
-            get; set;
-        }
-
         public int[] Path {
             get; set;
         }
@@ -27,14 +20,9 @@ namespace Resthopper.IO
             //this.Path = new int[0];
         }
 
-        public GhPath(int[] path) : this(path, GHTypeCodes.gh_string) {
-
-        }
-
-        public GhPath(int[] path, GHTypeCodes type)
+        public GhPath(int[] path)
         {
             this.Path = path;
-            this.Type = type;
         }
 
         public GhPath(GhPath pathObj, int i)
