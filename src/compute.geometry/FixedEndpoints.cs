@@ -312,7 +312,7 @@ namespace compute.geometry
         }
 
         public static void PopulateParam<ParamType, DataType>(GH_Param<ParamType> Param, Resthopper.IO.DataTree<ResthopperObject> tree)
-        {
+            where ParamType : class, IGH_Goo { 
 
             Grasshopper.DataTree<DataType> GHTree = new Grasshopper.DataTree<DataType>();
             foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
@@ -321,7 +321,7 @@ namespace compute.geometry
                 List<DataType> objectList = new List<DataType>();
                 foreach(ResthopperObject obj in entree.Value)
                 {
-                    objectList.Add(JsonConvert<DataType>(obj));
+                    objectList.Add(JsonConvert.DeserializeObject<DataType>(obj.Data));
                 }
             }
             
