@@ -2,6 +2,8 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Resthopper.IO;
 using System.Collections.Generic;
+using Rhino.Geometry;
+using Newtonsoft.Json;
 
 namespace Resthopper.Test
 {
@@ -16,21 +18,44 @@ namespace Resthopper.Test
             Schema schema = new Schema();
             
             schema.Algo = "defjskljfe";
-            
+
+            // Generate points
             DataTree<ResthopperObject> tree = new DataTree<ResthopperObject>();
+            for (var i = 0; i < 20; i++)
+            {
+                List<ResthopperObject> colLevel = new List<ResthopperObject>();
+                for (var j = 0; j < 10; j++)
+                {
+                    Point3d pt = new Point3d(0, j, i);
+                    colLevel.Add(new ResthopperObject(pt));
+                }
+                tree.Append(colLevel, new GhPath(new int[] { i } ));
+            }
+            
             tree.ParamName = "columns";
 
             ResthopperObject colPoint = new ResthopperObject();
-            colPoint.Data = "Point3d"; //serialized geometry..
-            colPoint.Type = GHTypeCodes.gh_GH_IO_3dPoint; //.GetType();
-
-            List<ResthopperObject> colLevel1 = new List<ResthopperObject>() { colPoint };
-            List<ResthopperObject> colLevel2 = new List<ResthopperObject>();
-
-            tree.Append(colLevel1, new GhPath(new int[] { 0 }));
-            tree.Append(colLevel2, new GhPath(new int[] { 1 }));
 
             schema.Values = new System.Collections.Generic.List<DataTree<ResthopperObject>>();
+            schema.Values.Add(tree);
+
+            // Serialize
+            string serialized = JsonConvert.SerializeObject(schema);
+
+            // Deserialize
+            List<List<Point3d>> ExtractedPoints = new List<List<Point3d>>(); 
+            Schema sh = JsonConvert.DeserializeObject<Schema>(serialized);
+            foreach (DataTree<ResthopperObject> t in sh.Values)
+            {
+                foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in t)
+                {
+                    List<Point3d> LevelPoints = new List<Point3d>();
+                    foreach (ResthopperObject obj in entree.Value)
+                    {
+                        Point3d pt = (Point3d)obj.ExtractData();
+                    }
+                }
+            }
         }
     }
 }

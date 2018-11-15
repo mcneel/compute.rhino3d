@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace Resthopper.IO
 {
@@ -22,7 +23,8 @@ namespace Resthopper.IO
             set { _path = value; }
         }
 
-        public GhPath() : this(null, GHTypeCodes.gh_string) {
+        public GhPath()
+        {
 
         }
 
@@ -35,7 +37,7 @@ namespace Resthopper.IO
             _path = path;
             _type = type;
         }
-        
+
         public GhPath(GhPath pathObj, int i)
         {
             int[] path = pathObj._path;

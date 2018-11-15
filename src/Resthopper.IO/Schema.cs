@@ -24,9 +24,26 @@ namespace Resthopper.IO
     public class ResthopperObject
     {
         [JsonProperty(PropertyName = "type")]
-        public GHTypeCodes Type { get; set; }
+        public Type Type { get; set; }
 
         [JsonProperty(PropertyName = "data")]
         public string Data { get; set; }
+
+        [JsonConstructor]
+        public ResthopperObject()
+        {
+
+        }
+
+        public ResthopperObject(object obj)
+        {
+            this.Data = JsonConvert.SerializeObject(obj);
+            this.Type = obj.GetType();
+        }
+
+        public object ExtractData()
+        {
+            return JsonConvert.DeserializeObject<object>(this.Data);
+        }
     }
 }
