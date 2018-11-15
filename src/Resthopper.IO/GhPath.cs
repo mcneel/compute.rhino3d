@@ -10,22 +10,20 @@ namespace Resthopper.IO
 {
     public class GhPath
     {
-        private int[] _path;
-        private GHTypeCodes _type;
+        //private int[] _path;
+        //private GHTypeCodes _type;
 
         public GHTypeCodes Type {
-            get { return _type; }
-            set { _type = value; }
+            get; set;
         }
 
         public int[] Path {
-            get { return _path; }
-            set { _path = value; }
+            get; set;
         }
 
         public GhPath()
         {
-
+            //this.Path = new int[0];
         }
 
         public GhPath(int[] path) : this(path, GHTypeCodes.gh_string) {
@@ -34,26 +32,26 @@ namespace Resthopper.IO
 
         public GhPath(int[] path, GHTypeCodes type)
         {
-            _path = path;
-            _type = type;
+            this.Path = path;
+            this.Type = type;
         }
 
         public GhPath(GhPath pathObj, int i)
         {
-            int[] path = pathObj._path;
-            _path = new int[path.Length + 1];
+            int[] path = pathObj.Path;
+            this.Path = new int[path.Length + 1];
 
             for (int j = 0; j < path.Length; j++)
             {
-                _path[j] = path[j];
+                this.Path[j] = path[j];
             }
-            _path[path.Length] = i;
+            this.Path[path.Length] = i;
         }
         
 
         public bool LastIndexSame(int i)
         {
-            return _path.Last() == i;
+            return this.Path.Last() == i;
         }
     }
 
