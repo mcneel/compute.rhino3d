@@ -17,6 +17,7 @@ using Nancy;
 using Jose;
 using System.Security.Principal;
 using Nancy.Responses;
+using System.IO;
 
 namespace compute.frontend
 {
@@ -239,7 +240,12 @@ namespace compute.frontend
             var jwtToken = ctx.Request.Headers.Authorization;
             try
             {
-                string secret = Environment.GetEnvironmentVariable("RESThopperSecret");
+                //string secret = Environment.GetEnvironmentVariable("RESThopperSecret");
+                string secret;
+                using (StreamReader reader = new StreamReader("Secret.txt"))
+                {
+                    secret = reader.ReadLine().Replace("\n", "");
+                } 
                 AuthSettings settings = new AuthSettings(secret);
                 var payload = Jose.JWT.Decode<JwtToken>(jwtToken, settings.SecretKeyBase64);
                 var time = payload.ExpirationDateTime;
