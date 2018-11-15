@@ -13,24 +13,26 @@ namespace Resthopper.Core
 {
     public class ResthopperPipeline
     {
-        public static Schema Request(Schema InputSchema, string server, string token)
+        public static async Task<Schema> Request(Schema InputSchema, string server, string token)
         {
-            HttpClient client = new HttpClient();
-            client.BaseAddress = new Uri($"{server}/grasshopper");
-            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(token);
-            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, $"{server}/grasshopper");
-            request.Content = new StringContent(JsonConvert.SerializeObject(InputSchema), Encoding.UTF8, "application/json");
-
-            Schema output = null;
-            HttpResponseMessage result = new HttpResponseMessage();
-            client.SendAsync(request).ContinueWith(responseTask =>
+            using (HttpClient client = new HttpClient())
             {
-                result = responseTask.Result;
-                output = JsonConvert.DeserializeObject<Schema>(result.Content.ToString());
-                client.Dispose();
-            });
-            return output;
+                client.BaseAddress = new Uri($"{server}/grasshopper");
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(token);
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, $"{server}/grasshopper");
+                request.Content = new StringContent(JsonConvert.SerializeObject(InputSchema), Encoding.UTF8, "application/json");
+
+                Schema output = null;
+                using (HttpResponseMessage result = await client.SendAsync(request))
+                using (HttpContent content = result.Content)
+                {
+                    var data = content.ReadAsStringAsync().Result;
+                    output = JsonConvert.DeserializeObject<Schema>(result.Content.ToString());
+                }
+               
+                return output;
+            }
         }
     }
 }
