@@ -24,6 +24,29 @@ namespace Resthopper.Test
             }
         }
 
+        [TestMethod]
+        public void CanSerializeTree() {
+
+            DataTree<ResthopperObject> tree = new DataTree<ResthopperObject>();
+
+            var path = new GhPath(new int[] { 0, 1, 2 });
+
+            List<ResthopperObject> list = new List<ResthopperObject>() {
+                new ResthopperObject("test1"),
+                new ResthopperObject("test2"),
+                new ResthopperObject("test3"),
+            };
+
+            tree.Add(path, list);
+
+
+            string serialized = JsonConvert.SerializeObject(tree);
+            DataTree<ResthopperObject> copy = JsonConvert.DeserializeObject<DataTree<ResthopperObject>>(serialized);
+
+
+        }
+
+
 
         [TestMethod]
         public void TestMethod1() {
