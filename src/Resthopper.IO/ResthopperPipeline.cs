@@ -12,6 +12,16 @@ namespace Resthopper.IO
 {
     public class ResthopperPipeline
     {
+        public static string Token { get; set; }
+        public static string Server { get; set; }
+
+        public static Schema Request(Schema InputSchema) {
+
+            Task<Schema> task = Request(InputSchema, Token, Server);
+            var result = task.Result;
+            return result;
+        }
+
         public static async Task<Schema> Request(Schema InputSchema, string server, string token)
         {
             using (HttpClient client = new HttpClient())
