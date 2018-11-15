@@ -60,6 +60,9 @@ namespace Resthopper.IO
         Dictionary<GhPath, List<T>> _tree;
         //Dictionary<int, GhPath> _GhPathIndexer;
 
+        public string ParamName { get; set; }
+
+
         public ICollection<GhPath> Keys {
             get {
                 return ((IDictionary<GhPath, List<T>>)_tree).Keys;
@@ -107,6 +110,15 @@ namespace Resthopper.IO
                 }
             }
             return false;
+        }
+
+        public void Append(List<T> items, GhPath GhPath) {
+
+            if (!_tree.ContainsKey(GhPath)) {
+                _tree.Add(GhPath, new List<T>());
+            }
+            _tree[GhPath].AddRange(items);
+            //_GhPathIndexer.Add(item.Index, GhPath);
         }
 
         public void Append(T item, GhPath GhPath) {
