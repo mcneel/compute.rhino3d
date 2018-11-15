@@ -25,6 +25,15 @@ namespace Resthopper.Test
         }
 
         [TestMethod]
+        public void CanSerializeResthopperObject() {
+            ResthopperObject o = new ResthopperObject("testString");
+            
+            string serialized = JsonConvert.SerializeObject(o);
+            ResthopperObject copy = JsonConvert.DeserializeObject<ResthopperObject>(serialized);
+            
+        }
+
+        [TestMethod]
         public void CanSerializeTree() {
 
             DataTree<ResthopperObject> tree = new DataTree<ResthopperObject>();

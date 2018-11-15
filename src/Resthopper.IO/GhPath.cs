@@ -55,10 +55,28 @@ namespace Resthopper.IO
         }
     }
 
+    public class ResthopperDataTree : DataTree<ResthopperObject>
+    {
+        
+    }
+
+
     public class DataTree<T> : IDictionary<GhPath, List<T>>
     {
-        Dictionary<GhPath, List<T>> _tree;
+
+        public DataTree() {
+            _tree = new Dictionary<GhPath, List<T>>();
+            //_GhPathIndexer = new Dictionary<int, GhPath>();
+        }
+
+        private Dictionary<GhPath, List<T>> _tree;
         //Dictionary<int, GhPath> _GhPathIndexer;
+
+
+        public Dictionary<GhPath, List<T>> InnerTree {
+            get { return _tree; }
+            set { _tree = value; }
+        }
 
         public string ParamName { get; set; }
 
@@ -95,11 +113,6 @@ namespace Resthopper.IO
             set {
                 ((IDictionary<GhPath, List<T>>)_tree)[key] = value;
             }
-        }
-
-        public DataTree() {
-            _tree = new Dictionary<GhPath, List<T>>();
-            //_GhPathIndexer = new Dictionary<int, GhPath>();
         }
 
         public bool Contains(T item) {
