@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Resthopper.IO;
 using System.Net.Http;
 using System.IO;
 using System.Net.Http.Headers;
 using Newtonsoft.Json;
 
-namespace Resthopper.Core
+namespace Resthopper.IO
 {
     public class ResthopperPipeline
     {
