@@ -114,7 +114,9 @@ namespace compute.geometry
             }
 
             //GrasshopperInput input = Newtonsoft.Json.JsonConvert.DeserializeObject<GrasshopperInput>(json);
-            Schema input = JsonConvert.DeserializeObject<Schema>(json);
+            JsonSerializerSettings settings = new JsonSerializerSettings();
+            settings.ContractResolver = new DictionaryAsArrayResolver();
+            Schema input = JsonConvert.DeserializeObject<Schema>(json, settings);
 
             byte[] byteArray = Convert.FromBase64String(input.Algo);
             string grasshopperXml = System.Text.Encoding.UTF8.GetString(byteArray);
@@ -242,7 +244,7 @@ namespace compute.geometry
             if (OutputSchema.Values.Count < 1)
                 throw new System.Exceptions.DontFuckUpException("Don't mess up, asshole"); // TODO
 
-            string returnJson = JsonConvert.SerializeObject(OutputSchema);
+            string returnJson = JsonConvert.SerializeObject(OutputSchema, settings);
             return returnJson;
         }
         public static ResthopperObject GetResthopperObject<T>(object goo)

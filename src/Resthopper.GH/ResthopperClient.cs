@@ -50,7 +50,7 @@ namespace Resthopper.GH
         /// This is the method that actually does the work.
         /// </summary>
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
-        protected override void SolveInstance(IGH_DataAccess DA)
+        protected async override void SolveInstance(IGH_DataAccess DA)
         {
             string path = string.Empty;
             string token = string.Empty;
@@ -75,21 +75,8 @@ namespace Resthopper.GH
                 InputSchema.Algo = Base64Encode(markup);
                 InputSchema.Values = inputs;
 
-                client.BaseAddress = new Uri($"{server}/grasshopper");
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(token);
-                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, $"{server}/grasshopper");
-                request.Content = new StringContent(JsonConvert.SerializeObject(InputSchema), Encoding.UTF8, "application/json");
-
-                HttpResponseMessage result = new HttpResponseMessage();
-                client.SendAsync(request).ContinueWith(responseTask =>
-                                          {
-                                              result = responseTask.Result;
-                                              JsonConvert.DeserializeObject<Schema>(result.Content.ToString());
-                                              DA.SetData(0, this.OutputSchema);
-                                              client.Dispose();
-                                          });
-                
+                Schema output = await ResthopperPipeline.Request(InputSchema, server, token);
+                this.OutputSchema = output;
             }
         }
 
