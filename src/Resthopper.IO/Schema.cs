@@ -14,7 +14,16 @@ namespace Resthopper.IO
         public string Algo { get; set; }
 
         [JsonProperty(PropertyName = "values")]
-        public Dictionary<string, Dictionary<GhPath, object>> Values { get; set; }
+        public Dictionary<string, Dictionary<GhPath, List<ResthopperObject>>> Values { get; set; }
         
+    }
+
+    public class ResthopperObject
+    {
+        [JsonProperty(PropertyName = "type")]
+        public GHTypeCodes Type { get; set; }
+
+        [JsonProperty(PropertyName = "data")]
+        public object Data { get; set; }
     }
 }
