@@ -144,7 +144,6 @@ namespace compute.geometry
                             switch (code)
                             {
                                 case GHTypeCodes.Boolean:
-                                    Param_Boolean BooleanParam = obj as Param_Boolean;
                                     PopulateParam<Param_Boolean, bool>(obj, tree);
                                     break;
                             }

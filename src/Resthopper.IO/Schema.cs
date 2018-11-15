@@ -44,10 +44,5 @@ namespace Resthopper.IO
             this.Data = JsonConvert.SerializeObject(obj);
             this.Type = obj.GetType();
         }
-
-        public object ExtractData()
-        {
-            return JsonConvert.DeserializeObject<object>(this.Data);
-        }
     }
 }
