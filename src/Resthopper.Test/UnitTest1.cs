@@ -90,11 +90,14 @@ namespace Resthopper.Test
             schema.Values.Add(tree);
 
             // Serialize
-            string serialized = JsonConvert.SerializeObject(schema);
+            JsonSerializerSettings settings = new JsonSerializerSettings();
+            settings.ContractResolver = new DictionaryAsArrayResolver();
+
+            string serialized = JsonConvert.SerializeObject(schema, settings);
 
             // Deserialize
             List<List<Point3d>> ExtractedPoints = new List<List<Point3d>>(); 
-            Schema sh = JsonConvert.DeserializeObject<Schema>(serialized);
+            Schema sh = JsonConvert.DeserializeObject<Schema>(serialized, settings);
             foreach (DataTree<ResthopperObject> t in sh.Values)
             {
                 foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in t)
