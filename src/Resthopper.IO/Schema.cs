@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 
 namespace Resthopper.IO
 {
-    class Schema
+    public class Schema
     {
         
         [JsonProperty(PropertyName = "algo")]
