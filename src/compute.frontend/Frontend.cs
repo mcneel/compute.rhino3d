@@ -239,7 +239,8 @@ namespace compute.frontend
             var jwtToken = ctx.Request.Headers.Authorization;
             try
             {
-                AuthSettings settings = new AuthSettings(Environment.GetEnvironmentVariable("RESThopperSecret"));
+                string secret = Environment.GetEnvironmentVariable("RESThopperSecret");
+                AuthSettings settings = new AuthSettings(secret);
                 var payload = Jose.JWT.Decode<JwtToken>(jwtToken, settings.SecretKeyBase64);
                 var time = payload.ExpirationDateTime;
                 if (payload.ExpirationDateTime < DateTime.UtcNow) return null;

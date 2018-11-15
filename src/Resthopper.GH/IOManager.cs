@@ -27,7 +27,7 @@ namespace ResthopperGH
         public IOManager()
           : base("IO Manager", "IO Manager",
               "Description",
-              "Resthopper", "Send")
+              "Resthopper", "Define")
         {
         }
 

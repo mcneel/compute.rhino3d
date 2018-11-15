@@ -12,6 +12,7 @@ using Grasshopper;
 using Grasshopper.Kernel.Data;
 using Resthopper.IO;
 using Grasshopper.Kernel.Parameters;
+using Grasshopper.Kernel.Special;
 
 namespace compute.geometry
 {
@@ -125,9 +126,10 @@ namespace compute.geometry
             if (!archive.ExtractObject(definition, "Definition"))
                 throw new Exception();
 
+            // Set input params
             foreach (var obj in definition.Objects)
             {
-                var group = obj as Grasshopper.Kernel.Special.GH_Group;
+                var group = obj as GH_Group;
                 if (group == null) continue;
 
                 if (group.NickName.Contains("RH_IN"))
@@ -135,17 +137,34 @@ namespace compute.geometry
                     // It is a RestHopper input group!
                     GHTypeCodes code = (GHTypeCodes)Int32.Parse(group.NickName.Split(':')[1]);
                     var param = group.Objects()[0];
+                    GH_Param<IGH_Goo> goo = obj as GH_Param<IGH_Goo>;
 
-                    // GetData
+                    // SetData
                     foreach (Resthopper.IO.DataTree<ResthopperObject> tree in input.Values)
                     {
                         if (param.NickName == tree.ParamName)
                         {
                             switch (code)
                             {
-                                case GHTypeCodes.Boolean:
-                                    PopulateParam<Param_Boolean, bool>(obj, tree);
-                                    break;
+                                case GHTypeCodes.Boolean: PopulateParam<GH_Boolean>(goo, tree); break;
+                                case GHTypeCodes.Point: PopulateParam<GH_Point>(goo, tree); break;
+                                case GHTypeCodes.Vector: PopulateParam<GH_Vector>(goo, tree); break;
+                                case GHTypeCodes.Integer: PopulateParam<GH_Integer>(goo, tree); break;
+                                case GHTypeCodes.Number: PopulateParam<GH_Number>(goo, tree); break;
+                                case GHTypeCodes.Text: PopulateParam<GH_String>(goo, tree); break;
+                                case GHTypeCodes.Line: PopulateParam<GH_Line>(goo, tree); break;
+                                case GHTypeCodes.Curve: PopulateParam<GH_Curve>(goo, tree); break;
+                                case GHTypeCodes.Circle: PopulateParam<GH_Circle>(goo, tree); break;
+                                case GHTypeCodes.PLane: PopulateParam<GH_Plane>(goo, tree); break;
+                                case GHTypeCodes.Rectangle: PopulateParam<GH_Rectangle>(goo, tree); break;
+                                case GHTypeCodes.Box: PopulateParam<GH_Box>(goo, tree); break;
+                                case GHTypeCodes.Surface: PopulateParam<GH_Surface>(goo, tree); break;
+                                case GHTypeCodes.Brep: PopulateParam<GH_Brep>(goo, tree); break;
+                                case GHTypeCodes.Mesh: PopulateParam<GH_Mesh>(goo, tree); break;
+
+                                case GHTypeCodes.Slider: PopulateParam<GH_Number>(goo, tree); break;
+                                case GHTypeCodes.BooleanToggle: PopulateParam<GH_Boolean>(goo, tree); break;
+                                case GHTypeCodes.Panel: PopulateParam<GH_String>(goo, tree); break;
                             }
                         }
                     }
@@ -154,178 +173,110 @@ namespace compute.geometry
                 }
             }
 
-            foreach (var obj in definition.Objects) {
-                var param = obj as IGH_Param;
+            Schema OutputSchema = new Schema();
+            OutputSchema.Algo = Base64Encode(string.Empty);
 
-                if (param == null) continue;
-                
-                //this is an input!
-                if(param.Sources.Count == 0 && param.Recipients.Count != 0) {
-                    string nick = param.NickName;
-                    if (input.Values.ContainsKey(nick)) {
-                        var val = input.Values[nick];
-                        
-                        IGH_Structure data = param.VolatileData;
-
-                        GH_Number num = new GH_Number(Convert.ToDouble(val.ToString()));
-
-                        param.AddVolatileData(new GH_Path(0), 0, num);
-                    }
-                }
-            }
-                //var outputs = new List<Rhino.Geometry.GeometryBase>();
-                //var outputs = new List<double>();
-            GrasshopperOutput outputs = new GrasshopperOutput();
+            // Parse output params
             foreach (var obj in definition.Objects)
             {
-                var param = obj as IGH_Param;
-                if (param == null)
-                    continue;
+                var group = obj as GH_Group;
+                if (group == null) continue;
 
-                if (param.Sources.Count == 0 || param.Recipients.Count != 0)
-                    continue;
+                if (group.NickName.Contains("RH_OUT"))
+                {
+                    // It is a RestHopper output group!
+                    GHTypeCodes code = (GHTypeCodes)Int32.Parse(group.NickName.Split(':')[1]);
+                    var param = group.Objects()[0] as IGH_Param;
+                    if (param == null)
+                        continue;
 
-                try
-                {
-                    param.CollectData();
-                    param.ComputeData();
-                }
-                catch (Exception)
-                {
-                    param.Phase = GH_SolutionPhase.Failed;
-                    // TODO: throw something better
-                    throw;
-                }
-
-                var output = new List<Rhino.Geometry.GeometryBase>();
-                var volatileData = param.VolatileData;
-                for (int p = 0; p < volatileData.PathCount; p++)
-                {
-                    foreach (var goo in volatileData.get_Branch(p))
+                    try
                     {
-                        if (goo == null) continue;
-                        //case GH_Point point: output.Add(new Rhino.Geometry.Point(point.Value)); break;
-                        //case GH_Curve curve: output.Add(curve.Value); break;
-                        //case GH_Brep brep: output.Add(brep.Value); break;
-                        //case GH_Mesh mesh: output.Add(mesh.Value); break;
-                        if (goo.GetType() == typeof(GH_Number))
-                        {
-
-                            GrasshopperOutputItem item = new GrasshopperOutputItem();
-                            item.Data = (goo as GH_Number).Value.ToString();
-                            item.TypeHint = "number";
-                            outputs.Items.Add(item);
-                            //break;
-                        }
-                        else if (goo.GetType() == typeof(GH_Mesh))
-                        {
-                            var rhinoMesh = (goo as GH_Mesh).Value;
-                            string jsonMesh = JsonConvert.SerializeObject(rhinoMesh);
-                            GrasshopperOutputItem item = new GrasshopperOutputItem();
-                            item.Data = jsonMesh;
-                            item.TypeHint = "mesh";
-                            outputs.Items.Add(item);
-                            //break;
-                        }
-                        else if (goo.GetType() == typeof(GH_Circle))
-                        {
-                            var rhinoCircles = (goo as GH_Circle).Value;
-                            string jsonCircle = JsonConvert.SerializeObject(rhinoCircles);
-                            GrasshopperOutputItem item = new GrasshopperOutputItem();
-                            item.Data = jsonCircle;
-                            item.TypeHint = "circle";
-                            outputs.Items.Add(item);
-                            //break;
-                        }
-                        else if (goo.GetType() == typeof(GH_Brep))
-                        {
-                            var rhinoBrep = (goo as GH_Brep).Value;
-                            string jsonBrep = JsonConvert.SerializeObject(rhinoBrep);
-                            GrasshopperOutputItem item = new GrasshopperOutputItem();
-                            item.Data = jsonBrep;
-                            item.TypeHint = "brep";
-                            outputs.Items.Add(item);
-                        }
-                        else if (goo.GetType() == typeof(GH_Line))
-                        {
-                            var rhinoLine = (goo as GH_Line).Value;
-                            string jsonLine = JsonConvert.SerializeObject(rhinoLine);
-                            GrasshopperOutputItem item = new GrasshopperOutputItem();
-                            item.Data = jsonLine;
-                            item.TypeHint = "line";
-                            outputs.Items.Add(item);
-                        }
-                        else if (goo.GetType() == typeof(GH_Arc))
-                        {
-                            var rhinoArc = (goo as GH_Arc).Value;
-                            string jsonArc = JsonConvert.SerializeObject(rhinoArc);
-                            GrasshopperOutputItem item = new GrasshopperOutputItem();
-                            item.Data = jsonArc;
-                            item.TypeHint = "arc";
-                            outputs.Items.Add(item);
-                        }
-                        else if (goo.GetType() == typeof(GH_Point))
-                        {
-                            var rhinoPoint = (goo as GH_Point).Value;
-                            string jsonPoint = JsonConvert.SerializeObject(rhinoPoint);
-                            GrasshopperOutputItem item = new GrasshopperOutputItem();
-                            item.Data = jsonPoint;
-                            item.TypeHint = "point";
-                            outputs.Items.Add(item);
-                        }
-                        else if (goo.GetType() == typeof(GH_Curve))
-                        {
-                            var rhinoCurve = (goo as GH_Curve).Value;
-                            string jsonCurve = JsonConvert.SerializeObject(rhinoCurve);
-                            GrasshopperOutputItem item = new GrasshopperOutputItem();
-                            item.Data = jsonCurve;
-                            item.TypeHint = "curve";
-                            outputs.Items.Add(item);
-                        }
-                        else if (goo.GetType() == typeof(GH_Surface))
-                        {
-                            var rhinoSurface = (goo as GH_Surface).Value;
-                            string jsonSurface = JsonConvert.SerializeObject(rhinoSurface);
-                            GrasshopperOutputItem item = new GrasshopperOutputItem();
-                            item.Data = jsonSurface;
-                            item.TypeHint = "surface";
-                            outputs.Items.Add(item);
-                        }
-                        else if (goo.GetType() == typeof(GH_Boolean))
-                        {
-                            GrasshopperOutputItem item = new GrasshopperOutputItem();
-                            item.Data = (goo as GH_Boolean).Value.ToString();
-                            item.TypeHint = "bool";
-                            outputs.Items.Add(item);
-                        }
-
+                        param.CollectData();
+                        param.ComputeData();
                     }
+                    catch (Exception)
+                    {
+                        param.Phase = GH_SolutionPhase.Failed;
+                        // TODO: throw something better
+                        throw;
+                    }
+
+                    // Get data
+                    Resthopper.IO.DataTree<ResthopperObject> OutputTree = new Resthopper.IO.DataTree<ResthopperObject>();
+                    OutputTree.ParamName = param.NickName;
+
+                    var volatileData = param.VolatileData;
+                    for (int p = 0; p < volatileData.PathCount; p++)
+                    {
+                        List<ResthopperObject> ResthopperObjectList = new List<ResthopperObject>();
+                        foreach (var goo in volatileData.get_Branch(p))
+                        {
+                            if (goo == null) continue;
+                            else if (goo.GetType() == typeof(GH_Boolean)) { ResthopperObjectList.Add(GetResthopperObject<GH_Boolean>(goo)); }
+                            else if (goo.GetType() == typeof(GH_Point)) { ResthopperObjectList.Add(GetResthopperObject<GH_Point>(goo)); }
+                            else if (goo.GetType() == typeof(GH_Vector)) { ResthopperObjectList.Add(GetResthopperObject<GH_Vector>(goo)); }
+                            else if (goo.GetType() == typeof(GH_Integer)) { ResthopperObjectList.Add(GetResthopperObject<GH_Integer>(goo)); }
+                            else if (goo.GetType() == typeof(GH_Number)) { ResthopperObjectList.Add(GetResthopperObject<GH_Number>(goo)); }
+                            else if (goo.GetType() == typeof(GH_String)) { ResthopperObjectList.Add(GetResthopperObject<GH_String>(goo)); }
+                            else if (goo.GetType() == typeof(GH_Line)) { ResthopperObjectList.Add(GetResthopperObject<GH_Line>(goo)); }
+                            else if (goo.GetType() == typeof(GH_Curve)) { ResthopperObjectList.Add(GetResthopperObject<GH_Curve>(goo)); }
+                            else if (goo.GetType() == typeof(GH_Circle)) { ResthopperObjectList.Add(GetResthopperObject<GH_Circle>(goo)); }
+                            else if (goo.GetType() == typeof(GH_Plane)) { ResthopperObjectList.Add(GetResthopperObject<GH_Plane>(goo)); }
+                            else if (goo.GetType() == typeof(GH_Rectangle)) { ResthopperObjectList.Add(GetResthopperObject<GH_Rectangle>(goo)); }
+                            else if (goo.GetType() == typeof(GH_Box)) { ResthopperObjectList.Add(GetResthopperObject<GH_Box>(goo)); }
+                            else if (goo.GetType() == typeof(GH_Surface)) { ResthopperObjectList.Add(GetResthopperObject<GH_Surface>(goo)); }
+                            else if (goo.GetType() == typeof(GH_Brep)) { ResthopperObjectList.Add(GetResthopperObject<GH_Brep>(goo)); }
+                            else if (goo.GetType() == typeof(GH_Mesh)) { ResthopperObjectList.Add(GetResthopperObject<GH_Mesh>(goo)); }
+                        }
+
+                        GhPath path = new GhPath(new int[] { p });
+                        OutputTree.Add(path, ResthopperObjectList);
+                    }
+
+                    OutputSchema.Values.Add(OutputTree);
                 }
             }
 
-            if (outputs.Items.Count < 1)
+
+            if (OutputSchema.Values.Count < 1)
                 throw new System.Exceptions.DontFuckUpException("Don't mess up, asshole"); // TODO
 
-            string returnJson = JsonConvert.SerializeObject(outputs);
+            string returnJson = JsonConvert.SerializeObject(OutputSchema);
             return returnJson;
         }
+        public static ResthopperObject GetResthopperObject<T>(object goo)
+        {
+            var v = (T)goo;
+            ResthopperObject rhObj = new ResthopperObject();
+            rhObj.Type = goo.GetType();
+            rhObj.Data = JsonConvert.SerializeObject(v);
+            return rhObj;
+        }
+        public static void PopulateParam<DataType>(GH_Param<IGH_Goo> Param, Resthopper.IO.DataTree<ResthopperObject> tree)
+        { 
 
-        public static void PopulateParam<ParamType, DataType>(GH_Param<ParamType> Param, Resthopper.IO.DataTree<ResthopperObject> tree)
-            where ParamType : class, IGH_Goo { 
-
-            Grasshopper.DataTree<DataType> GHTree = new Grasshopper.DataTree<DataType>();
             foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
             {
                 GH_Path path = new GH_Path(entree.Key.Path);
                 List<DataType> objectList = new List<DataType>();
-                foreach(ResthopperObject obj in entree.Value)
+                for (int i = 0; i < entree.Value.Count; i ++)
                 {
-                    objectList.Add(JsonConvert.DeserializeObject<DataType>(obj.Data));
+                    ResthopperObject obj = entree.Value[i];
+                    DataType data = JsonConvert.DeserializeObject<DataType>(obj.Data);
+                    Param.AddVolatileData(path, i, data);
                 }
+                
             }
-            
+
         }
-        
+
+        public static string Base64Encode(string plainText)
+        {
+            var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
+            return System.Convert.ToBase64String(plainTextBytes);
+        }
+
     }
 }
 
