@@ -117,8 +117,14 @@ namespace Resthopper.Test
                     List<Point3d> LevelPoints = new List<Point3d>();
                     foreach (ResthopperObject obj in entree.Value)
                     {
-                        Point3d pt = (Point3d)obj.ExtractData();
+                        // Point3d pt = (Point3d)obj.ExtractData();
+                        if (obj.Type == typeof(Point3d))
+                        {
+                            Point3d pt = JsonConvert.DeserializeObject<Point3d>(obj.Data);
+                            LevelPoints.Add(pt);
+                        }
                     }
+                    ExtractedPoints.Add(LevelPoints);
                 }
             }
         }

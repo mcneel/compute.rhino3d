@@ -10,6 +10,8 @@ using Rhino.PlugIns;
 using Newtonsoft.Json;
 using Grasshopper;
 using Grasshopper.Kernel.Data;
+using Resthopper.IO;
+using Grasshopper.Kernel.Parameters;
 
 namespace compute.geometry
 {
@@ -110,7 +112,8 @@ namespace compute.geometry
 
             }
 
-            GrasshopperInput input = Newtonsoft.Json.JsonConvert.DeserializeObject<GrasshopperInput>(json);
+            //GrasshopperInput input = Newtonsoft.Json.JsonConvert.DeserializeObject<GrasshopperInput>(json);
+            Schema input = JsonConvert.DeserializeObject<Schema>(json);
 
             byte[] byteArray = Convert.FromBase64String(input.Algo);
             string grasshopperXml = System.Text.Encoding.UTF8.GetString(byteArray);
@@ -121,6 +124,36 @@ namespace compute.geometry
             var definition = new GH_Document();
             if (!archive.ExtractObject(definition, "Definition"))
                 throw new Exception();
+
+            foreach (var obj in definition.Objects)
+            {
+                var group = obj as Grasshopper.Kernel.Special.GH_Group;
+                if (group == null) continue;
+
+                if (group.NickName.Contains("RH_IN"))
+                {
+                    // It is a RestHopper input group!
+                    GHTypeCodes code = (GHTypeCodes)Int32.Parse(group.NickName.Split(':')[1]);
+                    var param = group.Objects()[0];
+
+                    // GetData
+                    foreach (Resthopper.IO.DataTree<ResthopperObject> tree in input.Values)
+                    {
+                        if (param.NickName == tree.ParamName)
+                        {
+                            switch (code)
+                            {
+                                case GHTypeCodes.Boolean:
+                                    Param_Boolean BooleanParam = obj as Param_Boolean;
+                                    PopulateParam<Param_Boolean, bool>(obj, tree);
+                                    break;
+                            }
+                        }
+                    }
+                    
+                    
+                }
+            }
 
             foreach (var obj in definition.Objects) {
                 var param = obj as IGH_Param;
@@ -276,6 +309,22 @@ namespace compute.geometry
 
             string returnJson = JsonConvert.SerializeObject(outputs);
             return returnJson;
+        }
+
+        public static void PopulateParam<ParamType, DataType>(GH_Param<ParamType> Param, Resthopper.IO.DataTree<ResthopperObject> tree)
+        {
+
+            Grasshopper.DataTree<DataType> GHTree = new Grasshopper.DataTree<DataType>();
+            foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
+            {
+                GH_Path path = new GH_Path(entree.Key.Path);
+                List<DataType> objectList = new List<DataType>();
+                foreach(ResthopperObject obj in entree.Value)
+                {
+                    objectList.Add(JsonConvert<DataType>(obj));
+                }
+            }
+            
         }
         
     }

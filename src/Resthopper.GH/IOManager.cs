@@ -83,7 +83,8 @@ namespace ResthopperGH
                 {
                     Grasshopper.Kernel.Special.GH_Group group = new Grasshopper.Kernel.Special.GH_Group();
                     group.AddObject(obj.InstanceGuid);
-                    group.NickName = "RH_IN";
+                    int code = GetGrasshopperTypeCode(obj);
+                    group.NickName = $"RH_IN:{code}";
                     group.Colour = System.Drawing.Color.Cyan;
                     inputList.Add(obj.InstanceGuid.ToString());
                     this.doc.AddObject(group, false);
@@ -96,7 +97,8 @@ namespace ResthopperGH
                 {
                     Grasshopper.Kernel.Special.GH_Group group = new Grasshopper.Kernel.Special.GH_Group();
                     group.AddObject(obj.InstanceGuid);
-                    group.NickName = "RH_OUT";
+                    int code = GetGrasshopperTypeCode(obj);
+                    group.NickName = $"RH_OUT:{code}";
                     group.Colour = System.Drawing.Color.LightGreen;
                     outputList.Add(obj.InstanceGuid.ToString());
                     this.doc.AddObject(group, false);
@@ -118,15 +120,24 @@ namespace ResthopperGH
         private bool ValidateType(IGH_DocumentObject obj)
         {
             if (obj.GetType() == typeof(Grasshopper.Kernel.Special.GH_BooleanToggle) ||
-                obj.GetType() == typeof(Grasshopper.Kernel.Special.GH_ValueList) ||
                 obj.GetType() == typeof(Grasshopper.Kernel.Special.GH_NumberSlider) ||
                 obj.GetType() == typeof(Grasshopper.Kernel.Special.GH_Panel) ||
+
+                obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Boolean) ||
                 obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Point) ||
-                obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Curve) ||
-                obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_String) ||
-                obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Number) ||
+                obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Vector) ||
                 obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Integer) ||
-                obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Line))
+                obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Number) ||
+                obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_String) ||
+                obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Line) ||
+                obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Curve) ||
+                obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Circle) ||
+                obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Plane) ||
+                obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Rectangle) ||
+                obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Box) ||
+                obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Surface) ||
+                obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Brep) ||
+                obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Mesh))
             {
                 return true;
             }
@@ -137,12 +148,28 @@ namespace ResthopperGH
             
         }
 
-        private int GetGrasshopperTypeCode(IGH_ActiveObject obj)
+        private int GetGrasshopperTypeCode(IGH_DocumentObject obj)
         {
-            if (obj.GetType() == typeof(Grasshopper.Kernel.Special.GH_BooleanToggle)) { return (int)GHTypeCodes.gh_boolean; }
-            else if (obj.GetType() == typeof(Grasshopper.Kernel.Special.GH_NumberSlider)) { return (int)GHTypeCodes.gh_double; }
-            else if (obj.GetType() == typeof(Grasshopper.Kernel.Special.GH_Panel)) { return (int)GHTypeCodes.gh_string; }
-            else if (obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Point)) { return (int)GHTypeCodes.gh_GH_IO_3dPoint; }
+            if (obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Boolean)) { return (int)GHTypeCodes.Boolean; }
+            else if (obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Point)) { return (int)GHTypeCodes.Point; }
+            else if (obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Vector)) { return (int)GHTypeCodes.Vector; }
+            else if (obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Integer)) { return (int)GHTypeCodes.Integer; }
+            else if (obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Number)) { return (int)GHTypeCodes.Number; }
+            else if (obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_String)) { return (int)GHTypeCodes.Text; }
+            else if (obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Line)) { return (int)GHTypeCodes.Line; }
+            else if (obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Curve)) { return (int)GHTypeCodes.Curve; }
+            else if (obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Circle)) { return (int)GHTypeCodes.Circle; }
+            else if (obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Plane)) { return (int)GHTypeCodes.PLane; }
+            else if (obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Rectangle)) { return (int)GHTypeCodes.Rectangle; }
+            else if (obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Box)) { return (int)GHTypeCodes.Box; }
+            else if (obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Surface)) { return (int)GHTypeCodes.Surface; }
+            else if (obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Brep)) { return (int)GHTypeCodes.Brep; }
+            else if (obj.GetType() == typeof(Grasshopper.Kernel.Parameters.Param_Mesh)) { return (int)GHTypeCodes.Mesh; }
+
+            else if (obj.GetType() == typeof(Grasshopper.Kernel.Special.GH_NumberSlider)) { return (int)GHTypeCodes.Slider; }
+            else if (obj.GetType() == typeof(Grasshopper.Kernel.Special.GH_BooleanToggle)) { return (int)GHTypeCodes.BooleanToggle; }
+            else if (obj.GetType() == typeof(Grasshopper.Kernel.Special.GH_Panel)) { return (int)GHTypeCodes.Panel; }
+            
             return 0;
         }
         protected override System.Drawing.Bitmap Icon

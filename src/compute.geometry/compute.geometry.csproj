@@ -160,6 +160,12 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Resthopper.IO\Resthopper.IO.csproj">
+      <Project>{8a175543-05cf-442a-9045-1a5d9ff8cb84}</Project>
+      <Name>Resthopper.IO</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="AfterBuild">
     <ItemGroup>
