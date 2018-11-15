@@ -10,6 +10,21 @@ namespace Resthopper.Test
     [TestClass]
     public class UnitTest1
     {
+
+        [TestMethod]
+        public void CanSerilaizePath() {
+            var path = new GhPath(new int[] { 0, 1, 2 });
+
+            string serialized = JsonConvert.SerializeObject(path);
+            GhPath copy = JsonConvert.DeserializeObject<GhPath>(serialized);
+
+            for (int i = 0; i < path.Path.Length; i++) {
+
+                Assert.AreEqual(path.Path[i], copy.Path[i]);                
+            }
+        }
+
+
         [TestMethod]
         public void TestMethod1() {
             //datatree of points .. - descr col location (branch -> level)
