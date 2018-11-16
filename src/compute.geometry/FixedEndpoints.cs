@@ -139,7 +139,7 @@ namespace compute.geometry
                     // It is a RestHopper input group!
                     GHTypeCodes code = (GHTypeCodes)Int32.Parse(group.NickName.Split(':')[1]);
                     var param = group.Objects()[0];
-                    GH_Param<IGH_Goo> goo = obj as GH_Param<IGH_Goo>;
+                    //GH_Param<IGH_Goo> goo = obj as GH_Param<IGH_Goo>;
 
                     // SetData
                     foreach (Resthopper.IO.DataTree<ResthopperObject> tree in input.Values)
@@ -148,25 +148,277 @@ namespace compute.geometry
                         {
                             switch (code)
                             {
-                                case GHTypeCodes.Boolean: PopulateParam<GH_Boolean>(goo, tree); break;
-                                case GHTypeCodes.Point: PopulateParam<GH_Point>(goo, tree); break;
-                                case GHTypeCodes.Vector: PopulateParam<GH_Vector>(goo, tree); break;
-                                case GHTypeCodes.Integer: PopulateParam<GH_Integer>(goo, tree); break;
-                                case GHTypeCodes.Number: PopulateParam<GH_Number>(goo, tree); break;
-                                case GHTypeCodes.Text: PopulateParam<GH_String>(goo, tree); break;
-                                case GHTypeCodes.Line: PopulateParam<GH_Line>(goo, tree); break;
-                                case GHTypeCodes.Curve: PopulateParam<GH_Curve>(goo, tree); break;
-                                case GHTypeCodes.Circle: PopulateParam<GH_Circle>(goo, tree); break;
-                                case GHTypeCodes.PLane: PopulateParam<GH_Plane>(goo, tree); break;
-                                case GHTypeCodes.Rectangle: PopulateParam<GH_Rectangle>(goo, tree); break;
-                                case GHTypeCodes.Box: PopulateParam<GH_Box>(goo, tree); break;
-                                case GHTypeCodes.Surface: PopulateParam<GH_Surface>(goo, tree); break;
-                                case GHTypeCodes.Brep: PopulateParam<GH_Brep>(goo, tree); break;
-                                case GHTypeCodes.Mesh: PopulateParam<GH_Mesh>(goo, tree); break;
+                                case GHTypeCodes.Boolean:
+                                    //PopulateParam<GH_Boolean>(goo, tree);
+                                    Param_Boolean boolParam = param as Param_Boolean;
+                                    foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
+                                    {
+                                        GH_Path path = new GH_Path(entree.Key.Path);
+                                        List<GH_Boolean> objectList = new List<GH_Boolean>();
+                                        for (int i = 0; i < entree.Value.Count; i++)
+                                        {
+                                            ResthopperObject restobj = entree.Value[i];
+                                            GH_Boolean data = JsonConvert.DeserializeObject<GH_Boolean>(restobj.Data);
+                                            boolParam.AddVolatileData(path, i, data);
+                                        }
+                                    }
+                                    break;
+                                case GHTypeCodes.Point:
+                                    //PopulateParam<GH_Point>(goo, tree);
+                                    Param_Point ptParam = param as Param_Point;
+                                    foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
+                                    {
+                                        GH_Path path = new GH_Path(entree.Key.Path);
+                                        List<GH_Point> objectList = new List<GH_Point>();
+                                        for (int i = 0; i < entree.Value.Count; i++)
+                                        {
+                                            ResthopperObject restobj = entree.Value[i];
+                                            GH_Point data = JsonConvert.DeserializeObject<GH_Point>(restobj.Data);
+                                            ptParam.AddVolatileData(path, i, data);
+                                        }
+                                    }
+                                    break;
+                                case GHTypeCodes.Vector:
+                                    //PopulateParam<GH_Vector>(goo, tree);
+                                    Param_Vector vectorParam = param as Param_Vector;
+                                    foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
+                                    {
+                                        GH_Path path = new GH_Path(entree.Key.Path);
+                                        List<GH_Vector> objectList = new List<GH_Vector>();
+                                        for (int i = 0; i < entree.Value.Count; i++)
+                                        {
+                                            ResthopperObject restobj = entree.Value[i];
+                                            GH_Vector data = JsonConvert.DeserializeObject<GH_Vector>(restobj.Data);
+                                            vectorParam.AddVolatileData(path, i, data);
+                                        }
+                                    }
+                                    break;
+                                case GHTypeCodes.Integer:
+                                    //PopulateParam<GH_Integer>(goo, tree);
+                                    Param_Integer integerParam = param as Param_Integer;
+                                    foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
+                                    {
+                                        GH_Path path = new GH_Path(entree.Key.Path);
+                                        List<GH_Integer> objectList = new List<GH_Integer>();
+                                        for (int i = 0; i < entree.Value.Count; i++)
+                                        {
+                                            ResthopperObject restobj = entree.Value[i];
+                                            GH_Integer data = JsonConvert.DeserializeObject<GH_Integer>(restobj.Data);
+                                            integerParam.AddVolatileData(path, i, data);
+                                        }
+                                    }
+                                    break;
+                                case GHTypeCodes.Number:
+                                    //PopulateParam<GH_Number>(goo, tree);
+                                    Param_Number numberParam = param as Param_Number;
+                                    foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
+                                    {
+                                        GH_Path path = new GH_Path(entree.Key.Path);
+                                        List<GH_Number> objectList = new List<GH_Number>();
+                                        for (int i = 0; i < entree.Value.Count; i++)
+                                        {
+                                            ResthopperObject restobj = entree.Value[i];
+                                            GH_Number data = JsonConvert.DeserializeObject<GH_Number>(restobj.Data);
+                                            numberParam.AddVolatileData(path, i, data);
+                                        }
+                                    }
+                                    break;
+                                case GHTypeCodes.Text:
+                                    //PopulateParam<GH_String>(goo, tree);
+                                    Param_String stringParam = param as Param_String;
+                                    foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
+                                    {
+                                        GH_Path path = new GH_Path(entree.Key.Path);
+                                        List<GH_String> objectList = new List<GH_String>();
+                                        for (int i = 0; i < entree.Value.Count; i++)
+                                        {
+                                            ResthopperObject restobj = entree.Value[i];
+                                            GH_String data = JsonConvert.DeserializeObject<GH_String>(restobj.Data);
+                                            stringParam.AddVolatileData(path, i, data);
+                                        }
+                                    }
+                                    break;
+                                case GHTypeCodes.Line:
+                                    //PopulateParam<GH_Line>(goo, tree);
+                                    Param_Line lineParam = param as Param_Line;
+                                    foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
+                                    {
+                                        GH_Path path = new GH_Path(entree.Key.Path);
+                                        List<GH_Line> objectList = new List<GH_Line>();
+                                        for (int i = 0; i < entree.Value.Count; i++)
+                                        {
+                                            ResthopperObject restobj = entree.Value[i];
+                                            GH_Line data = JsonConvert.DeserializeObject<GH_Line>(restobj.Data);
+                                            lineParam.AddVolatileData(path, i, data);
+                                        }
+                                    }
+                                    break;
+                                case GHTypeCodes.Curve:
+                                    //PopulateParam<GH_Curve>(goo, tree);
+                                    Param_Curve curveParam = param as Param_Curve;
+                                    foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
+                                    {
+                                        GH_Path path = new GH_Path(entree.Key.Path);
+                                        List<GH_Curve> objectList = new List<GH_Curve>();
+                                        for (int i = 0; i < entree.Value.Count; i++)
+                                        {
+                                            ResthopperObject restobj = entree.Value[i];
+                                            GH_Curve data = JsonConvert.DeserializeObject<GH_Curve>(restobj.Data);
+                                            curveParam.AddVolatileData(path, i, data);
+                                        }
+                                    }
+                                    break;
+                                case GHTypeCodes.Circle:
+                                    //PopulateParam<GH_Circle>(goo, tree);
+                                    Param_Circle circleParam = param as Param_Circle;
+                                    foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
+                                    {
+                                        GH_Path path = new GH_Path(entree.Key.Path);
+                                        List<GH_Circle> objectList = new List<GH_Circle>();
+                                        for (int i = 0; i < entree.Value.Count; i++)
+                                        {
+                                            ResthopperObject restobj = entree.Value[i];
+                                            GH_Circle data = JsonConvert.DeserializeObject<GH_Circle>(restobj.Data);
+                                            circleParam.AddVolatileData(path, i, data);
+                                        }
+                                    }
+                                    break;
+                                case GHTypeCodes.PLane:
+                                    //PopulateParam<GH_Plane>(goo, tree);
+                                    Param_Plane planeParam = param as Param_Plane;
+                                    foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
+                                    {
+                                        GH_Path path = new GH_Path(entree.Key.Path);
+                                        List<GH_Plane> objectList = new List<GH_Plane>();
+                                        for (int i = 0; i < entree.Value.Count; i++)
+                                        {
+                                            ResthopperObject restobj = entree.Value[i];
+                                            GH_Plane data = JsonConvert.DeserializeObject<GH_Plane>(restobj.Data);
+                                            planeParam.AddVolatileData(path, i, data);
+                                        }
+                                    }
+                                    break;
+                                case GHTypeCodes.Rectangle:
+                                    //PopulateParam<GH_Rectangle>(goo, tree);
+                                    Param_Rectangle rectangleParam = param as Param_Rectangle;
+                                    foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
+                                    {
+                                        GH_Path path = new GH_Path(entree.Key.Path);
+                                        List<GH_Rectangle> objectList = new List<GH_Rectangle>();
+                                        for (int i = 0; i < entree.Value.Count; i++)
+                                        {
+                                            ResthopperObject restobj = entree.Value[i];
+                                            GH_Rectangle data = JsonConvert.DeserializeObject<GH_Rectangle>(restobj.Data);
+                                            rectangleParam.AddVolatileData(path, i, data);
+                                        }
+                                    }
+                                    break;
+                                case GHTypeCodes.Box:
+                                    //PopulateParam<GH_Box>(goo, tree);
+                                    Param_Box boxParam = param as Param_Box;
+                                    foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
+                                    {
+                                        GH_Path path = new GH_Path(entree.Key.Path);
+                                        List<GH_Box> objectList = new List<GH_Box>();
+                                        for (int i = 0; i < entree.Value.Count; i++)
+                                        {
+                                            ResthopperObject restobj = entree.Value[i];
+                                            GH_Box data = JsonConvert.DeserializeObject<GH_Box>(restobj.Data);
+                                            boxParam.AddVolatileData(path, i, data);
+                                        }
+                                    }
+                                    break;
+                                case GHTypeCodes.Surface:
+                                    //PopulateParam<GH_Surface>(goo, tree);
+                                    Param_Surface surfaceParam = param as Param_Surface;
+                                    foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
+                                    {
+                                        GH_Path path = new GH_Path(entree.Key.Path);
+                                        List<GH_Surface> objectList = new List<GH_Surface>();
+                                        for (int i = 0; i < entree.Value.Count; i++)
+                                        {
+                                            ResthopperObject restobj = entree.Value[i];
+                                            GH_Surface data = JsonConvert.DeserializeObject<GH_Surface>(restobj.Data);
+                                            surfaceParam.AddVolatileData(path, i, data);
+                                        }
+                                    }
+                                    break;
+                                case GHTypeCodes.Brep:
+                                    //PopulateParam<GH_Brep>(goo, tree);
+                                    Param_Brep brepParam = param as Param_Brep;
+                                    foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
+                                    {
+                                        GH_Path path = new GH_Path(entree.Key.Path);
+                                        List<GH_Brep> objectList = new List<GH_Brep>();
+                                        for (int i = 0; i < entree.Value.Count; i++)
+                                        {
+                                            ResthopperObject restobj = entree.Value[i];
+                                            GH_Brep data = JsonConvert.DeserializeObject<GH_Brep>(restobj.Data);
+                                            brepParam.AddVolatileData(path, i, data);
+                                        }
+                                    }
+                                    break;
+                                case GHTypeCodes.Mesh:
+                                    //PopulateParam<GH_Mesh>(goo, tree);
+                                    Param_Mesh meshParam = param as Param_Mesh;
+                                    foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
+                                    {
+                                        GH_Path path = new GH_Path(entree.Key.Path);
+                                        List<GH_Mesh> objectList = new List<GH_Mesh>();
+                                        for (int i = 0; i < entree.Value.Count; i++)
+                                        {
+                                            ResthopperObject restobj = entree.Value[i];
+                                            GH_Mesh data = JsonConvert.DeserializeObject<GH_Mesh>(restobj.Data);
+                                            meshParam.AddVolatileData(path, i, data);
+                                        }
+                                    }
+                                    break;
 
-                                case GHTypeCodes.Slider: PopulateParam<GH_Number>(goo, tree); break;
-                                case GHTypeCodes.BooleanToggle: PopulateParam<GH_Boolean>(goo, tree); break;
-                                case GHTypeCodes.Panel: PopulateParam<GH_String>(goo, tree); break;
+                                case GHTypeCodes.Slider:
+                                    //PopulateParam<GH_Number>(goo, tree);
+                                    GH_NumberSlider sliderParam = param as GH_NumberSlider;
+                                    foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
+                                    {
+                                        GH_Path path = new GH_Path(entree.Key.Path);
+                                        List<GH_Number> objectList = new List<GH_Number>();
+                                        for (int i = 0; i < entree.Value.Count; i++)
+                                        {
+                                            ResthopperObject restobj = entree.Value[i];
+                                            GH_Number data = JsonConvert.DeserializeObject<GH_Number>(restobj.Data);
+                                            sliderParam.AddVolatileData(path, i, data);
+                                        }
+                                    }
+                                    break;
+                                case GHTypeCodes.BooleanToggle:
+                                    //PopulateParam<GH_Boolean>(goo, tree);
+                                    GH_BooleanToggle toggleParam = param as GH_BooleanToggle;
+                                    foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
+                                    {
+                                        GH_Path path = new GH_Path(entree.Key.Path);
+                                        List<GH_Boolean> objectList = new List<GH_Boolean>();
+                                        for (int i = 0; i < entree.Value.Count; i++)
+                                        {
+                                            ResthopperObject restobj = entree.Value[i];
+                                            GH_Boolean data = JsonConvert.DeserializeObject<GH_Boolean>(restobj.Data);
+                                            toggleParam.AddVolatileData(path, i, data);
+                                        }
+                                    }
+                                    break;
+                                case GHTypeCodes.Panel:
+                                    //PopulateParam<GH_String>(goo, tree);
+                                    GH_Panel panelParam = param as GH_Panel;
+                                    foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in tree)
+                                    {
+                                        GH_Path path = new GH_Path(entree.Key.Path);
+                                        List<GH_Panel> objectList = new List<GH_Panel>();
+                                        for (int i = 0; i < entree.Value.Count; i++)
+                                        {
+                                            ResthopperObject restobj = entree.Value[i];
+                                            GH_Panel data = JsonConvert.DeserializeObject<GH_Panel>(restobj.Data);
+                                            panelParam.AddVolatileData(path, i, data);
+                                        }
+                                    }
+                                    break;
                             }
                         }
                     }
