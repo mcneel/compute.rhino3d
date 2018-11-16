@@ -175,7 +175,8 @@ namespace compute.geometry
                                         for (int i = 0; i < entree.Value.Count; i++)
                                         {
                                             ResthopperObject restobj = entree.Value[i];
-                                            GH_Point data = JsonConvert.DeserializeObject<GH_Point>(restobj.Data);
+                                            Rhino.Geometry.Point3d rPt = JsonConvert.DeserializeObject<Rhino.Geometry.Point3d>(restobj.Data);
+                                            GH_Point data = new GH_Point(rPt);
                                             ptParam.AddVolatileData(path, i, data);
                                         }
                                     }
@@ -265,8 +266,10 @@ namespace compute.geometry
                                         for (int i = 0; i < entree.Value.Count; i++)
                                         {
                                             ResthopperObject restobj = entree.Value[i];
-                                            GH_Curve data = JsonConvert.DeserializeObject<GH_Curve>(restobj.Data);
-                                            curveParam.AddVolatileData(path, i, data);
+                                            Rhino.Geometry.Polyline data = JsonConvert.DeserializeObject<Rhino.Geometry.Polyline>(restobj.Data);
+                                            Rhino.Geometry.Curve c = new Rhino.Geometry.PolylineCurve(data);
+                                            GH_Curve ghCurve = new GH_Curve(c);
+                                            curveParam.AddVolatileData(path, i, ghCurve);
                                         }
                                     }
                                     break;
@@ -470,13 +473,13 @@ namespace compute.geometry
                         {
                             if (goo == null) continue;
                             else if (goo.GetType() == typeof(GH_Boolean)) { ResthopperObjectList.Add(GetResthopperObject<GH_Boolean>(goo)); }
-                            else if (goo.GetType() == typeof(GH_Point)) { ResthopperObjectList.Add(GetResthopperObject<GH_Point>(goo)); }
+                            else if (goo.GetType() == typeof(GH_Point)) { ResthopperObjectList.Add(GetResthopperPoint(goo as GH_Point)); }
                             else if (goo.GetType() == typeof(GH_Vector)) { ResthopperObjectList.Add(GetResthopperObject<GH_Vector>(goo)); }
                             else if (goo.GetType() == typeof(GH_Integer)) { ResthopperObjectList.Add(GetResthopperObject<GH_Integer>(goo)); }
                             else if (goo.GetType() == typeof(GH_Number)) { ResthopperObjectList.Add(GetResthopperObject<GH_Number>(goo)); }
                             else if (goo.GetType() == typeof(GH_String)) { ResthopperObjectList.Add(GetResthopperObject<GH_String>(goo)); }
                             else if (goo.GetType() == typeof(GH_Line)) { ResthopperObjectList.Add(GetResthopperObject<GH_Line>(goo)); }
-                            else if (goo.GetType() == typeof(GH_Curve)) { ResthopperObjectList.Add(GetResthopperObject<GH_Curve>(goo)); }
+                            else if (goo.GetType() == typeof(GH_Curve)) { ResthopperObjectList.Add(GetResthopperCurve(goo as GH_Curve)); }
                             else if (goo.GetType() == typeof(GH_Circle)) { ResthopperObjectList.Add(GetResthopperObject<GH_Circle>(goo)); }
                             else if (goo.GetType() == typeof(GH_Plane)) { ResthopperObjectList.Add(GetResthopperObject<GH_Plane>(goo)); }
                             else if (goo.GetType() == typeof(GH_Rectangle)) { ResthopperObjectList.Add(GetResthopperObject<GH_Rectangle>(goo)); }
@@ -501,6 +504,31 @@ namespace compute.geometry
             string returnJson = JsonConvert.SerializeObject(OutputSchema, settings);
             return returnJson;
         }
+
+        public static ResthopperObject GetResthopperPoint(GH_Point goo) {
+            var pt = goo.Value;
+
+            ResthopperObject rhObj = new ResthopperObject();
+            rhObj.Type = pt.GetType().FullName;
+            rhObj.Data = JsonConvert.SerializeObject(pt);
+            return rhObj;
+
+        }
+
+        public static ResthopperObject GetResthopperCurve(GH_Curve goo) {
+            var crv =  goo.Value;
+            Rhino.Geometry.Polyline pl;
+            if( crv.TryGetPolyline(out pl)) {
+                ResthopperObject rhObj = new ResthopperObject();
+                rhObj.Type = pl.GetType().FullName;
+                rhObj.Data = JsonConvert.SerializeObject(pl);
+                return rhObj;
+            } else {
+                return null;
+            }
+        }
+
+
         public static ResthopperObject GetResthopperObject<T>(object goo)
         {
             var v = (T)goo;
