@@ -27,32 +27,36 @@ namespace Resthopper.IO
 
         public static Schema Request(Schema InputSchema) {
 
-            Task<Schema> task = Request(InputSchema, Token, Server);
+            Task<Schema> task = Request(InputSchema, Server, Token);
             var result = task.Result;
             return result;
         }
 
         public static async Task<Schema> Request(Schema InputSchema, string server, string token)
         {
-            using (HttpClient client = new HttpClient())
-            {
-                client.BaseAddress = new Uri($"{server}/grasshopper");
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(token);
-                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, $"{server}/grasshopper");
-                JsonSerializerSettings settings = new JsonSerializerSettings();
-                settings.ContractResolver = new DictionaryAsArrayResolver();
-                request.Content = new StringContent(JsonConvert.SerializeObject(InputSchema, settings), Encoding.UTF8, "application/json");
+            try {
+                using (HttpClient client = new HttpClient()) {
+                    string endPoint = "grasshopper";
+                    client.BaseAddress = new Uri(string.Format("{0}/{1}", server, endPoint));
+                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(token);
+                    HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, $"{server}/grasshopper");
+                    JsonSerializerSettings settings = new JsonSerializerSettings();
+                    settings.ContractResolver = new DictionaryAsArrayResolver();
+                    request.Content = new StringContent(JsonConvert.SerializeObject(InputSchema, settings), Encoding.UTF8, "application/json");
 
-                Schema output = null;
-                using (HttpResponseMessage result = await client.SendAsync(request))
-                using (HttpContent content = result.Content)
-                {
-                    var data = content.ReadAsStringAsync().Result;
-                    output = JsonConvert.DeserializeObject<Schema>(result.Content.ToString());
+                    Schema output = null;
+                    using (HttpResponseMessage result = await client.SendAsync(request))
+                    using (HttpContent content = result.Content) {
+                        var data = content.ReadAsStringAsync().Result;
+                        output = JsonConvert.DeserializeObject<Schema>(result.Content.ToString());
+                    }
+
+                    return output;
                 }
-               
-                return output;
+            } catch (Exception e) {
+
+                throw;
             }
         }
     }
