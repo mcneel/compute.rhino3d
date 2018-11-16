@@ -430,7 +430,7 @@ namespace compute.geometry
             }
 
             Schema OutputSchema = new Schema();
-            OutputSchema.Algo = Base64Encode(string.Empty);
+            OutputSchema.Algo = Utils.Base64Encode(string.Empty);
 
             // Parse output params
             foreach (var obj in definition.Objects)
@@ -526,13 +526,6 @@ namespace compute.geometry
             }
 
         }
-
-        public static string Base64Encode(string plainText)
-        {
-            var plainTextBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
-            return System.Convert.ToBase64String(plainTextBytes);
-        }
-
     }
 }
 
