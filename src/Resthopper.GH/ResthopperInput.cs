@@ -127,7 +127,7 @@ namespace Resthopper.GH
         {
             var v = (T)goo;
             ResthopperObject rhObj = new ResthopperObject();
-            rhObj.Type = goo.GetType();
+            rhObj.Type = goo.GetType().FullName;
             rhObj.Data = JsonConvert.SerializeObject(v);
             return rhObj;
         }

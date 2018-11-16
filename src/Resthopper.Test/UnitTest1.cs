@@ -120,7 +120,7 @@ namespace Resthopper.Test
                     foreach (ResthopperObject obj in entree.Value)
                     {
                         // Point3d pt = (Point3d)obj.ExtractData();
-                        if (obj.Type == typeof(Point3d))
+                        if (obj.Type == typeof(Point3d).FullName)
                         {
                             Point3d pt = JsonConvert.DeserializeObject<Point3d>(obj.Data);
                             LevelPoints.Add(pt);
