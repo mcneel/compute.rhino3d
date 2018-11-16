@@ -38,6 +38,7 @@ namespace Resthopper.GH
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddGenericParameter("RH Input", "RH Input", "RH Input", GH_ParamAccess.item);
+            pManager.AddTextParameter("Param Name", "Param Name", "Param Name", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -96,6 +97,7 @@ namespace Resthopper.GH
                     this.InputTree.Add(path, ResthopperObjectList);
                 }
                 DA.SetData(0, this.InputTree);
+                DA.SetData(1, groupName);
 
             }
         }

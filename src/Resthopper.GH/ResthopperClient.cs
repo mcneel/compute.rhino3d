@@ -36,6 +36,7 @@ namespace Resthopper.GH
             pManager.AddTextParameter("server", "server", "Server IP or URL", GH_ParamAccess.item);
             pManager.AddBooleanParameter("run", "run", "Send to Resthopper", GH_ParamAccess.item);
             pManager.AddGenericParameter("inputs", "inputs", "List of ResthopperObjects", GH_ParamAccess.list);
+            pManager.AddTextParameter("param names", "param names", "param names", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -44,6 +45,7 @@ namespace Resthopper.GH
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddGenericParameter("Schema", "Schema", "Resthopper Schema object", GH_ParamAccess.item);
+            pManager.AddTextParameter("json", "json", "json", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -57,12 +59,14 @@ namespace Resthopper.GH
             string server = string.Empty;
             bool run = false;
             List<Resthopper.IO.DataTree<ResthopperObject>> inputs = new List<Resthopper.IO.DataTree<ResthopperObject>>();
+            List<string> paramNames = new List<string>();
 
             DA.GetData(0, ref path);
             DA.GetData(1, ref token);
             DA.GetData(2, ref server);
             DA.GetData(3, ref run);
             DA.GetDataList(4, inputs);
+            DA.GetDataList(5, paramNames);
 
 
             if (run)
@@ -74,10 +78,22 @@ namespace Resthopper.GH
                 { markup = reader.ReadToEnd(); }
                 InputSchema.Algo = Base64Encode(markup);
                 InputSchema.Values = inputs;
+                InputSchema.ParamNames = paramNames;
 
-                Schema output = await ResthopperPipeline.Request(InputSchema, server, token);
-                this.OutputSchema = output;
+                JsonSerializerSettings settings = new JsonSerializerSettings();
+                settings.ContractResolver = new DictionaryAsArrayResolver();
+                settings.Formatting = Formatting.Indented;
+                DA.SetData(1, JsonConvert.SerializeObject(InputSchema, settings));
+
+                //Schema output = await ResthopperPipeline.Request(InputSchema, server, token);
+                //this.OutputSchema = output;
+
+                //DA.SetData(0, this.OutputSchema);
+                
+
             }
+
+            
         }
 
         /// <summary>
