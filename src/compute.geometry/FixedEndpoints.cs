@@ -146,7 +146,7 @@ namespace compute.geometry
                     foreach (Resthopper.IO.DataTree<ResthopperObject> tree in input.Values)
                     {
                         string paramname = input.ParamNames[counter++];
-                        if (param.NickName == paramname)
+                        if (group.NickName == paramname)
                         {
                             switch (code)
                             {
