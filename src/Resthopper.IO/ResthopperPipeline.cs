@@ -27,9 +27,56 @@ namespace Resthopper.IO
 
         public static Schema Request(Schema InputSchema) {
 
-            Task<Schema> task = Request(InputSchema, Server, Token);
-            var result = task.Result;
-            return result;
+            JsonSerializerSettings settings = new JsonSerializerSettings();
+            settings.ContractResolver = new DictionaryAsArrayResolver();
+            string json = JsonConvert.SerializeObject(InputSchema, settings);
+
+            string response = ApiRequest(Server, Token, "POST", "string", "/grasshopper", json);
+
+            Schema output = JsonConvert.DeserializeObject<Schema>(response, settings);
+            return output;
+            //Task<Schema> task = Request(InputSchema, Server, Token);
+            //var result = task.Result;
+            //return result;
+        }
+
+
+        public static dynamic ApiRequest(string server, string token, string requestType, string responseType, string urlExt, string jsonArguments = null) {
+
+
+            string requestUrl = server + urlExt;
+
+            var bytes = Encoding.Default.GetBytes(jsonArguments);
+
+            using (var client = new System.Net.WebClient()) {
+                client.Headers.Add("Content-Type", "application/json");
+                client.Headers.Add("Authorization", token);
+
+                //client.Headers.Add("Cache-Control", "no-cache");
+                //client.Headers.Add("Host", "35.231.149.199");
+                //client.Headers.Add("POST", "/sizing/bay/concrete/flatplate HTTP/1.1");
+
+                var responseString = "";
+                dynamic responseJson = null;
+
+                try {
+                    if (requestType == "POST") {
+                        var response = client.UploadData(requestUrl, "POST", bytes);
+                        responseString = Encoding.Default.GetString(response);
+                    } else if (requestType == "GET") {
+                        responseString = client.DownloadString(requestUrl);
+                    }
+                    responseJson = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(responseString);
+                } catch (Exception e) {
+                    string s = e.ToString();
+                    // do nothing
+                }
+                if (responseType == "string") {
+                    return responseString;
+                } else {
+                    return responseJson;
+                }
+            }
         }
 
         public static async Task<Schema> Request(Schema InputSchema, string server, string token)
