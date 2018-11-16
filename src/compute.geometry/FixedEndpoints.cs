@@ -142,9 +142,11 @@ namespace compute.geometry
                     //GH_Param<IGH_Goo> goo = obj as GH_Param<IGH_Goo>;
 
                     // SetData
+                    int counter = 0;
                     foreach (Resthopper.IO.DataTree<ResthopperObject> tree in input.Values)
                     {
-                        if (param.NickName == tree.ParamName)
+                        string paramname = input.ParamNames[counter++];
+                        if (param.NickName == paramname)
                         {
                             switch (code)
                             {
@@ -458,7 +460,7 @@ namespace compute.geometry
 
                     // Get data
                     Resthopper.IO.DataTree<ResthopperObject> OutputTree = new Resthopper.IO.DataTree<ResthopperObject>();
-                    OutputTree.ParamName = param.NickName;
+                    //OutputTree.ParamName = param.NickName;
 
                     var volatileData = param.VolatileData;
                     for (int p = 0; p < volatileData.PathCount; p++)

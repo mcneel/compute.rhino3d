@@ -21,6 +21,8 @@ namespace Resthopper.IO
 
         public List<DataTree<ResthopperObject>> Values { get; set; }
 
+        public List<string> ParamNames { get; set; }
+
         //public Dictionary<string, Dictionary<GhPath, List<ResthopperObject>>> Values { get; set; }
 
     }

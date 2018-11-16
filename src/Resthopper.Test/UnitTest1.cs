@@ -49,8 +49,9 @@ namespace Resthopper.Test
         public void CanSerializeTree() {
 
             ResthopperDataTree tree = new ResthopperDataTree();
-
+            //tree.ParamName = "testchecktest";
             var path = new GhPath(new int[] { 0, 1, 2 });
+            //path.ParamName = "testchecktest";
 
             List<ResthopperObject> list = new List<ResthopperObject>() {
                 new ResthopperObject("test1"),
@@ -67,6 +68,7 @@ namespace Resthopper.Test
             string serialized = JsonConvert.SerializeObject(tree, settings);
             DataTree<ResthopperObject> copy = JsonConvert.DeserializeObject<DataTree<ResthopperObject>>(serialized, settings);
 
+            //Assert.AreEqual(tree.ParamName, copy.ParamName);
 
         }
 
@@ -94,7 +96,7 @@ namespace Resthopper.Test
                 tree.Append(colLevel, new GhPath(new int[] { i } ));
             }
             
-            tree.ParamName = "columns";
+            //tree.ParamName = "columns";
 
             ResthopperObject colPoint = new ResthopperObject();
 

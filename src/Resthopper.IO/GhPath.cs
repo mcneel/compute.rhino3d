@@ -79,7 +79,7 @@ namespace Resthopper.IO
             set { _tree = value; }
         }
 
-        public string ParamName { get; set; }
+        //public string ParamName { get; set; }
 
 
         public ICollection<GhPath> Keys {

@@ -68,7 +68,7 @@ namespace Resthopper.GH
                 DA.GetDataTree(0, out booleanInput);
 
                 this.InputTree = new Resthopper.IO.DataTree<ResthopperObject>();
-                this.InputTree.ParamName = groupName;
+                //this.InputTree.ParamName = groupName;
                 for (int p = 0; p < booleanInput.PathCount; p++)
                 {
                     List<ResthopperObject> ResthopperObjectList = new List<ResthopperObject>();
