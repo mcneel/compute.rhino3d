@@ -27,13 +27,13 @@ namespace Resthopper.IO
 
         public static Schema Request(Schema InputSchema) {
 
-            JsonSerializerSettings settings = new JsonSerializerSettings();
-            settings.ContractResolver = new DictionaryAsArrayResolver();
-            string json = JsonConvert.SerializeObject(InputSchema, settings);
+            //JsonSerializerSettings settings = new JsonSerializerSettings();
+            //settings.ContractResolver = new DictionaryAsArrayResolver();
+            string json = JsonConvert.SerializeObject(InputSchema);
 
             string response = ApiRequest(Server, Token, "POST", "string", "/grasshopper", json);
 
-            Schema output = JsonConvert.DeserializeObject<Schema>(response, settings);
+            Schema output = JsonConvert.DeserializeObject<Schema>(response);
             return output;
             //Task<Schema> task = Request(InputSchema, Server, Token);
             //var result = task.Result;
@@ -88,9 +88,9 @@ namespace Resthopper.IO
                     client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(token);
                     HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, $"{server}/grasshopper");
-                    JsonSerializerSettings settings = new JsonSerializerSettings();
-                    settings.ContractResolver = new DictionaryAsArrayResolver();
-                    request.Content = new StringContent(JsonConvert.SerializeObject(InputSchema, settings), Encoding.UTF8, "application/json");
+                    //JsonSerializerSettings settings = new JsonSerializerSettings();
+                    //settings.ContractResolver = new DictionaryAsArrayResolver();
+                    request.Content = new StringContent(JsonConvert.SerializeObject(InputSchema), Encoding.UTF8, "application/json");
 
                     Schema output = null;
                     using (HttpResponseMessage result = await client.SendAsync(request))

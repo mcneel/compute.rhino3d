@@ -59,14 +59,14 @@ namespace Resthopper.Test
                 new ResthopperObject("test3"),
             };
 
-            tree.Add(path, list);
+            tree.Add(path.ToString(), list);
 
-            JsonSerializerSettings settings = new JsonSerializerSettings();
-            settings.ContractResolver = new DictionaryAsArrayResolver();
+            //JsonSerializerSettings settings = new JsonSerializerSettings();
+            //settings.ContractResolver = new DictionaryAsArrayResolver();
 
 
-            string serialized = JsonConvert.SerializeObject(tree, settings);
-            DataTree<ResthopperObject> copy = JsonConvert.DeserializeObject<DataTree<ResthopperObject>>(serialized, settings);
+            string serialized = JsonConvert.SerializeObject(tree);
+            DataTree<ResthopperObject> copy = JsonConvert.DeserializeObject<DataTree<ResthopperObject>>(serialized);
 
             //Assert.AreEqual(tree.ParamName, copy.ParamName);
 
@@ -93,7 +93,7 @@ namespace Resthopper.Test
                     Point3d pt = new Point3d(0, j, i);
                     colLevel.Add(new ResthopperObject(pt));
                 }
-                tree.Append(colLevel, new GhPath(new int[] { i } ));
+                tree.Append(colLevel, new GhPath(new int[] { i } ).ToString());
             }
             
             //tree.ParamName = "columns";
@@ -104,17 +104,17 @@ namespace Resthopper.Test
             schema.Values.Add(tree);
 
             // Serialize
-            JsonSerializerSettings settings = new JsonSerializerSettings();
-            settings.ContractResolver = new DictionaryAsArrayResolver();
+            //JsonSerializerSettings settings = new JsonSerializerSettings();
+            //settings.ContractResolver = new DictionaryAsArrayResolver();
 
-            string serialized = JsonConvert.SerializeObject(schema, settings);
+            string serialized = JsonConvert.SerializeObject(schema);
 
             // Deserialize
             List<List<Point3d>> ExtractedPoints = new List<List<Point3d>>(); 
-            Schema sh = JsonConvert.DeserializeObject<Schema>(serialized, settings);
+            Schema sh = JsonConvert.DeserializeObject<Schema>(serialized);
             foreach (DataTree<ResthopperObject> t in sh.Values)
             {
-                foreach (KeyValuePair<GhPath, List<ResthopperObject>> entree in t)
+                foreach (KeyValuePair<string, List<ResthopperObject>> entree in t)
                 {
                     List<Point3d> LevelPoints = new List<Point3d>();
                     foreach (ResthopperObject obj in entree.Value)

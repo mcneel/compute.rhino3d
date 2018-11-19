@@ -38,7 +38,6 @@ namespace Resthopper.GH
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddGenericParameter("RH Input", "RH Input", "RH Input", GH_ParamAccess.item);
-            pManager.AddTextParameter("Param Name", "Param Name", "Param Name", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -69,6 +68,7 @@ namespace Resthopper.GH
                 DA.GetDataTree(0, out booleanInput);
 
                 this.InputTree = new Resthopper.IO.DataTree<ResthopperObject>();
+                this.InputTree.ParamName = groupName;
                 //this.InputTree.ParamName = groupName;
                 for (int p = 0; p < booleanInput.PathCount; p++)
                 {
@@ -76,28 +76,102 @@ namespace Resthopper.GH
                     foreach (var goo in booleanInput.get_Branch(p))
                     {
                         if (goo == null) continue;
-                        else if (goo.GetType() == typeof(GH_Boolean)) { ResthopperObjectList.Add(GetResthopperObject<GH_Boolean>(goo)); }
-                        else if (goo.GetType() == typeof(GH_Point)) { ResthopperObjectList.Add(GetResthopperObject<GH_Point>(goo)); }
-                        else if (goo.GetType() == typeof(GH_Vector)) { ResthopperObjectList.Add(GetResthopperObject<GH_Vector>(goo)); }
-                        else if (goo.GetType() == typeof(GH_Integer)) { ResthopperObjectList.Add(GetResthopperObject<GH_Integer>(goo)); }
-                        else if (goo.GetType() == typeof(GH_Number)) { ResthopperObjectList.Add(GetResthopperObject<GH_Number>(goo)); }
-                        else if (goo.GetType() == typeof(GH_String)) { ResthopperObjectList.Add(GetResthopperObject<GH_String>(goo)); }
-                        else if (goo.GetType() == typeof(GH_Line)) { ResthopperObjectList.Add(GetResthopperObject<GH_Line>(goo)); }
-                        else if (goo.GetType() == typeof(GH_Curve)) { ResthopperObjectList.Add(GetResthopperObject<GH_Curve>(goo)); }
-                        else if (goo.GetType() == typeof(GH_Circle)) { ResthopperObjectList.Add(GetResthopperObject<GH_Circle>(goo)); }
-                        else if (goo.GetType() == typeof(GH_Plane)) { ResthopperObjectList.Add(GetResthopperObject<GH_Plane>(goo)); }
-                        else if (goo.GetType() == typeof(GH_Rectangle)) { ResthopperObjectList.Add(GetResthopperObject<GH_Rectangle>(goo)); }
-                        else if (goo.GetType() == typeof(GH_Box)) { ResthopperObjectList.Add(GetResthopperObject<GH_Box>(goo)); }
-                        else if (goo.GetType() == typeof(GH_Surface)) { ResthopperObjectList.Add(GetResthopperObject<GH_Surface>(goo)); }
-                        else if (goo.GetType() == typeof(GH_Brep)) { ResthopperObjectList.Add(GetResthopperObject<GH_Brep>(goo)); }
-                        else if (goo.GetType() == typeof(GH_Mesh)) { ResthopperObjectList.Add(GetResthopperObject<GH_Mesh>(goo)); }
+                        else if (goo.GetType() == typeof(GH_Boolean))
+                        {
+                            GH_Boolean ghValue = goo as GH_Boolean;
+                            bool rhValue = ghValue.Value;
+                            ResthopperObjectList.Add(GetResthopperObject<bool>(rhValue));
+                        }
+                        else if (goo.GetType() == typeof(GH_Point))
+                        {
+                            GH_Point ghValue = goo as GH_Point;
+                            Point3d rhValue = ghValue.Value;
+                            ResthopperObjectList.Add(GetResthopperObject<Point3d>(rhValue));
+                        }
+                        else if (goo.GetType() == typeof(GH_Vector))
+                        {
+                            GH_Vector ghValue = goo as GH_Vector;
+                            Vector3d rhValue = ghValue.Value;
+                            ResthopperObjectList.Add(GetResthopperObject<Vector3d>(rhValue));
+                        }
+                        else if (goo.GetType() == typeof(GH_Integer))
+                        {
+                            GH_Integer ghValue = goo as GH_Integer;
+                            int rhValue = ghValue.Value;
+                            ResthopperObjectList.Add(GetResthopperObject<int>(rhValue));
+                        }
+                        else if (goo.GetType() == typeof(GH_Number))
+                        {
+                            GH_Number ghValue = goo as GH_Number;
+                            double rhValue = ghValue.Value;
+                            ResthopperObjectList.Add(GetResthopperObject<double>(rhValue));
+                        }
+                        else if (goo.GetType() == typeof(GH_String))
+                        {
+                            GH_String ghValue = goo as GH_String;
+                            string rhValue = ghValue.Value;
+                            ResthopperObjectList.Add(GetResthopperObject<string>(rhValue));
+                        }
+                        else if (goo.GetType() == typeof(GH_Line))
+                        {
+                            GH_Line ghValue = goo as GH_Line;
+                            Line rhValue = ghValue.Value;
+                            ResthopperObjectList.Add(GetResthopperObject<Line>(rhValue));
+                        }
+                        else if (goo.GetType() == typeof(GH_Curve))
+                        {
+                            GH_Curve ghValue = goo as GH_Curve;
+                            Curve rhValue = ghValue.Value;
+                            ResthopperObjectList.Add(GetResthopperObject<Curve>(rhValue));
+                        }
+                        else if (goo.GetType() == typeof(GH_Circle))
+                        {
+                            GH_Circle ghValue = goo as GH_Circle;
+                            Circle rhValue = ghValue.Value;
+                            ResthopperObjectList.Add(GetResthopperObject<Circle>(rhValue));
+                        }
+                        else if (goo.GetType() == typeof(GH_Plane))
+                        {
+                            GH_Plane ghValue = goo as GH_Plane;
+                            Plane rhValue = ghValue.Value;
+                            ResthopperObjectList.Add(GetResthopperObject<Plane>(rhValue));
+                        }
+                        else if (goo.GetType() == typeof(GH_Rectangle))
+                        {
+                            GH_Rectangle ghValue = goo as GH_Rectangle;
+                            Rectangle3d rhValue = ghValue.Value;
+                            ResthopperObjectList.Add(GetResthopperObject<Rectangle3d>(rhValue));
+                        }
+                        else if (goo.GetType() == typeof(GH_Box))
+                        {
+                            GH_Box ghValue = goo as GH_Box;
+                            Box rhValue = ghValue.Value;
+                            ResthopperObjectList.Add(GetResthopperObject<Box>(rhValue));
+                        }
+                        else if (goo.GetType() == typeof(GH_Surface))
+                        {
+                            GH_Surface ghValue = goo as GH_Surface;
+                            Brep rhValue = ghValue.Value;
+                            ResthopperObjectList.Add(GetResthopperObject<Brep>(rhValue));
+                        }
+                        else if (goo.GetType() == typeof(GH_Brep))
+                        {
+                            GH_Brep ghValue = goo as GH_Brep;
+                            Brep rhValue = ghValue.Value;
+                            ResthopperObjectList.Add(GetResthopperObject<Brep>(rhValue));
+                        }
+                        else if (goo.GetType() == typeof(GH_Mesh))
+                        {
+                            GH_Mesh ghValue = goo as GH_Mesh;
+                            Mesh rhValue = ghValue.Value;
+                            ResthopperObjectList.Add(GetResthopperObject<Mesh>(rhValue));
+                        }
                     }
-
+                    
                     GhPath path = new GhPath(new int[] { p });
-                    this.InputTree.Add(path, ResthopperObjectList);
+                    this.InputTree.Add(path.ToString(), ResthopperObjectList);
                 }
                 DA.SetData(0, this.InputTree);
-                DA.SetData(1, groupName);
 
             }
         }
@@ -126,6 +200,7 @@ namespace Resthopper.GH
         public static ResthopperObject GetResthopperObject<T>(object goo)
         {
             var v = (T)goo;
+            
             ResthopperObject rhObj = new ResthopperObject();
             rhObj.Type = goo.GetType().FullName;
             rhObj.Data = JsonConvert.SerializeObject(v);

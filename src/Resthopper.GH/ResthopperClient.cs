@@ -36,7 +36,6 @@ namespace Resthopper.GH
             pManager.AddTextParameter("server", "server", "Server IP or URL", GH_ParamAccess.item);
             pManager.AddBooleanParameter("run", "run", "Send to Resthopper", GH_ParamAccess.item);
             pManager.AddGenericParameter("inputs", "inputs", "List of ResthopperObjects", GH_ParamAccess.list);
-            pManager.AddTextParameter("param names", "param names", "param names", GH_ParamAccess.list);
         }
 
         /// <summary>
@@ -66,7 +65,6 @@ namespace Resthopper.GH
             DA.GetData(2, ref server);
             DA.GetData(3, ref run);
             DA.GetDataList(4, inputs);
-            DA.GetDataList(5, paramNames);
 
 
             if (run)
@@ -78,10 +76,9 @@ namespace Resthopper.GH
                 { markup = reader.ReadToEnd(); }
                 InputSchema.Algo = Base64Encode(markup);
                 InputSchema.Values = inputs;
-                InputSchema.ParamNames = paramNames;
 
                 JsonSerializerSettings settings = new JsonSerializerSettings();
-                settings.ContractResolver = new DictionaryAsArrayResolver();
+                //settings.ContractResolver = new DictionaryAsArrayResolver();
                 settings.Formatting = Formatting.Indented;
                 DA.SetData(1, JsonConvert.SerializeObject(InputSchema, settings));
 

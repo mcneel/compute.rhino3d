@@ -25,6 +25,34 @@ namespace Resthopper.IO
             this.Path = path;
         }
 
+        public GhPath(string path)
+        {
+            this.Path = FromString(path);
+        }
+
+        public override string ToString()
+        {
+            string sPath = "{ ";
+            foreach(int i in this.Path)
+            {
+                sPath += $"{i}; ";
+            }
+            sPath += "}";
+            return sPath;
+        }
+
+        public static int[] FromString(string path)
+        {
+            string primer = path.Replace(" ", "").Replace("{", "").Replace("}", "");
+            string[] stringValues = primer.Split(';');
+            List<int> ints = new List<int>();
+            foreach (string s in stringValues)
+            {
+                ints.Add(Int32.Parse(s));
+            }
+            return ints.ToArray();
+        }
+
         public GhPath(GhPath pathObj, int i)
         {
             int[] path = pathObj.Path;
@@ -49,32 +77,33 @@ namespace Resthopper.IO
         
     }
 
-    public class DictionaryAsArrayResolver : DefaultContractResolver
-    {
-        protected override JsonContract CreateContract(Type objectType) {
-            if (objectType.GetInterfaces().Any(i => i == typeof(IDictionary) ||
-               (i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>)))) {
-                return base.CreateArrayContract(objectType);
-            }
+    //public class DictionaryAsArrayResolver : DefaultContractResolver
+    //{
+    //    protected override JsonContract CreateContract(Type objectType) {
+    //        if (objectType.GetInterfaces().Any(i => i == typeof(IDictionary) ||
+    //           (i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>)))) {
+    //            return base.CreateArrayContract(objectType);
+    //        }
 
-            return base.CreateContract(objectType);
-        }
-    }
+    //        return base.CreateContract(objectType);
+    //    }
+    //}
 
 
-    public class DataTree<T> : IDictionary<GhPath, List<T>>
+    public class DataTree<T> : IDictionary<string, List<T>>
     {
 
         public DataTree() {
-            _tree = new Dictionary<GhPath, List<T>>();
+            _tree = new Dictionary<string, List<T>>();
             //_GhPathIndexer = new Dictionary<int, GhPath>();
         }
 
-        private Dictionary<GhPath, List<T>> _tree;
+        private Dictionary<string, List<T>> _tree;
+        public string ParamName { get; set; }
         //Dictionary<int, GhPath> _GhPathIndexer;
 
 
-        public Dictionary<GhPath, List<T>> InnerTree {
+        public Dictionary<string, List<T>> InnerTree {
             get { return _tree; }
             set { _tree = value; }
         }
@@ -82,37 +111,37 @@ namespace Resthopper.IO
         //public string ParamName { get; set; }
 
 
-        public ICollection<GhPath> Keys {
+        public ICollection<string> Keys {
             get {
-                return ((IDictionary<GhPath, List<T>>)_tree).Keys;
+                return ((IDictionary<string, List<T>>)_tree).Keys;
             }
         }
 
         public ICollection<List<T>> Values {
             get {
-                return ((IDictionary<GhPath, List<T>>)_tree).Values;
+                return ((IDictionary<string, List<T>>)_tree).Values;
             }
         }
 
         public int Count {
             get {
-                return ((IDictionary<GhPath, List<T>>)_tree).Count;
+                return ((IDictionary<string, List<T>>)_tree).Count;
             }
         }
 
         public bool IsReadOnly {
             get {
-                return ((IDictionary<GhPath, List<T>>)_tree).IsReadOnly;
+                return ((IDictionary<string, List<T>>)_tree).IsReadOnly;
             }
         }
 
-        public List<T> this[GhPath key] {
+        public List<T> this[string key] {
             get {
-                return ((IDictionary<GhPath, List<T>>)_tree)[key];
+                return ((IDictionary<string, List<T>>)_tree)[key];
             }
 
             set {
-                ((IDictionary<GhPath, List<T>>)_tree)[key] = value;
+                ((IDictionary<string, List<T>>)_tree)[key] = value;
             }
         }
 
@@ -126,7 +155,7 @@ namespace Resthopper.IO
             return false;
         }
 
-        public void Append(List<T> items, GhPath GhPath) {
+        public void Append(List<T> items, string GhPath) {
 
             if (!_tree.ContainsKey(GhPath)) {
                 _tree.Add(GhPath, new List<T>());
@@ -135,7 +164,7 @@ namespace Resthopper.IO
             //_GhPathIndexer.Add(item.Index, GhPath);
         }
 
-        public void Append(T item, GhPath GhPath) {
+        public void Append(T item, string GhPath) {
             if (!_tree.ContainsKey(GhPath)) {
                 _tree.Add(GhPath, new List<T>());
             }
@@ -143,48 +172,48 @@ namespace Resthopper.IO
             //_GhPathIndexer.Add(item.Index, GhPath);
         }
 
-        public bool ContainsKey(GhPath key) {
-            return ((IDictionary<GhPath, List<T>>)_tree).ContainsKey(key);
+        public bool ContainsKey(string key) {
+            return ((IDictionary<string, List<T>>)_tree).ContainsKey(key);
         }
 
-        public void Add(GhPath key, List<T> value) {
-            ((IDictionary<GhPath, List<T>>)_tree).Add(key, value);
+        public void Add(string key, List<T> value) {
+            ((IDictionary<string, List<T>>)_tree).Add(key, value);
         }
 
-        public bool Remove(GhPath key) {
-            return ((IDictionary<GhPath, List<T>>)_tree).Remove(key);
+        public bool Remove(string key) {
+            return ((IDictionary<string, List<T>>)_tree).Remove(key);
         }
 
-        public bool TryGetValue(GhPath key, out List<T> value) {
-            return ((IDictionary<GhPath, List<T>>)_tree).TryGetValue(key, out value);
+        public bool TryGetValue(string key, out List<T> value) {
+            return ((IDictionary<string, List<T>>)_tree).TryGetValue(key, out value);
         }
 
-        public void Add(KeyValuePair<GhPath, List<T>> item) {
-            ((IDictionary<GhPath, List<T>>)_tree).Add(item);
+        public void Add(KeyValuePair<string, List<T>> item) {
+            ((IDictionary<string, List<T>>)_tree).Add(item);
         }
 
         public void Clear() {
-            ((IDictionary<GhPath, List<T>>)_tree).Clear();
+            ((IDictionary<string, List<T>>)_tree).Clear();
         }
 
-        public bool Contains(KeyValuePair<GhPath, List<T>> item) {
-            return ((IDictionary<GhPath, List<T>>)_tree).Contains(item);
+        public bool Contains(KeyValuePair<string, List<T>> item) {
+            return ((IDictionary<string, List<T>>)_tree).Contains(item);
         }
 
-        public void CopyTo(KeyValuePair<GhPath, List<T>>[] array, int arrayIndex) {
-            ((IDictionary<GhPath, List<T>>)_tree).CopyTo(array, arrayIndex);
+        public void CopyTo(KeyValuePair<string, List<T>>[] array, int arrayIndex) {
+            ((IDictionary<string, List<T>>)_tree).CopyTo(array, arrayIndex);
         }
 
-        public bool Remove(KeyValuePair<GhPath, List<T>> item) {
-            return ((IDictionary<GhPath, List<T>>)_tree).Remove(item);
+        public bool Remove(KeyValuePair<string, List<T>> item) {
+            return ((IDictionary<string, List<T>>)_tree).Remove(item);
         }
 
-        public IEnumerator<KeyValuePair<GhPath, List<T>>> GetEnumerator() {
-            return ((IDictionary<GhPath, List<T>>)_tree).GetEnumerator();
+        public IEnumerator<KeyValuePair<string, List<T>>> GetEnumerator() {
+            return ((IDictionary<string, List<T>>)_tree).GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator() {
-            return ((IDictionary<GhPath, List<T>>)_tree).GetEnumerator();
+            return ((IDictionary<string, List<T>>)_tree).GetEnumerator();
         }
     }
 
