@@ -48,7 +48,10 @@ namespace Resthopper.IO
             List<int> ints = new List<int>();
             foreach (string s in stringValues)
             {
-                ints.Add(Int32.Parse(s));
+                if (s != string.Empty)
+                {
+                    ints.Add(Int32.Parse(s));
+                }
             }
             return ints.ToArray();
         }

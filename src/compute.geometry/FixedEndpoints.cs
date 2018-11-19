@@ -272,9 +272,19 @@ namespace compute.geometry
                                         for (int i = 0; i < entree.Value.Count; i++)
                                         {
                                             ResthopperObject restobj = entree.Value[i];
-                                            Rhino.Geometry.Polyline data = JsonConvert.DeserializeObject<Rhino.Geometry.Polyline>(restobj.Data);
-                                            Rhino.Geometry.Curve c = new Rhino.Geometry.PolylineCurve(data);
-                                            GH_Curve ghCurve = new GH_Curve(c);
+                                            GH_Curve ghCurve;
+                                            try
+                                            {
+                                                Rhino.Geometry.Polyline data = JsonConvert.DeserializeObject<Rhino.Geometry.Polyline>(restobj.Data);
+                                                Rhino.Geometry.Curve c = new Rhino.Geometry.PolylineCurve(data);
+                                                ghCurve = new GH_Curve(c);
+                                            }
+                                            catch
+                                            {
+                                                Rhino.Geometry.NurbsCurve data = JsonConvert.DeserializeObject<Rhino.Geometry.NurbsCurve>(restobj.Data);
+                                                Rhino.Geometry.Curve c = new Rhino.Geometry.NurbsCurve(data);
+                                                ghCurve = new GH_Curve(c);
+                                            }
                                             curveParam.AddVolatileData(path, i, ghCurve);
                                         }
                                     }
