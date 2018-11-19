@@ -155,6 +155,10 @@ namespace Resthopper.IO
             return false;
         }
 
+        public void Append(List<T> items, GhPath GhPath) {
+            this.Append(items, GhPath.ToString());            
+        }
+
         public void Append(List<T> items, string GhPath) {
 
             if (!_tree.ContainsKey(GhPath)) {
@@ -162,6 +166,10 @@ namespace Resthopper.IO
             }
             _tree[GhPath].AddRange(items);
             //_GhPathIndexer.Add(item.Index, GhPath);
+        }
+
+        public void Append(T item, GhPath path) {
+            this.Append(item, path.ToString());
         }
 
         public void Append(T item, string GhPath) {
