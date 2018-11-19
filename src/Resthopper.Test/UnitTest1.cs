@@ -53,6 +53,8 @@ namespace Resthopper.Test
             var path = new GhPath(new int[] { 0, 1, 2 });
             //path.ParamName = "testchecktest";
 
+            tree.ParamName = "testchecktest";
+
             List<ResthopperObject> list = new List<ResthopperObject>() {
                 new ResthopperObject("test1"),
                 new ResthopperObject("test2"),

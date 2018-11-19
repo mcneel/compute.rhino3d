@@ -90,7 +90,7 @@ namespace Resthopper.IO
     //}
 
 
-    public class DataTree<T> : IDictionary<string, List<T>>
+    public class DataTree<T> 
     {
 
         public DataTree() {
@@ -212,9 +212,9 @@ namespace Resthopper.IO
             return ((IDictionary<string, List<T>>)_tree).GetEnumerator();
         }
 
-        IEnumerator IEnumerable.GetEnumerator() {
-            return ((IDictionary<string, List<T>>)_tree).GetEnumerator();
-        }
+        //IEnumerator IEnumerable.GetEnumerator() {
+            //return ((IDictionary<string, List<T>>)_tree).GetEnumerator();
+        //}
     }
 
 }
