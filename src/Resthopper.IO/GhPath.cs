@@ -20,6 +20,11 @@ namespace Resthopper.IO
             //this.Path = new int[0];
         }
 
+        public GhPath(int path) {
+            this.Path = new int[] { path };
+        }
+
+
         public GhPath(int[] path)
         {
             this.Path = path;
