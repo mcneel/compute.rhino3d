@@ -45,9 +45,10 @@ namespace Resthopper.IO
 
 
             string requestUrl = server + urlExt;
-
-            var bytes = Encoding.Default.GetBytes(jsonArguments);
-
+            byte[] bytes = null;
+            if (jsonArguments != null) {
+                bytes = Encoding.Default.GetBytes(jsonArguments);
+            }
             using (var client = new System.Net.WebClient()) {
                 client.Headers.Add("Content-Type", "application/json");
                 client.Headers.Add("Authorization", token);
