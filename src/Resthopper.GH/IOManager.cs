@@ -17,6 +17,8 @@ namespace ResthopperGH
     {
         private GH_Document doc;
         private IGH_Component Component;
+        private Dictionary<GHTypeCodes, int> LastIDin;
+        private Dictionary<GHTypeCodes, int> LastIDout;
         /// <summary>
         /// Each implementation of GH_Component must provide a public 
         /// constructor without any arguments.
@@ -56,6 +58,48 @@ namespace ResthopperGH
         /// to store data in output parameters.</param>
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            this.LastIDin = new Dictionary<GHTypeCodes, int>()
+            {
+                { GHTypeCodes.Boolean, 0},
+                { GHTypeCodes.Point, 0 },
+                { GHTypeCodes.Vector, 0 },
+                { GHTypeCodes.Integer, 0 },
+                { GHTypeCodes.Number, 0 },
+                { GHTypeCodes.Text, 0 },
+                { GHTypeCodes.Line, 0 },
+                { GHTypeCodes.Curve, 0 },
+                { GHTypeCodes.Circle, 0 },
+                { GHTypeCodes.PLane, 0 },
+                { GHTypeCodes.Rectangle, 0 },
+                { GHTypeCodes.Box, 0 },
+                { GHTypeCodes.Surface, 0 },
+                { GHTypeCodes.Brep, 0 },
+                { GHTypeCodes.Mesh, 0 },
+                { GHTypeCodes.Slider, 0 },
+                { GHTypeCodes.BooleanToggle, 0 },
+                { GHTypeCodes.Panel, 0 }
+            };
+            this.LastIDout = new Dictionary<GHTypeCodes, int>()
+            {
+                { GHTypeCodes.Boolean, 0},
+                { GHTypeCodes.Point, 0 },
+                { GHTypeCodes.Vector, 0 },
+                { GHTypeCodes.Integer, 0 },
+                { GHTypeCodes.Number, 0 },
+                { GHTypeCodes.Text, 0 },
+                { GHTypeCodes.Line, 0 },
+                { GHTypeCodes.Curve, 0 },
+                { GHTypeCodes.Circle, 0 },
+                { GHTypeCodes.PLane, 0 },
+                { GHTypeCodes.Rectangle, 0 },
+                { GHTypeCodes.Box, 0 },
+                { GHTypeCodes.Surface, 0 },
+                { GHTypeCodes.Brep, 0 },
+                { GHTypeCodes.Mesh, 0 },
+                { GHTypeCodes.Slider, 0 },
+                { GHTypeCodes.BooleanToggle, 0 },
+                { GHTypeCodes.Panel, 0 }
+            };
             bool inputButton = false;
             bool outputButton = false;
 
@@ -64,6 +108,8 @@ namespace ResthopperGH
 
             this.doc = this.OnPingDocument();
             this.Component = this;
+
+            this.ScanIDs();
 
             List<IGH_DocumentObject> SelecteedObjects = new List<IGH_DocumentObject>();
             List<string> inputList = new List<string>();
@@ -84,7 +130,9 @@ namespace ResthopperGH
                     Grasshopper.Kernel.Special.GH_Group group = new Grasshopper.Kernel.Special.GH_Group();
                     group.AddObject(obj.InstanceGuid);
                     int code = GetGrasshopperTypeCode(obj);
-                    group.NickName = $"RH_IN:{code}";
+                    int id = ++this.LastIDin[(GHTypeCodes)code];
+
+                    group.NickName = $"RH_IN:{code}:{id.ToString("D4")}";
                     group.Colour = System.Drawing.Color.Cyan;
                     inputList.Add(obj.InstanceGuid.ToString());
                     this.doc.AddObject(group, false);
@@ -98,7 +146,9 @@ namespace ResthopperGH
                     Grasshopper.Kernel.Special.GH_Group group = new Grasshopper.Kernel.Special.GH_Group();
                     group.AddObject(obj.InstanceGuid);
                     int code = GetGrasshopperTypeCode(obj);
-                    group.NickName = $"RH_OUT:{code}";
+                    int id = ++this.LastIDout[(GHTypeCodes)code];
+
+                    group.NickName = $"RH_OUT:{code}:{id.ToString("D4")}";
                     group.Colour = System.Drawing.Color.LightGreen;
                     outputList.Add(obj.InstanceGuid.ToString());
                     this.doc.AddObject(group, false);
@@ -107,10 +157,31 @@ namespace ResthopperGH
 
             DA.SetDataList(0, inputList);
             DA.SetDataList(1, outputList);
+        }
 
+        public void ScanIDs()
+        {
+            foreach (IGH_DocumentObject obj in this.doc.Objects)
+            {
+                if (obj.GetType() == typeof(Grasshopper.Kernel.Special.GH_Group))
+                {
+                    Grasshopper.Kernel.Special.GH_Group group = obj as Grasshopper.Kernel.Special.GH_Group;
+                    string name = group.NickName;
+                    if (name.Contains("RH_IN"))
+                    {
+                        int number = int.Parse(name.Split(':')[2]);
+                        GHTypeCodes code = (GHTypeCodes)int.Parse(name.Split(':')[1]);
+                        if (this.LastIDin[code] < number) { this.LastIDin[code] = number; }
+                    }
+                    else if (name.Contains("RH_OUT"))
+                    {
+                        int number = int.Parse(name.Split(':')[2]);
+                        GHTypeCodes code = (GHTypeCodes)int.Parse(name.Split(':')[1]);
+                        if (this.LastIDout[code] < number) { this.LastIDout[code] = number; }
+                    }
 
-
-
+                } 
+            }
         }
 
         /// <summary>
