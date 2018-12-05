@@ -489,7 +489,7 @@ namespace compute.geometry
 
                     // Get data
                     Resthopper.IO.DataTree<ResthopperObject> OutputTree = new Resthopper.IO.DataTree<ResthopperObject>();
-                    //OutputTree.ParamName = param.NickName;
+                    OutputTree.ParamName = group.NickName;
 
                     var volatileData = param.VolatileData;
                     for (int p = 0; p < volatileData.PathCount; p++)
