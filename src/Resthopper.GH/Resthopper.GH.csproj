@@ -62,10 +62,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IOManager.cs" />
+    <Compile Include="LoadTree.cs" />
     <Compile Include="Resthopper.GHInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ResthopperClient.cs" />
     <Compile Include="ResthopperInput.cs" />
+    <Compile Include="SaveTree.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Resthopper.IO\Resthopper.IO.csproj">
