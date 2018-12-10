@@ -59,24 +59,34 @@ namespace Resthopper.GH
             {
                 List<IGH_Goo> pLines = new List<IGH_Goo>();
                 Grasshopper.Kernel.Data.GH_Path ghPath = new Grasshopper.Kernel.Data.GH_Path(GhPath.FromString(pair.Key));
-                foreach (ResthopperObject ro in pair.Value)
-                {
-
-                    try { ghTree.Append(new GH_Curve(JsonConvert.DeserializeObject<Curve>(ro.Data)), ghPath); }
-                    catch
-                    {
-                        try { ghTree.Append(new GH_Point(JsonConvert.DeserializeObject<Point3d>(ro.Data)), ghPath); }
-                        catch
-                        {
-                            ghTree.Append(new GH_Boolean(JsonConvert.DeserializeObject<bool>(ro.Data)), ghPath);
-                        }
+                foreach (ResthopperObject ro in pair.Value) {
+                    //object output;
+                    if (ro.Type == typeof(Rhino.Geometry.Polyline).FullName) {
+                        Curve output = Newtonsoft.Json.JsonConvert.DeserializeObject<Rhino.Geometry.Polyline>(ro.Data).ToNurbsCurve();
+                        SetTree(ghTree, ghPath, new GH_Curve(output));
+                    } else if (ro.Type == typeof(Rhino.Geometry.PolylineCurve).FullName) {
+                        Curve output = Newtonsoft.Json.JsonConvert.DeserializeObject<Rhino.Geometry.Curve>(ro.Data);
+                        SetTree(ghTree, ghPath, new GH_Curve(output));
+                    } else if (ro.Type == typeof(Rhino.Geometry.Curve).FullName) {
+                        Curve output = Newtonsoft.Json.JsonConvert.DeserializeObject<Rhino.Geometry.Curve>(ro.Data);
+                        SetTree(ghTree, ghPath, new GH_Curve(output));
+                    } else if (ro.Type == typeof(bool).FullName) {
+                        bool output = Newtonsoft.Json.JsonConvert.DeserializeObject<bool>(ro.Data);
+                        SetTree(ghTree, ghPath, new GH_Boolean(output));
+                    } else if (ro.Type == typeof(Rhino.Geometry.Point3d).FullName) {
+                        Point3d output = Newtonsoft.Json.JsonConvert.DeserializeObject<Point3d>(ro.Data);
+                        SetTree(ghTree, ghPath, new GH_Point(output));
+                    } else {
+                        throw new NotImplementedException("Resthopper type not implemented.");
                     }
                 }
                 
             }
                     DA.SetDataTree(0, ghTree);
-                 
-            
+        }
+
+        private  void SetTree(Grasshopper.Kernel.Data.GH_Structure<IGH_Goo> ghTree, Grasshopper.Kernel.Data.GH_Path ghPath, IGH_Goo data) {
+            ghTree.Append(data, ghPath);
         }
 
         /// <summary>
