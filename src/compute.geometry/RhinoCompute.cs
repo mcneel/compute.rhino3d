@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using Rhino.Geometry;
 using Rhino.Geometry.Intersect;
@@ -2987,6 +2987,29 @@ namespace Rhino.Compute
             return ComputeServer.Post<Curve[]>(ApiAddress(), curve, directionPoint, normal, distance, tolerance, cornerStyle);
         }
         /// <summary>
+        /// Offsets a closed curve in the following way: pProject the curve to a plane with given normal.
+        /// Then, loose Offset the projection by distance + blend_radius and trim off self-intersection.
+        /// THen, Offset the remaining curve back in the opposite direction by blend_radius, filling gaps with blends.
+        /// Finally, use the elevations of the input curve to get the correct elevations of the result.
+        /// </summary>
+        /// <param name="distance">The positive distance to offset the curve.</param>
+        /// <param name="blendRadius">
+        /// Positive, typically the same as distance. When the offset results in a self-intersection
+        /// that gets trimmed off at a kink, the kink will be blended out using this radius.
+        /// </param>
+        /// <param name="directionPoint">
+        /// A point that indicates the direction of the offset. If the offset is inward,
+        /// the point's projection to the plane should be well within the curve.
+        /// It will be used to decide which part of the offset to keep if there are self-intersections.
+        /// </param>
+        /// <param name="normal">A vector that indicates the normal of the plane in which the offset will occur.</param>
+        /// <param name="tolerance">Used to determine self-intersections, not offset error.</param>
+        /// <returns>The offset curve if successful.</returns>
+        public static Curve RibbonOffset(this Curve curve, out Curve updatedInstance, double distance, double blendRadius, Point3d directionPoint, Vector3d normal, double tolerance)
+        {
+            return ComputeServer.Post<Curve, Curve>(ApiAddress(), out updatedInstance, curve, distance, blendRadius, directionPoint, normal, tolerance);
+        }
+        /// <summary>
         /// Offset this curve on a brep face surface. This curve must lie on the surface.
         /// </summary>
         /// <param name="face">The brep face on which to offset.</param>
@@ -3829,6 +3852,49 @@ namespace Rhino.Compute
         {
             return ComputeServer.Post<Mesh>(ApiAddress(), mesh, softeningRadius, chamfer, faceted, force, angleThreshold);
         }
+        /// <summary>
+        /// Reduce polygon count
+        /// </summary>
+        /// <param name="desiredPolygonCount">desired or target number of faces</param>
+        /// <param name="allowDistortion">
+        /// If true mesh appearance is not changed even if the target polygon count is not reached
+        /// </param>
+        /// <param name="accuracy">Integer from 1 to 10 telling how accurate reduction algorithm
+        ///  to use. Greater number gives more accurate results
+        /// </param>
+        /// <param name="normalizeSize">If true mesh is fitted to an axis aligned unit cube until reduction is complete</param>
+        /// <returns>True if mesh is successfully reduced and false if mesh could not be reduced for some reason.</returns>
+        public static bool Reduce(this Mesh mesh, out Mesh updatedInstance, int desiredPolygonCount, bool allowDistortion, int accuracy, bool normalizeSize)
+        {
+            return ComputeServer.Post<bool, Mesh>(ApiAddress(), out updatedInstance, mesh, desiredPolygonCount, allowDistortion, accuracy, normalizeSize);
+        }
+        /// <summary>
+        /// Constructs contour curves for a mesh, sectioned along a linear axis.
+        /// </summary>
+        /// <param name="meshToContour">A mesh to contour.</param>
+        /// <param name="contourStart">A start point of the contouring axis.</param>
+        /// <param name="contourEnd">An end point of the contouring axis.</param>
+        /// <param name="interval">An interval distance.</param>
+        /// <returns>An array of curves. This array can be empty.</returns>
+        /// <example>
+        /// <code source='examples\vbnet\ex_makerhinocontours.vb' lang='vbnet'/>
+        /// <code source='examples\cs\ex_makerhinocontours.cs' lang='cs'/>
+        /// <code source='examples\py\ex_makerhinocontours.py' lang='py'/>
+        /// </example>
+        public static Curve[] CreateContourCurves(Mesh meshToContour, Point3d contourStart, Point3d contourEnd, double interval)
+        {
+            return ComputeServer.Post<Curve[]>(ApiAddress(), meshToContour, contourStart, contourEnd, interval);
+        }
+        /// <summary>
+        /// Constructs contour curves for a mesh, sectioned at a plane.
+        /// </summary>
+        /// <param name="meshToContour">A mesh to contour.</param>
+        /// <param name="sectionPlane">A cutting plane.</param>
+        /// <returns>An array of curves. This array can be empty.</returns>
+        public static Curve[] CreateContourCurves(Mesh meshToContour, Plane sectionPlane)
+        {
+            return ComputeServer.Post<Curve[]>(ApiAddress(), meshToContour, sectionPlane);
+        }
     }
 
     public static class NurbsCurveCompute
@@ -4108,7 +4174,7 @@ namespace Rhino.Compute.Intersect
         /// </summary>
         /// <param name="meshA">First mesh for intersection.</param>
         /// <param name="meshB">Second mesh for intersection.</param>
-        /// <returns>An array of intersection line segments.</returns>
+        /// <returns>An array of intersection line segments, or null.</returns>
         public static Line[] MeshMeshFast(Mesh meshA, Mesh meshB)
         {
             return ComputeServer.Post<Line[]>(ApiAddress(), meshA, meshB);

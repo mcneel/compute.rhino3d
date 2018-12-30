@@ -49,7 +49,7 @@ namespace computegen
                 {
                     if (paramCount > 0)
                         sb.Append(", ");
-                    sb.Append($"{method.ParameterList.Parameters[i].ToFullString()}");
+                    sb.Append($"{method.ParameterList.Parameters[i].ToFullString().Trim()}");
                     paramCount++;
                 }
                 sb.AppendLine(")");
