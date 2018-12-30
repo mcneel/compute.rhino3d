@@ -140,19 +140,11 @@ namespace computegen
                 {
                     name = genericType.TypeArgumentList.Arguments.ToString() + "Array";
                 }
-                if( name.Contains("IEnumerable"))
-                {
-                    int bh = 0;
-                }
                 name = name.Replace("[]", "Array").Replace("Int32", "Int").Replace("Boolean", "Bool");
 
                 url.Append(name);
             }
 
-            if( url.ToString().Contains("<"))
-            {
-                int bh = 0;
-            }
             return url.ToString().ToLower();
         }
     }
@@ -161,7 +153,6 @@ namespace computegen
     class SourceFileWalker : Microsoft.CodeAnalysis.CSharp.CSharpSyntaxWalker
     {
         readonly List<Microsoft.CodeAnalysis.Text.TextSpan> _rhinoSdkSpans = new List<Microsoft.CodeAnalysis.Text.TextSpan>();
-        string _visitingClass = null;
         int _activeSpanStart;
 
         public SourceFileWalker() : base(Microsoft.CodeAnalysis.SyntaxWalkerDepth.StructuredTrivia)
@@ -177,20 +168,11 @@ namespace computegen
             Visit(node);
         }
 
-        public override void VisitClassDeclaration(ClassDeclarationSyntax node)
+        static string ClassName(TypeDeclarationSyntax node)
         {
             NamespaceDeclarationSyntax ns = node.Parent as NamespaceDeclarationSyntax;
             string className = node.Identifier.ToString();
-            _visitingClass = ns==null? className : ns.Name + "." + className;
-            base.VisitClassDeclaration(node);
-        }
-
-        public override void VisitStructDeclaration(StructDeclarationSyntax node)
-        {
-            NamespaceDeclarationSyntax ns = node.Parent as NamespaceDeclarationSyntax;
-            string className = node.Identifier.ToString();
-            _visitingClass = ns == null ? className : ns.Name + "." + className;
-            base.VisitStructDeclaration(node);
+            return ns == null ? className : ns.Name + "." + className;
         }
 
         public override void VisitIfDirectiveTrivia(IfDirectiveTriviaSyntax node)
@@ -247,8 +229,11 @@ namespace computegen
 
                     if (refCount == 0 && outCount < 2)
                     {
+                        TypeDeclarationSyntax tds = node.Parent as TypeDeclarationSyntax;
+                        string visitingClass = ClassName(tds);
+
                         var docComment = node.GetLeadingTrivia().Select(i => i.GetStructure()).OfType<DocumentationCommentTriviaSyntax>().FirstOrDefault();
-                        ClassBuilder.Get(_visitingClass).Methods.Add(new Tuple<MethodDeclarationSyntax, DocumentationCommentTriviaSyntax>(node, docComment));
+                        ClassBuilder.Get(visitingClass).Methods.Add(new Tuple<MethodDeclarationSyntax, DocumentationCommentTriviaSyntax>(node, docComment));
                     }
                 }
             }

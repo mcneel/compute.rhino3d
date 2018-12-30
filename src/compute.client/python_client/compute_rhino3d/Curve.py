@@ -697,6 +697,12 @@ def Offset1(thisCurve, directionPoint, normal, distance, tolerance, cornerStyle)
     return response
 
 
+def RibbonOffset(thisCurve, distance, blendRadius, directionPoint, normal, tolerance):
+    args = [thisCurve, distance, blendRadius, directionPoint, normal, tolerance]
+    response = Util.ComputeFetch("rhino/geometry/curve/ribbonoffset-curve_double_double_point3d_vector3d_double", args)
+    return response
+
+
 def OffsetOnSurface(thisCurve, face, distance, fittingTolerance):
     args = [thisCurve, face, distance, fittingTolerance]
     response = Util.ComputeFetch("rhino/geometry/curve/offsetonsurface-curve_brepface_double_double", args)

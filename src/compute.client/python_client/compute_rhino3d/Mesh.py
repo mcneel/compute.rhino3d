@@ -408,3 +408,45 @@ def WithEdgeSoftening(thisMesh, softeningRadius, chamfer, faceted, force, angleT
     response = Util.ComputeFetch("rhino/geometry/mesh/withedgesoftening-mesh_double_bool_bool_bool_double", args)
     return response
 
+
+def Reduce(thisMesh, desiredPolygonCount, allowDistortion, accuracy, normalizeSize):
+    args = [thisMesh, desiredPolygonCount, allowDistortion, accuracy, normalizeSize]
+    response = Util.ComputeFetch("rhino/geometry/mesh/reduce-mesh_int_bool_int_bool", args)
+    return response
+
+
+def Reduce1(thisMesh, parameters):
+    args = [thisMesh, parameters]
+    response = Util.ComputeFetch("rhino/geometry/mesh/reduce-mesh_reducemeshparameters", args)
+    return response
+
+
+def ComputeThickness(meshes, maximumThickness):
+    args = [meshes, maximumThickness]
+    response = Util.ComputeFetch("rhino/geometry/mesh/computethickness-mesharray_double", args)
+    return response
+
+
+def ComputeThickness1(meshes, maximumThickness, cancelToken):
+    args = [meshes, maximumThickness, cancelToken]
+    response = Util.ComputeFetch("rhino/geometry/mesh/computethickness-mesharray_double_system.threading.cancellationtoken", args)
+    return response
+
+
+def ComputeThickness2(meshes, maximumThickness, sharpAngle, cancelToken):
+    args = [meshes, maximumThickness, sharpAngle, cancelToken]
+    response = Util.ComputeFetch("rhino/geometry/mesh/computethickness-mesharray_double_double_system.threading.cancellationtoken", args)
+    return response
+
+
+def CreateContourCurves(meshToContour, contourStart, contourEnd, interval):
+    args = [meshToContour, contourStart, contourEnd, interval]
+    response = Util.ComputeFetch("rhino/geometry/mesh/createcontourcurves-mesh_point3d_point3d_double", args)
+    return response
+
+
+def CreateContourCurves1(meshToContour, sectionPlane):
+    args = [meshToContour, sectionPlane]
+    response = Util.ComputeFetch("rhino/geometry/mesh/createcontourcurves-mesh_plane", args)
+    return response
+

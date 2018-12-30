@@ -61,6 +61,12 @@ def MeshMeshFast(meshA, meshB):
     return response
 
 
+def MeshMesh(meshes, tolerance, mode):
+    args = [meshes, tolerance, mode]
+    response = Util.ComputeFetch("rhino/geometry/intersect/intersection/meshmesh-mesharray_double_setscombinations", args)
+    return response
+
+
 def MeshMeshAccurate(meshA, meshB, tolerance):
     args = [meshA, meshB, tolerance]
     response = Util.ComputeFetch("rhino/geometry/intersect/intersection/meshmeshaccurate-mesh_mesh_double", args)
