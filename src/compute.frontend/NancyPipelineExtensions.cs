@@ -34,6 +34,9 @@ namespace compute.frontend
             context.Items.Add("Hostname", GetMachineId());
             context.Items.Add("StartTicks", DateTime.UtcNow.Ticks);
 
+            if (context.Request.Path == "/healthcheck")
+                return null;
+
             Log.ForContext<Nancy.Request>()
                 .ForContext(new RequestLogEnricher(context))
                 .Information("\"{Method} {Path}\" - \"{Agent}\"", context.Request.Method, context.Request.Path,
@@ -56,6 +59,9 @@ namespace compute.frontend
 
         private static void LogResponse(NancyContext context)
         {
+            if (context.Request.Path == "/healthcheck")
+                return;
+
             Log.ForContext<Nancy.Response>()
                 .ForContext(new RequestLogEnricher(context))
                 .Information("\"{Method} {Path}\" {StatusCode} \"{Agent}\"", context.Request.Method,
