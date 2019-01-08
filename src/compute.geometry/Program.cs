@@ -188,7 +188,12 @@ namespace compute.geometry
                 {
                     string key = endpoint.Path.ToLowerInvariant();
                     Get[key] = _ => endpoint.Get(Context);
-                    Post[key] = _ => endpoint.Post(Context);
+                    Post[key] = _ =>
+                    {
+                        var r = endpoint.Post(Context);
+                        r.ContentType = "application/json";
+                        return r;
+                    };
                 }
             }
 
