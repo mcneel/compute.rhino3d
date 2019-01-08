@@ -75,7 +75,16 @@ namespace computegen
                 }
                 for (int i = 0; i < method.ParameterList.Parameters.Count; i++)
                 {
-                    parameters.Add(method.ParameterList.Parameters[i].Identifier.ToString());
+                    bool isOutParamter = false;
+                    foreach (var modifier in method.ParameterList.Parameters[i].Modifiers)
+                    {
+                        if (modifier.Text == "out")
+                        {
+                            isOutParamter = true;
+                        }
+                    }
+                    if(!isOutParamter)
+                        parameters.Add(method.ParameterList.Parameters[i].Identifier.ToString());
                 }
 
                 for (int i = 0; i < parameters.Count; i++)
