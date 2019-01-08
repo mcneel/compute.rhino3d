@@ -227,7 +227,7 @@ namespace computegen
                     if (node.IsNonConst(out useAsReturnType) && !useAsReturnType)
                         outCount++;
 
-                    if (refCount == 0 && outCount < 2)
+                    if (refCount == 0 && outCount < 3)
                     {
                         TypeDeclarationSyntax tds = node.Parent as TypeDeclarationSyntax;
                         string visitingClass = ClassName(tds);
