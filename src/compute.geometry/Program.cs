@@ -192,6 +192,32 @@ namespace compute.geometry
                 }
             }
 
+            //var script = Rhino.Runtime.PythonScript.Create();
+            //if( script != null )
+            {
+                foreach( var endpoint in GeometryEndPoint.Create(typeof(Python)) )
+                {
+                    string key = endpoint.Path.ToLowerInvariant();
+                    Get[key] = _ => endpoint.Get(Context);
+                    Post[key] = _ => endpoint.Post(Context);
+
+                }
+            }
+
+        }
+    }
+
+
+    class Python
+    {
+        public static object Evaluate(string script, string input)
+        {
+            var py = Rhino.Runtime.PythonScript.Create();
+            if (input != null)
+                py.SetVariable("input", input);
+            py.ExecuteScript(script);
+            object output = py.GetVariable("output");
+            return output;
         }
     }
 }

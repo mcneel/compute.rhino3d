@@ -11,19 +11,27 @@ namespace computegen
             StringBuilder clientText = new StringBuilder();
             clientText.Append(Prefix);
 
-            foreach (var kv in ClassBuilder.AllClasses)
+            for (int pass= 0; pass < 2; pass++)
             {
-                if (kv.Key.StartsWith("Rhino.Geometry."))
+                foreach (var kv in ClassBuilder.AllClasses)
                 {
-                    bool skip = true;
-                    foreach (var f in filter)
+                    if (kv.Key.StartsWith("Rhino.Geometry."))
                     {
-                        if (kv.Key.EndsWith(f))
-                            skip = false;
+                        bool skip = true;
+                        foreach (var f in filter)
+                        {
+                            if (kv.Key.EndsWith(f))
+                                skip = false;
+                        }
+                        if (skip)
+                            continue;
+                        bool containsIntersect = kv.Key.Contains(".Intersect");
+                        if (0 == pass && containsIntersect)
+                            continue;
+                        if (1 == pass && !containsIntersect)
+                            continue;
+                        clientText.Append(ToComputeClient(kv.Value));
                     }
-                    if (skip)
-                        continue;
-                    clientText.Append(ToComputeClient(kv.Value));
                 }
             }
 

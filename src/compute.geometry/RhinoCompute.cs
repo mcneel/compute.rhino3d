@@ -68,6 +68,36 @@ namespace Rhino.Compute
             }
         }
 
+        public static T0 Post<T0, T1, T2>(string function, out T1 out1, out T2 out2, params object[] postData)
+        {
+            if (string.IsNullOrWhiteSpace(AuthToken))
+                throw new UnauthorizedAccessException("AuthToken must be set");
+            string json = Newtonsoft.Json.JsonConvert.SerializeObject(postData);
+            if (!function.StartsWith("/"))
+                function = "/" + function;
+            string uri = (WebAddress + function).ToLower();
+            var request = System.Net.WebRequest.Create(uri);
+            request.ContentType = "application/json";
+            request.Headers.Add("Authorization", "Bearer " + AuthToken);
+            request.Method = "POST";
+            using (var streamWriter = new StreamWriter(request.GetRequestStream()))
+            {
+                streamWriter.Write(json);
+                streamWriter.Flush();
+            }
+
+            var response = request.GetResponse();
+            using (var streamReader = new StreamReader(response.GetResponseStream()))
+            {
+                var jsonString = streamReader.ReadToEnd();
+                object data = Newtonsoft.Json.JsonConvert.DeserializeObject(jsonString);
+                var ja = data as Newtonsoft.Json.Linq.JArray;
+                out1 = ja[1].ToObject<T1>();
+                out2 = ja[2].ToObject<T2>();
+                return ja[0].ToObject<T0>();
+            }
+        }
+
         public static string ApiAddress(Type t, string function)
         {
             string s = t.ToString().Replace('.', '/');
@@ -726,6 +756,38 @@ namespace Rhino.Compute
         public static Brep[] CreateFilletEdges(Brep brep, IEnumerable<int> edgeIndices, IEnumerable<double> startRadii, IEnumerable<double> endRadii, BlendType blendType, RailType railType, double tolerance)
         {
             return ComputeServer.Post<Brep[]>(ApiAddress(), brep, edgeIndices, startRadii, endRadii, blendType, railType, tolerance);
+        }
+        /// <summary>
+        /// Offsets a Brep.
+        /// </summary>
+        /// <param name="brep">The Brep to offset.</param>
+        /// <param name="distance">
+        /// The distance to offset. This is a signed distance value with respect to
+        /// face normals and flipped faces.
+        /// </param>
+        /// <param name="solid">
+        /// If true, then the function makes a closed solid from the input and offset
+        /// surfaces by lofting a ruled surface between all of the matching edges.
+        /// </param>
+        /// <param name="extend">
+        /// If true, then the function maintains the sharp corners when the original
+        /// surfaces have sharps corner. If False, then the function creates fillets
+        /// at sharp corners in the original surfaces.
+        /// </param>
+        /// <param name="tolerance">The offset tolerance.</param>
+        /// <param name="outBlends">The results of the calculation.</param>
+        /// <param name="outWalls">The results of the calculation.</param>
+        /// <returns>
+        /// Array of Breps if successful. If the function succeeds in offsetting, a
+        /// single Brep will be returned. Otherwise, the array will contain the 
+        /// offset surfaces, outBlends will contain the set of blends used to fill
+        /// in gaps (if extend is false), and outWalls will contain the set of wall
+        /// surfaces that was supposed to join the offset to the original (if solid
+        /// is true).
+        /// </returns>
+        public static Brep[] CreateOffsetBrep(Brep brep, double distance, bool solid, bool extend, double tolerance, out Brep[] outBlends, out Brep[] outWalls)
+        {
+            return ComputeServer.Post<Brep[], Brep[], Brep[]>(ApiAddress(), out outBlends, out outWalls, brep, distance, solid, extend, tolerance);
         }
         /// <summary>
         /// Joins two naked edges, or edges that are coincident or close together, from two Breps.
@@ -1935,6 +1997,20 @@ namespace Rhino.Compute
             return ComputeServer.Post<Curve[]>(ApiAddress(), curves, breps, direction, tolerance);
         }
         /// <summary>
+        /// Projects a collection of Curves onto a collection of Breps along a given direction.
+        /// </summary>
+        /// <param name="curves">Curves to project.</param>
+        /// <param name="breps">Breps to project onto.</param>
+        /// <param name="direction">Direction of projection.</param>
+        /// <param name="tolerance">Tolerance to use for projection.</param>
+        /// <param name="curveIndices">Index of which curve in the input list was the source for a curve in the return array.</param>
+        /// <param name="brepIndices">Index of which brep was used to generate a curve in the return array.</param>
+        /// <returns>An array of projected curves. Array is empty if the projection set is empty.</returns>
+        public static Curve[] ProjectToBrep(IEnumerable<Curve> curves, IEnumerable<Brep> breps, Vector3d direction, double tolerance, out int[] curveIndices, out int[] brepIndices)
+        {
+            return ComputeServer.Post<Curve[], int[], int[]>(ApiAddress(), out curveIndices, out brepIndices, curves, breps, direction, tolerance);
+        }
+        /// <summary>
         /// Constructs a curve by projecting an existing curve to a plane.
         /// </summary>
         /// <param name="curve">A curve.</param>
@@ -2050,6 +2126,17 @@ namespace Rhino.Compute
         public static bool ClosestPoint(this Curve curve, Point3d testPoint, out double t, double maximumDistance)
         {
             return ComputeServer.Post<bool, double>(ApiAddress(), out t, curve, testPoint, maximumDistance);
+        }
+        /// <summary>
+        /// Gets closest points between this and another curves.
+        /// </summary>
+        /// <param name="otherCurve">The other curve.</param>
+        /// <param name="pointOnThisCurve">The point on this curve. This out parameter is assigned during this call.</param>
+        /// <param name="pointOnOtherCurve">The point on other curve. This out parameter is assigned during this call.</param>
+        /// <returns>true on success; false on error.</returns>
+        public static bool ClosestPoints(this Curve curve, Curve otherCurve, out Point3d pointOnThisCurve, out Point3d pointOnOtherCurve)
+        {
+            return ComputeServer.Post<bool, Point3d, Point3d>(ApiAddress(), out pointOnThisCurve, out pointOnOtherCurve, curve, otherCurve);
         }
         /// <summary>
         /// Computes the relationship between a point and a closed curve region. 
@@ -2769,14 +2856,14 @@ namespace Rhino.Compute
         /// </para>
         /// <para>
         ///	4. Any segment for which IsLinear() or IsArc() is true is a Line, 
-        ///    Polyline segment, or an Arc.
+        ///        Polyline segment, or an Arc.
         /// </para>
         /// <para>
         ///	5. Adjacent Colinear or Cocircular segments are combined.
         /// </para>
         /// <para>
         ///	6. Segments that meet with G1-continuity have there ends tuned up so
-        ///    that they meet with G1-continuity to within machine precision.
+        ///        that they meet with G1-continuity to within machine precision.
         /// </para>
         /// </summary>
         /// <param name="options">Simplification options.</param>
@@ -3699,6 +3786,27 @@ namespace Rhino.Compute
             return ComputeServer.Post<int, Point3d>(ApiAddress(), out pointOnMesh, mesh, testPoint, maximumDistance);
         }
         /// <summary>
+        /// Gets the point on the mesh that is closest to a given test point.
+        /// </summary>
+        /// <param name="testPoint">Point to seach for.</param>
+        /// <param name="pointOnMesh">Point on the mesh closest to testPoint.</param>
+        /// <param name="normalAtPoint">The normal vector of the mesh at the closest point.</param>
+        /// <param name="maximumDistance">
+        /// Optional upper bound on the distance from test point to the mesh. 
+        /// If you are only interested in finding a point Q on the mesh when 
+        /// testPoint.DistanceTo(Q) &lt; maximumDistance, 
+        /// then set maximumDistance to that value. 
+        /// This parameter is ignored if you pass 0.0 for a maximumDistance.
+        /// </param>
+        /// <returns>
+        /// Index of face that the closest point lies on if successful. 
+        /// -1 if not successful; the value of pointOnMesh is undefined.
+        /// </returns>
+        public static int ClosestPoint(this Mesh mesh, Point3d testPoint, out Point3d pointOnMesh, out Vector3d normalAtPoint, double maximumDistance)
+        {
+            return ComputeServer.Post<int, Point3d, Vector3d>(ApiAddress(), out pointOnMesh, out normalAtPoint, mesh, testPoint, maximumDistance);
+        }
+        /// <summary>
         /// Evaluate a mesh at a set of barycentric coordinates.
         /// </summary>
         /// <param name="meshPoint">MeshPoint instance contiaining a valid Face Index and Barycentric coordinates.</param>
@@ -4039,7 +4147,6 @@ namespace Rhino.Compute
             return ComputeServer.Post<NurbsCurve>(ApiAddress(), railCurve, t0, t1, radiusPoint, pitch, turnCount, radius0, radius1, pointsPerTurn);
         }
     }
-
 }
 
 namespace Rhino.Compute.Intersect
@@ -4081,6 +4188,19 @@ namespace Rhino.Compute.Intersect
         public static Polyline[] MeshPlane(Mesh mesh, IEnumerable<Plane> planes)
         {
             return ComputeServer.Post<Polyline[]>(ApiAddress(), mesh, planes);
+        }
+        /// <summary>
+        /// Intersects a Brep with an (infinite) plane.
+        /// </summary>
+        /// <param name="brep">Brep to intersect.</param>
+        /// <param name="plane">Plane to intersect with.</param>
+        /// <param name="tolerance">Tolerance to use for intersections.</param>
+        /// <param name="intersectionCurves">The intersection curves will be returned here.</param>
+        /// <param name="intersectionPoints">The intersection points will be returned here.</param>
+        /// <returns>true on success, false on failure.</returns>
+        public static bool BrepPlane(Brep brep, Plane plane, double tolerance, out Curve[] intersectionCurves, out Point3d[] intersectionPoints)
+        {
+            return ComputeServer.Post<bool, Curve[], Point3d[]>(ApiAddress(), out intersectionCurves, out intersectionPoints, brep, plane, tolerance);
         }
         /// <summary>
         /// Finds the places where a curve intersects itself. 
@@ -4157,6 +4277,26 @@ namespace Rhino.Compute.Intersect
             return ComputeServer.Post<CurveIntersections>(ApiAddress(), curve, curveDomain, surface, tolerance, overlapTolerance);
         }
         /// <summary>
+        /// Intersects a curve with a Brep. This function returns the 3D points of intersection
+        /// and 3D overlap curves. If an error occurs while processing overlap curves, this function 
+        /// will return false, but it will still provide partial results.
+        /// </summary>
+        /// <param name="curve">Curve for intersection.</param>
+        /// <param name="brep">Brep for intersection.</param>
+        /// <param name="tolerance">Fitting and near miss tolerance.</param>
+        /// <param name="overlapCurves">The overlap curves will be returned here.</param>
+        /// <param name="intersectionPoints">The intersection points will be returned here.</param>
+        /// <returns>true on success, false on failure.</returns>
+        /// <example>
+        /// <code source='examples\vbnet\ex_elevation.vb' lang='vbnet'/>
+        /// <code source='examples\cs\ex_elevation.cs' lang='cs'/>
+        /// <code source='examples\py\ex_elevation.py' lang='py'/>
+        /// </example>
+        public static bool CurveBrep(Curve curve, Brep brep, double tolerance, out Curve[] overlapCurves, out Point3d[] intersectionPoints)
+        {
+            return ComputeServer.Post<bool, Curve[], Point3d[]>(ApiAddress(), out overlapCurves, out intersectionPoints, curve, brep, tolerance);
+        }
+        /// <summary>
         /// Intersect a curve with a Brep. This function returns the intersection parameters on the curve.
         /// </summary>
         /// <param name="curve">Curve.</param>
@@ -4168,6 +4308,45 @@ namespace Rhino.Compute.Intersect
         public static bool CurveBrep(Curve curve, Brep brep, double tolerance, double angleTolerance, out double[] t)
         {
             return ComputeServer.Post<bool, double[]>(ApiAddress(), out t, curve, brep, tolerance, angleTolerance);
+        }
+        /// <summary>
+        /// Intersects two Surfaces.
+        /// </summary>
+        /// <param name="surfaceA">First Surface for intersection.</param>
+        /// <param name="surfaceB">Second Surface for intersection.</param>
+        /// <param name="tolerance">Intersection tolerance.</param>
+        /// <param name="intersectionCurves">The intersection curves will be returned here.</param>
+        /// <param name="intersectionPoints">The intersection points will be returned here.</param>
+        /// <returns>true on success, false on failure.</returns>
+        public static bool SurfaceSurface(Surface surfaceA, Surface surfaceB, double tolerance, out Curve[] intersectionCurves, out Point3d[] intersectionPoints)
+        {
+            return ComputeServer.Post<bool, Curve[], Point3d[]>(ApiAddress(), out intersectionCurves, out intersectionPoints, surfaceA, surfaceB, tolerance);
+        }
+        /// <summary>
+        /// Intersects two Breps.
+        /// </summary>
+        /// <param name="brepA">First Brep for intersection.</param>
+        /// <param name="brepB">Second Brep for intersection.</param>
+        /// <param name="tolerance">Intersection tolerance.</param>
+        /// <param name="intersectionCurves">The intersection curves will be returned here.</param>
+        /// <param name="intersectionPoints">The intersection points will be returned here.</param>
+        /// <returns>true on success; false on failure.</returns>
+        public static bool BrepBrep(Brep brepA, Brep brepB, double tolerance, out Curve[] intersectionCurves, out Point3d[] intersectionPoints)
+        {
+            return ComputeServer.Post<bool, Curve[], Point3d[]>(ApiAddress(), out intersectionCurves, out intersectionPoints, brepA, brepB, tolerance);
+        }
+        /// <summary>
+        /// Intersects a Brep and a Surface.
+        /// </summary>
+        /// <param name="brep">A brep to be intersected.</param>
+        /// <param name="surface">A surface to be intersected.</param>
+        /// <param name="tolerance">A tolerance value.</param>
+        /// <param name="intersectionCurves">The intersection curves array argument. This out reference is assigned during the call.</param>
+        /// <param name="intersectionPoints">The intersection points array argument. This out reference is assigned during the call.</param>
+        /// <returns>true on success; false on failure.</returns>
+        public static bool BrepSurface(Brep brep, Surface surface, double tolerance, out Curve[] intersectionCurves, out Point3d[] intersectionPoints)
+        {
+            return ComputeServer.Post<bool, Curve[], Point3d[]>(ApiAddress(), out intersectionCurves, out intersectionPoints, brep, surface, tolerance);
         }
         /// <summary>
         /// Quickly intersects two meshes. Overlaps and near misses are ignored.

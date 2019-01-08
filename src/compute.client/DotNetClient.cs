@@ -55,22 +55,19 @@ namespace computegen
                 sb.AppendLine(")");
                 sb.AppendLine($"{T2}{{");
 
-                int outParamIndex = -1;
+                List<int> outParamIndices = new List<int>();
                 for (int i = 0; i < method.ParameterList.Parameters.Count; i++)
                 {
                     foreach (var modifier in method.ParameterList.Parameters[i].Modifiers)
                     {
                         if (modifier.Text == "out")
                         {
-                            outParamIndex = i;
-                            break;
+                            outParamIndices.Add(i);
                         }
                     }
-                    if (outParamIndex >= 0)
-                        break;
                 }
 
-                if (outParamIndex < 0)
+                if (outParamIndices.Count == 0)
                 {
                     if (method.IsNonConst(out useAsReturnType))
                     {
@@ -84,8 +81,14 @@ namespace computegen
                 }
                 else
                 {
-                    var parameter = method.ParameterList.Parameters[outParamIndex];
-                    sb.Append($"{T3}return ComputeServer.Post<{method.ReturnType}, {parameter.Type}>(ApiAddress(), out {parameter.Identifier}, ");
+                    var parameter0 = method.ParameterList.Parameters[outParamIndices[0]];
+                    if (outParamIndices.Count == 1)
+                        sb.Append($"{T3}return ComputeServer.Post<{method.ReturnType}, {parameter0.Type}>(ApiAddress(), out {parameter0.Identifier}, ");
+                    else
+                    {
+                        var parameter1 = method.ParameterList.Parameters[outParamIndices[1]];
+                        sb.Append($"{T3}return ComputeServer.Post<{method.ReturnType}, {parameter0.Type}, {parameter1.Type}>(ApiAddress(), out {parameter0.Identifier}, out {parameter1.Identifier}, ");
+                    }
                 }
                 if (!method.IsStatic())
                 {
@@ -186,6 +189,36 @@ namespace Rhino.Compute
                 object data = Newtonsoft.Json.JsonConvert.DeserializeObject(jsonString);
                 var ja = data as Newtonsoft.Json.Linq.JArray;
                 out1 = ja[1].ToObject<T1>();
+                return ja[0].ToObject<T0>();
+            }
+        }
+
+        public static T0 Post<T0, T1, T2>(string function, out T1 out1, out T2 out2, params object[] postData)
+        {
+            if (string.IsNullOrWhiteSpace(AuthToken))
+                throw new UnauthorizedAccessException(""AuthToken must be set"");
+            string json = Newtonsoft.Json.JsonConvert.SerializeObject(postData);
+            if (!function.StartsWith(""/""))
+                function = ""/"" + function;
+            string uri = (WebAddress + function).ToLower();
+            var request = System.Net.WebRequest.Create(uri);
+            request.ContentType = ""application/json"";
+            request.Headers.Add(""Authorization"", ""Bearer "" + AuthToken);
+            request.Method = ""POST"";
+            using (var streamWriter = new StreamWriter(request.GetRequestStream()))
+            {
+                streamWriter.Write(json);
+                streamWriter.Flush();
+            }
+
+            var response = request.GetResponse();
+            using (var streamReader = new StreamReader(response.GetResponseStream()))
+            {
+                var jsonString = streamReader.ReadToEnd();
+                object data = Newtonsoft.Json.JsonConvert.DeserializeObject(jsonString);
+                var ja = data as Newtonsoft.Json.Linq.JArray;
+                out1 = ja[1].ToObject<T1>();
+                out2 = ja[2].ToObject<T2>();
                 return ja[0].ToObject<T0>();
             }
         }
