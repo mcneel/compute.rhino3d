@@ -7,6 +7,7 @@ using Nancy;
 using Nancy.Bootstrapper;
 using Serilog.Core;
 using Serilog.Events;
+using System.IO;
 
 namespace compute.frontend
 {
@@ -139,6 +140,17 @@ namespace compute.frontend
                     var elapsed = (DateTime.UtcNow.Ticks - (long)start) / TimeSpan.TicksPerMillisecond;
                     logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
                         "ElapsedTime", elapsed.ToString()));
+
+                    using (var stream = new MemoryStream())
+                    {
+                        ctx.Response.Contents.Invoke(stream);
+
+                        logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
+                            "ResponseContentLength", stream.Length));
+                    }
+
+                    logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
+                    "ResponseContentType", ctx.Response.ContentType));
                 }
             }
             else
