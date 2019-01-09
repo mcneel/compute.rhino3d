@@ -13,9 +13,12 @@ namespace Resthopper.IO
         public Schema() {
             this.Values = new List<DataTree<ResthopperObject>>();
         }
-        
+
         [JsonProperty(PropertyName = "algo")]
         public string Algo { get; set; }
+
+        [JsonProperty(PropertyName = "pointer")]
+        public string Pointer { get; set; }
 
         [JsonProperty(PropertyName = "values")]
 
@@ -23,6 +26,18 @@ namespace Resthopper.IO
 
         //public Dictionary<string, Dictionary<GhPath, List<ResthopperObject>>> Values { get; set; }
 
+    }
+
+    public class IoQuerySchema
+    {
+        [JsonProperty(PropertyName = "requestedFile")]
+        public string RequestedFile { get; set; }
+    }
+
+    public class IoResponseSchema
+    {
+        public List<string> InputNames { get; set; }
+        public List<string> OutputNames { get; set; }
     }
 
     public class ResthopperObject
