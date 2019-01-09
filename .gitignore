@@ -8,3 +8,4 @@ src/compute.client/python_client/compute_rhino3d.egg-info/
 src/compute.client/python_client/dist/
 src/compute.geometry/RhinoCommonPath.txt
 src/compute.frontend/Secret.txt
+src/compute.geometry/DefinitoinStoragePath.txt
