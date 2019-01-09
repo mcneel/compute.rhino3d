@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
+using Nancy;
 using Nancy.Bootstrapper;
 using Nancy.Conventions;
 using Nancy.Extensions;
@@ -102,6 +104,7 @@ namespace compute.geometry
         {
             Log.Debug("ApplicationStartup");
             Nancy.StaticConfiguration.DisableErrorTraces = false;
+            pipelines.OnError += (ctx, ex) => LogError(ctx, ex);
             base.ApplicationStartup(container, pipelines);
         }
 
@@ -124,6 +127,13 @@ namespace compute.geometry
                 resourceStream.CopyTo(memoryStream);
                 return memoryStream.GetBuffer();
             }
+        }
+
+        private static dynamic LogError(NancyContext ctx, Exception ex)
+        {
+            string id = ctx.Request.Headers["X-Compute-Id"].FirstOrDefault();
+            Log.Error(ex, "An exception occured while processing request \"{RequestId}\"", id);
+            return null;
         }
     }
 
