@@ -1387,6 +1387,142 @@ namespace Rhino.Compute
         }
     }
 
+    public static class BrepFaceCompute
+    {
+        static string ApiAddress([CallerMemberName] string caller = null)
+        {
+            return ComputeServer.ApiAddress(typeof(BrepFace), caller);
+        }
+        /// <summary>
+        /// Pulls one or more points to a brep face.
+        /// </summary>
+        /// <param name="points">Points to pull.</param>
+        /// <param name="tolerance">Tolerance for pulling operation. Only points that are closer than tolerance will be pulled to the face.</param>
+        /// <returns>An array of pulled points.</returns>
+        public static Point3d[] PullPointsToFace(this BrepFace brepface, IEnumerable<Point3d> points, double tolerance)
+        {
+            return ComputeServer.Post<Point3d[]>(ApiAddress(), brepface, points, tolerance);
+        }
+        /// <summary>
+        ///  Returns the surface draft angle and point at a parameter.
+        /// </summary>
+        /// <param name="testPoint">The u,v parameter on the face to evaluate.</param>
+        /// <param name="testAngle">The angle in radians to test.</param>
+        /// <param name="pullDirection">The pull direction.</param>
+        /// <param name="edge">Restricts the point placement to an edge.</param>
+        /// <param name="draftPoint">The draft angle point.</param>
+        /// <param name="draftAngle">The draft angle in radians.</param>
+        /// <returns>True if successful, false otherwise.</returns>
+        public static bool DraftAnglePoint(this BrepFace brepface, Point2d testPoint, double testAngle, Vector3d pullDirection, bool edge, out Point3d draftPoint, out double draftAngle)
+        {
+            return ComputeServer.Post<bool, Point3d, double>(ApiAddress(), out draftPoint, out draftAngle, brepface, testPoint, testAngle, pullDirection, edge);
+        }
+        /// <summary>
+        /// Remove all inner loops, or holes, from a Brep face.
+        /// </summary>
+        /// <param name="tolerance"></param>
+        /// <returns></returns>
+        public static Brep RemoveHoles(this BrepFace brepface, double tolerance)
+        {
+            return ComputeServer.Post<Brep>(ApiAddress(), brepface, tolerance);
+        }
+        /// <summary>
+        /// Split this face using 3D trimming curves.
+        /// </summary>
+        /// <param name="curves">Curves to split with.</param>
+        /// <param name="tolerance">Tolerance for splitting, when in doubt use the Document Absolute Tolerance.</param>
+        /// <returns>A brep consisting of all the split fragments, or null on failure.</returns>
+        /// <example>
+        /// <code source='examples\vbnet\ex_tightboundingbox.vb' lang='vbnet'/>
+        /// <code source='examples\cs\ex_tightboundingbox.cs' lang='cs'/>
+        /// <code source='examples\py\ex_tightboundingbox.py' lang='py'/>
+        /// </example>
+        public static Brep Split(this BrepFace brepface, IEnumerable<Curve> curves, double tolerance)
+        {
+            return ComputeServer.Post<Brep>(ApiAddress(), brepface, curves, tolerance);
+        }
+        /// <summary>
+        /// Tests if a parameter space point is on the interior of a trimmed face.
+        /// </summary>
+        /// <param name="u">Parameter space point u value.</param>
+        /// <param name="v">Parameter space point v value.</param>
+        /// <returns>A value describing the spatial relationship between the point and the face.</returns>
+        public static PointFaceRelation IsPointOnFace(this BrepFace brepface, double u, double v)
+        {
+            return ComputeServer.Post<PointFaceRelation>(ApiAddress(), brepface, u, v);
+        }
+        /// <summary>
+        /// Gets intervals where the iso curve exists on a BrepFace (trimmed surface)
+        /// </summary>
+        /// <param name="direction">Direction of isocurve.
+        /// <para>0 = Isocurve connects all points with a constant U value.</para>
+        /// <para>1 = Isocurve connects all points with a constant V value.</para>
+        /// </param>
+        /// <param name="constantParameter">Surface parameter that remains identical along the isocurves.</param>
+        /// <returns>
+        /// If direction = 0, the parameter space iso interval connects the 2d points
+        /// (intervals[i][0],iso_constant) and (intervals[i][1],iso_constant).
+        /// If direction = 1, the parameter space iso interval connects the 2d points
+        /// (iso_constant,intervals[i][0]) and (iso_constant,intervals[i][1]).
+        /// </returns>
+        public static Interval[] TrimAwareIsoIntervals(this BrepFace brepface, int direction, double constantParameter)
+        {
+            return ComputeServer.Post<Interval[]>(ApiAddress(), brepface, direction, constantParameter);
+        }
+        /// <summary>
+        /// Similar to IsoCurve function, except this function pays attention to trims on faces 
+        /// and may return multiple curves.
+        /// </summary>
+        /// <param name="direction">Direction of isocurve.
+        /// <para>0 = Isocurve connects all points with a constant U value.</para>
+        /// <para>1 = Isocurve connects all points with a constant V value.</para>
+        /// </param>
+        /// <param name="constantParameter">Surface parameter that remains identical along the isocurves.</param>
+        /// <returns>Isoparametric curves connecting all points with the constantParameter value.</returns>
+        /// <remarks>
+        /// In this function "direction" indicates which direction the resulting curve runs.
+        /// 0: horizontal, 1: vertical
+        /// In the other Surface functions that take a "direction" argument,
+        /// "direction" indicates if "constantParameter" is a "u" or "v" parameter.
+        /// </remarks>
+        public static Curve[] TrimAwareIsoCurve(this BrepFace brepface, int direction, double constantParameter)
+        {
+            return ComputeServer.Post<Curve[]>(ApiAddress(), brepface, direction, constantParameter);
+        }
+        /// <summary>
+        /// Expert user tool that replaces the 3d surface geometry use by the face.
+        /// </summary>
+        /// <param name="surfaceIndex">brep surface index of new surface.</param>
+        /// <returns>true if successful.</returns>
+        /// <remarks>
+        /// If the face had a surface and new surface has a different shape, then
+        /// you probably want to call something like RebuildEdges() to move
+        /// the 3d edge curves so they will lie on the new surface. This doesn't
+        /// delete the old surface; call Brep.CullUnusedSurfaces() or Brep.Compact()
+        /// to remove unused surfaces.
+        /// </remarks>
+        public static bool ChangeSurface(this BrepFace brepface, out BrepFace updatedInstance, int surfaceIndex)
+        {
+            return ComputeServer.Post<bool, BrepFace>(ApiAddress(), out updatedInstance, brepface, surfaceIndex);
+        }
+        /// <summary>
+        /// Rebuild the edges used by a face so they lie on the surface.
+        /// </summary>
+        /// <param name="tolerance">tolerance for fitting 3d edge curves.</param>
+        /// <param name="rebuildSharedEdges">
+        /// if false and and edge is used by this face and a neighbor, then the edge
+        /// will be skipped.
+        /// </param>
+        /// <param name="rebuildVertices">
+        /// if true, vertex locations are updated to lie on the surface.
+        /// </param>
+        /// <returns>true on success.</returns>
+        public static bool RebuildEdges(this BrepFace brepface, out BrepFace updatedInstance, double tolerance, bool rebuildSharedEdges, bool rebuildVertices)
+        {
+            return ComputeServer.Post<bool, BrepFace>(ApiAddress(), out updatedInstance, brepface, tolerance, rebuildSharedEdges, rebuildVertices);
+        }
+    }
+
     public static class CurveCompute
     {
         static string ApiAddress([CallerMemberName] string caller = null)
@@ -3189,6 +3325,311 @@ namespace Rhino.Compute
         public static Curve OffsetNormalToSurface(this Curve curve, Surface surface, double height)
         {
             return ComputeServer.Post<Curve>(ApiAddress(), curve, surface, height);
+        }
+    }
+
+    public class AreaMassProperties
+    {
+        public double Area { get; set; }
+        public double AreaError { get; set; }
+        public Point3d Centroid { get; set; }
+        public Vector3d CentroidError { get; set; }
+        public Vector3d WorldCoordinatesFirstMoments { get; set; }
+        public Vector3d WorldCoordinatesFirstMomentsError { get; set; }
+        public Vector3d WorldCoordinatesSecondMoments { get; set; }
+        public Vector3d WorldCoordinatesSecondMomentsError { get; set; }
+        public Vector3d WorldCoordinatesProductMoments { get; set; }
+        public Vector3d WorldCoordinatesProductMomentsError { get; set; }
+        public Vector3d WorldCoordinatesMomentsOfInertia { get; set; }
+        public Vector3d WorldCoordinatesMomentsOfInertiaError { get; set; }
+        public Vector3d WorldCoordinatesRadiiOfGyration { get; set; }
+        public Vector3d CentroidCoordinatesSecondMoments { get; set; }
+        public Vector3d CentroidCoordinatesSecondMomentsError { get; set; }
+        public Vector3d CentroidCoordinatesMomentsOfInertia { get; set; }
+        public Vector3d CentroidCoordinatesMomentsOfInertiaError { get; set; }
+        public Vector3d CentroidCoordinatesRadiiOfGyration { get; set; }
+    }
+
+
+    public static class AreaMassPropertiesCompute
+    {
+        static string ApiAddress([CallerMemberName] string caller = null)
+        {
+            return "rhino/geometry/areamassproperties/" + caller;
+        }
+
+        /// <summary>
+        /// Computes an AreaMassProperties for a closed planar curve.
+        /// </summary>
+        /// <param name="closedPlanarCurve">Curve to measure.</param>
+        /// <returns>The AreaMassProperties for the given curve or null on failure.</returns>
+        /// <exception cref="System.ArgumentNullException">When closedPlanarCurve is null.</exception>
+        public static AreaMassProperties Compute(Curve closedPlanarCurve)
+        {
+            return ComputeServer.Post<AreaMassProperties>(ApiAddress("compute-curve"), closedPlanarCurve);
+        }
+        /// <summary>
+        /// Computes an AreaMassProperties for a closed planar curve.
+        /// </summary>
+        /// <param name="closedPlanarCurve">Curve to measure.</param>
+        /// <param name="planarTolerance">absolute tolerance used to insure the closed curve is planar</param>
+        /// <returns>The AreaMassProperties for the given curve or null on failure.</returns>
+        /// <exception cref="System.ArgumentNullException">When closedPlanarCurve is null.</exception>
+        public static AreaMassProperties Compute(Curve closedPlanarCurve, double planarTolerance)
+        {
+            return ComputeServer.Post<AreaMassProperties>(ApiAddress("compute-curve_double"), closedPlanarCurve, planarTolerance);
+        }
+        /// <summary>
+        /// Computes an AreaMassProperties for a hatch.
+        /// </summary>
+        /// <param name="hatch">Hatch to measure.</param>
+        /// <returns>The AreaMassProperties for the given hatch or null on failure.</returns>
+        /// <exception cref="System.ArgumentNullException">When hatch is null.</exception>
+        public static AreaMassProperties Compute(Hatch hatch)
+        {
+            return ComputeServer.Post<AreaMassProperties>(ApiAddress("compute-hatch"), hatch);
+        }
+        /// <summary>
+        /// Computes an AreaMassProperties for a mesh.
+        /// </summary>
+        /// <param name="mesh">Mesh to measure.</param>
+        /// <returns>The AreaMassProperties for the given Mesh or null on failure.</returns>
+        /// <exception cref="System.ArgumentNullException">When mesh is null.</exception>
+        public static AreaMassProperties Compute(Mesh mesh)
+        {
+            return ComputeServer.Post<AreaMassProperties>(ApiAddress("compute-mesh"), mesh);
+        }
+        /// <summary>
+        /// Compute the AreaMassProperties for a single Mesh.
+        /// </summary>
+        /// <param name="mesh">Mesh to measure.</param>
+        /// <param name="area">true to calculate area.</param>
+        /// <param name="firstMoments">true to calculate area first moments, area, and area centroid.</param>
+        /// <param name="secondMoments">true to calculate area second moments.</param>
+        /// <param name="productMoments">true to calculate area product moments.</param>
+        /// <returns>The AreaMassProperties for the given Mesh or null on failure.</returns>
+        /// <exception cref="System.ArgumentNullException">When mesh is null.</exception>
+        public static AreaMassProperties Compute(Mesh mesh, bool area, bool firstMoments, bool secondMoments, bool productMoments)
+        {
+            return ComputeServer.Post<AreaMassProperties>(ApiAddress(
+                "compute-mesh_bool_bool_bool_bool"),
+                mesh, area, firstMoments, secondMoments, productMoments);
+        }
+        /// <summary>
+        /// Computes an AreaMassProperties for a brep.
+        /// </summary>
+        /// <param name="brep">Brep to measure.</param>
+        /// <returns>The AreaMassProperties for the given Brep or null on failure.</returns>
+        /// <exception cref="System.ArgumentNullException">When brep is null.</exception>
+        public static AreaMassProperties Compute(Brep brep)
+        {
+            return ComputeServer.Post<AreaMassProperties>(ApiAddress("compute-brep"), brep);
+        }
+        /// <summary>
+        /// Compute the AreaMassProperties for a single Brep.
+        /// </summary>
+        /// <param name="brep">Brep to measure.</param>
+        /// <param name="area">true to calculate area.</param>
+        /// <param name="firstMoments">true to calculate area first moments, area, and area centroid.</param>
+        /// <param name="secondMoments">true to calculate area second moments.</param>
+        /// <param name="productMoments">true to calculate area product moments.</param>
+        /// <returns>The AreaMassProperties for the given Brep or null on failure.</returns>
+        /// <exception cref="System.ArgumentNullException">When brep is null.</exception>
+        public static AreaMassProperties Compute(Brep brep, bool area, bool firstMoments, bool secondMoments, bool productMoments)
+        {
+            return ComputeServer.Post<AreaMassProperties>(ApiAddress(
+                "compute-brep_bool_bool_bool_bool"
+                ), brep, area, firstMoments, secondMoments, productMoments);
+        }
+        /// <summary>
+        /// Computes an AreaMassProperties for a surface.
+        /// </summary>
+        /// <param name="surface">Surface to measure.</param>
+        /// <returns>The AreaMassProperties for the given Surface or null on failure.</returns>
+        /// <exception cref="System.ArgumentNullException">When surface is null.</exception>
+        public static AreaMassProperties Compute(Surface surface)
+        {
+            return ComputeServer.Post<AreaMassProperties>(ApiAddress("compute-surface"), surface);
+        }
+        /// <summary>
+        /// Compute the AreaMassProperties for a single Surface.
+        /// </summary>
+        /// <param name="surface">Surface to measure.</param>
+        /// <param name="area">true to calculate area.</param>
+        /// <param name="firstMoments">true to calculate area first moments, area, and area centroid.</param>
+        /// <param name="secondMoments">true to calculate area second moments.</param>
+        /// <param name="productMoments">true to calculate area product moments.</param>
+        /// <returns>The AreaMassProperties for the given Surface or null on failure.</returns>
+        /// <exception cref="System.ArgumentNullException">When surface is null.</exception>
+        public static AreaMassProperties Compute(Surface surface, bool area, bool firstMoments, bool secondMoments, bool productMoments)
+        {
+            return ComputeServer.Post<AreaMassProperties>(ApiAddress(
+                "compute-surface_bool_bool_bool_bool"
+                ), surface, area, firstMoments, secondMoments, productMoments);
+        }
+        /// <summary>
+        /// Computes the Area properties for a collection of geometric objects. 
+        /// At present only Breps, Surfaces, Meshes and Planar Closed Curves are supported.
+        /// </summary>
+        /// <param name="geometry">Objects to include in the area computation.</param>
+        /// <returns>The Area properties for the entire collection or null on failure.</returns>
+        public static AreaMassProperties Compute(IEnumerable<GeometryBase> geometry)
+        {
+            return ComputeServer.Post<AreaMassProperties>(ApiAddress("compute-geometrybasearray"), geometry);
+        }
+        /// <summary>
+        /// Computes the AreaMassProperties for a collection of geometric objects. 
+        /// At present only Breps, Surfaces, Meshes and Planar Closed Curves are supported.
+        /// </summary>
+        /// <param name="geometry">Objects to include in the area computation.</param>
+        /// <param name="area">true to calculate area.</param>
+        /// <param name="firstMoments">true to calculate area first moments, area, and area centroid.</param>
+        /// <param name="secondMoments">true to calculate area second moments.</param>
+        /// <param name="productMoments">true to calculate area product moments.</param>
+        /// <returns>The AreaMassProperties for the entire collection or null on failure.</returns>
+        public static AreaMassProperties Compute(IEnumerable<GeometryBase> geometry, bool area, bool firstMoments, bool secondMoments, bool productMoments)
+        {
+            return ComputeServer.Post<AreaMassProperties>(ApiAddress(
+                "compute-geometrybasearray_bool_bool_bool_bool"
+                ), geometry, area, firstMoments, secondMoments, productMoments);
+        }
+    }
+
+    public class VolumeMassProperties
+    {
+        public double Volume { get; set; }
+        public double VolumeError { get; set; }
+        public Point3d Centroid { get; set; }
+        public Vector3d CentroidError { get; set; }
+        public Vector3d WorldCoordinatesFirstMoments { get; set; }
+        public Vector3d WorldCoordinatesFirstMomentsError { get; set; }
+        public Vector3d WorldCoordinatesSecondMoments { get; set; }
+        public Vector3d WorldCoordinatesSecondMomentsError { get; set; }
+        public Vector3d WorldCoordinatesProductMoments { get; set; }
+        public Vector3d WorldCoordinatesProductMomentsError { get; set; }
+        public Vector3d WorldCoordinatesMomentsOfInertia { get; set; }
+        public Vector3d WorldCoordinatesMomentsOfInertiaError { get; set; }
+        public Vector3d WorldCoordinatesRadiiOfGyration { get; set; }
+        public Vector3d CentroidCoordinatesSecondMoments { get; set; }
+        public Vector3d CentroidCoordinatesSecondMomentsError { get; set; }
+        public Vector3d CentroidCoordinatesMomentsOfInertia { get; set; }
+        public Vector3d CentroidCoordinatesMomentsOfInertiaError { get; set; }
+        public Vector3d CentroidCoordinatesRadiiOfGyration { get; set; }
+
+    }
+
+    public static class VolumeMassPropertiesCompute
+    {
+        static string ApiAddress([CallerMemberName] string caller = null)
+        {
+            return "rhino/geometry/volumemassproperties/" + caller;
+        }
+
+        /// <summary>
+        /// Compute the VolumeMassProperties for a single Mesh.
+        /// </summary>
+        /// <param name="mesh">Mesh to measure.</param>
+        /// <returns>The VolumeMassProperties for the given Mesh or null on failure.</returns>
+        /// <exception cref="System.ArgumentNullException">When mesh is null.</exception>
+        public static VolumeMassProperties Compute(Mesh mesh)
+        {
+            return ComputeServer.Post<VolumeMassProperties>(ApiAddress("compute-mesh"), mesh);
+        }
+        /// <summary>
+        /// Compute the VolumeMassProperties for a single Mesh.
+        /// </summary>
+        /// <param name="mesh">Mesh to measure.</param>
+        /// <param name="volume">true to calculate volume.</param>
+        /// <param name="firstMoments">true to calculate volume first moments, volume, and volume centroid.</param>
+        /// <param name="secondMoments">true to calculate volume second moments.</param>
+        /// <param name="productMoments">true to calculate volume product moments.</param>
+        /// <returns>The VolumeMassProperties for the given Mesh or null on failure.</returns>
+        /// <exception cref="System.ArgumentNullException">When Mesh is null.</exception>
+        public static VolumeMassProperties Compute(Mesh mesh, bool volume, bool firstMoments, bool secondMoments, bool productMoments)
+        {
+            return ComputeServer.Post<VolumeMassProperties>(ApiAddress(
+                "compute-mesh_bool_bool_bool_bool"
+                ), mesh, volume, firstMoments, secondMoments, productMoments);
+        }
+        /// <summary>
+        /// Compute the VolumeMassProperties for a single Brep.
+        /// </summary>
+        /// <param name="brep">Brep to measure.</param>
+        /// <returns>The VolumeMassProperties for the given Brep or null on failure.</returns>
+        /// <exception cref="System.ArgumentNullException">When brep is null.</exception>
+        public static VolumeMassProperties Compute(Brep brep)
+        {
+            return ComputeServer.Post<VolumeMassProperties>(ApiAddress("compute-brep"), brep);
+        }
+        /// <summary>
+        /// Compute the VolumeMassProperties for a single Brep.
+        /// </summary>
+        /// <param name="brep">Brep to measure.</param>
+        /// <param name="volume">true to calculate volume.</param>
+        /// <param name="firstMoments">true to calculate volume first moments, volume, and volume centroid.</param>
+        /// <param name="secondMoments">true to calculate volume second moments.</param>
+        /// <param name="productMoments">true to calculate volume product moments.</param>
+        /// <returns>The VolumeMassProperties for the given Brep or null on failure.</returns>
+        /// <exception cref="System.ArgumentNullException">When brep is null.</exception>
+        public static VolumeMassProperties Compute(Brep brep, bool volume, bool firstMoments, bool secondMoments, bool productMoments)
+        {
+            return ComputeServer.Post<VolumeMassProperties>(ApiAddress(
+                "compute-brep_bool_bool_bool_bool"
+                ), brep, volume, firstMoments, secondMoments, productMoments);
+        }
+        /// <summary>
+        /// Compute the VolumeMassProperties for a single Surface.
+        /// </summary>
+        /// <param name="surface">Surface to measure.</param>
+        /// <returns>The VolumeMassProperties for the given Surface or null on failure.</returns>
+        /// <exception cref="System.ArgumentNullException">When surface is null.</exception>
+        public static VolumeMassProperties Compute(Surface surface)
+        {
+            return ComputeServer.Post<VolumeMassProperties>(ApiAddress("compute-surface"), surface);
+        }
+        /// <summary>
+        /// Compute the VolumeMassProperties for a single Surface.
+        /// </summary>
+        /// <param name="surface">Surface to measure.</param>
+        /// <param name="volume">true to calculate volume.</param>
+        /// <param name="firstMoments">true to calculate volume first moments, volume, and volume centroid.</param>
+        /// <param name="secondMoments">true to calculate volume second moments.</param>
+        /// <param name="productMoments">true to calculate volume product moments.</param>
+        /// <returns>The VolumeMassProperties for the given Surface or null on failure.</returns>
+        /// <exception cref="System.ArgumentNullException">When surface is null.</exception>
+        public static VolumeMassProperties Compute(Surface surface, bool volume, bool firstMoments, bool secondMoments, bool productMoments)
+        {
+            return ComputeServer.Post<VolumeMassProperties>(ApiAddress(
+                "compute-surface_bool_bool_bool_bool"
+                ), surface, volume, firstMoments, secondMoments, productMoments);
+        }
+        /// <summary>
+        /// Computes the VolumeMassProperties for a collection of geometric objects. 
+        /// At present only Breps, Surfaces, and Meshes are supported.
+        /// </summary>
+        /// <param name="geometry">Objects to include in the area computation.</param>
+        /// <returns>The VolumeMassProperties for the entire collection or null on failure.</returns>
+        public static VolumeMassProperties Compute(IEnumerable<GeometryBase> geometry)
+        {
+            return ComputeServer.Post<VolumeMassProperties>(ApiAddress(
+                "compute-geometrybasearray"
+                ), geometry);
+        }
+        /// <summary>
+        /// Computes the VolumeMassProperties for a collection of geometric objects. 
+        /// At present only Breps, Surfaces, Meshes and Planar Closed Curves are supported.
+        /// </summary>
+        /// <param name="geometry">Objects to include in the area computation.</param>
+        /// <param name="volume">true to calculate volume.</param>
+        /// <param name="firstMoments">true to calculate volume first moments, volume, and volume centroid.</param>
+        /// <param name="secondMoments">true to calculate volume second moments.</param>
+        /// <param name="productMoments">true to calculate volume product moments.</param>
+        /// <returns>The VolumeMassProperties for the entire collection or null on failure.</returns>
+        public static VolumeMassProperties Compute(IEnumerable<GeometryBase> geometry, bool volume, bool firstMoments, bool secondMoments, bool productMoments)
+        {
+            return ComputeServer.Post<VolumeMassProperties>(ApiAddress(
+                "compute-geometrybasearray_bool_bool_bool_bool"
+                ), geometry, volume, firstMoments, secondMoments, productMoments);
         }
     }
 
