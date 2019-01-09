@@ -12,15 +12,15 @@ using System.Net.Http.Headers;
 
 namespace Resthopper.GH
 {
-    public class ResthopperClient : GH_Component
+    public class ResthopperSerializer : GH_Component
     {
         
         private Schema OutputSchema = new Schema();
         /// <summary>
         /// Initializes a new instance of the ResthopperClient class.
         /// </summary>
-        public ResthopperClient()
-          : base("RH Client", "RH Client",
+        public ResthopperSerializer()
+          : base("RH Serializer", "RH Serializer",
               "Description",
               "Resthopper", "Send")
         {
@@ -32,10 +32,14 @@ namespace Resthopper.GH
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             pManager.AddTextParameter("path", "path", "path to the GHX file", GH_ParamAccess.item);
-            pManager.AddTextParameter("token", "token", "Resthopper Auth token", GH_ParamAccess.item);
-            pManager.AddTextParameter("server", "server", "Server IP or URL", GH_ParamAccess.item);
-            pManager.AddBooleanParameter("run", "run", "Send to Resthopper", GH_ParamAccess.item);
+            pManager[0].Optional = true;
+            pManager.AddTextParameter("pointer", "pointer", "pointer to a RH script", GH_ParamAccess.item);
+            pManager[1].Optional = true;
+            //pManager.AddTextParameter("token", "token", "Resthopper Auth token", GH_ParamAccess.item);
+            //pManager.AddTextParameter("server", "server", "Server IP or URL", GH_ParamAccess.item);
+            //pManager.AddBooleanParameter("run", "run", "Send to Resthopper", GH_ParamAccess.item);
             pManager.AddGenericParameter("inputs", "inputs", "List of ResthopperObjects", GH_ParamAccess.list);
+            
         }
 
         /// <summary>
@@ -53,42 +57,44 @@ namespace Resthopper.GH
         /// <param name="DA">The DA object is used to retrieve from inputs and store in outputs.</param>
         protected async override void SolveInstance(IGH_DataAccess DA)
         {
-            string path = string.Empty;
-            string token = string.Empty;
-            string server = string.Empty;
-            bool run = false;
+            string path = null;
+            string pointer = null;
             List<Resthopper.IO.DataTree<ResthopperObject>> inputs = new List<Resthopper.IO.DataTree<ResthopperObject>>();
             List<string> paramNames = new List<string>();
-
             DA.GetData(0, ref path);
-            DA.GetData(1, ref token);
-            DA.GetData(2, ref server);
-            DA.GetData(3, ref run);
-            DA.GetDataList(4, inputs);
+            DA.GetData(1, ref pointer);
+            DA.GetDataList(2, inputs);
 
 
-            if (run)
+
+            //HttpClient client = new HttpClient();
+            Schema InputSchema = new Schema();
+            string markup;
+            try
             {
-                HttpClient client = new HttpClient();
-                Schema InputSchema = new Schema();
-                string markup;
                 using (StreamReader reader = new StreamReader(path))
                 { markup = reader.ReadToEnd(); }
                 InputSchema.Algo = Base64Encode(markup);
-                InputSchema.Values = inputs;
+            }
+            catch
+            {
+                InputSchema.Pointer = pointer;
+            }
+            InputSchema.Values = inputs;
 
-                JsonSerializerSettings settings = new JsonSerializerSettings();
-                //settings.ContractResolver = new DictionaryAsArrayResolver();
-                settings.Formatting = Formatting.Indented;
-                DA.SetData(1, JsonConvert.SerializeObject(InputSchema, settings));
+            JsonSerializerSettings settings = new JsonSerializerSettings();
+            //settings.ContractResolver = new DictionaryAsArrayResolver();
+            settings.Formatting = Formatting.Indented;
+            DA.SetData(0, this.OutputSchema);
+            DA.SetData(1, JsonConvert.SerializeObject(InputSchema, settings));
 
-                //Schema output = await ResthopperPipeline.Request(InputSchema, server, token);
-                //this.OutputSchema = output;
+            //Schema output = await ResthopperPipeline.Request(InputSchema, server, token);
+            //this.OutputSchema = output;
 
-                //DA.SetData(0, this.OutputSchema);
+            
                 
 
-            }
+            
 
             
         }
