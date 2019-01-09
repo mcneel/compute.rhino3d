@@ -209,30 +209,32 @@ namespace compute.geometry
 
             //var script = Rhino.Runtime.PythonScript.Create();
             //if( script != null )
-            {
-                foreach( var endpoint in GeometryEndPoint.Create(typeof(Python)) )
-                {
-                    string key = endpoint.Path.ToLowerInvariant();
-                    Get[key] = _ => endpoint.Get(Context);
-                    Post[key] = _ => endpoint.Post(Context);
+            //{
+            //    foreach( var endpoint in GeometryEndPoint.Create(typeof(Python)) )
+            //    {
+            //        string key = endpoint.Path.ToLowerInvariant();
+            //        Get[key] = _ => endpoint.Get(Context);
+            //        Post[key] = _ => endpoint.Post(Context);
 
-                }
-            }
+            //    }
+            //}
 
         }
     }
 
-
-    class Python
-    {
-        public static object Evaluate(string script, string input)
-        {
-            var py = Rhino.Runtime.PythonScript.Create();
-            if (input != null)
-                py.SetVariable("input", input);
-            py.ExecuteScript(script);
-            object output = py.GetVariable("output");
-            return output;
-        }
-    }
+    // TODO Make ArchibaleDictionary serializable
+    //class Python
+    //{
+    //    public static Rhino.Collections.ArchivableDictionary Evaluate(string script,
+    //        Rhino.Collections.ArchivableDictionary input)
+    //    {
+    //        var py = Rhino.Runtime.PythonScript.Create();
+    //        py.SetVariable("inputGeometry", inputGeometry);
+    //        py.SetVariable("inputPoints", inputPoints);
+    //        py.ExecuteScript(script);
+    //        outputGeometry = null;
+    //        outputPoints = null;
+    //        return "done";
+    //    }
+    //}
 }
