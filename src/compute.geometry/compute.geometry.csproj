@@ -124,6 +124,10 @@
     <Compile Include="Environment.cs" />
     <Compile Include="FixedEndpoints.cs" />
     <Compile Include="GeometryEndPoint.cs" />
+    <Compile Include="IO\GhPath.cs" />
+    <Compile Include="IO\GHTypeCodes.cs" />
+    <Compile Include="IO\ResthopperPipeline.cs" />
+    <Compile Include="IO\Schema.cs" />
     <Compile Include="Logging.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
