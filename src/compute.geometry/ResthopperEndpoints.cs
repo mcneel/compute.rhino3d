@@ -649,3 +649,15 @@ namespace compute.geometry
         }
     }
 }
+
+namespace System.Exceptions
+{
+    public class PayAttentionException : Exception
+    {
+        public PayAttentionException(string m) : base(m)
+        {
+
+        }
+
+    }
+}
