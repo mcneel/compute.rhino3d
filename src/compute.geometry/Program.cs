@@ -209,6 +209,10 @@ namespace compute.geometry
                 }
             }
 
+            // Load GH at startup so it can get initialized on the main thread
+            var gh_id = new Guid("B45A29B1-4343-4035-989E-044E8580D9CF");
+            Rhino.RhinoApp.GetPlugInObject(gh_id);
+
             //var script = Rhino.Runtime.PythonScript.Create();
             //if( script != null )
             //{
