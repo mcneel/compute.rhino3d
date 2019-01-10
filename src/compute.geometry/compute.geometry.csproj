@@ -128,6 +128,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="RhinoCompute.cs" />
+    <Compile Include="ResthopperEndpoints.cs" />
     <Compile Include="RhinoLib.cs" />
   </ItemGroup>
   <ItemGroup>
