@@ -165,6 +165,8 @@ namespace compute.geometry
             Get["version"] = _ => FixedEndpoints.GetVersion(Context);
             Get["sdk/csharp"] = _ => FixedEndpoints.CSharpSdk(Context);
             Post["hammertime"] = _ => FixedEndpoints.HammerTime(Context);
+            Post["/grasshopper"] = _ => ResthopperEndpoints.Grasshopper(Context);
+            Post["/io"] = _ => ResthopperEndpoints.GetIoNames(Context);
 
             Get["/sdk"] = _ =>
             {
