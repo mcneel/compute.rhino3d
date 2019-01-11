@@ -124,10 +124,15 @@
     <Compile Include="Environment.cs" />
     <Compile Include="FixedEndpoints.cs" />
     <Compile Include="GeometryEndPoint.cs" />
+    <Compile Include="IO\GhPath.cs" />
+    <Compile Include="IO\GHTypeCodes.cs" />
+    <Compile Include="IO\Utilities.cs" />
+    <Compile Include="IO\Schema.cs" />
     <Compile Include="Logging.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="RhinoCompute.cs" />
+    <Compile Include="ResthopperEndpoints.cs" />
     <Compile Include="RhinoLib.cs" />
   </ItemGroup>
   <ItemGroup>

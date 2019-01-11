@@ -165,6 +165,8 @@ namespace compute.geometry
             Get["version"] = _ => FixedEndpoints.GetVersion(Context);
             Get["sdk/csharp"] = _ => FixedEndpoints.CSharpSdk(Context);
             Post["hammertime"] = _ => FixedEndpoints.HammerTime(Context);
+            Post["/grasshopper"] = _ => ResthopperEndpoints.Grasshopper(Context);
+            Post["/io"] = _ => ResthopperEndpoints.GetIoNames(Context);
 
             Get["/sdk"] = _ =>
             {
@@ -206,6 +208,10 @@ namespace compute.geometry
                     };
                 }
             }
+
+            // Load GH at startup so it can get initialized on the main thread
+            var gh_id = new Guid("B45A29B1-4343-4035-989E-044E8580D9CF");
+            Rhino.RhinoApp.GetPlugInObject(gh_id);
 
             //var script = Rhino.Runtime.PythonScript.Create();
             //if( script != null )
