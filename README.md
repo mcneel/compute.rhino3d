@@ -1,6 +1,8 @@
 # Rhino Compute Server
 
-[![Build status](https://ci.appveyor.com/api/projects/status/unmnwi57we5nvnfi/branch/master?svg=true)](https://ci.appveyor.com/project/mcneel/compute-rhino3d/branch/master) [![Discourse users](https://img.shields.io/discourse/https/discourse.mcneel.com/users.svg)](https://discourse.mcneel.com/c/serengeti/compute-rhino3d)
+[![Build status](https://ci.appveyor.com/api/projects/status/unmnwi57we5nvnfi/branch/master?svg=true)](https://ci.appveyor.com/project/mcneel/compute-rhino3d/branch/master)
+[![Discourse users](https://img.shields.io/discourse/https/discourse.mcneel.com/users.svg)](https://discourse.mcneel.com/c/serengeti/compute-rhino3d)
+[![YouTrack issues](https://img.shields.io/badge/youtrack-COMPUTE-blue.svg)](https://mcneel.myjetbrains.com/youtrack/issues?q=project:%20Compute)
 
 A REST api exposing Rhino's geometry core. This project has two web services: `compute.geometry` which provides the REST API, and `compute.frontend` that provides authentication, request stashing (saving POST data for diagnostics), logging, and configuration of request and response headers. `compute.frontend` creates the `compute.geometry` process, monitors its health, and restarts `compute.geometry` as necessary.
 
