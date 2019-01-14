@@ -1,8 +1,11 @@
 from . import Util
 
 
-def GetWireframe(thisExtrusion):
+def GetWireframe(thisExtrusion, multiple=False):
+    url = "rhino/geometry/extrusion/getwireframe-extrusion"
+    if multiple: url += "?multiple=true"
     args = [thisExtrusion]
-    response = Util.ComputeFetch("rhino/geometry/extrusion/getwireframe-extrusion", args)
+    if multiple: args = zip(thisExtrusion)
+    response = Util.ComputeFetch(url, args)
     return response
 

@@ -80,6 +80,8 @@ def ComputeFetch(endpoint, arglist) :
             foreach (var (method, comment) in cb.Methods)
             {
                 string methodName = method.Identifier.ToString();
+                if (methodName.Equals("dispose", StringComparison.InvariantCultureIgnoreCase))
+                    continue;
                 if (methodName.Equals(prevMethodName))
                 {
                     overloadIndex++;
@@ -107,17 +109,21 @@ def ComputeFetch(endpoint, arglist) :
                     if (i < (parameters.Count - 1))
                         sb.Append(", ");
                 }
-                sb.AppendLine("):");
-                sb.Append($"{T1}args = [");
+                sb.AppendLine(", multiple=False):");
+                sb.AppendLine($"{T1}url = \"{cb.EndPoint(method)}\"");
+                sb.AppendLine($"{T1}if multiple: url += \"?multiple=true\"");
+                var paramList = new StringBuilder();
                 for (int i = 0; i < parameters.Count; i++)
                 {
-                    sb.Append(parameters[i]);
+                    paramList.Append(parameters[i]);
                     if (i < (parameters.Count - 1))
-                        sb.Append(", ");
+                        paramList.Append(", ");
                 }
-                sb.AppendLine("]");
+                sb.AppendLine($"{T1}args = [{paramList.ToString()}]");
+                sb.AppendLine($"{T1}if multiple: args = zip({paramList.ToString()})");
+
                 string endpoint = method.Identifier.ToString();
-                sb.AppendLine($"{T1}response = Util.ComputeFetch(\"{cb.EndPoint(method)}\", args)");
+                sb.AppendLine($"{T1}response = Util.ComputeFetch(url, args)");
                 sb.AppendLine($"{T1}return response");
                 sb.AppendLine();
 

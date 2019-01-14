@@ -37,6 +37,41 @@ namespace computegen
                 ""headers"": {""Authorization"":RhinoCompute.authToken}
         }).then(r=>r.json());
     },
+
+    zipArgs: function(multiple, ...args) {
+        if(!multiple)
+            return args;
+
+        if(args.length==1)
+            return args[0].map(function(_,i) { return [args[0][i]]; });
+        if(args.length==2)
+            return args[0].map(function(_,i) {
+                return [args[0][i],args[1][i]]; }
+            );
+        if(args.length==3)
+            return args[0].map(function(_,i) {
+                return [args[0][i],args[1][i],args[2][i]]; }
+            );
+        if(args.length==4)
+            return args[0].map(function(_,i) {
+                return [args[0][i],args[1][i],args[2][i],args[3][i]]; }
+            );
+        if(args.length==5)
+            return args[0].map(function(_,i) {
+                return [args[0][i],args[1][i],args[2][i],args[3][i],args[4][i]]; }
+            );
+        if(args.length==6)
+            return args[0].map(function(_,i) {
+                return [args[0][i],args[1][i],args[2][i],args[3][i],args[4][i],args[5][i]]; }
+            );
+        if(args.length==7)
+            return args[0].map(function(_,i) {
+                return [args[0][i],args[1][i],args[2][i],args[3][i],args[4][i],args[5][i],args[6][i]]; }
+            );
+        return args[0].map(function(_,i) {
+            return [args[0][i],args[1][i],args[2][i],args[3][i],args[4][i],args[5][i],args[6][i],args[7][i]]; }
+        );
+    },
 ";
             }
         }
@@ -57,6 +92,8 @@ namespace computegen
             foreach (var (method, comment) in cb.Methods)
             {
                 string methodName = CamelCase(method.Identifier.ToString());
+                if (methodName.Equals("dispose", StringComparison.InvariantCultureIgnoreCase))
+                    continue;
                 if (methodName.Equals(prevMethodName))
                 {
                     overloadIndex++;
@@ -93,17 +130,19 @@ namespace computegen
                     if (i < (parameters.Count - 1))
                         sb.Append(", ");
                 }
-                sb.AppendLine(") {");
-                sb.Append($"{T3}args = [");
+                sb.AppendLine(", multiple=false) {");
+                sb.AppendLine($"{T3}let url=\"{cb.EndPoint(method)}\";");
+                sb.AppendLine($"{T3}if(multiple) url = url + \"?multiple=true\"");
+                sb.Append($"{T3}let args = RhinoCompute.zipArgs(multiple, ");
                 for (int i = 0; i < parameters.Count; i++)
                 {
                     sb.Append(parameters[i]);
                     if (i < (parameters.Count - 1))
                         sb.Append(", ");
                 }
-                sb.AppendLine("];");
+                sb.AppendLine(");");
                 string endpoint = method.Identifier.ToString();
-                sb.AppendLine($"{T3}var promise = RhinoCompute.computeFetch(\"{cb.EndPoint(method)}\", args);");
+                sb.AppendLine($"{T3}var promise = RhinoCompute.computeFetch(url, args);");
                 sb.AppendLine($"{T3}return promise;");
                 sb.AppendLine($"{T2}}},");
 

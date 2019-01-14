@@ -1,14 +1,20 @@
 from . import Util
 
 
-def CreateCubicBeziers(sourceCurve, distanceTolerance, kinkTolerance):
+def CreateCubicBeziers(sourceCurve, distanceTolerance, kinkTolerance, multiple=False):
+    url = "rhino/geometry/beziercurve/createcubicbeziers-curve_double_double"
+    if multiple: url += "?multiple=true"
     args = [sourceCurve, distanceTolerance, kinkTolerance]
-    response = Util.ComputeFetch("rhino/geometry/beziercurve/createcubicbeziers-curve_double_double", args)
+    if multiple: args = zip(sourceCurve, distanceTolerance, kinkTolerance)
+    response = Util.ComputeFetch(url, args)
     return response
 
 
-def CreateBeziers(sourceCurve):
+def CreateBeziers(sourceCurve, multiple=False):
+    url = "rhino/geometry/beziercurve/createbeziers-curve"
+    if multiple: url += "?multiple=true"
     args = [sourceCurve]
-    response = Util.ComputeFetch("rhino/geometry/beziercurve/createbeziers-curve", args)
+    if multiple: args = zip(sourceCurve)
+    response = Util.ComputeFetch(url, args)
     return response
 
