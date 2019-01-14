@@ -14,7 +14,7 @@ namespace compute.frontend
             Get["/"] =
             Get["/{uri*}"] = _ =>
             {
-                var proxy_url = GetProxyUrl((string)_.uri, backendPort);
+                var proxy_url = GetProxyUrl((string)_.uri, backendPort, Context.Request.Query);
                 var client = CreateProxyClient(Context);
                 try
                 {
@@ -30,7 +30,7 @@ namespace compute.frontend
             Post["/"] =
             Post["/{uri*}"] = _ =>
             {
-                var proxy_url = GetProxyUrl((string)_.uri, backendPort);
+                var proxy_url = GetProxyUrl((string)_.uri, backendPort, Context.Request.Query);
                 var client = CreateProxyClient(Context);
                 object o_content;
                 StringContent content;
@@ -51,12 +51,22 @@ namespace compute.frontend
             };
         }
 
-        string GetProxyUrl(string path, int backendPort)
+        string GetProxyUrl(string path, int backendPort, Nancy.DynamicDictionary querystring)
         {
-            if (string.IsNullOrWhiteSpace(path))
-                return $"http://localhost:{backendPort}/";
+            var qs = new System.Text.StringBuilder();
+            if (querystring.Count > 0)
+                qs.Append("?");
 
-            return $"http://localhost:{backendPort}/{path}";
+            foreach (string key in querystring.Keys)
+            {
+                qs.Append(key);
+                if (querystring[key].HasValue)
+                    qs.Append("=").Append(querystring[key].Value as string);
+            }
+            if (string.IsNullOrWhiteSpace(path))
+                return $"http://localhost:{backendPort}/{qs.ToString()}";
+
+            return $"http://localhost:{backendPort}/{path}{qs.ToString()}";
         }
 
         HttpClient CreateProxyClient(Nancy.NancyContext context)
