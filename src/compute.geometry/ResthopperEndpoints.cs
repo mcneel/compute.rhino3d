@@ -14,6 +14,7 @@ using Resthopper.IO;
 using Grasshopper.Kernel.Parameters;
 using Grasshopper.Kernel.Special;
 using Rhino.Geometry;
+using System.Net;
 
 namespace compute.geometry
 {
@@ -50,9 +51,13 @@ namespace compute.geometry
             {
                 // If request contains pointer
                 string pointer = input.Pointer;
-                string storage = GetDefinitionStoragePath();
-                string fullPath = Path.Combine(storage, pointer);
-                using (StreamReader reader = new StreamReader(fullPath))
+
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(pointer);
+                request.AutomaticDecompression = DecompressionMethods.GZip;
+
+                using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+                using (Stream stream = response.GetResponseStream())
+                using (StreamReader reader = new StreamReader(stream))
                 {
                     grasshopperXml = reader.ReadToEnd();
                 }
