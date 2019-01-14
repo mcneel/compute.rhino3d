@@ -20,9 +20,25 @@ namespace compute.geometry
 {
     public static class ResthopperEndpoints
     {
+        public static string GetGhxFromPointer(string pointer)
+        {
+            string grasshopperXml = string.Empty;
+
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(pointer);
+            request.AutomaticDecompression = DecompressionMethods.GZip;
+
+            using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+            using (Stream stream = response.GetResponseStream())
+            using (StreamReader reader = new StreamReader(stream))
+            {
+                grasshopperXml = reader.ReadToEnd();
+            }
+
+            return grasshopperXml;
+        }
         public static Response Grasshopper(NancyContext ctx)
         {
-
+            
             // load grasshopper file
             var archive = new GH_Archive();
             // TODO: stream to string
@@ -51,16 +67,8 @@ namespace compute.geometry
             {
                 // If request contains pointer
                 string pointer = input.Pointer;
-
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(pointer);
-                request.AutomaticDecompression = DecompressionMethods.GZip;
-
-                using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
-                using (Stream stream = response.GetResponseStream())
-                using (StreamReader reader = new StreamReader(stream))
-                {
-                    grasshopperXml = reader.ReadToEnd();
-                }
+                grasshopperXml = GetGhxFromPointer(pointer);
+                
             }
             if (!archive.Deserialize_Xml(grasshopperXml))
                 throw new Exception();
@@ -563,15 +571,8 @@ namespace compute.geometry
             }
 
             IoQuerySchema input = JsonConvert.DeserializeObject<IoQuerySchema>(json);
-            string path = input.RequestedFile;
-            string storage = GetDefinitionStoragePath();
-            string fullPath = Path.Combine(storage, path);
-
-            string grasshopperXml = string.Empty;
-            using (StreamReader reader = new StreamReader(fullPath))
-            {
-                grasshopperXml = reader.ReadToEnd();
-            }
+            string pointer = input.RequestedFile;
+            string grasshopperXml = GetGhxFromPointer(pointer);
 
             if (!archive.Deserialize_Xml(grasshopperXml))
                 throw new Exception();
@@ -616,15 +617,6 @@ namespace compute.geometry
             rhObj.Data = JsonConvert.SerializeObject(pt);
             return rhObj;
 
-        }
-        public static string GetDefinitionStoragePath()
-        {
-            string path = string.Empty;
-            using (StreamReader reader = new StreamReader("DefinitoinStoragePath.txt"))
-            {
-                path = reader.ReadToEnd().Replace("\n", "").Replace("\r", "");
-            }
-            return path;
         }
         public static ResthopperObject GetResthopperObject<T>(object goo)
         {
