@@ -83,7 +83,9 @@ namespace computegen
               return
 @"};
 
-module.exports = RhinoCompute;"; // export RhinoCompute object for use in node.js
+// export RhinoCompute object if node.js
+if (typeof exports === 'object' && typeof module === 'object')
+    module.exports = RhinoCompute;";
             }
         }
 
