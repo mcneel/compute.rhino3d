@@ -31,7 +31,8 @@ namespace computegen
             Console.WriteLine("Writing C# client");
             var cs = new DotNetClient();
             cs.Write(ClassBuilder.AllClasses, "RhinoCompute.cs", filter);
-        }
 
+            Console.ResetColor();
+        }
     }
 }
