@@ -163,6 +163,7 @@ namespace compute.geometry
             Get[""] = _ => FixedEndpoints.HomePage(Context);
             Get["/healthcheck"] = _ => "healthy";
             Get["version"] = _ => FixedEndpoints.GetVersion(Context);
+            Get["servertime"] = _ => FixedEndpoints.ServerTime(Context);
             Get["sdk/csharp"] = _ => FixedEndpoints.CSharpSdk(Context);
             Post["hammertime"] = _ => FixedEndpoints.HammerTime(Context);
             Post["/grasshopper"] = _ => ResthopperEndpoints.Grasshopper(Context);
