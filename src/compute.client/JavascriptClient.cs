@@ -78,7 +78,13 @@ namespace computegen
 
         protected override string Suffix
         {
-            get { return "};"; }
+            get
+            {
+              return
+@"};
+
+module.exports = RhinoCompute;"; // export RhinoCompute object for use in node.js
+            }
         }
 
         protected override string ToComputeClient(ClassBuilder cb)
