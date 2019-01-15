@@ -22,6 +22,13 @@ namespace compute.geometry
             return response;
         }
 
+        public static Response ServerTime(NancyContext ctx)
+        {
+            var response = (Nancy.Response)Newtonsoft.Json.JsonConvert.SerializeObject(DateTime.UtcNow);
+            response.ContentType = "application/json";
+            return response;
+        }
+
         public static Response CSharpSdk(NancyContext ctx)
         {
             string content = "";
