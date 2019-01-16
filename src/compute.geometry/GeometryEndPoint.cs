@@ -235,11 +235,18 @@ namespace compute.geometry
             return sb.ToString();
         }
 
+        enum StopAt : int
+        {
+            None = 0,
+            PostStart = 1,
+            BodyToString = 2,
+            CalculationsComplete = 3
+        }
+
         public Response Post(NancyContext context)
         {
-            var jsonString = context.Request.Body.AsString();
-            var resp = new Nancy.Response();
-
+            DateTime start = DateTime.Now;
+            StopAt stopat = StopAt.None;
             bool multiple = false;
             Dictionary<string, string> returnModifiers = null;
             foreach (string name in context.Request.Query)
@@ -254,11 +261,26 @@ namespace compute.geometry
                     continue;
                 }
                 if (name.Equals("multiple", StringComparison.InvariantCultureIgnoreCase))
+                {
                     multiple = context.Request.Query[name];
+                    continue;
+                }
+                if (name.Equals("stopat", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    int val = context.Request.Query[name];
+                    stopat = (StopAt)val;
+                }
             }
+            if (StopAt.PostStart == stopat)
+                return $"{(DateTime.Now - start).TotalSeconds}";
+
+            var jsonString = context.Request.Body.AsString();
+            if (StopAt.BodyToString == stopat)
+                return $"{(DateTime.Now - start).TotalSeconds}";
 
             object data = string.IsNullOrWhiteSpace(jsonString) ? null : Newtonsoft.Json.JsonConvert.DeserializeObject(jsonString);
             var ja = data as Newtonsoft.Json.Linq.JArray;
+            string resultString = null;
             if (multiple && ja.Count > 1)
             {
                 var result = new System.Text.StringBuilder("[");
@@ -270,10 +292,14 @@ namespace compute.geometry
                     result.Append(HandlePostHelper(item, returnModifiers));
                 }
                 result.Append("]");
-                return result.ToString();
+                resultString = result.ToString();
             }
             else
-                return HandlePostHelper(ja, returnModifiers);
+                resultString = HandlePostHelper(ja, returnModifiers);
+
+            if (StopAt.CalculationsComplete == stopat)
+                return $"{(DateTime.Now - start).TotalSeconds}";
+            return resultString;
         }
 
         static object ProcessModifiers(object o, Dictionary<string, string> returnModifiers)
