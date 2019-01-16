@@ -54,12 +54,13 @@ namespace compute.frontend
         string GetProxyUrl(string path, int backendPort, Nancy.DynamicDictionary querystring)
         {
             var qs = new System.Text.StringBuilder();
-            if (querystring.Count > 0)
-                qs.Append("?");
 
             foreach (string key in querystring.Keys)
             {
-                qs.Append(key);
+                if(qs.Length==0)
+                    qs.Append($"?{key}");
+                else
+                    qs.Append($"&{key}");
                 if (querystring[key].HasValue)
                     qs.Append("=").Append(querystring[key].Value as string);
             }
