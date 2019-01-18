@@ -4588,6 +4588,529 @@ namespace Rhino.Compute
             return ComputeServer.Post<NurbsCurve>(ApiAddress(), railCurve, t0, t1, radiusPoint, pitch, turnCount, radius0, radius1, pointsPerTurn);
         }
     }
+
+    public static class NurbsSurfaceCompute
+    {
+        static string ApiAddress([CallerMemberName] string caller = null)
+        {
+            return ComputeServer.ApiAddress(typeof(NurbsSurface), caller);
+        }
+        /// <summary>
+        /// Computes a discrete spline curve on the surface. In other words, computes a sequence 
+        /// of points on the surface, each with a corresponding parameter value.
+        /// </summary>
+        /// <param name="surface">
+        /// The surface on which the curve is constructed. The surface should be G1 continuous. 
+        /// If the surface is closed in the u or v direction and is G1 at the seam, the
+        /// function will construct point sequences that cross over the seam.
+        /// </param>
+        /// <param name="fixedPoints">Surface points to interpolate given by parameters. These must be distinct.</param>
+        /// <param name="tolerance">Relative tolerance used by the solver. When in doubt, use a tolerance of 0.0.</param>
+        /// <param name="periodic">When true constructs a smoothly closed curve.</param>
+        /// <param name="initCount">Maximum number of points to insert beteween fixed points on the first level.</param>
+        /// <param name="levels">The number of levels (between 1 and 3) to be used in multi-level solver. Use 1 for single level solve.</param>
+        /// <returns>
+        /// A sequence of surface points, given by surface parameters, if successful.
+        /// The number of output points is approximatelely: 2 ^ (level-1) * initCount * fixedPoints.Count.
+        /// </returns>
+        /// <remarks>
+        /// To create a curve from the output points, use Surface.CreateCurveOnSurface.
+        /// </remarks>
+        public static Point2d[] CreateCurveOnSurfacePoints(Surface surface, IEnumerable<Point2d> fixedPoints, double tolerance, bool periodic, int initCount, int levels)
+        {
+            return ComputeServer.Post<Point2d[]>(ApiAddress(), surface, fixedPoints, tolerance, periodic, initCount, levels);
+        }
+        /// <summary>
+        /// Fit a sequence of 2d points on a surface to make a curve on the surface.
+        /// </summary>
+        /// <param name="surface">Surface on which to construct curve.</param>
+        /// <param name="points">Parameter space coodinates of the points to interpolate.</param>
+        /// <param name="tolerance">Curve should be within tolerance of surface and points.</param>
+        /// <param name="periodic">When true make a periodic curve.</param>
+        /// <returns>A curve interpolating the points if successful, null on error.</returns>
+        /// <remarks>
+        /// To produce the input points, use Surface.CreateCurveOnSurfacePoints.
+        /// </remarks>
+        public static NurbsCurve CreateCurveOnSurface(Surface surface, IEnumerable<Point2d> points, double tolerance, bool periodic)
+        {
+            return ComputeServer.Post<NurbsCurve>(ApiAddress(), surface, points, tolerance, periodic);
+        }
+        /// <summary>
+        /// For expert use only. Makes a pair of compatible NURBS surfaces based on two input surfaces.
+        /// </summary>
+        /// <param name="surface0">The first surface.</param>
+        /// <param name="surface1">The second surface.</param>
+        /// <param name="nurb0">The first output NURBS surface.</param>
+        /// <param name="nurb1">The second output NURBS surface.</param>
+        /// <returns>true if successsful, false on failure.</returns>
+        public static bool MakeCompatible(Surface surface0, Surface surface1, out NurbsSurface nurb0, out NurbsSurface nurb1)
+        {
+            return ComputeServer.Post<bool, NurbsSurface, NurbsSurface>(ApiAddress(), out nurb0, out nurb1, surface0, surface1);
+        }
+        /// <summary>
+        /// Constructs a NURBS surface from a 2D grid of control points.
+        /// </summary>
+        /// <param name="points">Control point locations.</param>
+        /// <param name="uCount">Number of points in U direction.</param>
+        /// <param name="vCount">Number of points in V direction.</param>
+        /// <param name="uDegree">Degree of surface in U direction.</param>
+        /// <param name="vDegree">Degree of surface in V direction.</param>
+        /// <returns>A NurbsSurface on success or null on failure.</returns>
+        /// <remarks>uCount multiplied by vCount must equal the number of points supplied.</remarks>
+        public static NurbsSurface CreateFromPoints(IEnumerable<Point3d> points, int uCount, int vCount, int uDegree, int vDegree)
+        {
+            return ComputeServer.Post<NurbsSurface>(ApiAddress(), points, uCount, vCount, uDegree, vDegree);
+        }
+        /// <summary>
+        /// Constructs a NURBS surface from a 2D grid of points.
+        /// </summary>
+        /// <param name="points">Control point locations.</param>
+        /// <param name="uCount">Number of points in U direction.</param>
+        /// <param name="vCount">Number of points in V direction.</param>
+        /// <param name="uDegree">Degree of surface in U direction.</param>
+        /// <param name="vDegree">Degree of surface in V direction.</param>
+        /// <param name="uClosed">true if the surface should be closed in the U direction.</param>
+        /// <param name="vClosed">true if the surface should be closed in the V direction.</param>
+        /// <returns>A NurbsSurface on success or null on failure.</returns>
+        /// <remarks>uCount multiplied by vCount must equal the number of points supplied.</remarks>
+        public static NurbsSurface CreateThroughPoints(IEnumerable<Point3d> points, int uCount, int vCount, int uDegree, int vDegree, bool uClosed, bool vClosed)
+        {
+            return ComputeServer.Post<NurbsSurface>(ApiAddress(), points, uCount, vCount, uDegree, vDegree, uClosed, vClosed);
+        }
+        /// <summary>
+        /// Makes a surface from 4 corner points.
+        /// <para>This is the same as calling <see cref="CreateFromCorners(Point3d,Point3d,Point3d,Point3d,double)"/> with tolerance 0.</para>
+        /// </summary>
+        /// <param name="corner1">The first corner.</param>
+        /// <param name="corner2">The second corner.</param>
+        /// <param name="corner3">The third corner.</param>
+        /// <param name="corner4">The fourth corner.</param>
+        /// <returns>the resulting surface or null on error.</returns>
+        /// <example>
+        /// <code source='examples\vbnet\ex_srfpt.vb' lang='vbnet'/>
+        /// <code source='examples\cs\ex_srfpt.cs' lang='cs'/>
+        /// <code source='examples\py\ex_srfpt.py' lang='py'/>
+        /// </example>
+        public static NurbsSurface CreateFromCorners(Point3d corner1, Point3d corner2, Point3d corner3, Point3d corner4)
+        {
+            return ComputeServer.Post<NurbsSurface>(ApiAddress(), corner1, corner2, corner3, corner4);
+        }
+        /// <summary>
+        /// Makes a surface from 4 corner points.
+        /// </summary>
+        /// <param name="corner1">The first corner.</param>
+        /// <param name="corner2">The second corner.</param>
+        /// <param name="corner3">The third corner.</param>
+        /// <param name="corner4">The fourth corner.</param>
+        /// <param name="tolerance">Minimum edge length without collapsing to a singularity.</param>
+        /// <returns>The resulting surface or null on error.</returns>
+        public static NurbsSurface CreateFromCorners(Point3d corner1, Point3d corner2, Point3d corner3, Point3d corner4, double tolerance)
+        {
+            return ComputeServer.Post<NurbsSurface>(ApiAddress(), corner1, corner2, corner3, corner4, tolerance);
+        }
+        /// <summary>
+        /// Makes a surface from 3 corner points.
+        /// </summary>
+        /// <param name="corner1">The first corner.</param>
+        /// <param name="corner2">The second corner.</param>
+        /// <param name="corner3">The third corner.</param>
+        /// <returns>The resulting surface or null on error.</returns>
+        public static NurbsSurface CreateFromCorners(Point3d corner1, Point3d corner2, Point3d corner3)
+        {
+            return ComputeServer.Post<NurbsSurface>(ApiAddress(), corner1, corner2, corner3);
+        }
+        /// <summary>
+        /// Constructs a railed Surface-of-Revolution.
+        /// </summary>
+        /// <param name="profile">Profile curve for revolution.</param>
+        /// <param name="rail">Rail curve for revolution.</param>
+        /// <param name="axis">Axis of revolution.</param>
+        /// <param name="scaleHeight">If true, surface will be locally scaled.</param>
+        /// <returns>A NurbsSurface or null on failure.</returns>
+        public static NurbsSurface CreateRailRevolvedSurface(Curve profile, Curve rail, Line axis, bool scaleHeight)
+        {
+            return ComputeServer.Post<NurbsSurface>(ApiAddress(), profile, rail, axis, scaleHeight);
+        }
+        /// <summary>
+        /// Builds a surface from an ordered network of curves/edges.
+        /// </summary>
+        /// <param name="uCurves">An array, a list or any enumerable set of U curves.</param>
+        /// <param name="uContinuityStart">
+        /// continuity at first U segment, 0 = loose, 1 = pos, 2 = tan, 3 = curvature.
+        /// </param>
+        /// <param name="uContinuityEnd">
+        /// continuity at last U segment, 0 = loose, 1 = pos, 2 = tan, 3 = curvature.
+        /// </param>
+        /// <param name="vCurves">An array, a list or any enumerable set of V curves.</param>
+        /// <param name="vContinuityStart">
+        /// continuity at first V segment, 0 = loose, 1 = pos, 2 = tan, 3 = curvature.
+        /// </param>
+        /// <param name="vContinuityEnd">
+        /// continuity at last V segment, 0 = loose, 1 = pos, 2 = tan, 3 = curvature.
+        /// </param>
+        /// <param name="edgeTolerance">tolerance to use along network surface edge.</param>
+        /// <param name="interiorTolerance">tolerance to use for the interior curves.</param>
+        /// <param name="angleTolerance">angle tolerance to use.</param>
+        /// <param name="error">
+        /// If the NurbsSurface could not be created, the error value describes where
+        /// the failure occured.  0 = success,  1 = curve sorter failed, 2 = network initializing failed,
+        /// 3 = failed to build surface, 4 = network surface is not valid.
+        /// </param>
+        /// <returns>A NurbsSurface or null on failure.</returns>
+        public static NurbsSurface CreateNetworkSurface(IEnumerable<Curve> uCurves, int uContinuityStart, int uContinuityEnd, IEnumerable<Curve> vCurves, int vContinuityStart, int vContinuityEnd, double edgeTolerance, double interiorTolerance, double angleTolerance, out int error)
+        {
+            return ComputeServer.Post<NurbsSurface, int>(ApiAddress(), out error, uCurves, uContinuityStart, uContinuityEnd, vCurves, vContinuityStart, vContinuityEnd, edgeTolerance, interiorTolerance, angleTolerance);
+        }
+        /// <summary>
+        /// Builds a surface from an autosorted network of curves/edges.
+        /// </summary>
+        /// <param name="curves">An array, a list or any enumerable set of curves/edges, sorted automatically into U and V curves.</param>
+        /// <param name="continuity">continuity along edges, 0 = loose, 1 = pos, 2 = tan, 3 = curvature.</param>
+        /// <param name="edgeTolerance">tolerance to use along network surface edge.</param>
+        /// <param name="interiorTolerance">tolerance to use for the interior curves.</param>
+        /// <param name="angleTolerance">angle tolerance to use.</param>
+        /// <param name="error">
+        /// If the NurbsSurface could not be created, the error value describes where
+        /// the failure occured.  0 = success,  1 = curve sorter failed, 2 = network initializing failed,
+        /// 3 = failed to build surface, 4 = network surface is not valid.
+        /// </param>
+        /// <returns>A NurbsSurface or null on failure.</returns>
+        public static NurbsSurface CreateNetworkSurface(IEnumerable<Curve> curves, int continuity, double edgeTolerance, double interiorTolerance, double angleTolerance, out int error)
+        {
+            return ComputeServer.Post<NurbsSurface, int>(ApiAddress(), out error, curves, continuity, edgeTolerance, interiorTolerance, angleTolerance);
+        }
+    }
+
+    public static class SurfaceCompute
+    {
+        static string ApiAddress([CallerMemberName] string caller = null)
+        {
+            return ComputeServer.ApiAddress(typeof(Surface), caller);
+        }
+        /// <summary>
+        /// Constructs a rolling ball fillet between two surfaces.
+        /// </summary>
+        /// <param name="surfaceA">A first surface.</param>
+        /// <param name="surfaceB">A second surface.</param>
+        /// <param name="radius">A radius value.</param>
+        /// <param name="tolerance">A tolerance value.</param>
+        /// <returns>A new array of rolling ball fillet surfaces; this array can be empty on failure.</returns>
+        /// <exception cref="ArgumentNullException">If surfaceA or surfaceB are null.</exception>
+        public static Surface[] CreateRollingBallFillet(Surface surfaceA, Surface surfaceB, double radius, double tolerance)
+        {
+            return ComputeServer.Post<Surface[]>(ApiAddress(), surfaceA, surfaceB, radius, tolerance);
+        }
+        /// <summary>
+        /// Constructs a rolling ball fillet between two surfaces.
+        /// </summary>
+        /// <param name="surfaceA">A first surface.</param>
+        /// <param name="flipA">A value that indicates whether A should be used in flipped mode.</param>
+        /// <param name="surfaceB">A second surface.</param>
+        /// <param name="flipB">A value that indicates whether B should be used in flipped mode.</param>
+        /// <param name="radius">A radius value.</param>
+        /// <param name="tolerance">A tolerance value.</param>
+        /// <returns>A new array of rolling ball fillet surfaces; this array can be empty on failure.</returns>
+        /// <exception cref="ArgumentNullException">If surfaceA or surfaceB are null.</exception>
+        public static Surface[] CreateRollingBallFillet(Surface surfaceA, bool flipA, Surface surfaceB, bool flipB, double radius, double tolerance)
+        {
+            return ComputeServer.Post<Surface[]>(ApiAddress(), surfaceA, flipA, surfaceB, flipB, radius, tolerance);
+        }
+        /// <summary>
+        /// Constructs a rolling ball fillet between two surfaces.
+        /// </summary>
+        /// <param name="surfaceA">A first surface.</param>
+        /// <param name="uvA">A point in the parameter space of FaceA near where the fillet is expected to hit the surface.</param>
+        /// <param name="surfaceB">A second surface.</param>
+        /// <param name="uvB">A point in the parameter space of FaceB near where the fillet is expected to hit the surface.</param>
+        /// <param name="radius">A radius value.</param>
+        /// <param name="tolerance">A tolerance value used for approximating and intersecting offset surfaces.</param>
+        /// <returns>A new array of rolling ball fillet surfaces; this array can be empty on failure.</returns>
+        /// <exception cref="ArgumentNullException">If surfaceA or surfaceB are null.</exception>
+        public static Surface[] CreateRollingBallFillet(Surface surfaceA, Point2d uvA, Surface surfaceB, Point2d uvB, double radius, double tolerance)
+        {
+            return ComputeServer.Post<Surface[]>(ApiAddress(), surfaceA, uvA, surfaceB, uvB, radius, tolerance);
+        }
+        /// <summary>
+        /// Constructs a surface by extruding a curve along a vector.
+        /// </summary>
+        /// <param name="profile">Profile curve to extrude.</param>
+        /// <param name="direction">Direction and length of extrusion.</param>
+        /// <returns>A surface on success or null on failure.</returns>
+        public static Surface CreateExtrusion(Curve profile, Vector3d direction)
+        {
+            return ComputeServer.Post<Surface>(ApiAddress(), profile, direction);
+        }
+        /// <summary>
+        /// Constructs a surface by extruding a curve to a point.
+        /// </summary>
+        /// <param name="profile">Profile curve to extrude.</param>
+        /// <param name="apexPoint">Apex point of extrusion.</param>
+        /// <returns>A Surface on success or null on failure.</returns>
+        public static Surface CreateExtrusionToPoint(Curve profile, Point3d apexPoint)
+        {
+            return ComputeServer.Post<Surface>(ApiAddress(), profile, apexPoint);
+        }
+        /// <summary>
+        /// Constructs a periodic surface from a base surface and a direction.
+        /// </summary>
+        /// <param name="surface">The surface to make periodic.</param>
+        /// <param name="direction">The direction to make periodic, either 0 = U, or 1 = V.</param>
+        /// <returns>A Surface on success or null on failure.</returns>
+        public static Surface CreatePeriodicSurface(Surface surface, int direction)
+        {
+            return ComputeServer.Post<Surface>(ApiAddress(), surface, direction);
+        }
+        /// <summary>
+        /// Constructs a periodic surface from a base surface and a direction.
+        /// </summary>
+        /// <param name="surface">The surface to make periodic.</param>
+        /// <param name="direction">The direction to make periodic, either 0 = U, or 1 = V.</param>
+        /// <param name="bSmooth">
+        /// Controls kink removal. If true, smooths any kinks in the surface and moves control points
+        /// to make a smooth surface. If false, control point locations are not changed or changed minimally
+        /// (only one point may move) and only the knot vector is altered.
+        /// </param>
+        /// <returns>A periodic surface if successful, null on failure.</returns>
+        public static Surface CreatePeriodicSurface(Surface surface, int direction, bool bSmooth)
+        {
+            return ComputeServer.Post<Surface>(ApiAddress(), surface, direction, bSmooth);
+        }
+        /// <summary>
+        /// Creates a soft edited surface from an exising surface using a smooth field of influence.
+        /// </summary>
+        /// <param name="surface">The surface to soft edit.</param>
+        /// <param name="uv">
+        /// A point in the parameter space to move from. This location on the surface is moved, 
+        /// and the move is smoothly tapered off with increasing distance along the surface from
+        /// this parameter.
+        /// </param>
+        /// <param name="delta">The direction and magitude, or maximum distance, of the move.</param>
+        /// <param name="uLength">
+        /// The distance along the surface's u-direction from the editing point over which the
+        /// strength of the editing falls off smoothly.
+        /// </param>
+        /// <param name="vLength">
+        /// The distance along the surface's v-direction from the editing point over which the
+        /// strength of the editing falls off smoothly.
+        /// </param>
+        /// <param name="tolerance">The active document's model absolute tolerance.</param>
+        /// <param name="fixEnds">Keeps edge locations fixed.</param>
+        /// <returns>The soft edited surface if successful. null on failure.</returns>
+        public static Surface CreateSoftEditSurface(Surface surface, Point2d uv, Vector3d delta, double uLength, double vLength, double tolerance, bool fixEnds)
+        {
+            return ComputeServer.Post<Surface>(ApiAddress(), surface, uv, delta, uLength, vLength, tolerance, fixEnds);
+        }
+        /// <summary>
+        /// Gets an estimate of the size of the rectangle that would be created
+        /// if the 3d surface where flattened into a rectangle.
+        /// </summary>
+        /// <param name="width">corresponds to the first surface parameter.</param>
+        /// <param name="height">corresponds to the second surface parameter.</param>
+        /// <returns>true if successful.</returns>
+        /// <example>
+        /// Reparameterize a surface to minimize distortion in the map from parameter space to 3d.
+        /// Surface surf = ...;
+        /// double width, height;
+        /// if ( surf.GetSurfaceSize( out width, out height ) )
+        /// {
+        ///   surf.SetDomain( 0, new ON_Interval( 0.0, width ) );
+        ///   surf.SetDomain( 1, new ON_Interval( 0.0, height ) );
+        /// }
+        /// </example>
+        public static bool GetSurfaceSize(this Surface surface, out double width, out double height)
+        {
+            return ComputeServer.Post<bool, double, double>(ApiAddress(), out width, out height, surface);
+        }
+        /// <summary>
+        /// Gets the side that is closest, in terms of 3D-distance, to a U and V parameter.
+        /// </summary>
+        /// <param name="u">A u parameter.</param>
+        /// <param name="v">A v parameter.</param>
+        /// <returns>A side.</returns>
+        public static IsoStatus ClosestSide(this Surface surface, double u, double v)
+        {
+            return ComputeServer.Post<IsoStatus>(ApiAddress(), surface, u, v);
+        }
+        /// <summary>
+        /// Extends an untrimmed surface along one edge.
+        /// </summary>
+        /// <param name="edge">
+        /// Edge to extend.  Must be North, South, East, or West.
+        /// </param>
+        /// <param name="extensionLength">distance to extend.</param>
+        /// <param name="smooth">
+        /// true for smooth (C-infinity) extension. 
+        /// false for a C1- ruled extension.
+        /// </param>
+        /// <returns>New extended surface on success.</returns>
+        public static Surface Extend(this Surface surface, IsoStatus edge, double extensionLength, bool smooth)
+        {
+            return ComputeServer.Post<Surface>(ApiAddress(), surface, edge, extensionLength, smooth);
+        }
+        /// <summary>
+        /// Rebuilds an existing surface to a given degree and point count.
+        /// </summary>
+        /// <param name="uDegree">the output surface u degree.</param>
+        /// <param name="vDegree">the output surface u degree.</param>
+        /// <param name="uPointCount">
+        /// The number of points in the output surface u direction. Must be bigger
+        /// than uDegree (maximum value is 1000)
+        /// </param>
+        /// <param name="vPointCount">
+        /// The number of points in the output surface v direction. Must be bigger
+        /// than vDegree (maximum value is 1000)
+        /// </param>
+        /// <returns>new rebuilt surface on success. null on failure.</returns>
+        public static NurbsSurface Rebuild(this Surface surface, int uDegree, int vDegree, int uPointCount, int vPointCount)
+        {
+            return ComputeServer.Post<NurbsSurface>(ApiAddress(), surface, uDegree, vDegree, uPointCount, vPointCount);
+        }
+        /// <summary>
+        /// Rebuilds an existing surface with a new surface to a given point count in either the u or v directions independently.
+        /// </summary>
+        /// <param name="direction">The direction (0 = U, 1 = V).</param>
+        /// <param name="pointCount">The number of points in the output surface in the "direction" direction.</param>
+        /// <param name="loftType">The loft type</param>
+        /// <param name="refitTolerance">The refit tolerance. When in doubt, use the document's model absolute tolerance.</param>
+        /// <returns>new rebuilt surface on success. null on failure.</returns>
+        public static NurbsSurface RebuildOneDirection(this Surface surface, int direction, int pointCount, LoftType loftType, double refitTolerance)
+        {
+            return ComputeServer.Post<NurbsSurface>(ApiAddress(), surface, direction, pointCount, loftType, refitTolerance);
+        }
+        /// <summary>
+        /// Input the parameters of the point on the surface that is closest to testPoint.
+        /// </summary>
+        /// <param name="testPoint">A point to test against.</param>
+        /// <param name="u">U parameter of the surface that is closest to testPoint.</param>
+        /// <param name="v">V parameter of the surface that is closest to testPoint.</param>
+        /// <returns>true on success, false on failure.</returns>
+        /// <example>
+        /// <code source='examples\vbnet\ex_orientonsrf.vb' lang='vbnet'/>
+        /// <code source='examples\cs\ex_orientonsrf.cs' lang='cs'/>
+        /// <code source='examples\py\ex_orientonsrf.py' lang='py'/>
+        /// </example>
+        public static bool ClosestPoint(this Surface surface, Point3d testPoint, out double u, out double v)
+        {
+            return ComputeServer.Post<bool, double, double>(ApiAddress(), out u, out v, surface, testPoint);
+        }
+        /// <summary>
+        /// Find parameters of the point on a surface that is locally closest to
+        /// the testPoint. The search for a local close point starts at seed parameters.
+        /// </summary>
+        /// <param name="testPoint">A point to test against.</param>
+        /// <param name="seedU">The seed parameter in the U direction.</param>
+        /// <param name="seedV">The seed parameter in the V direction.</param>
+        /// <param name="u">U parameter of the surface that is closest to testPoint.</param>
+        /// <param name="v">V parameter of the surface that is closest to testPoint.</param>
+        /// <returns>true if the search is successful, false if the search fails.</returns>
+        public static bool LocalClosestPoint(this Surface surface, Point3d testPoint, double seedU, double seedV, out double u, out double v)
+        {
+            return ComputeServer.Post<bool, double, double>(ApiAddress(), out u, out v, surface, testPoint, seedU, seedV);
+        }
+        /// <summary>
+        /// Constructs a new surface which is offset from the current surface.
+        /// </summary>
+        /// <param name="distance">Distance (along surface normal) to offset.</param>
+        /// <param name="tolerance">Offset accuracy.</param>
+        /// <returns>The offsetted surface or null on failure.</returns>
+        public static Surface Offset(this Surface surface, double distance, double tolerance)
+        {
+            return ComputeServer.Post<Surface>(ApiAddress(), surface, distance, tolerance);
+        }
+        /// <summary>Fits a new surface through an existing surface.</summary>
+        /// <param name="uDegree">the output surface U degree. Must be bigger than 1.</param>
+        /// <param name="vDegree">the output surface V degree. Must be bigger than 1.</param>
+        /// <param name="fitTolerance">The fitting tolerance.</param>
+        /// <returns>A surface, or null on error.</returns>
+        public static Surface Fit(this Surface surface, int uDegree, int vDegree, double fitTolerance)
+        {
+            return ComputeServer.Post<Surface>(ApiAddress(), surface, uDegree, vDegree, fitTolerance);
+        }
+        /// <summary>
+        /// Constructs an interpolated curve on a surface, using 2D surface points.
+        /// </summary>
+        /// <param name="points">A list, an array or any enumerable set of 2D points.</param>
+        /// <param name="tolerance">A tolerance value.</param>
+        /// <returns>A new nurbs curve, or null on error.</returns>
+        public static NurbsCurve InterpolatedCurveOnSurfaceUV(this Surface surface, System.Collections.Generic.IEnumerable<Point2d> points, double tolerance)
+        {
+            return ComputeServer.Post<NurbsCurve>(ApiAddress(), surface, points, tolerance);
+        }
+        /// <summary>
+        /// Constructs an interpolated curve on a surface, using 3D points.
+        /// </summary>
+        /// <param name="points">A list, an array or any enumerable set of points.</param>
+        /// <param name="tolerance">A tolerance value.</param>
+        /// <returns>A new nurbs curve, or null on error.</returns>
+        public static NurbsCurve InterpolatedCurveOnSurface(this Surface surface, System.Collections.Generic.IEnumerable<Point3d> points, double tolerance)
+        {
+            return ComputeServer.Post<NurbsCurve>(ApiAddress(), surface, points, tolerance);
+        }
+        /// <summary>
+        /// Constructs a geodesic between 2 points, used by ShortPath command in Rhino.
+        /// </summary>
+        /// <param name="start">start point of curve in parameter space. Points must be distinct in the domain of thie surface.</param>
+        /// <param name="end">end point of curve in parameter space. Points must be distinct in the domain of thie surface.</param>
+        /// <param name="tolerance">tolerance used in fitting discrete solution.</param>
+        /// <returns>a geodesic curve on the surface on success. null on failure.</returns>
+        public static Curve ShortPath(this Surface surface, Point2d start, Point2d end, double tolerance)
+        {
+            return ComputeServer.Post<Curve>(ApiAddress(), surface, start, end, tolerance);
+        }
+        /// <summary>
+        /// Computes a 3d curve that is the composite of a 2d curve and the surface map.
+        /// </summary>
+        /// <param name="curve2d">a 2d curve whose image is in the surface's domain.</param>
+        /// <param name="tolerance">
+        /// the maximum acceptable distance from the returned 3d curve to the image of curve_2d on the surface.
+        /// </param>
+        /// <param name="curve2dSubdomain">The curve interval (a sub-domain of the original curve) to use.</param>
+        /// <returns>3d curve.</returns>
+        public static Curve Pushup(this Surface surface, Curve curve2d, double tolerance, Interval curve2dSubdomain)
+        {
+            return ComputeServer.Post<Curve>(ApiAddress(), surface, curve2d, tolerance, curve2dSubdomain);
+        }
+        /// <summary>
+        /// Computes a 3d curve that is the composite of a 2d curve and the surface map.
+        /// </summary>
+        /// <param name="curve2d">a 2d curve whose image is in the surface's domain.</param>
+        /// <param name="tolerance">
+        /// the maximum acceptable distance from the returned 3d curve to the image of curve_2d on the surface.
+        /// </param>
+        /// <returns>3d curve.</returns>
+        public static Curve Pushup(this Surface surface, Curve curve2d, double tolerance)
+        {
+            return ComputeServer.Post<Curve>(ApiAddress(), surface, curve2d, tolerance);
+        }
+        /// <summary>
+        /// Pulls a 3d curve back to the surface's parameter space.
+        /// </summary>
+        /// <param name="curve3d">The curve to pull.</param>
+        /// <param name="tolerance">
+        /// the maximum acceptable 3d distance between from surface(curve_2d(t))
+        /// to the locus of points on the surface that are closest to curve_3d.
+        /// </param>
+        /// <returns>2d curve.</returns>
+        public static Curve Pullback(this Surface surface, Curve curve3d, double tolerance)
+        {
+            return ComputeServer.Post<Curve>(ApiAddress(), surface, curve3d, tolerance);
+        }
+        /// <summary>
+        /// Pulls a 3d curve back to the surface's parameter space.
+        /// </summary>
+        /// <param name="curve3d">A curve.</param>
+        /// <param name="tolerance">
+        /// the maximum acceptable 3d distance between from surface(curve_2d(t))
+        /// to the locus of points on the surface that are closest to curve_3d.
+        /// </param>
+        /// <param name="curve3dSubdomain">A subdomain of the curve to sample.</param>
+        /// <returns>2d curve.</returns>
+        public static Curve Pullback(this Surface surface, Curve curve3d, double tolerance, Interval curve3dSubdomain)
+        {
+            return ComputeServer.Post<Curve>(ApiAddress(), surface, curve3d, tolerance, curve3dSubdomain);
+        }
+    }
+
 }
 
 namespace Rhino.Compute.Intersect

@@ -4,6 +4,7 @@ import requests
 
 url = "https://compute.rhino3d.com/"
 authToken = None
+stopat = 0
 
 def ComputeFetch(endpoint, arglist) :
     class __Rhino3dmEncoder(json.JSONEncoder):
@@ -12,8 +13,15 @@ def ComputeFetch(endpoint, arglist) :
                 return o.Encode()
             return json.JSONEncoder.default(self, o)
     global authToken
+    global url
+    global stopat
+    posturl = url + endpoint
+    if(stopat>0):
+        if(posturl.find('?')>0): posturl += '&stopat='
+        else: posturl += '?stopat='
+        posturl += str(stopat)
     postdata = json.dumps(arglist, cls = __Rhino3dmEncoder)
     headers = {'Authorization': 'Bearer ' + authToken}
-    r = requests.post(url+endpoint, data=postdata, headers=headers)
+    r = requests.post(posturl, data=postdata, headers=headers)
     return r.json()
 
