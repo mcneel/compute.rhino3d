@@ -222,22 +222,20 @@ def Smooth1(thisSurface, smoothFactor, bXSmooth, bYSmooth, bZSmooth, bFixBoundar
     return response
 
 
-def GetSurfaceSize(thisSurface, width, height, multiple=False):
+def GetSurfaceSize(thisSurface, multiple=False):
     """
     Gets an estimate of the size of the rectangle that would be created
     if the 3d surface where flattened into a rectangle.
 
-    Args:
-        width (double): corresponds to the first surface parameter.
-        height (double): corresponds to the second surface parameter.
-
     Returns:
         bool: True if successful.
+        width (double): corresponds to the first surface parameter.
+        height (double): corresponds to the second surface parameter.
     """
     url = "rhino/geometry/surface/getsurfacesize-surface_double_double"
     if multiple: url += "?multiple=true"
-    args = [thisSurface, width, height]
-    if multiple: args = zip(thisSurface, width, height)
+    args = [thisSurface]
+    if multiple: args = [[item] for item in thisSurface]
     response = Util.ComputeFetch(url, args)
     return response
 
@@ -326,27 +324,27 @@ def RebuildOneDirection(thisSurface, direction, pointCount, loftType, refitToler
     return response
 
 
-def ClosestPoint(thisSurface, testPoint, u, v, multiple=False):
+def ClosestPoint(thisSurface, testPoint, multiple=False):
     """
     Input the parameters of the point on the surface that is closest to testPoint.
 
     Args:
         testPoint (Point3d): A point to test against.
-        u (double): U parameter of the surface that is closest to testPoint.
-        v (double): V parameter of the surface that is closest to testPoint.
 
     Returns:
         bool: True on success, False on failure.
+        u (double): U parameter of the surface that is closest to testPoint.
+        v (double): V parameter of the surface that is closest to testPoint.
     """
     url = "rhino/geometry/surface/closestpoint-surface_point3d_double_double"
     if multiple: url += "?multiple=true"
-    args = [thisSurface, testPoint, u, v]
-    if multiple: args = zip(thisSurface, testPoint, u, v)
+    args = [thisSurface, testPoint]
+    if multiple: args = zip(thisSurface, testPoint)
     response = Util.ComputeFetch(url, args)
     return response
 
 
-def LocalClosestPoint(thisSurface, testPoint, seedU, seedV, u, v, multiple=False):
+def LocalClosestPoint(thisSurface, testPoint, seedU, seedV, multiple=False):
     """
     Find parameters of the point on a surface that is locally closest to
     the testPoint. The search for a local close point starts at seed parameters.
@@ -355,16 +353,16 @@ def LocalClosestPoint(thisSurface, testPoint, seedU, seedV, u, v, multiple=False
         testPoint (Point3d): A point to test against.
         seedU (double): The seed parameter in the U direction.
         seedV (double): The seed parameter in the V direction.
-        u (double): U parameter of the surface that is closest to testPoint.
-        v (double): V parameter of the surface that is closest to testPoint.
 
     Returns:
         bool: True if the search is successful, False if the search fails.
+        u (double): U parameter of the surface that is closest to testPoint.
+        v (double): V parameter of the surface that is closest to testPoint.
     """
     url = "rhino/geometry/surface/localclosestpoint-surface_point3d_double_double_double_double"
     if multiple: url += "?multiple=true"
-    args = [thisSurface, testPoint, seedU, seedV, u, v]
-    if multiple: args = zip(thisSurface, testPoint, seedU, seedV, u, v)
+    args = [thisSurface, testPoint, seedU, seedV]
+    if multiple: args = zip(thisSurface, testPoint, seedU, seedV)
     response = Util.ComputeFetch(url, args)
     return response
 

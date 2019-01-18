@@ -256,63 +256,63 @@ def MeshRay(mesh, ray, multiple=False):
     return response
 
 
-def MeshRay1(mesh, ray, meshFaceIndices, multiple=False):
+def MeshRay1(mesh, ray, multiple=False):
     """
     Finds the first intersection of a ray with a mesh.
 
     Args:
         mesh (Mesh): A mesh to intersect.
         ray (Ray3d): A ray to be casted.
-        meshFaceIndices (int[]): faces on mesh that ray intersects.
 
     Returns:
         double: >= 0.0 parameter along ray if successful.
         < 0.0 if no intersection found.
+        meshFaceIndices (int[]): faces on mesh that ray intersects.
     """
     url = "rhino/geometry/intersect/intersection/meshray-mesh_ray3d_intarray"
     if multiple: url += "?multiple=true"
-    args = [mesh, ray, meshFaceIndices]
-    if multiple: args = zip(mesh, ray, meshFaceIndices)
+    args = [mesh, ray]
+    if multiple: args = zip(mesh, ray)
     response = Util.ComputeFetch(url, args)
     return response
 
 
-def MeshPolyline(mesh, curve, faceIds, multiple=False):
+def MeshPolyline(mesh, curve, multiple=False):
     """
     Finds the intersection of a mesh and a polyline.
 
     Args:
         mesh (Mesh): A mesh to intersect.
         curve (PolylineCurve): A polyline curves to intersect.
-        faceIds (int[]): The indices of the intersecting faces. This out reference is assigned during the call.
 
     Returns:
         Point3d[]: An array of points: one for each face that was passed by the faceIds out reference.
+        faceIds (int[]): The indices of the intersecting faces. This out reference is assigned during the call.
     """
     url = "rhino/geometry/intersect/intersection/meshpolyline-mesh_polylinecurve_intarray"
     if multiple: url += "?multiple=true"
-    args = [mesh, curve, faceIds]
-    if multiple: args = zip(mesh, curve, faceIds)
+    args = [mesh, curve]
+    if multiple: args = zip(mesh, curve)
     response = Util.ComputeFetch(url, args)
     return response
 
 
-def MeshLine(mesh, line, faceIds, multiple=False):
+def MeshLine(mesh, line, multiple=False):
     """
     Finds the intersection of a mesh and a line
 
     Args:
         mesh (Mesh): A mesh to intersect
         line (Line): The line to intersect with the mesh
-        faceIds (int[]): The indices of the intersecting faces. This out reference is assigned during the call.
 
     Returns:
         Point3d[]: An array of points: one for each face that was passed by the faceIds out reference.
+        faceIds (int[]): The indices of the intersecting faces. This out reference is assigned during the call.
     """
     url = "rhino/geometry/intersect/intersection/meshline-mesh_line_intarray"
     if multiple: url += "?multiple=true"
-    args = [mesh, line, faceIds]
-    if multiple: args = zip(mesh, line, faceIds)
+    args = [mesh, line]
+    if multiple: args = zip(mesh, line)
     response = Util.ComputeFetch(url, args)
     return response
 
@@ -358,7 +358,7 @@ def ProjectPointsToMeshes(meshes, points, direction, tolerance, multiple=False):
     return response
 
 
-def ProjectPointsToMeshesEx(meshes, points, direction, tolerance, indices, multiple=False):
+def ProjectPointsToMeshesEx(meshes, points, direction, tolerance, multiple=False):
     """
     Projects points onto meshes.
 
@@ -367,15 +367,15 @@ def ProjectPointsToMeshesEx(meshes, points, direction, tolerance, indices, multi
         points (IEnumerable<Point3d>): the points to project.
         direction (Vector3d): the direction to project.
         tolerance (double): Projection tolerances used for culling close points and for line-mesh intersection.
-        indices (int[]): Return points[i] is a projection of points[indices[i]]
 
     Returns:
         Point3d[]: Array of projected points, or None in case of any error or invalid input.
+        indices (int[]): Return points[i] is a projection of points[indices[i]]
     """
     url = "rhino/geometry/intersect/intersection/projectpointstomeshesex-mesharray_point3darray_vector3d_double_intarray"
     if multiple: url += "?multiple=true"
-    args = [meshes, points, direction, tolerance, indices]
-    if multiple: args = zip(meshes, points, direction, tolerance, indices)
+    args = [meshes, points, direction, tolerance]
+    if multiple: args = zip(meshes, points, direction, tolerance)
     response = Util.ComputeFetch(url, args)
     return response
 
@@ -401,7 +401,7 @@ def ProjectPointsToBreps(breps, points, direction, tolerance, multiple=False):
     return response
 
 
-def ProjectPointsToBrepsEx(breps, points, direction, tolerance, indices, multiple=False):
+def ProjectPointsToBrepsEx(breps, points, direction, tolerance, multiple=False):
     """
     Projects points onto breps.
 
@@ -410,15 +410,15 @@ def ProjectPointsToBrepsEx(breps, points, direction, tolerance, indices, multipl
         points (IEnumerable<Point3d>): The points to project.
         direction (Vector3d): The direction to project.
         tolerance (double): The tolerance used for intersections.
-        indices (int[]): Return points[i] is a projection of points[indices[i]]
 
     Returns:
         Point3d[]: Array of projected points, or None in case of any error or invalid input.
+        indices (int[]): Return points[i] is a projection of points[indices[i]]
     """
     url = "rhino/geometry/intersect/intersection/projectpointstobrepsex-breparray_point3darray_vector3d_double_intarray"
     if multiple: url += "?multiple=true"
-    args = [breps, points, direction, tolerance, indices]
-    if multiple: args = zip(breps, points, direction, tolerance, indices)
+    args = [breps, points, direction, tolerance]
+    if multiple: args = zip(breps, points, direction, tolerance)
     response = Util.ComputeFetch(url, args)
     return response
 

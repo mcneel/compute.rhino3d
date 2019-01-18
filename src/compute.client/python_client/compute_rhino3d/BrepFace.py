@@ -20,7 +20,7 @@ def PullPointsToFace(thisBrepFace, points, tolerance, multiple=False):
     return response
 
 
-def DraftAnglePoint(thisBrepFace, testPoint, testAngle, pullDirection, edge, draftPoint, draftAngle, multiple=False):
+def DraftAnglePoint(thisBrepFace, testPoint, testAngle, pullDirection, edge, multiple=False):
     """
     Returns the surface draft angle and point at a parameter.
 
@@ -29,16 +29,16 @@ def DraftAnglePoint(thisBrepFace, testPoint, testAngle, pullDirection, edge, dra
         testAngle (double): The angle in radians to test.
         pullDirection (Vector3d): The pull direction.
         edge (bool): Restricts the point placement to an edge.
-        draftPoint (Point3d): The draft angle point.
-        draftAngle (double): The draft angle in radians.
 
     Returns:
         bool: True if successful, False otherwise.
+        draftPoint (Point3d): The draft angle point.
+        draftAngle (double): The draft angle in radians.
     """
     url = "rhino/geometry/brepface/draftanglepoint-brepface_point2d_double_vector3d_bool_point3d_double"
     if multiple: url += "?multiple=true"
-    args = [thisBrepFace, testPoint, testAngle, pullDirection, edge, draftPoint, draftAngle]
-    if multiple: args = zip(thisBrepFace, testPoint, testAngle, pullDirection, edge, draftPoint, draftAngle)
+    args = [thisBrepFace, testPoint, testAngle, pullDirection, edge]
+    if multiple: args = zip(thisBrepFace, testPoint, testAngle, pullDirection, edge)
     response = Util.ComputeFetch(url, args)
     return response
 

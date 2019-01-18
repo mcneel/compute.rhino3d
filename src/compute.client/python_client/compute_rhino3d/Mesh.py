@@ -982,13 +982,12 @@ def ClosestMeshPoint(thisMesh, testPoint, maximumDistance, multiple=False):
     return response
 
 
-def ClosestPoint(thisMesh, testPoint, pointOnMesh, maximumDistance, multiple=False):
+def ClosestPoint(thisMesh, testPoint, maximumDistance, multiple=False):
     """
     Gets the point on the mesh that is closest to a given test point.
 
     Args:
         testPoint (Point3d): Point to seach for.
-        pointOnMesh (Point3d): Point on the mesh closest to testPoint.
         maximumDistance (double): Optional upper bound on the distance from test point to the mesh.
             If you are only interested in finding a point Q on the mesh when
             testPoint.DistanceTo(Q) < maximumDistance,
@@ -998,11 +997,38 @@ def ClosestPoint(thisMesh, testPoint, pointOnMesh, maximumDistance, multiple=Fal
     Returns:
         int: Index of face that the closest point lies on if successful.
         -1 if not successful; the value of pointOnMesh is undefined.
+        pointOnMesh (Point3d): Point on the mesh closest to testPoint.
     """
     url = "rhino/geometry/mesh/closestpoint-mesh_point3d_point3d_double"
     if multiple: url += "?multiple=true"
-    args = [thisMesh, testPoint, pointOnMesh, maximumDistance]
-    if multiple: args = zip(thisMesh, testPoint, pointOnMesh, maximumDistance)
+    args = [thisMesh, testPoint, maximumDistance]
+    if multiple: args = zip(thisMesh, testPoint, maximumDistance)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
+def ClosestPoint1(thisMesh, testPoint, maximumDistance, multiple=False):
+    """
+    Gets the point on the mesh that is closest to a given test point.
+
+    Args:
+        testPoint (Point3d): Point to seach for.
+        maximumDistance (double): Optional upper bound on the distance from test point to the mesh.
+            If you are only interested in finding a point Q on the mesh when
+            testPoint.DistanceTo(Q) < maximumDistance,
+            then set maximumDistance to that value.
+            This parameter is ignored if you pass 0.0 for a maximumDistance.
+
+    Returns:
+        int: Index of face that the closest point lies on if successful.
+        -1 if not successful; the value of pointOnMesh is undefined.
+        pointOnMesh (Point3d): Point on the mesh closest to testPoint.
+        normalAtPoint (Vector3d): The normal vector of the mesh at the closest point.
+    """
+    url = "rhino/geometry/mesh/closestpoint-mesh_point3d_point3d_vector3d_double"
+    if multiple: url += "?multiple=true"
+    args = [thisMesh, testPoint, maximumDistance]
+    if multiple: args = zip(thisMesh, testPoint, maximumDistance)
     response = Util.ComputeFetch(url, args)
     return response
 

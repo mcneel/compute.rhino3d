@@ -49,23 +49,23 @@ def CreateCurveOnSurface(surface, points, tolerance, periodic, multiple=False):
     return response
 
 
-def MakeCompatible(surface0, surface1, nurb0, nurb1, multiple=False):
+def MakeCompatible(surface0, surface1, multiple=False):
     """
     For expert use only. Makes a pair of compatible NURBS surfaces based on two input surfaces.
 
     Args:
         surface0 (Surface): The first surface.
         surface1 (Surface): The second surface.
-        nurb0 (NurbsSurface): The first output NURBS surface.
-        nurb1 (NurbsSurface): The second output NURBS surface.
 
     Returns:
         bool: True if successsful, False on failure.
+        nurb0 (NurbsSurface): The first output NURBS surface.
+        nurb1 (NurbsSurface): The second output NURBS surface.
     """
     url = "rhino/geometry/nurbssurface/makecompatible-surface_surface_nurbssurface_nurbssurface"
     if multiple: url += "?multiple=true"
-    args = [surface0, surface1, nurb0, nurb1]
-    if multiple: args = zip(surface0, surface1, nurb0, nurb1)
+    args = [surface0, surface1]
+    if multiple: args = zip(surface0, surface1)
     response = Util.ComputeFetch(url, args)
     return response
 
@@ -201,7 +201,7 @@ def CreateRailRevolvedSurface(profile, rail, axis, scaleHeight, multiple=False):
     return response
 
 
-def CreateNetworkSurface(uCurves, uContinuityStart, uContinuityEnd, vCurves, vContinuityStart, vContinuityEnd, edgeTolerance, interiorTolerance, angleTolerance, error, multiple=False):
+def CreateNetworkSurface(uCurves, uContinuityStart, uContinuityEnd, vCurves, vContinuityStart, vContinuityEnd, edgeTolerance, interiorTolerance, angleTolerance, multiple=False):
     """
     Builds a surface from an ordered network of curves/edges.
 
@@ -215,22 +215,22 @@ def CreateNetworkSurface(uCurves, uContinuityStart, uContinuityEnd, vCurves, vCo
         edgeTolerance (double): tolerance to use along network surface edge.
         interiorTolerance (double): tolerance to use for the interior curves.
         angleTolerance (double): angle tolerance to use.
-        error (int): If the NurbsSurface could not be created, the error value describes where
-            the failure occured.  0 = success,  1 = curve sorter failed, 2 = network initializing failed,
-            3 = failed to build surface, 4 = network surface is not valid.
 
     Returns:
         NurbsSurface: A NurbsSurface or None on failure.
+        error (int): If the NurbsSurface could not be created, the error value describes where
+            the failure occured.  0 = success,  1 = curve sorter failed, 2 = network initializing failed,
+            3 = failed to build surface, 4 = network surface is not valid.
     """
     url = "rhino/geometry/nurbssurface/createnetworksurface-curvearray_int_int_curvearray_int_int_double_double_double_int"
     if multiple: url += "?multiple=true"
-    args = [uCurves, uContinuityStart, uContinuityEnd, vCurves, vContinuityStart, vContinuityEnd, edgeTolerance, interiorTolerance, angleTolerance, error]
-    if multiple: args = zip(uCurves, uContinuityStart, uContinuityEnd, vCurves, vContinuityStart, vContinuityEnd, edgeTolerance, interiorTolerance, angleTolerance, error)
+    args = [uCurves, uContinuityStart, uContinuityEnd, vCurves, vContinuityStart, vContinuityEnd, edgeTolerance, interiorTolerance, angleTolerance]
+    if multiple: args = zip(uCurves, uContinuityStart, uContinuityEnd, vCurves, vContinuityStart, vContinuityEnd, edgeTolerance, interiorTolerance, angleTolerance)
     response = Util.ComputeFetch(url, args)
     return response
 
 
-def CreateNetworkSurface1(curves, continuity, edgeTolerance, interiorTolerance, angleTolerance, error, multiple=False):
+def CreateNetworkSurface1(curves, continuity, edgeTolerance, interiorTolerance, angleTolerance, multiple=False):
     """
     Builds a surface from an autosorted network of curves/edges.
 
@@ -240,17 +240,17 @@ def CreateNetworkSurface1(curves, continuity, edgeTolerance, interiorTolerance, 
         edgeTolerance (double): tolerance to use along network surface edge.
         interiorTolerance (double): tolerance to use for the interior curves.
         angleTolerance (double): angle tolerance to use.
-        error (int): If the NurbsSurface could not be created, the error value describes where
-            the failure occured.  0 = success,  1 = curve sorter failed, 2 = network initializing failed,
-            3 = failed to build surface, 4 = network surface is not valid.
 
     Returns:
         NurbsSurface: A NurbsSurface or None on failure.
+        error (int): If the NurbsSurface could not be created, the error value describes where
+            the failure occured.  0 = success,  1 = curve sorter failed, 2 = network initializing failed,
+            3 = failed to build surface, 4 = network surface is not valid.
     """
     url = "rhino/geometry/nurbssurface/createnetworksurface-curvearray_int_double_double_double_int"
     if multiple: url += "?multiple=true"
-    args = [curves, continuity, edgeTolerance, interiorTolerance, angleTolerance, error]
-    if multiple: args = zip(curves, continuity, edgeTolerance, interiorTolerance, angleTolerance, error)
+    args = [curves, continuity, edgeTolerance, interiorTolerance, angleTolerance]
+    if multiple: args = zip(curves, continuity, edgeTolerance, interiorTolerance, angleTolerance)
     response = Util.ComputeFetch(url, args)
     return response
 

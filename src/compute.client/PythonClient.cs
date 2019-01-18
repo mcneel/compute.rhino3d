@@ -87,6 +87,16 @@ def ComputeFetch(endpoint, arglist) :
             return rc;
         }
 
+        static bool IsOutParameter(ParameterSyntax parameter)
+        {
+            foreach (var modifier in parameter.Modifiers)
+            {
+                if (modifier.Text == "out")
+                    return true;
+            }
+            return false;
+        }
+
         static string DocCommentToPythonDoc(DocumentationCommentTriviaSyntax doccomment, MethodDeclarationSyntax method, int indentLevel)
         {
             // See https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html
@@ -95,7 +105,7 @@ def ComputeFetch(endpoint, arglist) :
             StringBuilder summary = new StringBuilder();
             StringBuilder args = new StringBuilder();
             StringBuilder returns = new StringBuilder();
-
+            StringBuilder outArgs = new StringBuilder();
 
             string comment = doccomment.ToString();
             comment = comment.Replace("///", "");
@@ -135,40 +145,46 @@ def ComputeFetch(endpoint, arglist) :
                 }
                 else if (element.Name.Equals("param", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (args.Length == 0)
-                    {
-                        args.AppendLine();
-                        args.AppendLine(_T(indentLevel) + "Args:");
-                    }
                     string parameterName = element.GetAttribute("name");
 
                     string paramType = "";
+                    bool isOutParam = false;
                     foreach(var param in method.ParameterList.Parameters)
                     {
                         if(param.Identifier.ToString().Equals(parameterName, StringComparison.Ordinal))
                         {
+                            isOutParam = IsOutParameter(param);
                             paramType = $" ({param.Type})";
                         }
                     }
 
+                    if (args.Length == 0 && !isOutParam)
+                    {
+                        args.AppendLine();
+                        args.AppendLine(_T(indentLevel) + "Args:");
+                    }
+
                     bool added = false;
+                    StringBuilder sb = isOutParam ? outArgs : args;
                     foreach (var line in lines)
                     {
                         if (!added)
                         {
                             added = true;
-                            args.AppendLine(_T(indentLevel + 1) + parameterName + paramType + ": " + line.Trim());
+                            sb.AppendLine(_T(indentLevel + 1) + parameterName + paramType + ": " + line.Trim());
                             continue;
                         }
-                        args.AppendLine(_T(indentLevel + 2) + line.Trim());
+                        sb.AppendLine(_T(indentLevel + 2) + line.Trim());
                     }
                 }
             }
+
             StringBuilder rc = new StringBuilder();
             rc.AppendLine(_T(indentLevel) + "\"\"\"");
             rc.Append(summary.ToString());
             rc.Append(args.ToString());
             rc.Append(returns.ToString());
+            rc.Append(outArgs.ToString());
             rc.AppendLine(_T(indentLevel) + "\"\"\"");
             return rc.ToString();
         }
@@ -204,7 +220,15 @@ def ComputeFetch(endpoint, arglist) :
                 }
                 for (int i = 0; i < method.ParameterList.Parameters.Count; i++)
                 {
-                    parameters.Add(method.ParameterList.Parameters[i].Identifier.ToString());
+                    bool isOutParameter = false;
+                    foreach (var modifier in method.ParameterList.Parameters[i].Modifiers)
+                    {
+                        if (modifier.Text == "out")
+                            isOutParameter = true;
+                    }
+
+                    if( !isOutParameter )
+                        parameters.Add(method.ParameterList.Parameters[i].Identifier.ToString());
                 }
 
                 for (int i = 0; i < parameters.Count; i++)
