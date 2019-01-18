@@ -48,10 +48,12 @@ namespace computegen
             }
         }
 
-        const string UtilModuleContents =
-@"import rhino3dm
+        readonly string UtilModuleContents =
+$@"import rhino3dm
 import json
 import requests
+
+__version__ = '{Version}'
 
 url = ""https://compute.rhino3d.com/""
 authToken = None
@@ -64,7 +66,10 @@ def ComputeFetch(endpoint, arglist) :
             return json.JSONEncoder.default(self, o)
     global authToken
     postdata = json.dumps(arglist, cls = __Rhino3dmEncoder)
-    headers = {'Authorization': 'Bearer ' + authToken}
+    headers = {{
+        'Authorization': 'Bearer ' + authToken,
+        'User-Agent': 'compute.rhino3d.py/' + __version__
+    }}
     r = requests.post(url+endpoint, data=postdata, headers=headers)
     return r.json()
 

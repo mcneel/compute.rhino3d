@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 namespace computegen
@@ -59,6 +60,20 @@ namespace computegen
         {
             string s = text.Substring(0, 1).ToLower() + text.Substring(1);
             return s;
+        }
+
+        protected static string Version
+        {
+            get
+            {
+                string path = Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory);
+                string version;
+                using (StreamReader reader = new StreamReader(Path.Combine(path, "version.txt")))
+                {
+                    version = reader.ReadLine() ?? null;
+                }
+                return version;
+            }
         }
     }
 }

@@ -12,6 +12,8 @@ namespace computegen
             {
                 return
 @"var RhinoCompute = {
+    version: """ + Version + @""",
+
     url: ""https://compute.rhino3d.com/"",
 
     authToken: null,
@@ -34,7 +36,10 @@ namespace computegen
         return fetch(RhinoCompute.url+endpoint, {
                 ""method"":""POST"",
                 ""body"": JSON.stringify(arglist),
-                ""headers"": {""Authorization"":RhinoCompute.authToken}
+                ""headers"": {
+                    ""Authorization"": RhinoCompute.authToken,
+                    ""User-Agent"": `compute.rhino3d.js/${RhinoCompute.version}`
+                },
         }).then(r=>r.json());
     },
 
