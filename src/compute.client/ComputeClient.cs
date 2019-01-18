@@ -62,18 +62,6 @@ namespace computegen
             return s;
         }
 
-        protected static string Version
-        {
-            get
-            {
-                string path = Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory);
-                string version;
-                using (StreamReader reader = new StreamReader(Path.Combine(path, "version.txt")))
-                {
-                    version = reader.ReadLine() ?? null;
-                }
-                return version;
-            }
-        }
+        protected static string Version => "0.3.0";
     }
 }
