@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Text;
 
 namespace computegen
 {
@@ -17,8 +16,12 @@ namespace computegen
 
             // just do a small number of classes to get started
             string[] filter = new string[] {
-                ".Mesh", ".Brep", ".BrepFace", ".Curve", ".BezierCurve", ".Extrusion", ".NurbsCurve", ".Intersection",
-                ".AreaMassProperties", ".VolumeMassProperties"
+                ".AreaMassProperties",
+                ".BezierCurve",
+                ".Brep", ".BrepFace",
+                ".Curve", ".Extrusion", ".Intersection", ".Mesh",
+                ".NurbsCurve", ".NurbsSurface", ".Surface",
+                ".VolumeMassProperties"
             };
 
             Console.ForegroundColor = ConsoleColor.Blue;
