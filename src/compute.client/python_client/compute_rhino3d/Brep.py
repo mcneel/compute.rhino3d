@@ -1483,23 +1483,23 @@ def Split(thisBrep, splitter, intersectionTolerance, multiple=False):
     return response
 
 
-def Split1(thisBrep, splitter, intersectionTolerance, toleranceWasRaised, multiple=False):
+def Split1(thisBrep, splitter, intersectionTolerance, multiple=False):
     """
     Splits a Brep into pieces.
 
     Args:
         splitter (Brep): The splitting polysurface.
         intersectionTolerance (double): The tolerance with which to compute intersections.
-        toleranceWasRaised (bool): set to True if the split failed at intersectionTolerance but succeeded
-            when the tolerance was increased to twice intersectionTolerance.
 
     Returns:
         Brep[]: A new array of breps. This array can be empty.
+        toleranceWasRaised (bool): set to True if the split failed at intersectionTolerance but succeeded
+            when the tolerance was increased to twice intersectionTolerance.
     """
     url = "rhino/geometry/brep/split-brep_brep_double_bool"
     if multiple: url += "?multiple=true"
-    args = [thisBrep, splitter, intersectionTolerance, toleranceWasRaised]
-    if multiple: args = zip(thisBrep, splitter, intersectionTolerance, toleranceWasRaised)
+    args = [thisBrep, splitter, intersectionTolerance]
+    if multiple: args = zip(thisBrep, splitter, intersectionTolerance)
     response = Util.ComputeFetch(url, args)
     return response
 

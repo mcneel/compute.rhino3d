@@ -870,7 +870,7 @@ def ProjectToBrep1(curve, breps, direction, tolerance, multiple=False):
     return response
 
 
-def ProjectToBrep2(curve, breps, direction, tolerance, brepIndices, multiple=False):
+def ProjectToBrep2(curve, breps, direction, tolerance, multiple=False):
     """
     Projects a Curve onto a collection of Breps along a given direction.
 
@@ -879,15 +879,15 @@ def ProjectToBrep2(curve, breps, direction, tolerance, brepIndices, multiple=Fal
         breps (IEnumerable<Brep>): Breps to project onto.
         direction (Vector3d): Direction of projection.
         tolerance (double): Tolerance to use for projection.
-        brepIndices (int[]): (out) Integers that identify for each resulting curve which Brep it was projected onto.
 
     Returns:
         Curve[]: An array of projected curves or None if the projection set is empty.
+        brepIndices (int[]): (out) Integers that identify for each resulting curve which Brep it was projected onto.
     """
     url = "rhino/geometry/curve/projecttobrep-curve_breparray_vector3d_double_intarray"
     if multiple: url += "?multiple=true"
-    args = [curve, breps, direction, tolerance, brepIndices]
-    if multiple: args = zip(curve, breps, direction, tolerance, brepIndices)
+    args = [curve, breps, direction, tolerance]
+    if multiple: args = zip(curve, breps, direction, tolerance)
     response = Util.ComputeFetch(url, args)
     return response
 
@@ -1081,7 +1081,7 @@ def MakeClosed(thisCurve, tolerance, multiple=False):
     return response
 
 
-def LcoalClosestPoint(thisCurve, testPoint, seed, t, multiple=False):
+def LcoalClosestPoint(thisCurve, testPoint, seed, multiple=False):
     """
     Find parameter of the point on a curve that is locally closest to
     the testPoint.  The search for a local close point starts at
@@ -1090,20 +1090,20 @@ def LcoalClosestPoint(thisCurve, testPoint, seed, t, multiple=False):
     Args:
         testPoint (Point3d): A point to test against.
         seed (double): The seed parameter.
-        t (double): >Parameter of the curve that is closest to testPoint.
 
     Returns:
         bool: True if the search is successful, False if the search fails.
+        t (double): >Parameter of the curve that is closest to testPoint.
     """
     url = "rhino/geometry/curve/lcoalclosestpoint-curve_point3d_double_double"
     if multiple: url += "?multiple=true"
-    args = [thisCurve, testPoint, seed, t]
-    if multiple: args = zip(thisCurve, testPoint, seed, t)
+    args = [thisCurve, testPoint, seed]
+    if multiple: args = zip(thisCurve, testPoint, seed)
     response = Util.ComputeFetch(url, args)
     return response
 
 
-def ClosestPoint(thisCurve, testPoint, t, multiple=False):
+def ClosestPoint(thisCurve, testPoint, multiple=False):
     """
     Finds parameter of the point on a curve that is closest to testPoint.
     If the maximumDistance parameter is > 0, then only points whose distance
@@ -1112,20 +1112,20 @@ def ClosestPoint(thisCurve, testPoint, t, multiple=False):
 
     Args:
         testPoint (Point3d): Point to search from.
-        t (double): Parameter of local closest point.
 
     Returns:
         bool: True on success, False on failure.
+        t (double): Parameter of local closest point.
     """
     url = "rhino/geometry/curve/closestpoint-curve_point3d_double"
     if multiple: url += "?multiple=true"
-    args = [thisCurve, testPoint, t]
-    if multiple: args = zip(thisCurve, testPoint, t)
+    args = [thisCurve, testPoint]
+    if multiple: args = zip(thisCurve, testPoint)
     response = Util.ComputeFetch(url, args)
     return response
 
 
-def ClosestPoint1(thisCurve, testPoint, t, maximumDistance, multiple=False):
+def ClosestPoint1(thisCurve, testPoint, maximumDistance, multiple=False):
     """
     Finds the parameter of the point on a curve that is closest to testPoint.
     If the maximumDistance parameter is > 0, then only points whose distance
@@ -1134,17 +1134,17 @@ def ClosestPoint1(thisCurve, testPoint, t, maximumDistance, multiple=False):
 
     Args:
         testPoint (Point3d): Point to project.
-        t (double): parameter of local closest point returned here.
         maximumDistance (double): The maximum allowed distance.
             Past this distance, the search is given up and False is returned.Use 0 to turn off this parameter.
 
     Returns:
         bool: True on success, False on failure.
+        t (double): parameter of local closest point returned here.
     """
     url = "rhino/geometry/curve/closestpoint-curve_point3d_double_double"
     if multiple: url += "?multiple=true"
-    args = [thisCurve, testPoint, t, maximumDistance]
-    if multiple: args = zip(thisCurve, testPoint, t, maximumDistance)
+    args = [thisCurve, testPoint, maximumDistance]
+    if multiple: args = zip(thisCurve, testPoint, maximumDistance)
     response = Util.ComputeFetch(url, args)
     return response
 
@@ -1309,7 +1309,7 @@ def PointAtNormalizedLength(thisCurve, length, multiple=False):
     return response
 
 
-def PerpendicularFrameAt(thisCurve, t, plane, multiple=False):
+def PerpendicularFrameAt(thisCurve, t, multiple=False):
     """
     Return a 3d frame at a parameter. This is slightly different than FrameAt in
     that the frame is computed in a way so there is minimal rotation from one
@@ -1317,15 +1317,15 @@ def PerpendicularFrameAt(thisCurve, t, plane, multiple=False):
 
     Args:
         t (double): Evaluation parameter.
-        plane (Plane): The frame is returned here.
 
     Returns:
         bool: True on success, False on failure.
+        plane (Plane): The frame is returned here.
     """
     url = "rhino/geometry/curve/perpendicularframeat-curve_double_plane"
     if multiple: url += "?multiple=true"
-    args = [thisCurve, t, plane]
-    if multiple: args = zip(thisCurve, t, plane)
+    args = [thisCurve, t]
+    if multiple: args = zip(thisCurve, t)
     response = Util.ComputeFetch(url, args)
     return response
 
@@ -1478,91 +1478,91 @@ def RemoveShortSegments(thisCurve, tolerance, multiple=False):
     return response
 
 
-def LengthParameter(thisCurve, segmentLength, t, multiple=False):
+def LengthParameter(thisCurve, segmentLength, multiple=False):
     """
     Gets the parameter along the curve which coincides with a given length along the curve.
     A fractional tolerance of 1e-8 is used in this version of the function.
 
     Args:
         segmentLength (double): Length of segment to measure. Must be less than or equal to the length of the curve.
-        t (double): Parameter such that the length of the curve from the curve start point to t equals length.
 
     Returns:
         bool: True on success, False on failure.
+        t (double): Parameter such that the length of the curve from the curve start point to t equals length.
     """
     url = "rhino/geometry/curve/lengthparameter-curve_double_double"
     if multiple: url += "?multiple=true"
-    args = [thisCurve, segmentLength, t]
-    if multiple: args = zip(thisCurve, segmentLength, t)
+    args = [thisCurve, segmentLength]
+    if multiple: args = zip(thisCurve, segmentLength)
     response = Util.ComputeFetch(url, args)
     return response
 
 
-def LengthParameter1(thisCurve, segmentLength, t, fractionalTolerance, multiple=False):
+def LengthParameter1(thisCurve, segmentLength, fractionalTolerance, multiple=False):
     """
     Gets the parameter along the curve which coincides with a given length along the curve.
 
     Args:
         segmentLength (double): Length of segment to measure. Must be less than or equal to the length of the curve.
-        t (double): Parameter such that the length of the curve from the curve start point to t equals s.
         fractionalTolerance (double): Desired fractional precision.
             fabs(("exact" length from start to t) - arc_length)/arc_length <= fractionalTolerance.
 
     Returns:
         bool: True on success, False on failure.
+        t (double): Parameter such that the length of the curve from the curve start point to t equals s.
     """
     url = "rhino/geometry/curve/lengthparameter-curve_double_double_double"
     if multiple: url += "?multiple=true"
-    args = [thisCurve, segmentLength, t, fractionalTolerance]
-    if multiple: args = zip(thisCurve, segmentLength, t, fractionalTolerance)
+    args = [thisCurve, segmentLength, fractionalTolerance]
+    if multiple: args = zip(thisCurve, segmentLength, fractionalTolerance)
     response = Util.ComputeFetch(url, args)
     return response
 
 
-def LengthParameter2(thisCurve, segmentLength, t, subdomain, multiple=False):
+def LengthParameter2(thisCurve, segmentLength, subdomain, multiple=False):
     """
     Gets the parameter along the curve which coincides with a given length along the curve.
     A fractional tolerance of 1e-8 is used in this version of the function.
 
     Args:
         segmentLength (double): Length of segment to measure. Must be less than or equal to the length of the subdomain.
-        t (double): Parameter such that the length of the curve from the start of the subdomain to t is s.
         subdomain (Interval): The calculation is performed on the specified sub-domain of the curve rather than the whole curve.
 
     Returns:
         bool: True on success, False on failure.
+        t (double): Parameter such that the length of the curve from the start of the subdomain to t is s.
     """
     url = "rhino/geometry/curve/lengthparameter-curve_double_double_interval"
     if multiple: url += "?multiple=true"
-    args = [thisCurve, segmentLength, t, subdomain]
-    if multiple: args = zip(thisCurve, segmentLength, t, subdomain)
+    args = [thisCurve, segmentLength, subdomain]
+    if multiple: args = zip(thisCurve, segmentLength, subdomain)
     response = Util.ComputeFetch(url, args)
     return response
 
 
-def LengthParameter3(thisCurve, segmentLength, t, fractionalTolerance, subdomain, multiple=False):
+def LengthParameter3(thisCurve, segmentLength, fractionalTolerance, subdomain, multiple=False):
     """
     Gets the parameter along the curve which coincides with a given length along the curve.
 
     Args:
         segmentLength (double): Length of segment to measure. Must be less than or equal to the length of the subdomain.
-        t (double): Parameter such that the length of the curve from the start of the subdomain to t is s.
         fractionalTolerance (double): Desired fractional precision.
             fabs(("exact" length from start to t) - arc_length)/arc_length <= fractionalTolerance.
         subdomain (Interval): The calculation is performed on the specified sub-domain of the curve rather than the whole curve.
 
     Returns:
         bool: True on success, False on failure.
+        t (double): Parameter such that the length of the curve from the start of the subdomain to t is s.
     """
     url = "rhino/geometry/curve/lengthparameter-curve_double_double_double_interval"
     if multiple: url += "?multiple=true"
-    args = [thisCurve, segmentLength, t, fractionalTolerance, subdomain]
-    if multiple: args = zip(thisCurve, segmentLength, t, fractionalTolerance, subdomain)
+    args = [thisCurve, segmentLength, fractionalTolerance, subdomain]
+    if multiple: args = zip(thisCurve, segmentLength, fractionalTolerance, subdomain)
     response = Util.ComputeFetch(url, args)
     return response
 
 
-def NormalizedLengthParameter(thisCurve, s, t, multiple=False):
+def NormalizedLengthParameter(thisCurve, s, multiple=False):
     """
     Input the parameter of the point on the curve that is a prescribed arc length from the start of the curve.
     A fractional tolerance of 1e-8 is used in this version of the function.
@@ -1570,42 +1570,42 @@ def NormalizedLengthParameter(thisCurve, s, t, multiple=False):
     Args:
         s (double): Normalized arc length parameter.
             E.g., 0 = start of curve, 1/2 = midpoint of curve, 1 = end of curve.
-        t (double): Parameter such that the length of the curve from its start to t is arc_length.
 
     Returns:
         bool: True on success, False on failure.
+        t (double): Parameter such that the length of the curve from its start to t is arc_length.
     """
     url = "rhino/geometry/curve/normalizedlengthparameter-curve_double_double"
     if multiple: url += "?multiple=true"
-    args = [thisCurve, s, t]
-    if multiple: args = zip(thisCurve, s, t)
+    args = [thisCurve, s]
+    if multiple: args = zip(thisCurve, s)
     response = Util.ComputeFetch(url, args)
     return response
 
 
-def NormalizedLengthParameter1(thisCurve, s, t, fractionalTolerance, multiple=False):
+def NormalizedLengthParameter1(thisCurve, s, fractionalTolerance, multiple=False):
     """
     Input the parameter of the point on the curve that is a prescribed arc length from the start of the curve.
 
     Args:
         s (double): Normalized arc length parameter.
             E.g., 0 = start of curve, 1/2 = midpoint of curve, 1 = end of curve.
-        t (double): Parameter such that the length of the curve from its start to t is arc_length.
         fractionalTolerance (double): Desired fractional precision.
             fabs(("exact" length from start to t) - arc_length)/arc_length <= fractionalTolerance.
 
     Returns:
         bool: True on success, False on failure.
+        t (double): Parameter such that the length of the curve from its start to t is arc_length.
     """
     url = "rhino/geometry/curve/normalizedlengthparameter-curve_double_double_double"
     if multiple: url += "?multiple=true"
-    args = [thisCurve, s, t, fractionalTolerance]
-    if multiple: args = zip(thisCurve, s, t, fractionalTolerance)
+    args = [thisCurve, s, fractionalTolerance]
+    if multiple: args = zip(thisCurve, s, fractionalTolerance)
     response = Util.ComputeFetch(url, args)
     return response
 
 
-def NormalizedLengthParameter2(thisCurve, s, t, subdomain, multiple=False):
+def NormalizedLengthParameter2(thisCurve, s, subdomain, multiple=False):
     """
     Input the parameter of the point on the curve that is a prescribed arc length from the start of the curve.
     A fractional tolerance of 1e-8 is used in this version of the function.
@@ -1613,39 +1613,39 @@ def NormalizedLengthParameter2(thisCurve, s, t, subdomain, multiple=False):
     Args:
         s (double): Normalized arc length parameter.
             E.g., 0 = start of curve, 1/2 = midpoint of curve, 1 = end of curve.
-        t (double): Parameter such that the length of the curve from its start to t is arc_length.
         subdomain (Interval): The calculation is performed on the specified sub-domain of the curve.
 
     Returns:
         bool: True on success, False on failure.
+        t (double): Parameter such that the length of the curve from its start to t is arc_length.
     """
     url = "rhino/geometry/curve/normalizedlengthparameter-curve_double_double_interval"
     if multiple: url += "?multiple=true"
-    args = [thisCurve, s, t, subdomain]
-    if multiple: args = zip(thisCurve, s, t, subdomain)
+    args = [thisCurve, s, subdomain]
+    if multiple: args = zip(thisCurve, s, subdomain)
     response = Util.ComputeFetch(url, args)
     return response
 
 
-def NormalizedLengthParameter3(thisCurve, s, t, fractionalTolerance, subdomain, multiple=False):
+def NormalizedLengthParameter3(thisCurve, s, fractionalTolerance, subdomain, multiple=False):
     """
     Input the parameter of the point on the curve that is a prescribed arc length from the start of the curve.
 
     Args:
         s (double): Normalized arc length parameter.
             E.g., 0 = start of curve, 1/2 = midpoint of curve, 1 = end of curve.
-        t (double): Parameter such that the length of the curve from its start to t is arc_length.
         fractionalTolerance (double): Desired fractional precision.
             fabs(("exact" length from start to t) - arc_length)/arc_length <= fractionalTolerance.
         subdomain (Interval): The calculation is performed on the specified sub-domain of the curve.
 
     Returns:
         bool: True on success, False on failure.
+        t (double): Parameter such that the length of the curve from its start to t is arc_length.
     """
     url = "rhino/geometry/curve/normalizedlengthparameter-curve_double_double_double_interval"
     if multiple: url += "?multiple=true"
-    args = [thisCurve, s, t, fractionalTolerance, subdomain]
-    if multiple: args = zip(thisCurve, s, t, fractionalTolerance, subdomain)
+    args = [thisCurve, s, fractionalTolerance, subdomain]
+    if multiple: args = zip(thisCurve, s, fractionalTolerance, subdomain)
     response = Util.ComputeFetch(url, args)
     return response
 
@@ -1767,22 +1767,22 @@ def DivideByCount(thisCurve, segmentCount, includeEnds, multiple=False):
     return response
 
 
-def DivideByCount1(thisCurve, segmentCount, includeEnds, points, multiple=False):
+def DivideByCount1(thisCurve, segmentCount, includeEnds, multiple=False):
     """
     Divide the curve into a number of equal-length segments.
 
     Args:
         segmentCount (int): Segment count. Note that the number of division points may differ from the segment count.
         includeEnds (bool): If true, then the point at the start of the first division segment is returned.
-        points (Point3d[]): A list of division points. If the function returns successfully, this point-array will be filled in.
 
     Returns:
         double[]: Array containing division curve parameters on success, None on failure.
+        points (Point3d[]): A list of division points. If the function returns successfully, this point-array will be filled in.
     """
     url = "rhino/geometry/curve/dividebycount-curve_int_bool_point3darray"
     if multiple: url += "?multiple=true"
-    args = [thisCurve, segmentCount, includeEnds, points]
-    if multiple: args = zip(thisCurve, segmentCount, includeEnds, points)
+    args = [thisCurve, segmentCount, includeEnds]
+    if multiple: args = zip(thisCurve, segmentCount, includeEnds)
     response = Util.ComputeFetch(url, args)
     return response
 
@@ -1826,27 +1826,27 @@ def DivideByLength1(thisCurve, segmentLength, includeEnds, reverse, multiple=Fal
     return response
 
 
-def DivideByLength2(thisCurve, segmentLength, includeEnds, points, multiple=False):
+def DivideByLength2(thisCurve, segmentLength, includeEnds, multiple=False):
     """
     Divide the curve into specific length segments.
 
     Args:
         segmentLength (double): The length of each and every segment (except potentially the last one).
         includeEnds (bool): If true, then the point at the start of the first division segment is returned.
-        points (Point3d[]): If function is successful, points at each parameter value are returned in points.
 
     Returns:
         double[]: Array containing division curve parameters if successful, None on failure.
+        points (Point3d[]): If function is successful, points at each parameter value are returned in points.
     """
     url = "rhino/geometry/curve/dividebylength-curve_double_bool_point3darray"
     if multiple: url += "?multiple=true"
-    args = [thisCurve, segmentLength, includeEnds, points]
-    if multiple: args = zip(thisCurve, segmentLength, includeEnds, points)
+    args = [thisCurve, segmentLength, includeEnds]
+    if multiple: args = zip(thisCurve, segmentLength, includeEnds)
     response = Util.ComputeFetch(url, args)
     return response
 
 
-def DivideByLength3(thisCurve, segmentLength, includeEnds, reverse, points, multiple=False):
+def DivideByLength3(thisCurve, segmentLength, includeEnds, reverse, multiple=False):
     """
     Divide the curve into specific length segments.
 
@@ -1854,15 +1854,15 @@ def DivideByLength3(thisCurve, segmentLength, includeEnds, reverse, points, mult
         segmentLength (double): The length of each and every segment (except potentially the last one).
         includeEnds (bool): If true, then the point at the start of the first division segment is returned.
         reverse (bool): If true, then the divisions start from the end of the curve.
-        points (Point3d[]): If function is successful, points at each parameter value are returned in points.
 
     Returns:
         double[]: Array containing division curve parameters if successful, None on failure.
+        points (Point3d[]): If function is successful, points at each parameter value are returned in points.
     """
     url = "rhino/geometry/curve/dividebylength-curve_double_bool_bool_point3darray"
     if multiple: url += "?multiple=true"
-    args = [thisCurve, segmentLength, includeEnds, reverse, points]
-    if multiple: args = zip(thisCurve, segmentLength, includeEnds, reverse, points)
+    args = [thisCurve, segmentLength, includeEnds, reverse]
+    if multiple: args = zip(thisCurve, segmentLength, includeEnds, reverse)
     response = Util.ComputeFetch(url, args)
     return response
 
