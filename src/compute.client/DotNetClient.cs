@@ -136,6 +136,7 @@ namespace Rhino.Compute
     {
         public static string WebAddress { get; set; } = ""https://compute.rhino3d.com"";
         public static string AuthToken { get; set; }
+        public static string Version => """ + Version + @""";
 
         public static T Post<T>(string function, params object[] postData)
         {
@@ -145,9 +146,10 @@ namespace Rhino.Compute
             if (!function.StartsWith(""/""))
                 function = ""/"" + function;
             string uri = (WebAddress + function).ToLower();
-            var request = System.Net.WebRequest.Create(uri);
+            var request = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(uri);
             request.ContentType = ""application/json"";
             request.Headers.Add(""Authorization"", ""Bearer "" + AuthToken);
+            request.UserAgent = ""compute.rhino3d.cs/"" + Version;
             request.Method = ""POST"";
             using (var streamWriter = new StreamWriter(request.GetRequestStream()))
             {

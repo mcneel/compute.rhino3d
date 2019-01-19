@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -37,6 +38,7 @@ namespace computegen
                 }
             }
 
+            ReplaceSetupPyVersion();
         }
 
         protected override string Prefix
@@ -49,10 +51,12 @@ namespace computegen
             }
         }
 
-        const string UtilModuleContents =
-@"import rhino3dm
+        readonly string UtilModuleContents =
+$@"import rhino3dm
 import json
 import requests
+
+__version__ = '{Version}'
 
 url = ""https://compute.rhino3d.com/""
 authToken = None
@@ -73,7 +77,10 @@ def ComputeFetch(endpoint, arglist) :
         else: posturl += '?stopat='
         posturl += str(stopat)
     postdata = json.dumps(arglist, cls = __Rhino3dmEncoder)
-    headers = {'Authorization': 'Bearer ' + authToken}
+    headers = {{
+        'Authorization': 'Bearer ' + authToken,
+        'User-Agent': 'compute.rhino3d.py/' + __version__
+    }}
     r = requests.post(posturl, data=postdata, headers=headers)
     return r.json()
 
@@ -264,6 +271,25 @@ def ComputeFetch(endpoint, arglist) :
                     sb.AppendLine();
             }
             return sb.ToString();
+        }
+
+        private void ReplaceSetupPyVersion()
+        {
+            var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "python_client");
+            var path = Path.Combine(dir, "setup.py");
+            string setup;
+            using (var reader = new StreamReader(path))
+            {
+                setup = reader.ReadToEnd();
+            }
+            File.Copy(path, path + ".bak", true);
+            File.Delete(path);
+            setup = System.Text.RegularExpressions.Regex.Replace(setup, @"version=""[0-9\.]*""", $@"version=""{Version}""");
+            using (var writer = new StreamWriter(path))
+            {
+                writer.Write(setup);
+            }
+            File.Delete(path + ".bak");
         }
     }
 }
