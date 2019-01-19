@@ -62,6 +62,6 @@ namespace computegen
             return s;
         }
 
-        protected static string Version => "0.3.0";
+        protected static string Version => "0.4.1";
     }
 }
