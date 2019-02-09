@@ -59,6 +59,28 @@ def MeshPlane1(mesh, planes, multiple=False):
     return response
 
 
+def BrepPlane(brep, plane, tolerance, multiple=False):
+    """
+    Intersects a Brep with an (infinite) plane.
+
+    Args:
+        brep (Brep): Brep to intersect.
+        plane (Plane): Plane to intersect with.
+        tolerance (double): Tolerance to use for intersections.
+
+    Returns:
+        bool: True on success, False on failure.
+        intersectionCurves (Curve[]): The intersection curves will be returned here.
+        intersectionPoints (Point3d[]): The intersection points will be returned here.
+    """
+    url = "rhino/geometry/intersect/intersection/brepplane-brep_plane_double_curvearray_point3darray"
+    if multiple: url += "?multiple=true"
+    args = [brep, plane, tolerance]
+    if multiple: args = zip(brep, plane, tolerance)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
 def CurveSelf(curve, tolerance, multiple=False):
     """
     Finds the places where a curve intersects itself.
@@ -168,11 +190,136 @@ def CurveSurface1(curve, curveDomain, surface, tolerance, overlapTolerance, mult
     return response
 
 
-def CurveBrep(curve, brep, tolerance, angleTolerance, t, multiple=False):
+def CurveBrep(curve, brep, tolerance, multiple=False):
+    """
+    Intersects a curve with a Brep. This function returns the 3D points of intersection
+    and 3D overlap curves. If an error occurs while processing overlap curves, this function
+    will return false, but it will still provide partial results.
+
+    Args:
+        curve (Curve): Curve for intersection.
+        brep (Brep): Brep for intersection.
+        tolerance (double): Fitting and near miss tolerance.
+
+    Returns:
+        bool: True on success, False on failure.
+        overlapCurves (Curve[]): The overlap curves will be returned here.
+        intersectionPoints (Point3d[]): The intersection points will be returned here.
+    """
+    url = "rhino/geometry/intersect/intersection/curvebrep-curve_brep_double_curvearray_point3darray"
+    if multiple: url += "?multiple=true"
+    args = [curve, brep, tolerance]
+    if multiple: args = zip(curve, brep, tolerance)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
+def CurveBrep1(curve, brep, tolerance, angleTolerance, multiple=False):
+    """
+    Intersect a curve with a Brep. This function returns the intersection parameters on the curve.
+
+    Args:
+        curve (Curve): Curve.
+        brep (Brep): Brep.
+        tolerance (double): Absolute tolerance for intersections.
+        angleTolerance (double): Angle tolerance in radians.
+
+    Returns:
+        bool: True on success, False on failure.
+        t (double[]): Curve parameters at intersections.
+    """
     url = "rhino/geometry/intersect/intersection/curvebrep-curve_brep_double_double_doublearray"
     if multiple: url += "?multiple=true"
-    args = [curve, brep, tolerance, angleTolerance, t]
-    if multiple: args = zip(curve, brep, tolerance, angleTolerance, t)
+    args = [curve, brep, tolerance, angleTolerance]
+    if multiple: args = zip(curve, brep, tolerance, angleTolerance)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
+def CurveBrepFace(curve, face, tolerance, multiple=False):
+    """
+    Intersects a curve with a Brep face.
+
+    Args:
+        curve (Curve): A curve.
+        face (BrepFace): A brep face.
+        tolerance (double): Fitting and near miss tolerance.
+
+    Returns:
+        bool: True on success, False on failure.
+        overlapCurves (Curve[]): A overlap curves array argument. This out reference is assigned during the call.
+        intersectionPoints (Point3d[]): A points array argument. This out reference is assigned during the call.
+    """
+    url = "rhino/geometry/intersect/intersection/curvebrepface-curve_brepface_double_curvearray_point3darray"
+    if multiple: url += "?multiple=true"
+    args = [curve, face, tolerance]
+    if multiple: args = zip(curve, face, tolerance)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
+def SurfaceSurface(surfaceA, surfaceB, tolerance, multiple=False):
+    """
+    Intersects two Surfaces.
+
+    Args:
+        surfaceA (Surface): First Surface for intersection.
+        surfaceB (Surface): Second Surface for intersection.
+        tolerance (double): Intersection tolerance.
+
+    Returns:
+        bool: True on success, False on failure.
+        intersectionCurves (Curve[]): The intersection curves will be returned here.
+        intersectionPoints (Point3d[]): The intersection points will be returned here.
+    """
+    url = "rhino/geometry/intersect/intersection/surfacesurface-surface_surface_double_curvearray_point3darray"
+    if multiple: url += "?multiple=true"
+    args = [surfaceA, surfaceB, tolerance]
+    if multiple: args = zip(surfaceA, surfaceB, tolerance)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
+def BrepBrep(brepA, brepB, tolerance, multiple=False):
+    """
+    Intersects two Breps.
+
+    Args:
+        brepA (Brep): First Brep for intersection.
+        brepB (Brep): Second Brep for intersection.
+        tolerance (double): Intersection tolerance.
+
+    Returns:
+        bool: True on success; False on failure.
+        intersectionCurves (Curve[]): The intersection curves will be returned here.
+        intersectionPoints (Point3d[]): The intersection points will be returned here.
+    """
+    url = "rhino/geometry/intersect/intersection/brepbrep-brep_brep_double_curvearray_point3darray"
+    if multiple: url += "?multiple=true"
+    args = [brepA, brepB, tolerance]
+    if multiple: args = zip(brepA, brepB, tolerance)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
+def BrepSurface(brep, surface, tolerance, multiple=False):
+    """
+    Intersects a Brep and a Surface.
+
+    Args:
+        brep (Brep): A brep to be intersected.
+        surface (Surface): A surface to be intersected.
+        tolerance (double): A tolerance value.
+
+    Returns:
+        bool: True on success; False on failure.
+        intersectionCurves (Curve[]): The intersection curves array argument. This out reference is assigned during the call.
+        intersectionPoints (Point3d[]): The intersection points array argument. This out reference is assigned during the call.
+    """
+    url = "rhino/geometry/intersect/intersection/brepsurface-brep_surface_double_curvearray_point3darray"
+    if multiple: url += "?multiple=true"
+    args = [brep, surface, tolerance]
+    if multiple: args = zip(brep, surface, tolerance)
     response = Util.ComputeFetch(url, args)
     return response
 
