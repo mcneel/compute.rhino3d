@@ -1415,7 +1415,38 @@ def Reduce(thisMesh, desiredPolygonCount, allowDistortion, accuracy, normalizeSi
     return response
 
 
-def Reduce1(thisMesh, parameters, multiple=False):
+def Reduce1(thisMesh, desiredPolygonCount, allowDistortion, accuracy, normalizeSize, cancelToken, progress, multiple=False):
+    """
+    Reduce polygon count
+
+    Args:
+        desiredPolygonCount (int): desired or target number of faces
+        allowDistortion (bool): If True mesh appearance is not changed even if the target polygon count is not reached
+        accuracy (int): Integer from 1 to 10 telling how accurate reduction algorithm
+            to use. Greater number gives more accurate results
+        normalizeSize (bool): If True mesh is fitted to an axis aligned unit cube until reduction is complete
+
+    Returns:
+        bool: True if mesh is successfully reduced and False if mesh could not be reduced for some reason.
+    """
+    url = "rhino/geometry/mesh/reduce-mesh_int_bool_int_bool_system.threading.cancellationtoken_doublearray_string"
+    if multiple: url += "?multiple=true"
+    args = [thisMesh, desiredPolygonCount, allowDistortion, accuracy, normalizeSize, cancelToken, progress]
+    if multiple: args = zip(thisMesh, desiredPolygonCount, allowDistortion, accuracy, normalizeSize, cancelToken, progress)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
+def Reduce2(thisMesh, parameters, multiple=False):
+    """
+    Reduce polygon count
+
+    Args:
+        parameters (ReduceMeshParameters): Parameters
+
+    Returns:
+        bool: True if mesh is successfully reduced and False if mesh could not be reduced for some reason.
+    """
     url = "rhino/geometry/mesh/reduce-mesh_reducemeshparameters"
     if multiple: url += "?multiple=true"
     args = [thisMesh, parameters]

@@ -222,6 +222,52 @@ def Smooth1(thisSurface, smoothFactor, bXSmooth, bYSmooth, bZSmooth, bFixBoundar
     return response
 
 
+def VariableOffset(thisSurface, uMinvMin, uMinvMax, uMaxvMin, uMaxvMax, tolerance, multiple=False):
+    """
+    Copies a surface so that all locations at the corners of the copied surface are specified distances from the original surface.
+
+    Args:
+        uMinvMin (double): Offset distance at Domain(0).Min, Domain(1).Min.
+        uMinvMax (double): Offset distance at Domain(0).Min, Domain(1).Max.
+        uMaxvMin (double): Offset distance at Domain(0).Max, Domain(1).Min.
+        uMaxvMax (double): Offset distance at Domain(0).Max, Domain(1).Max.
+        tolerance (double): The offset tolerance.
+
+    Returns:
+        Surface: The offset surface if successful, None otherwise.
+    """
+    url = "rhino/geometry/surface/variableoffset-surface_double_double_double_double_double"
+    if multiple: url += "?multiple=true"
+    args = [thisSurface, uMinvMin, uMinvMax, uMaxvMin, uMaxvMax, tolerance]
+    if multiple: args = zip(thisSurface, uMinvMin, uMinvMax, uMaxvMin, uMaxvMax, tolerance)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
+def VariableOffset1(thisSurface, uMinvMin, uMinvMax, uMaxvMin, uMaxvMax, interiorParameters, interiorDistances, tolerance, multiple=False):
+    """
+    Copies a surface so that all locations at the corners, and from specified interior locations, of the copied surface are specified distances from the original surface.
+
+    Args:
+        uMinvMin (double): Offset distance at Domain(0).Min, Domain(1).Min.
+        uMinvMax (double): Offset distance at Domain(0).Min, Domain(1).Max.
+        uMaxvMin (double): Offset distance at Domain(0).Max, Domain(1).Min.
+        uMaxvMax (double): Offset distance at Domain(0).Max, Domain(1).Max.
+        interiorParameters (IEnumerable<Point2d>): An array of interior uv parameters to offset from.
+        interiorDistances (IEnumerable<double>): >An array of offset distances at the interior uv parameters.
+        tolerance (double): The offset tolerance.
+
+    Returns:
+        Surface: The offset surface if successful, None otherwise.
+    """
+    url = "rhino/geometry/surface/variableoffset-surface_double_double_double_double_point2darray_doublearray_double"
+    if multiple: url += "?multiple=true"
+    args = [thisSurface, uMinvMin, uMinvMax, uMaxvMin, uMaxvMax, interiorParameters, interiorDistances, tolerance]
+    if multiple: args = zip(thisSurface, uMinvMin, uMinvMax, uMaxvMin, uMaxvMax, interiorParameters, interiorDistances, tolerance)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
 def GetSurfaceSize(thisSurface, multiple=False):
     """
     Gets an estimate of the size of the rectangle that would be created

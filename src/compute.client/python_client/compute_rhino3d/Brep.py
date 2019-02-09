@@ -574,8 +574,8 @@ def CreatePipe1(rail, railRadiiParameters, radii, localBlending, cap, fitRail, a
 
 def CreateFromSweep(rail, shape, closed, tolerance, multiple=False):
     """
-    General 1 rail sweep. If you are not producing the sweep results that you are after, then
-    use the SweepOneRail class with options to generate the swept geometry
+    Sweep1 function tht fits a surface through a profile curve that define the surface cross-sections
+    and one curve that defines a surface edge.
 
     Args:
         rail (Curve): Rail to sweep shapes along
@@ -596,8 +596,8 @@ def CreateFromSweep(rail, shape, closed, tolerance, multiple=False):
 
 def CreateFromSweep1(rail, shapes, closed, tolerance, multiple=False):
     """
-    General 1 rail sweep. If you are not producing the sweep results that you are after, then
-    use the SweepOneRail class with options to generate the swept geometry
+    Sweep1 function tht fits a surface through a profile curve that define the surface cross-sections
+    and one curve that defines a surface edge.
 
     Args:
         rail (Curve): Rail to sweep shapes along
@@ -658,6 +658,52 @@ def CreateFromSweep3(rail1, rail2, shapes, closed, tolerance, multiple=False):
     if multiple: url += "?multiple=true"
     args = [rail1, rail2, shapes, closed, tolerance]
     if multiple: args = zip(rail1, rail2, shapes, closed, tolerance)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
+def CreateFromSweepSegmented(rail, shape, closed, tolerance, multiple=False):
+    """
+    Sweep1 function tht fits a surface through a profile curve that define the surface cross-sections
+    and one curve that defines a surface edge. The Segmented version breaks the rail at curvature kinks
+    and sweeps each piece separately, then put the results together into a Brep.
+
+    Args:
+        rail (Curve): Rail to sweep shapes along
+        shape (Curve): Shape curve
+        closed (bool): Only matters if shape is closed
+        tolerance (double): Tolerance for fitting surface and rails
+
+    Returns:
+        Brep[]: Array of Brep sweep results
+    """
+    url = "rhino/geometry/brep/createfromsweepsegmented-curve_curve_bool_double"
+    if multiple: url += "?multiple=true"
+    args = [rail, shape, closed, tolerance]
+    if multiple: args = zip(rail, shape, closed, tolerance)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
+def CreateFromSweepSegmented1(rail, shapes, closed, tolerance, multiple=False):
+    """
+    Sweep1 function tht fits a surface through a series of profile curves that define the surface cross-sections
+    and one curve that defines a surface edge. The Segmented version breaks the rail at curvature kinks
+    and sweeps each piece separately, then put the results together into a Brep.
+
+    Args:
+        rail (Curve): Rail to sweep shapes along
+        shapes (IEnumerable<Curve>): Shape curves
+        closed (bool): Only matters if shapes are closed
+        tolerance (double): Tolerance for fitting surface and rails
+
+    Returns:
+        Brep[]: Array of Brep sweep results
+    """
+    url = "rhino/geometry/brep/createfromsweepsegmented-curve_curvearray_bool_double"
+    if multiple: url += "?multiple=true"
+    args = [rail, shapes, closed, tolerance]
+    if multiple: args = zip(rail, shapes, closed, tolerance)
     response = Util.ComputeFetch(url, args)
     return response
 
@@ -809,6 +855,33 @@ def CreateFilletSurface(face0, uv0, face1, uv1, radius, extend, tolerance, multi
     return response
 
 
+def CreateFilletSurface1(face0, uv0, face1, uv1, radius, trim, extend, tolerance, multiple=False):
+    """
+    Creates a constant-radius round surface between two surfaces.
+
+    Args:
+        face0 (BrepFace): First face to fillet from.
+        uv0 (Point2d): A parameter face0 at the side you want to keep after filleting.
+        face1 (BrepFace): Second face to fillet from.
+        uv1 (Point2d): A parameter face1 at the side you want to keep after filleting.
+        radius (double): The fillet radius.
+        trim (bool): If true, the input faces will be trimmed, if false, the input faces will be split.
+        extend (bool): If true, then when one input surface is longer than the other, the fillet surface is extended to the input surface edges.
+        tolerance (double): The tolerance. In in doubt, the the document's model absolute tolerance.
+
+    Returns:
+        Brep[]: Array of Breps if successful.
+        outBreps0 (Brep[]): The trim or split results of the Brep owned by face0.
+        outBreps1 (Brep[]): The trim or split results of the Brep owned by face1.
+    """
+    url = "rhino/geometry/brep/createfilletsurface-brepface_point2d_brepface_point2d_double_bool_bool_double_breparray_breparray"
+    if multiple: url += "?multiple=true"
+    args = [face0, uv0, face1, uv1, radius, trim, extend, tolerance]
+    if multiple: args = zip(face0, uv0, face1, uv1, radius, trim, extend, tolerance)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
 def CreateChamferSurface(face0, uv0, radius0, face1, uv1, radius1, extend, tolerance, multiple=False):
     """
     Creates a ruled surface as a bevel between two input surface edges.
@@ -834,6 +907,34 @@ def CreateChamferSurface(face0, uv0, radius0, face1, uv1, radius1, extend, toler
     return response
 
 
+def CreateChamferSurface1(face0, uv0, radius0, face1, uv1, radius1, trim, extend, tolerance, multiple=False):
+    """
+    Creates a ruled surface as a bevel between two input surface edges.
+
+    Args:
+        face0 (BrepFace): First face to chamfer from.
+        uv0 (Point2d): A parameter face0 at the side you want to keep after chamfering.
+        radius0 (double): The distance from the intersection of face0 to the edge of the chamfer.
+        face1 (BrepFace): Second face to chamfer from.
+        uv1 (Point2d): A parameter face1 at the side you want to keep after chamfering.
+        radius1 (double): The distance from the intersection of face1 to the edge of the chamfer.
+        trim (bool): If true, the input faces will be trimmed, if false, the input faces will be split.
+        extend (bool): If true, then when one input surface is longer than the other, the chamfer surface is extended to the input surface edges.
+        tolerance (double): The tolerance. In in doubt, the the document's model absolute tolerance.
+
+    Returns:
+        Brep[]: Array of Breps if successful.
+        outBreps0 (Brep[]): The trim or split results of the Brep owned by face0.
+        outBreps1 (Brep[]): The trim or split results of the Brep owned by face1.
+    """
+    url = "rhino/geometry/brep/createchamfersurface-brepface_point2d_double_brepface_point2d_double_bool_bool_double_breparray_breparray"
+    if multiple: url += "?multiple=true"
+    args = [face0, uv0, radius0, face1, uv1, radius1, trim, extend, tolerance]
+    if multiple: args = zip(face0, uv0, radius0, face1, uv1, radius1, trim, extend, tolerance)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
 def CreateFilletEdges(brep, edgeIndices, startRadii, endRadii, blendType, railType, tolerance, multiple=False):
     """
     Fillets, chamfers, or blends the edges of a brep.
@@ -854,6 +955,39 @@ def CreateFilletEdges(brep, edgeIndices, startRadii, endRadii, blendType, railTy
     if multiple: url += "?multiple=true"
     args = [brep, edgeIndices, startRadii, endRadii, blendType, railType, tolerance]
     if multiple: args = zip(brep, edgeIndices, startRadii, endRadii, blendType, railType, tolerance)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
+def CreateOffsetBrep(brep, distance, solid, extend, tolerance, multiple=False):
+    """
+    Offsets a Brep.
+
+    Args:
+        brep (Brep): The Brep to offset.
+        distance (double): The distance to offset. This is a signed distance value with respect to
+            face normals and flipped faces.
+        solid (bool): If true, then the function makes a closed solid from the input and offset
+            surfaces by lofting a ruled surface between all of the matching edges.
+        extend (bool): If true, then the function maintains the sharp corners when the original
+            surfaces have sharps corner. If False, then the function creates fillets
+            at sharp corners in the original surfaces.
+        tolerance (double): The offset tolerance.
+
+    Returns:
+        Brep[]: Array of Breps if successful. If the function succeeds in offsetting, a
+        single Brep will be returned. Otherwise, the array will contain the
+        offset surfaces, outBlends will contain the set of blends used to fill
+        in gaps (if extend is false), and outWalls will contain the set of wall
+        surfaces that was supposed to join the offset to the original (if solid
+        is true).
+        outBlends (Brep[]): The results of the calculation.
+        outWalls (Brep[]): The results of the calculation.
+    """
+    url = "rhino/geometry/brep/createoffsetbrep-brep_double_bool_bool_double_breparray_breparray"
+    if multiple: url += "?multiple=true"
+    args = [brep, distance, solid, extend, tolerance]
+    if multiple: args = zip(brep, distance, solid, extend, tolerance)
     response = Util.ComputeFetch(url, args)
     return response
 
@@ -1464,42 +1598,101 @@ def MergeCoplanarFaces1(thisBrep, tolerance, angleTolerance, multiple=False):
     return response
 
 
-def Split(thisBrep, splitter, intersectionTolerance, multiple=False):
+def Split(thisBrep, cutter, intersectionTolerance, multiple=False):
     """
-    Splits a Brep into pieces.
+    Splits a Brep into pieces using a Brep as a cutter.
 
     Args:
-        splitter (Brep): A splitting surface or polysurface.
+        cutter (Brep): The Brep to use as a cutter.
         intersectionTolerance (double): The tolerance with which to compute intersections.
 
     Returns:
-        Brep[]: A new array of breps. This array can be empty.
+        Brep[]: A new array of Breps. This array can be empty.
     """
     url = "rhino/geometry/brep/split-brep_brep_double"
     if multiple: url += "?multiple=true"
-    args = [thisBrep, splitter, intersectionTolerance]
-    if multiple: args = zip(thisBrep, splitter, intersectionTolerance)
+    args = [thisBrep, cutter, intersectionTolerance]
+    if multiple: args = zip(thisBrep, cutter, intersectionTolerance)
     response = Util.ComputeFetch(url, args)
     return response
 
 
-def Split1(thisBrep, splitter, intersectionTolerance, multiple=False):
+def Split1(thisBrep, cutter, intersectionTolerance, multiple=False):
     """
-    Splits a Brep into pieces.
+    Splits a Brep into pieces using a Brep as a cutter.
 
     Args:
-        splitter (Brep): The splitting polysurface.
+        cutter (Brep): The Brep to use as a cutter.
         intersectionTolerance (double): The tolerance with which to compute intersections.
 
     Returns:
-        Brep[]: A new array of breps. This array can be empty.
-        toleranceWasRaised (bool): set to True if the split failed at intersectionTolerance but succeeded
+        Brep[]: A new array of Breps. This array can be empty.
+        toleranceWasRaised (bool): Set to True if the split failed at intersectionTolerance but succeeded
             when the tolerance was increased to twice intersectionTolerance.
     """
     url = "rhino/geometry/brep/split-brep_brep_double_bool"
     if multiple: url += "?multiple=true"
-    args = [thisBrep, splitter, intersectionTolerance]
-    if multiple: args = zip(thisBrep, splitter, intersectionTolerance)
+    args = [thisBrep, cutter, intersectionTolerance]
+    if multiple: args = zip(thisBrep, cutter, intersectionTolerance)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
+def Split2(thisBrep, cutters, intersectionTolerance, multiple=False):
+    """
+    Splits a Brep into pieces using Breps as cutters.
+
+    Args:
+        cutters (IEnumerable<Brep>): One or more Breps to use as cutters.
+        intersectionTolerance (double): The tolerance with which to compute intersections.
+
+    Returns:
+        Brep[]: A new array of Breps. This array can be empty.
+    """
+    url = "rhino/geometry/brep/split-brep_breparray_double"
+    if multiple: url += "?multiple=true"
+    args = [thisBrep, cutters, intersectionTolerance]
+    if multiple: args = zip(thisBrep, cutters, intersectionTolerance)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
+def Split3(thisBrep, cutters, intersectionTolerance, multiple=False):
+    """
+    Splits a Brep into pieces using curves, at least partially on the Brep, as cutters.
+
+    Args:
+        cutters (IEnumerable<Curve>): The splitting curves. Only the portion of the curve on the Brep surface will be used for cutting.
+        intersectionTolerance (double): The tolerance with which to compute intersections.
+
+    Returns:
+        Brep[]: A new array of Breps. This array can be empty.
+    """
+    url = "rhino/geometry/brep/split-brep_curvearray_double"
+    if multiple: url += "?multiple=true"
+    args = [thisBrep, cutters, intersectionTolerance]
+    if multiple: args = zip(thisBrep, cutters, intersectionTolerance)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
+def Split4(thisBrep, cutters, normal, planView, intersectionTolerance, multiple=False):
+    """
+    Splits a Brep into pieces using a combination of curves, to be extruded, and Breps as cutters.
+
+    Args:
+        cutters (IEnumerable<GeometryBase>): The curves, surfaces, faces and Breps to be used as cutters. Any other geometry is ignored.
+        normal (Vector3d): A construction plane normal, used in deciding how to extrude a curve into a cutter.
+        planView (bool): Set True if the assume view is a plan, or parallel projection, view.
+        intersectionTolerance (double): The tolerance with which to compute intersections.
+
+    Returns:
+        Brep[]: A new array of Breps. This array can be empty.
+    """
+    url = "rhino/geometry/brep/split-brep_geometrybasearray_vector3d_bool_double"
+    if multiple: url += "?multiple=true"
+    args = [thisBrep, cutters, normal, planView, intersectionTolerance]
+    if multiple: args = zip(thisBrep, cutters, normal, planView, intersectionTolerance)
     response = Util.ComputeFetch(url, args)
     return response
 

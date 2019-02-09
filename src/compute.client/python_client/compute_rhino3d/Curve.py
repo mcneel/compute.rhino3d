@@ -913,6 +913,29 @@ def ProjectToBrep3(curves, breps, direction, tolerance, multiple=False):
     return response
 
 
+def ProjectToBrep4(curves, breps, direction, tolerance, multiple=False):
+    """
+    Projects a collection of Curves onto a collection of Breps along a given direction.
+
+    Args:
+        curves (IEnumerable<Curve>): Curves to project.
+        breps (IEnumerable<Brep>): Breps to project onto.
+        direction (Vector3d): Direction of projection.
+        tolerance (double): Tolerance to use for projection.
+
+    Returns:
+        Curve[]: An array of projected curves. Array is empty if the projection set is empty.
+        curveIndices (int[]): Index of which curve in the input list was the source for a curve in the return array.
+        brepIndices (int[]): Index of which brep was used to generate a curve in the return array.
+    """
+    url = "rhino/geometry/curve/projecttobrep-curvearray_breparray_vector3d_double_intarray_intarray"
+    if multiple: url += "?multiple=true"
+    args = [curves, breps, direction, tolerance]
+    if multiple: args = zip(curves, breps, direction, tolerance)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
 def ProjectToPlane(curve, plane, multiple=False):
     """
     Constructs a curve by projecting an existing curve to a plane.
@@ -1059,6 +1082,88 @@ def Smooth1(thisCurve, smoothFactor, bXSmooth, bYSmooth, bZSmooth, bFixBoundarie
     return response
 
 
+def GetLocalPerpPoint(thisCurve, testPoint, seedParmameter, multiple=False):
+    """
+    Search for a location on the curve, near seedParmameter, that is perpendicular to a test point.
+
+    Args:
+        testPoint (Point3d): The test point.
+        seedParmameter (double): A "seed" parameter on the curve.
+
+    Returns:
+        bool: True if a solution is found, False otherwise.
+        curveParameter (double): The parameter value at the perpendicular point
+    """
+    url = "rhino/geometry/curve/getlocalperppoint-curve_point3d_double_double"
+    if multiple: url += "?multiple=true"
+    args = [thisCurve, testPoint, seedParmameter]
+    if multiple: args = zip(thisCurve, testPoint, seedParmameter)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
+def GetLocalPerpPoint1(thisCurve, testPoint, seedParmameter, subDomain, multiple=False):
+    """
+    Search for a location on the curve, near seedParmameter, that is perpendicular to a test point.
+
+    Args:
+        testPoint (Point3d): The test point.
+        seedParmameter (double): A "seed" parameter on the curve.
+        subDomain (Interval): The sub-domain of the curve to search.
+
+    Returns:
+        bool: True if a solution is found, False otherwise.
+        curveParameter (double): The parameter value at the perpendicular point
+    """
+    url = "rhino/geometry/curve/getlocalperppoint-curve_point3d_double_interval_double"
+    if multiple: url += "?multiple=true"
+    args = [thisCurve, testPoint, seedParmameter, subDomain]
+    if multiple: args = zip(thisCurve, testPoint, seedParmameter, subDomain)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
+def GetLocalTangentPoint(thisCurve, testPoint, seedParmameter, multiple=False):
+    """
+    Search for a location on the curve, near seedParmameter, that is tangent to a test point.
+
+    Args:
+        testPoint (Point3d): The test point.
+        seedParmameter (double): A "seed" parameter on the curve.
+
+    Returns:
+        bool: True if a solution is found, False otherwise.
+        curveParameter (double): The parameter value at the tangent point
+    """
+    url = "rhino/geometry/curve/getlocaltangentpoint-curve_point3d_double_double"
+    if multiple: url += "?multiple=true"
+    args = [thisCurve, testPoint, seedParmameter]
+    if multiple: args = zip(thisCurve, testPoint, seedParmameter)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
+def GetLocalTangentPoint1(thisCurve, testPoint, seedParmameter, subDomain, multiple=False):
+    """
+    Search for a location on the curve, near seedParmameter, that is tangent to a test point.
+
+    Args:
+        testPoint (Point3d): The test point.
+        seedParmameter (double): A "seed" parameter on the curve.
+        subDomain (Interval): The sub-domain of the curve to search.
+
+    Returns:
+        bool: True if a solution is found, False otherwise.
+        curveParameter (double): The parameter value at the tangent point
+    """
+    url = "rhino/geometry/curve/getlocaltangentpoint-curve_point3d_double_interval_double"
+    if multiple: url += "?multiple=true"
+    args = [thisCurve, testPoint, seedParmameter, subDomain]
+    if multiple: args = zip(thisCurve, testPoint, seedParmameter, subDomain)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
 def MakeClosed(thisCurve, tolerance, multiple=False):
     """
     If IsClosed, just return true. Otherwise, decide if curve can be closed as
@@ -1145,6 +1250,26 @@ def ClosestPoint1(thisCurve, testPoint, maximumDistance, multiple=False):
     if multiple: url += "?multiple=true"
     args = [thisCurve, testPoint, maximumDistance]
     if multiple: args = zip(thisCurve, testPoint, maximumDistance)
+    response = Util.ComputeFetch(url, args)
+    return response
+
+
+def ClosestPoints(thisCurve, otherCurve, multiple=False):
+    """
+    Gets closest points between this and another curves.
+
+    Args:
+        otherCurve (Curve): The other curve.
+
+    Returns:
+        bool: True on success; False on error.
+        pointOnThisCurve (Point3d): The point on this curve. This out parameter is assigned during this call.
+        pointOnOtherCurve (Point3d): The point on other curve. This out parameter is assigned during this call.
+    """
+    url = "rhino/geometry/curve/closestpoints-curve_curve_point3d_point3d"
+    if multiple: url += "?multiple=true"
+    args = [thisCurve, otherCurve]
+    if multiple: args = zip(thisCurve, otherCurve)
     response = Util.ComputeFetch(url, args)
     return response
 
