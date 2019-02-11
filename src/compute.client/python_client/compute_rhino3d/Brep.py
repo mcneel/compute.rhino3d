@@ -280,7 +280,7 @@ def CreateEdgeSurface(curves, multiple=False):
     return response
 
 
-def CreatePlanarBreps(inputLoops, multiple=False):
+def CreatePlanarBreps4(inputLoops, multiple=False):
     """
     Constructs a set of planar Breps as outlines by the loops.
 
@@ -298,7 +298,7 @@ def CreatePlanarBreps(inputLoops, multiple=False):
     return response
 
 
-def CreatePlanarBreps1(inputLoops, tolerance, multiple=False):
+def CreatePlanarBreps5(inputLoops, tolerance, multiple=False):
     """
     Constructs a set of planar Breps as outlines by the loops.
 

@@ -982,7 +982,7 @@ def ClosestMeshPoint(thisMesh, testPoint, maximumDistance, multiple=False):
     return response
 
 
-def ClosestPoint(thisMesh, testPoint, maximumDistance, multiple=False):
+def ClosestPoint1(thisMesh, testPoint, maximumDistance, multiple=False):
     """
     Gets the point on the mesh that is closest to a given test point.
 
@@ -1007,7 +1007,7 @@ def ClosestPoint(thisMesh, testPoint, maximumDistance, multiple=False):
     return response
 
 
-def ClosestPoint1(thisMesh, testPoint, maximumDistance, multiple=False):
+def ClosestPoint2(thisMesh, testPoint, maximumDistance, multiple=False):
     """
     Gets the point on the mesh that is closest to a given test point.
 
