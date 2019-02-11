@@ -6,6 +6,19 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace computegen
 {
+    class ParameterInfo
+    {
+        public string Name { get; set; }
+        public string Type { get; set; }
+        public List<string> Description { get; } = new List<string>();
+    }
+
+    class ReturnInfo
+    {
+        public string Type { get; set; }
+        public List<string> Description { get; } = new List<string>();
+    }
+
     class PythonClient : ComputeClient
     {
         public override void Write(Dictionary<string, ClassBuilder> classes, string path, string[] filter)
@@ -86,12 +99,10 @@ def ComputeFetch(endpoint, arglist) :
 
 ";
 
+        public static int SpacesPerTab { get; set; } = 4;
         static string _T(int amount)
         {
-            string rc = "";
-            for (int i = 0; i < amount; i++)
-                rc += "    ";
-            return rc;
+            return "".PadLeft(amount*SpacesPerTab);
         }
 
         static bool IsOutParameter(ParameterSyntax parameter)
@@ -104,16 +115,9 @@ def ComputeFetch(endpoint, arglist) :
             return false;
         }
 
-        static string DocCommentToPythonDoc(DocumentationCommentTriviaSyntax doccomment, MethodDeclarationSyntax method, int indentLevel)
+
+        static System.Xml.XmlDocument DocCommentToXml(DocumentationCommentTriviaSyntax doccomment)
         {
-            // See https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html
-            // for docstring examples
-
-            StringBuilder summary = new StringBuilder();
-            StringBuilder args = new StringBuilder();
-            StringBuilder returns = new StringBuilder();
-            StringBuilder outArgs = new StringBuilder();
-
             string comment = doccomment.ToString();
             comment = comment.Replace("///", "");
             comment = comment.Replace("\t", " ");
@@ -122,6 +126,24 @@ def ComputeFetch(endpoint, arglist) :
             comment = comment.Replace("false ", "False ");
             var doc = new System.Xml.XmlDocument();
             doc.LoadXml("<doc>" + comment + "</doc>");
+            return doc;
+        }
+
+        public static string DocCommentToPythonDoc(
+            DocumentationCommentTriviaSyntax doccomment, MethodDeclarationSyntax method,
+            int indentLevel, out StringBuilder summary, out List<ParameterInfo> parameters, out ReturnInfo returnInfo)
+        {
+            // See https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html
+            // for docstring examples
+
+            summary = new StringBuilder();
+            StringBuilder args = new StringBuilder();
+            StringBuilder returns = new StringBuilder();
+            StringBuilder outArgs = new StringBuilder();
+            parameters = new List<ParameterInfo>();
+            returnInfo = new ReturnInfo() { Type = method.ReturnType.ToString() };
+
+            var doc = DocCommentToXml(doccomment);
             var nodes = doc.FirstChild.ChildNodes;
             foreach (var node in nodes)
             {
@@ -144,6 +166,7 @@ def ComputeFetch(endpoint, arglist) :
                     bool firstLine = true;
                     foreach (var line in lines)
                     {
+                        returnInfo.Description.Add(line.Trim());
                         if (!firstLine)
                             returns.Append(_T(indentLevel + 1));
                         firstLine = false;
@@ -153,7 +176,7 @@ def ComputeFetch(endpoint, arglist) :
                 else if (element.Name.Equals("param", StringComparison.OrdinalIgnoreCase))
                 {
                     string parameterName = element.GetAttribute("name");
-
+                    ParameterInfo pinfo = new ParameterInfo { Name = parameterName };
                     string paramType = "";
                     bool isOutParam = false;
                     foreach(var param in method.ParameterList.Parameters)
@@ -162,6 +185,7 @@ def ComputeFetch(endpoint, arglist) :
                         {
                             isOutParam = IsOutParameter(param);
                             paramType = $" ({param.Type})";
+                            pinfo.Type = param.Type.ToString();
                         }
                     }
 
@@ -175,6 +199,7 @@ def ComputeFetch(endpoint, arglist) :
                     StringBuilder sb = isOutParam ? outArgs : args;
                     foreach (var line in lines)
                     {
+                        pinfo.Description.Add(line.Trim());
                         if (!added)
                         {
                             added = true;
@@ -183,6 +208,8 @@ def ComputeFetch(endpoint, arglist) :
                         }
                         sb.AppendLine(_T(indentLevel + 2) + line.Trim());
                     }
+                    if (!isOutParam)
+                        parameters.Add(pinfo);
                 }
             }
 
@@ -196,56 +223,102 @@ def ComputeFetch(endpoint, arglist) :
             return rc.ToString();
         }
 
+        public static string GetMethodName(MethodDeclarationSyntax method, ClassBuilder c)
+        {
+            string methodName = method.Identifier.ToString();
+            if (methodName.Equals("dispose", StringComparison.InvariantCultureIgnoreCase))
+                return null;
+            int overloadIndex = 0;
+            foreach( var (m,dc) in c.Methods)
+            {
+                if (m == method)
+                    break;
+                if( methodName.Equals(m.Identifier.ToString(), StringComparison.InvariantCultureIgnoreCase))
+                {
+                    overloadIndex++;
+                }
+            }
+            if (overloadIndex > 0)
+                methodName = $"{methodName}{overloadIndex}";
+            return methodName;
+        }
+
+        public static List<string> GetParameterNames(MethodDeclarationSyntax method, ClassBuilder cb)
+        {
+            List<string> parameters = new List<string>();
+            if (!method.IsStatic())
+            {
+                parameters.Add("this" + cb.ClassName);
+            }
+            for (int i = 0; i < method.ParameterList.Parameters.Count; i++)
+            {
+                bool isOutParameter = false;
+                foreach (var modifier in method.ParameterList.Parameters[i].Modifiers)
+                {
+                    if (modifier.Text == "out")
+                        isOutParameter = true;
+                }
+
+                if (!isOutParameter)
+                    parameters.Add(method.ParameterList.Parameters[i].Identifier.ToString());
+            }
+            return parameters;
+        }
+
+        public static string ToPythonType(string type)
+        {
+            bool isArray = type.EndsWith("[]");
+            if (isArray)
+                return ToPythonType(type.Substring(0, type.Length - 2)) + "[]";
+
+            if (type.Equals("double"))
+                return "float";
+            if (type.Equals($"IEnumerable<double>"))
+                return "list[float]";
+            if (type.Equals($"IEnumerable<int>"))
+                return "list[int]";
+
+            if (type.Equals("string", StringComparison.InvariantCultureIgnoreCase))
+                return "str";
+            string[] rhino3dm = { "BezierCurve", "BoundingBox", "Box", "Brep", "BrepEdge", "BrepFace", "Curve",
+                "GeometryBase", "Interval", "Mesh", "MeshingParameters", "NurbsCurve", "Plane", "Point2d", "Point3d",
+                "Polyline", "Sphere", "Surface", "Vector3d" };
+            foreach(var item in rhino3dm)
+            {
+                if (type.Equals(item))
+                    return "rhino3dm." + type;
+                if (type.Equals($"IEnumerable<{item}>"))
+                {
+                    int startIndex = "IEnumerable<".Length;
+                    int endIndex = type.IndexOf('>');
+                    return "list[rhino3dm." + type.Substring(startIndex, endIndex-startIndex) + "]";
+                }
+            }
+            return type;
+        }
 
         protected override string ToComputeClient(ClassBuilder cb)
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine();
             int iMethod = 0;
-            int overloadIndex = 0;
-            string prevMethodName = "";
+
             foreach (var (method, comment) in cb.Methods)
             {
-                string methodName = method.Identifier.ToString();
-                if (methodName.Equals("dispose", StringComparison.InvariantCultureIgnoreCase))
+                string methodName = GetMethodName(method, cb);
+                if( string.IsNullOrWhiteSpace(methodName))
                     continue;
-                if (methodName.Equals(prevMethodName))
-                {
-                    overloadIndex++;
-                    methodName = $"{methodName}{overloadIndex}";
-                }
-                else
-                {
-                    overloadIndex = 0;
-                    prevMethodName = methodName;
-                }
                 sb.Append($"def {methodName}(");
-                List<string> parameters = new List<string>();
-                if (!method.IsStatic())
-                {
-                    parameters.Add("this" + cb.ClassName);
-                }
-                for (int i = 0; i < method.ParameterList.Parameters.Count; i++)
-                {
-                    bool isOutParameter = false;
-                    foreach (var modifier in method.ParameterList.Parameters[i].Modifiers)
-                    {
-                        if (modifier.Text == "out")
-                            isOutParameter = true;
-                    }
-
-                    if( !isOutParameter )
-                        parameters.Add(method.ParameterList.Parameters[i].Identifier.ToString());
-                }
-
+                List<string> parameters = GetParameterNames(method, cb);
                 for (int i = 0; i < parameters.Count; i++)
                 {
-                    sb.Append(parameters[i]);
-                    if (i < (parameters.Count - 1))
-                        sb.Append(", ");
+                    sb.Append(parameters[i] + ", ");
                 }
-                sb.AppendLine(", multiple=False):");
-                sb.Append(DocCommentToPythonDoc(comment, method, 1));
+                sb.AppendLine("multiple=False):");
+                StringBuilder summary;
+                List<ParameterInfo> parameterList;
+                ReturnInfo returnInfo;
+                sb.Append(DocCommentToPythonDoc(comment, method, 1, out summary, out parameterList, out returnInfo));
                 sb.AppendLine($"{T1}url = \"{cb.EndPoint(method)}\"");
                 sb.AppendLine($"{T1}if multiple: url += \"?multiple=true\"");
                 var paramList = new StringBuilder();

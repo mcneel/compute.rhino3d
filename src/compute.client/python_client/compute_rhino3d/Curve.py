@@ -2773,7 +2773,7 @@ def OffsetOnSurface5(thisCurve, surface, curveParameters, offsetDistances, fitti
     return response
 
 
-def PullToBrepFace(thisCurve, face, tolerance, multiple=False):
+def PullToBrepFace1(thisCurve, face, tolerance, multiple=False):
     """
     Pulls this curve to a brep face and returns the result of that operation.
 

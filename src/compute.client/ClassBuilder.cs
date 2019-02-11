@@ -50,6 +50,36 @@ namespace computegen
     {
         public static Dictionary<string, ClassBuilder> AllClasses { get; private set; }
 
+        public static ClassBuilder[] FilteredList(Dictionary<string, ClassBuilder> classes, string[] filter)
+        {
+            List<ClassBuilder> rc = new List<ClassBuilder>();
+            for (int pass = 0; pass < 2; pass++)
+            {
+                foreach (var kv in classes)
+                {
+                    if (kv.Key.StartsWith("Rhino.Geometry."))
+                    {
+                        bool skip = true;
+                        foreach (var f in filter)
+                        {
+                            if (kv.Key.EndsWith(f))
+                                skip = false;
+                        }
+                        if (skip)
+                            continue;
+                        bool containsIntersect = kv.Key.Contains(".Intersect");
+                        if (0 == pass && containsIntersect)
+                            continue;
+                        if (1 == pass && !containsIntersect)
+                            continue;
+                        rc.Add(kv.Value);
+                    }
+                }
+            }
+            rc.Sort((a, b) => a.ClassName.CompareTo(b.ClassName));
+            return rc.ToArray();
+        }
+
         public static void BuildClassDictionary(string sourcePath)
         {
             AllClasses = new Dictionary<string, ClassBuilder>();
