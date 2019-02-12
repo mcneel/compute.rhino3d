@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
 
 namespace computegen
 {
@@ -93,6 +95,11 @@ if (typeof exports === 'object' && typeof module === 'object')
     module.exports = RhinoCompute;";
             }
         }
+        public static string GetMethodName(MethodDeclarationSyntax method, ClassBuilder c)
+        {
+            return CamelCase(PythonClient.GetMethodName(method, c));
+        }
+
 
         protected override string ToComputeClient(ClassBuilder cb)
         {
@@ -100,23 +107,11 @@ if (typeof exports === 'object' && typeof module === 'object')
             sb.AppendLine();
             sb.AppendLine($"{T1}{cb.ClassName} : {{");
             int iMethod = 0;
-            int overloadIndex = 0;
-            string prevMethodName = "";
             foreach (var (method, comment) in cb.Methods)
             {
-                string methodName = CamelCase(method.Identifier.ToString());
-                if (methodName.Equals("dispose", StringComparison.InvariantCultureIgnoreCase))
+                string methodName = GetMethodName(method, cb);
+                if (string.IsNullOrWhiteSpace(methodName))
                     continue;
-                if (methodName.Equals(prevMethodName))
-                {
-                    overloadIndex++;
-                    methodName = $"{methodName}{overloadIndex}";
-                }
-                else
-                {
-                    overloadIndex = 0;
-                    prevMethodName = methodName;
-                }
                 sb.Append($"{T2}{methodName} : function(");
                 List<string> parameters = new List<string>();
                 if (!method.IsStatic())

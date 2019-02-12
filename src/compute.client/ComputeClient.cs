@@ -58,6 +58,8 @@ namespace computegen
 
         protected static string CamelCase(string text)
         {
+            if (string.IsNullOrWhiteSpace(text))
+                return text;
             string s = text.Substring(0, 1).ToLower() + text.Substring(1);
             return s;
         }

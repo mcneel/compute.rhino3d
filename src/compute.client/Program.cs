@@ -35,10 +35,12 @@ namespace computegen
             var cs = new DotNetClient();
             cs.Write(ClassBuilder.AllClasses, "RhinoCompute.cs", filter);
 
-            Console.WriteLine("Writing python docs");
             var classes = ClassBuilder.FilteredList(ClassBuilder.AllClasses, filter);
+            Console.WriteLine("Writing python docs");
             RstClient.WritePythonDocs(classes);
-            
+            Console.WriteLine("Writing javascript docs");
+            RstClient.WriteJavascriptDocs(classes);
+
 
             Console.ResetColor();
         }
