@@ -45,13 +45,13 @@
       <HintPath>..\packages\AWSSDK.S3.3.3.24\lib\net45\AWSSDK.S3.dll</HintPath>
     </Reference>
     <Reference Include="Eto, Version=2.5.0.0, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
-      <HintPath>..\packages\RhinoCommon.7.0.19009.12085-wip\lib\net45\Eto.dll</HintPath>
+      <HintPath>..\packages\RhinoCommon.7.0.19036.10395-wip\lib\net45\Eto.dll</HintPath>
     </Reference>
-    <Reference Include="GH_IO, Version=7.0.19009.12080, Culture=neutral, PublicKeyToken=6a29997d2e6b4f97, processorArchitecture=MSIL">
-      <HintPath>..\packages\Grasshopper.7.0.19009.12085-wip\lib\net45\GH_IO.dll</HintPath>
+    <Reference Include="GH_IO, Version=7.0.19036.10390, Culture=neutral, PublicKeyToken=6a29997d2e6b4f97, processorArchitecture=MSIL">
+      <HintPath>..\packages\Grasshopper.7.0.19036.10395-wip\lib\net45\GH_IO.dll</HintPath>
     </Reference>
-    <Reference Include="Grasshopper, Version=7.0.19009.12080, Culture=neutral, PublicKeyToken=dda4f5ec2cd80803, processorArchitecture=MSIL">
-      <HintPath>..\packages\Grasshopper.7.0.19009.12085-wip\lib\net45\Grasshopper.dll</HintPath>
+    <Reference Include="Grasshopper, Version=7.0.19036.10390, Culture=neutral, PublicKeyToken=dda4f5ec2cd80803, processorArchitecture=MSIL">
+      <HintPath>..\packages\Grasshopper.7.0.19036.10395-wip\lib\net45\Grasshopper.dll</HintPath>
     </Reference>
     <Reference Include="Nancy, Version=1.4.4.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Nancy.1.4.4\lib\net40\Nancy.dll</HintPath>
@@ -65,11 +65,11 @@
     <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="Rhino.UI, Version=7.0.19009.12080, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
-      <HintPath>..\packages\RhinoCommon.7.0.19009.12085-wip\lib\net45\Rhino.UI.dll</HintPath>
+    <Reference Include="Rhino.UI, Version=7.0.19036.10390, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
+      <HintPath>..\packages\RhinoCommon.7.0.19036.10395-wip\lib\net45\Rhino.UI.dll</HintPath>
     </Reference>
-    <Reference Include="RhinoCommon, Version=7.0.19009.12080, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
-      <HintPath>..\packages\RhinoCommon.7.0.19009.12085-wip\lib\net45\RhinoCommon.dll</HintPath>
+    <Reference Include="RhinoCommon, Version=7.0.19036.10390, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
+      <HintPath>..\packages\RhinoCommon.7.0.19036.10395-wip\lib\net45\RhinoCommon.dll</HintPath>
     </Reference>
     <Reference Include="Serilog, Version=2.0.0.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
       <HintPath>..\packages\Serilog.2.7.1\lib\net46\Serilog.dll</HintPath>
@@ -157,13 +157,13 @@
     </ItemGroup>
     <Delete Files="@(FilesToDelete)" />
   </Target>
-  <Import Project="..\packages\RhinoCommon.7.0.19009.12085-wip\build\net45\RhinoCommon.targets" Condition="Exists('..\packages\RhinoCommon.7.0.19009.12085-wip\build\net45\RhinoCommon.targets')" />
+  <Import Project="..\packages\RhinoCommon.7.0.19036.10395-wip\build\net45\RhinoCommon.targets" Condition="Exists('..\packages\RhinoCommon.7.0.19036.10395-wip\build\net45\RhinoCommon.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\RhinoCommon.7.0.19009.12085-wip\build\net45\RhinoCommon.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\RhinoCommon.7.0.19009.12085-wip\build\net45\RhinoCommon.targets'))" />
-    <Error Condition="!Exists('..\packages\Grasshopper.7.0.19009.12085-wip\build\net45\Grasshopper.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Grasshopper.7.0.19009.12085-wip\build\net45\Grasshopper.targets'))" />
+    <Error Condition="!Exists('..\packages\RhinoCommon.7.0.19036.10395-wip\build\net45\RhinoCommon.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\RhinoCommon.7.0.19036.10395-wip\build\net45\RhinoCommon.targets'))" />
+    <Error Condition="!Exists('..\packages\Grasshopper.7.0.19036.10395-wip\build\net45\Grasshopper.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Grasshopper.7.0.19036.10395-wip\build\net45\Grasshopper.targets'))" />
   </Target>
-  <Import Project="..\packages\Grasshopper.7.0.19009.12085-wip\build\net45\Grasshopper.targets" Condition="Exists('..\packages\Grasshopper.7.0.19009.12085-wip\build\net45\Grasshopper.targets')" />
+  <Import Project="..\packages\Grasshopper.7.0.19036.10395-wip\build\net45\Grasshopper.targets" Condition="Exists('..\packages\Grasshopper.7.0.19036.10395-wip\build\net45\Grasshopper.targets')" />
 </Project>
