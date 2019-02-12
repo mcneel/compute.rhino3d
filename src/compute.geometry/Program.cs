@@ -103,6 +103,16 @@ namespace compute.geometry
         protected override void ApplicationStartup(TinyIoCContainer container, IPipelines pipelines)
         {
             Log.Debug("ApplicationStartup");
+
+            // Load GH at startup so it can get initialized on the main thread
+            var pluginObject = Rhino.RhinoApp.GetPlugInObject("Grasshopper");
+            var runheadless = pluginObject?.GetType().GetMethod("RunHeadless");
+            if (runheadless != null)
+                runheadless.Invoke(pluginObject, null);
+
+            // Do the same for python
+            var script = Rhino.Runtime.PythonScript.Create();
+
             Nancy.StaticConfiguration.DisableErrorTraces = false;
             pipelines.OnError += (ctx, ex) => LogError(ctx, ex);
             base.ApplicationStartup(container, pipelines);
@@ -195,7 +205,7 @@ namespace compute.geometry
                 return result.ToString();
             };
 
-            foreach (string nameSpace in new List<string>() {"Rhino.Geometry", "Rhino.Geometry.Intersect"})
+            foreach (string nameSpace in new string[] {"Rhino.Geometry", "Rhino.Geometry.Intersect"})
             {
                 foreach (var endpoint in CreateEndpoints(typeof(Rhino.RhinoApp).Assembly, nameSpace))
                 {
@@ -210,38 +220,29 @@ namespace compute.geometry
                 }
             }
 
-            // Load GH at startup so it can get initialized on the main thread
-            var pluginObject = Rhino.RhinoApp.GetPlugInObject("Grasshopper");
-            var runheadless = pluginObject?.GetType().GetMethod("RunHeadless");
-            if (runheadless != null)
-                runheadless.Invoke(pluginObject, null);
-
-            //var script = Rhino.Runtime.PythonScript.Create();
-            //if( script != null )
-            //{
-            //    foreach( var endpoint in GeometryEndPoint.Create(typeof(Python)) )
-            //    {
-            //        string key = endpoint.Path.ToLowerInvariant();
-            //        Get[key] = _ => endpoint.Get(Context);
-            //        Post[key] = _ => endpoint.Post(Context);
-            //    }
-            //}
+            foreach (var endpoint in GeometryEndPoint.Create(typeof(Rhino.Python)))
+            {
+                string key = endpoint.Path.ToLowerInvariant();
+                Get[key] = _ => endpoint.Get(Context);
+                Post[key] = _ => endpoint.Post(Context);
+            }
         }
     }
+}
 
-    // TODO Make ArchivaleDictionary serializable
-    //class Python
-    //{
-    //    public static Rhino.Collections.ArchivableDictionary Evaluate(string script,
-    //        Rhino.Collections.ArchivableDictionary input)
-    //    {
-    //        var py = Rhino.Runtime.PythonScript.Create();
-    //        py.SetVariable("inputGeometry", inputGeometry);
-    //        py.SetVariable("inputPoints", inputPoints);
-    //        py.ExecuteScript(script);
-    //        outputGeometry = null;
-    //        outputPoints = null;
-    //        return "done";
-    //    }
-    //}
+namespace Rhino
+{
+    static class Python
+    {
+        public static Rhino.Collections.ArchivableDictionary Evaluate(string script,
+            Rhino.Collections.ArchivableDictionary input)
+        {
+            var py = Rhino.Runtime.PythonScript.Create();
+            py.SetVariable("input", input);
+            var output = new Rhino.Collections.ArchivableDictionary();
+            py.SetVariable("output", output);
+            py.ExecuteScript(script);
+            return output;
+        }
+    }
 }
