@@ -4,6 +4,9 @@ using Rhino.Geometry;
 using Rhino.Geometry.Intersect;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using Newtonsoft.Json;
+using Rhino.Collections;
+using System.Runtime.Serialization;
 
 namespace Rhino.Compute
 {
@@ -11,18 +14,30 @@ namespace Rhino.Compute
     {
         public static string WebAddress { get; set; } = "https://compute.rhino3d.com";
         public static string AuthToken { get; set; }
+        public static string Version => "0.5.1";
 
         public static T Post<T>(string function, params object[] postData)
         {
+            return PostWithConverter<T>(function, null, postData);
+        }
+
+        public static T PostWithConverter<T>(string function, JsonConverter converter, params object[] postData)
+        {
             if (string.IsNullOrWhiteSpace(AuthToken))
                 throw new UnauthorizedAccessException("AuthToken must be set");
-            string json = Newtonsoft.Json.JsonConvert.SerializeObject(postData);
+
+            string json;
+            if( converter==null )
+                json = JsonConvert.SerializeObject(postData);
+            else
+                json = JsonConvert.SerializeObject(postData, Formatting.None, converter);
             if (!function.StartsWith("/"))
                 function = "/" + function;
             string uri = (WebAddress + function).ToLower();
-            var request = System.Net.WebRequest.Create(uri);
+            var request = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(uri);
             request.ContentType = "application/json";
             request.Headers.Add("Authorization", "Bearer " + AuthToken);
+            request.UserAgent = "compute.rhino3d.cs/" + Version;
             request.Method = "POST";
             using (var streamWriter = new StreamWriter(request.GetRequestStream()))
             {
@@ -34,8 +49,9 @@ namespace Rhino.Compute
             using (var streamReader = new StreamReader(response.GetResponseStream()))
             {
                 var result = streamReader.ReadToEnd();
-                var rc = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(result);
-                return rc;
+                if (converter == null)
+                    return JsonConvert.DeserializeObject<T>(result);
+                return JsonConvert.DeserializeObject<T>(result, converter);
             }
         }
 
@@ -102,6 +118,66 @@ namespace Rhino.Compute
         {
             string s = t.ToString().Replace('.', '/');
             return s + "/" + function;
+        }
+    }
+
+    public static class PythonCompute
+    {
+        // NOTE: If you are using a Rhino 6 based version of Rhino3dmIO, you will
+        // get compile errors due to ArchivableDictionary not implementing ISerializble in V6
+        //
+        // Either update to a V7 version of Rhino3dmIO (check the prerelease box on nuget)
+        // -or-
+        // Delete the entire PythonCompute class here. Python functionality is only available
+        // using a V7 based Rhino3dmIO assembly
+        class ArchivableDictionaryResolver : JsonConverter
+        {
+            public override bool CanConvert(Type objectType) { return objectType == typeof(ArchivableDictionary); }
+            public override bool CanRead => true;
+            public override bool CanWrite => true;
+
+            public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+            {
+                string encoded = (string)reader.Value;
+                var dh = JsonConvert.DeserializeObject<DictHelper>(encoded);
+                return dh.SerializedDictionary;
+            }
+
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            {
+                string json = JsonConvert.SerializeObject(new DictHelper((ArchivableDictionary)value));
+                writer.WriteValue(json);
+            }
+
+
+            [Serializable]
+            class DictHelper : ISerializable
+            {
+                public ArchivableDictionary SerializedDictionary { get; set; }
+                public DictHelper(ArchivableDictionary d) { SerializedDictionary = d; }
+                public virtual void GetObjectData(SerializationInfo info, StreamingContext context)
+                {
+                    SerializedDictionary.GetObjectData(info, context);
+                }
+                protected DictHelper(SerializationInfo info, StreamingContext context)
+                {
+                    Type t = typeof(ArchivableDictionary);
+                    var constructor = t.GetConstructor(System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
+                      null, new Type[] { typeof(SerializationInfo), typeof(StreamingContext) }, null);
+                    SerializedDictionary = constructor.Invoke(new object[] { info, context }) as ArchivableDictionary;
+                }
+            }
+        }
+
+
+        static string ApiAddress([CallerMemberName] string caller = null)
+        {
+            return "rhino/python/" + caller;
+        }
+
+        public static ArchivableDictionary Evaluate(string script, ArchivableDictionary input)
+        {
+            return ComputeServer.PostWithConverter<ArchivableDictionary>(ApiAddress(), new ArchivableDictionaryResolver(), script, input);
         }
     }
 
@@ -577,27 +653,35 @@ namespace Rhino.Compute
             return ComputeServer.Post<Brep[]>(ApiAddress(), rail, railRadiiParameters, radii, localBlending, cap, fitRail, absoluteTolerance, angleToleranceRadians);
         }
         /// <summary>
-        /// General 1 rail sweep. If you are not producing the sweep results that you are after, then
-        /// use the SweepOneRail class with options to generate the swept geometry
-        /// </summary>
+        /// Sweep1 function tht fits a surface through a profile curve that define the surface cross-sections
+        /// and one curve that defines a surface edge.
+        /// /// </summary>
         /// <param name="rail">Rail to sweep shapes along</param>
         /// <param name="shape">Shape curve</param>
         /// <param name="closed">Only matters if shape is closed</param>
         /// <param name="tolerance">Tolerance for fitting surface and rails</param>
         /// <returns>Array of Brep sweep results</returns>
+        /// <remarks>
+        /// If you are not producing the sweep results that you are after, then
+        /// use the SweepOneRail class with options to generate the swept geometry.
+        /// </remarks>
         public static Brep[] CreateFromSweep(Curve rail, Curve shape, bool closed, double tolerance)
         {
             return ComputeServer.Post<Brep[]>(ApiAddress(), rail, shape, closed, tolerance);
         }
         /// <summary>
-        /// General 1 rail sweep. If you are not producing the sweep results that you are after, then
-        /// use the SweepOneRail class with options to generate the swept geometry
+        /// Sweep1 function tht fits a surface through a profile curve that define the surface cross-sections
+        /// and one curve that defines a surface edge.
         /// </summary>
         /// <param name="rail">Rail to sweep shapes along</param>
         /// <param name="shapes">Shape curves</param>
         /// <param name="closed">Only matters if shapes are closed</param>
         /// <param name="tolerance">Tolerance for fitting surface and rails</param>
         /// <returns>Array of Brep sweep results</returns>
+        /// <remarks>
+        /// If you are not producing the sweep results that you are after, then
+        /// use the SweepOneRail class with options to generate the swept geometry.
+        /// </remarks>
         public static Brep[] CreateFromSweep(Curve rail, IEnumerable<Curve> shapes, bool closed, double tolerance)
         {
             return ComputeServer.Post<Brep[]>(ApiAddress(), rail, shapes, closed, tolerance);
@@ -629,6 +713,42 @@ namespace Rhino.Compute
         public static Brep[] CreateFromSweep(Curve rail1, Curve rail2, IEnumerable<Curve> shapes, bool closed, double tolerance)
         {
             return ComputeServer.Post<Brep[]>(ApiAddress(), rail1, rail2, shapes, closed, tolerance);
+        }
+        /// <summary>
+        /// Sweep1 function tht fits a surface through a profile curve that define the surface cross-sections
+        /// and one curve that defines a surface edge. The Segmented version breaks the rail at curvature kinks
+        /// and sweeps each piece separately, then put the results together into a Brep.
+        /// </summary>
+        /// <param name="rail">Rail to sweep shapes along</param>
+        /// <param name="shape">Shape curve</param>
+        /// <param name="closed">Only matters if shape is closed</param>
+        /// <param name="tolerance">Tolerance for fitting surface and rails</param>
+        /// <returns>Array of Brep sweep results</returns>
+        /// <remarks>
+        /// If you are not producing the sweep results that you are after, then
+        /// use the SweepOneRail class with options to generate the swept geometry.
+        /// </remarks>
+        public static Brep[] CreateFromSweepSegmented(Curve rail, Curve shape, bool closed, double tolerance)
+        {
+            return ComputeServer.Post<Brep[]>(ApiAddress(), rail, shape, closed, tolerance);
+        }
+        /// <summary>
+        /// Sweep1 function tht fits a surface through a series of profile curves that define the surface cross-sections
+        /// and one curve that defines a surface edge. The Segmented version breaks the rail at curvature kinks
+        /// and sweeps each piece separately, then put the results together into a Brep.
+        /// </summary>
+        /// <param name="rail">Rail to sweep shapes along</param>
+        /// <param name="shapes">Shape curves</param>
+        /// <param name="closed">Only matters if shapes are closed</param>
+        /// <param name="tolerance">Tolerance for fitting surface and rails</param>
+        /// <returns>Array of Brep sweep results</returns>
+        /// <remarks>
+        /// If you are not producing the sweep results that you are after, then
+        /// use the SweepOneRail class with options to generate the swept geometry.
+        /// </remarks>
+        public static Brep[] CreateFromSweepSegmented(Curve rail, IEnumerable<Curve> shapes, bool closed, double tolerance)
+        {
+            return ComputeServer.Post<Brep[]>(ApiAddress(), rail, shapes, closed, tolerance);
         }
         /// <summary>
         /// Makes a 2 rail sweep.  Like CreateFromSweep but the result is split where parameterization along a rail changes abruptly
@@ -727,6 +847,24 @@ namespace Rhino.Compute
             return ComputeServer.Post<Brep[]>(ApiAddress(), face0, uv0, face1, uv1, radius, extend, tolerance);
         }
         /// <summary>
+        ///  Creates a constant-radius round surface between two surfaces.
+        /// </summary>
+        /// <param name="face0">First face to fillet from.</param>
+        /// <param name="uv0">A parameter face0 at the side you want to keep after filleting.</param>
+        /// <param name="face1">Second face to fillet from.</param>
+        /// <param name="uv1">A parameter face1 at the side you want to keep after filleting.</param>
+        /// <param name="radius">The fillet radius.</param>
+        /// <param name="trim">If true, the input faces will be trimmed, if false, the input faces will be split.</param>
+        /// <param name="extend">If true, then when one input surface is longer than the other, the fillet surface is extended to the input surface edges.</param>
+        /// <param name="tolerance">The tolerance. In in doubt, the the document's model absolute tolerance.</param>
+        /// <param name="outBreps0">The trim or split results of the Brep owned by face0.</param>
+        /// <param name="outBreps1">The trim or split results of the Brep owned by face1.</param>
+        /// <returns>Array of Breps if successful.</returns>
+        public static Brep[] CreateFilletSurface(BrepFace face0, Point2d uv0, BrepFace face1, Point2d uv1, double radius, bool trim, bool extend, double tolerance, out Brep[] outBreps0, out Brep[] outBreps1)
+        {
+            return ComputeServer.Post<Brep[], Brep[], Brep[]>(ApiAddress(), out outBreps0, out outBreps1, face0, uv0, face1, uv1, radius, trim, extend, tolerance);
+        }
+        /// <summary>
         /// Creates a ruled surface as a bevel between two input surface edges.
         /// </summary>
         /// <param name="face0">First face to chamfer from.</param>
@@ -741,6 +879,25 @@ namespace Rhino.Compute
         public static Brep[] CreateChamferSurface(BrepFace face0, Point2d uv0, double radius0, BrepFace face1, Point2d uv1, double radius1, bool extend, double tolerance)
         {
             return ComputeServer.Post<Brep[]>(ApiAddress(), face0, uv0, radius0, face1, uv1, radius1, extend, tolerance);
+        }
+        /// <summary>
+        /// Creates a ruled surface as a bevel between two input surface edges.
+        /// </summary>
+        /// <param name="face0">First face to chamfer from.</param>
+        /// <param name="uv0">A parameter face0 at the side you want to keep after chamfering.</param>
+        /// <param name="radius0">The distance from the intersection of face0 to the edge of the chamfer.</param>
+        /// <param name="face1">Second face to chamfer from.</param>
+        /// <param name="uv1">A parameter face1 at the side you want to keep after chamfering.</param>
+        /// <param name="radius1">The distance from the intersection of face1 to the edge of the chamfer.</param>
+        /// <param name="trim">If true, the input faces will be trimmed, if false, the input faces will be split.</param>
+        /// <param name="extend">If true, then when one input surface is longer than the other, the chamfer surface is extended to the input surface edges.</param>
+        /// <param name="tolerance">The tolerance. In in doubt, the the document's model absolute tolerance.</param>
+        /// <param name="outBreps0">The trim or split results of the Brep owned by face0.</param>
+        /// <param name="outBreps1">The trim or split results of the Brep owned by face1.</param>
+        /// <returns>Array of Breps if successful.</returns>
+        public static Brep[] CreateChamferSurface(BrepFace face0, Point2d uv0, double radius0, BrepFace face1, Point2d uv1, double radius1, bool trim, bool extend, double tolerance, out Brep[] outBreps0, out Brep[] outBreps1)
+        {
+            return ComputeServer.Post<Brep[], Brep[], Brep[]>(ApiAddress(), out outBreps0, out outBreps1, face0, uv0, radius0, face1, uv1, radius1, trim, extend, tolerance);
         }
         /// <summary>
         /// Fillets, chamfers, or blends the edges of a brep.
@@ -1191,28 +1348,66 @@ namespace Rhino.Compute
             return ComputeServer.Post<bool, Brep>(ApiAddress(), out updatedInstance, brep, tolerance, angleTolerance);
         }
         /// <summary>
-        /// Splits a Brep into pieces.
+        /// Splits a Brep into pieces using a Brep as a cutter.
         /// </summary>
-        /// <param name="splitter">A splitting surface or polysurface.</param>
+        /// <param name="cutter">The Brep to use as a cutter.</param>
         /// <param name="intersectionTolerance">The tolerance with which to compute intersections.</param>
-        /// <returns>A new array of breps. This array can be empty.</returns>
-        public static Brep[] Split(this Brep brep, Brep splitter, double intersectionTolerance)
+        /// <returns>A new array of Breps. This array can be empty.</returns>
+        public static Brep[] Split(this Brep brep, Brep cutter, double intersectionTolerance)
         {
-            return ComputeServer.Post<Brep[]>(ApiAddress(), brep, splitter, intersectionTolerance);
+            return ComputeServer.Post<Brep[]>(ApiAddress(), brep, cutter, intersectionTolerance);
         }
         /// <summary>
-        /// Splits a Brep into pieces.
+        /// Splits a Brep into pieces using a Brep as a cutter.
         /// </summary>
-        /// <param name="splitter">The splitting polysurface.</param>
+        /// <param name="cutter">The Brep to use as a cutter.</param>
         /// <param name="intersectionTolerance">The tolerance with which to compute intersections.</param>
         /// <param name="toleranceWasRaised">
-        /// set to true if the split failed at intersectionTolerance but succeeded
+        /// Set to true if the split failed at intersectionTolerance but succeeded
         /// when the tolerance was increased to twice intersectionTolerance.
         /// </param>
-        /// <returns>A new array of breps. This array can be empty.</returns>
-        public static Brep[] Split(this Brep brep, Brep splitter, double intersectionTolerance, out bool toleranceWasRaised)
+        /// <returns>A new array of Breps. This array can be empty.</returns>
+        public static Brep[] Split(this Brep brep, Brep cutter, double intersectionTolerance, out bool toleranceWasRaised)
         {
-            return ComputeServer.Post<Brep[], bool>(ApiAddress(), out toleranceWasRaised, brep, splitter, intersectionTolerance);
+            return ComputeServer.Post<Brep[], bool>(ApiAddress(), out toleranceWasRaised, brep, cutter, intersectionTolerance);
+        }
+        /// <summary>
+        /// Splits a Brep into pieces using Breps as cutters.
+        /// </summary>
+        /// <param name="cutters">One or more Breps to use as cutters.</param>
+        /// <param name="intersectionTolerance">The tolerance with which to compute intersections.</param>
+        /// <returns>A new array of Breps. This array can be empty.</returns>
+        public static Brep[] Split(this Brep brep, IEnumerable<Brep> cutters, double intersectionTolerance)
+        {
+            return ComputeServer.Post<Brep[]>(ApiAddress(), brep, cutters, intersectionTolerance);
+        }
+        /// <summary>
+        /// Splits a Brep into pieces using curves, at least partially on the Brep, as cutters.
+        /// </summary>
+        /// <param name="cutters">The splitting curves. Only the portion of the curve on the Brep surface will be used for cutting.</param>
+        /// <param name="intersectionTolerance">The tolerance with which to compute intersections.</param>
+        /// <returns>A new array of Breps. This array can be empty.</returns>
+        public static Brep[] Split(this Brep brep, IEnumerable<Curve> cutters, double intersectionTolerance)
+        {
+            return ComputeServer.Post<Brep[]>(ApiAddress(), brep, cutters, intersectionTolerance);
+        }
+        /// <summary>
+        /// Splits a Brep into pieces using a combination of curves, to be extruded, and Breps as cutters.
+        /// </summary>
+        /// <param name="cutters">The curves, surfaces, faces and Breps to be used as cutters. Any other geometry is ignored.</param>
+        /// <param name="normal">A construction plane normal, used in deciding how to extrude a curve into a cutter.</param>
+        /// <param name="planView">Set true if the assume view is a plan, or parallel projection, view.</param>
+        /// <param name="intersectionTolerance">The tolerance with which to compute intersections.</param>
+        /// <returns>A new array of Breps. This array can be empty.</returns>
+        /// <remarks>
+        /// A Curve in cutters is extruded to produce a surface to use as a cutter. The extrusion direction is choosen, as in the Rhino Split command,
+        /// based on the properties of the active view. In particular the construction plane Normal and whether the active view is a plan view, 
+        /// a parallel projection with construction plane normal as the view direction. If planView is false and the curve is planar then the curve
+        /// is extruded perpendicular to the curve, otherwise the curve is extruded in the normal direction.
+        /// </remarks>
+        public static Brep[] Split(this Brep brep, IEnumerable<GeometryBase> cutters, Vector3d normal, bool planView, double intersectionTolerance)
+        {
+            return ComputeServer.Post<Brep[]>(ApiAddress(), brep, cutters, normal, planView, intersectionTolerance);
         }
         /// <summary>
         /// Trims a brep with an oriented cutter. The parts of the brep that lie inside
