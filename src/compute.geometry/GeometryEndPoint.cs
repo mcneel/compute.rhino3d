@@ -12,10 +12,74 @@ namespace compute.geometry
 {
     class GeometryEndPoint
     {
+        static List<GeometryEndPoint> _allEndPoints;
+        public static IEnumerable<GeometryEndPoint> AllEndPoints
+        {
+            get
+            {
+                if(_allEndPoints==null)
+                {
+                    _allEndPoints = new List<GeometryEndPoint>();
+                    foreach (string nameSpace in new string[] { "Rhino.Geometry", "Rhino.Geometry.Intersect" })
+                    {
+                        foreach (var endpoint in CreateEndpoints(typeof(Rhino.RhinoApp).Assembly, nameSpace))
+                        {
+                            _allEndPoints.Add(endpoint);
+                        }
+                    }
+
+                    foreach (var endpoint in GeometryEndPoint.Create(typeof(Rhino.Python)))
+                    {
+                        _allEndPoints.Add(endpoint);
+                    }
+                }
+                return _allEndPoints;
+            }
+        }
+
+        private static IEnumerable<GeometryEndPoint> CreateEndpoints(Assembly assembly, string nameSpace)
+        {
+            foreach (var export in assembly.GetExportedTypes())
+            {
+                if (!string.Equals(export.Namespace, nameSpace, StringComparison.Ordinal))
+                    continue;
+                if (export.IsInterface || export.IsEnum)
+                    continue;
+                if (export.IsClass || export.IsValueType)
+                {
+                    var endpoints = GeometryEndPoint.Create(export);
+                    foreach (var endpoint in endpoints)
+                    {
+                        yield return endpoint;
+                    }
+                }
+            }
+        }
+
+
         Type _classType;
         ConstructorInfo[] _constructors;
         MethodInfo[] _methods;
-        public string Path { get; }
+        string _path;
+        string _pathURL;
+
+        public string Path
+        {
+            get { return _path; }
+            private set
+            {
+                _path = value;
+                _pathURL = _path.ToLowerInvariant();
+            }
+        }
+
+        public string PathURL
+        {
+            get
+            {
+                return _pathURL;
+            }
+        }
 
         private GeometryEndPoint(Type classType, ConstructorInfo[] constructors)
         {

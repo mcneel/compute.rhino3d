@@ -147,38 +147,10 @@ namespace compute.geometry
         }
     }
 
-    public class RhinoModule : Nancy.NancyModule
+    public class RhinoGetModule : NancyModule
     {
-        private IEnumerable<GeometryEndPoint> CreateEndpoints(Assembly assembly, string nameSpace)
+        public RhinoGetModule(IRouteCacheProvider routeCacheProvider)
         {
-            foreach (var export in assembly.GetExportedTypes())
-            {
-                if (!string.Equals(export.Namespace, nameSpace, StringComparison.Ordinal))
-                    continue;
-                if (export.IsInterface || export.IsEnum)
-                    continue;
-                if (export.IsClass || export.IsValueType)
-                {
-                    var endpoints = GeometryEndPoint.Create(export);
-                    foreach (var endpoint in endpoints)
-                    {
-                        yield return endpoint;
-                    }
-                }
-            }
-        }
-
-        public RhinoModule(IRouteCacheProvider routeCacheProvider)
-        {
-            Get[""] = _ => FixedEndpoints.HomePage(Context);
-            Get["/healthcheck"] = _ => "healthy";
-            Get["version"] = _ => FixedEndpoints.GetVersion(Context);
-            Get["servertime"] = _ => FixedEndpoints.ServerTime(Context);
-            Get["sdk/csharp"] = _ => FixedEndpoints.CSharpSdk(Context);
-            Post["hammertime"] = _ => FixedEndpoints.HammerTime(Context);
-            Post["/grasshopper"] = _ => ResthopperEndpoints.Grasshopper(Context);
-            Post["/io"] = _ => ResthopperEndpoints.GetIoNames(Context);
-
             Get["/sdk"] = _ =>
             {
                 var result = new StringBuilder("<!DOCTYPE html><html><body>");
@@ -205,26 +177,27 @@ namespace compute.geometry
                 return result.ToString();
             };
 
-            foreach (string nameSpace in new string[] {"Rhino.Geometry", "Rhino.Geometry.Intersect"})
+            foreach(var endpoint in GeometryEndPoint.AllEndPoints)
             {
-                foreach (var endpoint in CreateEndpoints(typeof(Rhino.RhinoApp).Assembly, nameSpace))
-                {
-                    string key = endpoint.Path.ToLowerInvariant();
-                    Get[key] = _ => endpoint.Get(Context);
-                    Post[key] = _ =>
-                    {
-                        var r = endpoint.Post(Context);
-                        r.ContentType = "application/json";
-                        return r;
-                    };
-                }
-            }
-
-            foreach (var endpoint in GeometryEndPoint.Create(typeof(Rhino.Python)))
-            {
-                string key = endpoint.Path.ToLowerInvariant();
+                string key = endpoint.PathURL;
                 Get[key] = _ => endpoint.Get(Context);
-                Post[key] = _ => endpoint.Post(Context);
+            }
+        }
+    }
+
+    public class RhinoPostModule : NancyModule
+    {
+        public RhinoPostModule(IRouteCacheProvider routeCacheProvider)
+        {
+            foreach (var endpoint in GeometryEndPoint.AllEndPoints)
+            {
+                string key = endpoint.PathURL;
+                Post[key] = _ =>
+                {
+                    var r = endpoint.Post(Context);
+                    r.ContentType = "application/json";
+                    return r;
+                };
             }
         }
     }
