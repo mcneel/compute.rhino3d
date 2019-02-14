@@ -18,9 +18,15 @@ using System.Net;
 
 namespace compute.geometry
 {
-    public static class ResthopperEndpoints
+    public class ResthopperEndpointsModule : Nancy.NancyModule
     {
-        public static string GetGhxFromPointer(string pointer)
+        public ResthopperEndpointsModule(Nancy.Routing.IRouteCacheProvider routeCacheProvider)
+        {
+            Post["/grasshopper"] = _ => Grasshopper(Context);
+            Post["/io"] = _ => GetIoNames(Context);
+        }
+
+        static string GetGhxFromPointer(string pointer)
         {
             string grasshopperXml = string.Empty;
 
@@ -36,9 +42,9 @@ namespace compute.geometry
 
             return grasshopperXml;
         }
-        public static Response Grasshopper(NancyContext ctx)
+
+        static Response Grasshopper(NancyContext ctx)
         {
-            
             // load grasshopper file
             var archive = new GH_Archive();
             // TODO: stream to string
@@ -553,9 +559,9 @@ namespace compute.geometry
             string returnJson = JsonConvert.SerializeObject(OutputSchema);
             return returnJson;
         }
-        public static Response GetIoNames(NancyContext ctx)
-        {
 
+        static Response GetIoNames(NancyContext ctx)
+        {
             // load grasshopper file
             var archive = new GH_Archive();
             // TODO: stream to string
@@ -608,6 +614,7 @@ namespace compute.geometry
             string jsonResponse = JsonConvert.SerializeObject(response);
             return jsonResponse;
         }
+
         public static ResthopperObject GetResthopperPoint(GH_Point goo)
         {
             var pt = goo.Value;

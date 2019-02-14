@@ -5,14 +5,24 @@ using Nancy;
 
 namespace compute.geometry
 {
-    public static class FixedEndpoints
+    public class FixedEndPointsModule : NancyModule
     {
-        public static Response HomePage(NancyContext ctx)
+        public FixedEndPointsModule(Nancy.Routing.IRouteCacheProvider routeCacheProvider)
+        {
+            Get[""] = _ => HomePage(Context);
+            Get["/healthcheck"] = _ => "healthy";
+            Get["version"] = _ => GetVersion(Context);
+            Get["servertime"] = _ => ServerTime(Context);
+            Get["sdk/csharp"] = _ => CSharpSdk(Context);
+            Post["hammertime"] = _ => HammerTime(Context);
+        }
+
+        static Response HomePage(NancyContext ctx)
         {
             return new Nancy.Responses.RedirectResponse("https://www.rhino3d.com/compute");
         }
 
-        public static Response GetVersion(NancyContext ctx)
+        static Response GetVersion(NancyContext ctx)
         {
             var values = new Dictionary<string, string>();
             values.Add("Rhino", Rhino.RhinoApp.Version.ToString());
@@ -22,17 +32,17 @@ namespace compute.geometry
             return response;
         }
 
-        public static Response ServerTime(NancyContext ctx)
+        static Response ServerTime(NancyContext ctx)
         {
             var response = (Nancy.Response)Newtonsoft.Json.JsonConvert.SerializeObject(DateTime.UtcNow);
             response.ContentType = "application/json";
             return response;
         }
 
-        public static Response CSharpSdk(NancyContext ctx)
+        static Response CSharpSdk(NancyContext ctx)
         {
             string content = "";
-            using (var resourceStream = typeof(FixedEndpoints).Assembly.GetManifestResourceStream("compute.geometry.RhinoCompute.cs"))
+            using (var resourceStream = typeof(FixedEndPointsModule).Assembly.GetManifestResourceStream("compute.geometry.RhinoCompute.cs"))
             {
                 var stream = new System.IO.StreamReader(resourceStream);
                 content = stream.ReadToEnd();
@@ -55,7 +65,7 @@ namespace compute.geometry
         /// <summary>
         /// Do a heavy mesh boolean (for testing things like auto-scaling)
         /// </summary>
-        public static Response HammerTime(NancyContext ctx)
+        static Response HammerTime(NancyContext ctx)
         {
             // protect from abuse - "X-Commpute-Secret" header must match COMPUTE_SECRET env var
             var secret = Environment.GetEnvironmentVariable("COMPUTE_SECRET");
