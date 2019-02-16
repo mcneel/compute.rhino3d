@@ -211,11 +211,10 @@ namespace Rhino
             Rhino.Collections.ArchivableDictionary input)
         {
             var py = Rhino.Runtime.PythonScript.Create();
-            py.SetVariable("input", input);
-            var output = new Rhino.Collections.ArchivableDictionary();
-            py.SetVariable("output", output);
+            foreach(var kv in input)
+                py.SetVariable(kv.Key, kv.Value);
             py.ExecuteScript(script);
-            return output;
+            return py.GetVariable("compute_result") as Rhino.Collections.ArchivableDictionary;
         }
     }
 }
