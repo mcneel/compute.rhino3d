@@ -61,7 +61,6 @@ namespace compute.geometry
         ConstructorInfo[] _constructors;
         MethodInfo[] _methods;
         string _path;
-        string _pathURL;
 
         public string Path
         {
@@ -69,17 +68,11 @@ namespace compute.geometry
             private set
             {
                 _path = value;
-                _pathURL = _path.ToLowerInvariant();
+                PathURL = _path.ToLowerInvariant();
             }
         }
 
-        public string PathURL
-        {
-            get
-            {
-                return _pathURL;
-            }
-        }
+        public string PathURL { get; private set; }
 
         private GeometryEndPoint(Type classType, ConstructorInfo[] constructors)
         {
@@ -343,7 +336,7 @@ namespace compute.geometry
             if (StopAt.BodyToString == stopat)
                 return $"{(DateTime.Now - start).TotalSeconds}";
 
-            object data = string.IsNullOrWhiteSpace(jsonString) ? null : Newtonsoft.Json.JsonConvert.DeserializeObject(jsonString);
+            object data = string.IsNullOrWhiteSpace(jsonString) ? null : JsonConvert.DeserializeObject(jsonString);
             var ja = data as Newtonsoft.Json.Linq.JArray;
             string resultString = null;
             if (multiple && ja.Count > 1)
