@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Linq;
 using Serilog;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -157,7 +157,7 @@ namespace compute.frontend
             else
             {
                 logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
-                "UserHostAddress", ctx.Request.UserHostAddress));
+                "UserHostAddress", GetUserIpAddress()));
 
                 logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
                     "RequestContentLength", ctx.Request.Headers.ContentLength));
@@ -168,6 +168,20 @@ namespace compute.frontend
                 logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
                     "Host", ctx.Request.Headers.Host));
             }
+        }
+
+        string GetUserIpAddress()
+        {
+            // assume compute is behind a load balancer
+            var ip = _context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+
+            // if not, get the user's ip directly
+            if (string.IsNullOrEmpty(ip))
+            {
+                ip = _context.Request.UserHostAddress;
+            }
+
+            return ip;
         }
     }
 }
