@@ -207,13 +207,28 @@ namespace Rhino
 {
     static class Python
     {
+        static string _previousScript = "";
+        static Runtime.PythonCompiledCode _previousCompile = null;
+
         public static Rhino.Collections.ArchivableDictionary Evaluate(string script,
-            Rhino.Collections.ArchivableDictionary input)
+            Rhino.Collections.ArchivableDictionary input)//,
+            //string[] outputNames)
         {
             var py = Rhino.Runtime.PythonScript.Create();
             foreach(var kv in input)
                 py.SetVariable(kv.Key, kv.Value);
-            py.ExecuteScript(script);
+            if (!script.Equals(_previousScript))
+            {
+                _previousCompile = py.Compile(script);
+                _previousScript = script;
+            }
+            _previousCompile.Execute(py);
+            // This is what we want when the next WIP becomes available. For now, we'll
+            // just work with a "known" variable name to return results
+            //var rc = new Rhino.Collections.ArchivableDictionary();
+            //foreach (var name in outputNames)
+            //    rc[name] = py.GetVariable(name);
+            //return rc;
             return py.GetVariable("compute_result") as Rhino.Collections.ArchivableDictionary;
         }
     }
