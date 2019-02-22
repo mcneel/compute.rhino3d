@@ -91,9 +91,9 @@ hooks:
       timeout: 300
 # During the AfterInstall deployment lifecycle event, run the commands 
 #   in the script specified in "location".
-#   AfterInstall:
-#     - location:     
-#       timeout: 
+  AfterInstall:
+    - location: scripts/chown.bat
+      timeout: 300
 # During the ApplicationStart deployment lifecycle event, run the commands 
 #   in the script specified in "location".
   ApplicationStart:
