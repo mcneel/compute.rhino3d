@@ -346,7 +346,7 @@ def ComputeFetch(endpoint, arglist) :
             return sb.ToString();
         }
 
-        //protected override string PackageFilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "dist", "pypi", "setup.py");
-        //protected override string PackageFileRegex => @"(?<=version="")[0-9\.]*(?="")";
+        protected override string PackageFilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "dist", "pypi", "setup.py");
+        protected override string PackageFileRegex => @"(?<=version="")[0-9\.]*(?="")";
     }
 }

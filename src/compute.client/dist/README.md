@@ -1,5 +1,9 @@
 # Publishing compute.rhino3d
 
+## PyPI
+
+Ask Steve...
+
 ## NPM
 
 1. Update version numbers
