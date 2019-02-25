@@ -38,6 +38,8 @@ namespace computegen
 
             clientText.Append(Suffix);
             System.IO.File.WriteAllText(path, clientText.ToString());
+
+            ReplacePackageVersion();
         }
 
         protected const string T1 = "    ";
@@ -65,5 +67,29 @@ namespace computegen
         }
 
         protected static string Version => "0.5.2";
+
+        protected virtual string PackageFilePath => "";
+        protected virtual string PackageFileRegex => ""; // use lookahead/behind
+        protected void ReplacePackageVersion()
+        {
+            //var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "python_client");
+            if (string.IsNullOrEmpty(PackageFilePath) || string.IsNullOrEmpty(PackageFileRegex))
+                return;
+
+            var path = PackageFilePath;
+            string setup;
+            using (var reader = new StreamReader(path))
+            {
+                setup = reader.ReadToEnd();
+            }
+            File.Copy(path, path + ".bak", true);
+            File.Delete(path);
+            setup = System.Text.RegularExpressions.Regex.Replace(setup, PackageFileRegex, Version);
+            using (var writer = new StreamWriter(path))
+            {
+                writer.Write(setup);
+            }
+            File.Delete(path + ".bak");
+        }
     }
 }

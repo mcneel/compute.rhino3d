@@ -51,7 +51,7 @@ namespace computegen
                 }
             }
 
-            ReplaceSetupPyVersion();
+            base.ReplacePackageVersion();
         }
 
         protected override string Prefix
@@ -346,23 +346,7 @@ def ComputeFetch(endpoint, arglist) :
             return sb.ToString();
         }
 
-        private void ReplaceSetupPyVersion()
-        {
-            var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "python_client");
-            var path = Path.Combine(dir, "setup.py");
-            string setup;
-            using (var reader = new StreamReader(path))
-            {
-                setup = reader.ReadToEnd();
-            }
-            File.Copy(path, path + ".bak", true);
-            File.Delete(path);
-            setup = System.Text.RegularExpressions.Regex.Replace(setup, @"version=""[0-9\.]*""", $@"version=""{Version}""");
-            using (var writer = new StreamWriter(path))
-            {
-                writer.Write(setup);
-            }
-            File.Delete(path + ".bak");
-        }
+        //protected override string PackageFilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "dist", "pypi", "setup.py");
+        //protected override string PackageFileRegex => @"(?<=version="")[0-9\.]*(?="")";
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.IO;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 
@@ -169,5 +170,7 @@ if (_is_node)
             return sb.ToString();
         }
 
+        protected override string PackageFilePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "dist", "npm", "package.json");
+        protected override string PackageFileRegex => @"(?<=""version"": "")[0-9\.]*(?="")";
     }
 }
