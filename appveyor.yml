@@ -8,6 +8,7 @@ image: Visual Studio 2017
 configuration: Release
 before_build:
   - nuget restore src\compute.sln
+  - ps: (get-content .\src\compute.geometry\FixedEndpoints.cs).replace('git_sha = null', 'git_sha = "' + ${env:APPVEYOR_REPO_COMMIT}.Substring(0, 8) + '"') | set-content .\src\compute.geometry\FixedEndpoints.cs
 build:
   project: src\compute.sln
   verbosity: minimal
