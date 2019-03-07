@@ -25,8 +25,10 @@ namespace compute.geometry
         static Response GetVersion(NancyContext ctx)
         {
             var values = new Dictionary<string, string>();
-            values.Add("Rhino", Rhino.RhinoApp.Version.ToString());
-            values.Add("Compute", Assembly.GetExecutingAssembly().GetName().Version.ToString());
+            values.Add("rhino", Rhino.RhinoApp.Version.ToString());
+            values.Add("compute", Assembly.GetExecutingAssembly().GetName().Version.ToString());
+            string git_sha = null; // appveyor will replace this
+            values.Add("git_sha", git_sha);
             var response = (Nancy.Response)Newtonsoft.Json.JsonConvert.SerializeObject(values);
             response.ContentType = "application/json";
             return response;
