@@ -28,9 +28,21 @@ namespace compute.geometry
                         }
                     }
 
-                    foreach (var endpoint in GeometryEndPoint.Create(typeof(Rhino.Python)))
+                    var method = typeof(Rhino.Runtime.HostUtils).GetMethod("GetCustomComputeEndpoints");
+                    if( method!=null )
                     {
-                        _allEndPoints.Add(endpoint);
+                        var customEndPoints = method.Invoke(null, null) as Dictionary<string,Type>;
+                        if( customEndPoints != null )
+                        {
+                            foreach (var kvp in customEndPoints)
+                            {
+                                foreach (var endpoint in GeometryEndPoint.Create(kvp.Value))
+                                {
+                                    endpoint.UpdatePath(kvp.Key);
+                                    _allEndPoints.Add(endpoint);
+                                }
+                            }
+                        }
                     }
                 }
                 return _allEndPoints;
@@ -73,6 +85,16 @@ namespace compute.geometry
         }
 
         public string PathURL { get; private set; }
+
+        public void UpdatePath(string basePath)
+        {
+            int index = _path.LastIndexOf('/');
+            if( index > 0 )
+            {
+                basePath = basePath.Replace('.', '/').ToLowerInvariant();
+                Path = basePath + _path.Substring(index);
+            }
+        }
 
         private GeometryEndPoint(Type classType, ConstructorInfo[] constructors)
         {
