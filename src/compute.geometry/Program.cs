@@ -110,8 +110,9 @@ namespace compute.geometry
             if (runheadless != null)
                 runheadless.Invoke(pluginObject, null);
 
-            // Do the same for python
-            var script = Rhino.Runtime.PythonScript.Create();
+            // Do the same for python since python registers a custom endpoint
+            var id = Rhino.PlugIns.PlugIn.IdFromName("IronPython");
+            Rhino.PlugIns.PlugIn.LoadPlugIn(id);
 
             Nancy.StaticConfiguration.DisableErrorTraces = false;
             pipelines.OnError += (ctx, ex) => LogError(ctx, ex);
@@ -199,73 +200,6 @@ namespace compute.geometry
                     return r;
                 };
             }
-        }
-    }
-}
-
-namespace Rhino
-{
-    static class Python
-    {
-        static string _previousScript = "";
-        static Runtime.PythonCompiledCode _previousCompile = null;
-
-        public static Rhino.Collections.ArchivableDictionary Evaluate(string script,
-            Rhino.Collections.ArchivableDictionary input,
-            string[] outputNames)
-        {
-            var py = Rhino.Runtime.PythonScript.Create();
-            foreach(var kv in input)
-                py.SetVariable(kv.Key, kv.Value);
-            if (!script.Equals(_previousScript))
-            {
-                // Don't allow certain words in the script to attempt to avoid
-                // malicious attacks
-                string[] badwords = {"exec", "Assembly", "GetType", "Activator", "GetMethod", "GetPropert" };
-                foreach(var word in badwords )
-                {
-                    if (script.IndexOf(word)>=0)
-                        throw new Exception($"Script is not allowed to contain the word {word}");
-                }
-
-                // validate that only Rhino namespaces are imported
-                const string import = "import ";
-                int importIndex = script.IndexOf(import);
-                while (importIndex >= 0)
-                {
-                    importIndex += import.Length;
-                    while (importIndex < script.Length)
-                    {
-                        char c = script[importIndex];
-                        if (c == ' ')
-                        {
-                            importIndex++;
-                            continue;
-                        }
-                        break;
-                    }
-                    if (script.IndexOf("Rhino", importIndex) != importIndex && script.IndexOf("rhinoscript", importIndex) != importIndex)
-                        throw new Exception("Attempt to import module that is not permitted");
-
-                    int commaAndContinuationIndex = script.IndexOfAny(new char[] { ',', '\\' }, importIndex);
-                    if (commaAndContinuationIndex > 0)
-                    {
-                        int newlineIndex = script.IndexOf('\n', importIndex);
-                        if (commaAndContinuationIndex < newlineIndex)
-                            throw new Exception("Do not import multiple packages with a single import statement");
-                    }
-
-                    importIndex = script.IndexOf(import, importIndex);
-                }
-                _previousCompile = py.Compile(script);
-                _previousScript = script;
-            }
-            _previousCompile.Execute(py);
-
-            var rc = new Rhino.Collections.ArchivableDictionary();
-            foreach (var name in outputNames)
-                rc[name] = py.GetVariable(name);
-            return rc;
         }
     }
 }
