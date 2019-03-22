@@ -31,14 +31,14 @@ namespace compute.geometry
                     var method = typeof(Rhino.Runtime.HostUtils).GetMethod("GetCustomComputeEndpoints");
                     if( method!=null )
                     {
-                        var customEndPoints = method.Invoke(null, null) as Dictionary<string,Type>;
-                        if( customEndPoints != null )
+                        var customEndpoints = method.Invoke(null, null) as Tuple<string, Type>[];
+                        if( customEndpoints != null )
                         {
-                            foreach (var kvp in customEndPoints)
+                            foreach (var customEndpoint in customEndpoints)
                             {
-                                foreach (var endpoint in GeometryEndPoint.Create(kvp.Value))
+                                foreach (var endpoint in GeometryEndPoint.Create(customEndpoint.Item2))
                                 {
-                                    endpoint.UpdatePath(kvp.Key);
+                                    endpoint.UpdatePath(customEndpoint.Item1);
                                     _allEndPoints.Add(endpoint);
                                 }
                             }
