@@ -110,9 +110,9 @@ namespace compute.geometry
             if (runheadless != null)
                 runheadless.Invoke(pluginObject, null);
 
-            // Do the same for python since python registers a custom endpoint
-            var id = Rhino.PlugIns.PlugIn.IdFromName("IronPython");
-            Rhino.PlugIns.PlugIn.LoadPlugIn(id);
+            var loadComputePlugsin = typeof(Rhino.PlugIns.PlugIn).GetMethod("LoadComputeExtensionPlugins");
+            if (loadComputePlugsin != null)
+                loadComputePlugsin.Invoke(null, null);
 
             Nancy.StaticConfiguration.DisableErrorTraces = false;
             pipelines.OnError += (ctx, ex) => LogError(ctx, ex);
