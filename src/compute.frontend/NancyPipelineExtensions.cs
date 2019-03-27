@@ -141,13 +141,14 @@ namespace compute.frontend
                     var elapsed = (DateTime.UtcNow.Ticks - (long)start) / TimeSpan.TicksPerMillisecond;
                     logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
                         "ElapsedTime", elapsed.ToString()));
-
-                    using (var stream = new MemoryStream())
+                    // Use a manually closable stream, to guarantee the length is always accessible
+                    using (var stream = new CustomMemoryStream())
                     {
                         ctx.Response.Contents.Invoke(stream);
 
                         logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
                             "ResponseContentLength", stream.Length));
+                        stream.CloseFinal();
                     }
 
                     logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
@@ -182,6 +183,15 @@ namespace compute.frontend
             }
 
             return ip;
+        }
+        // A stream that is manually closed
+        public class CustomMemoryStream : MemoryStream
+        {
+            public override void Close() { }
+            public void CloseFinal()
+            {
+                base.Close();
+            }
         }
     }
 }
