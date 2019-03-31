@@ -118,23 +118,40 @@ namespace Resthopper.IO
     {
         public static Dictionary<GHTypeCodes, string> TypeCodeToParamType { get; } = new Dictionary<GHTypeCodes, string>()
         {
-            { GHTypeCodes.Boolean , "Param_Boolean" },
-            { GHTypeCodes.Point , "Param_Point" },
-            { GHTypeCodes.Number , "Param_Number" },
+            { GHTypeCodes.Boolean , "Param_Boolean" },      //101
+            { GHTypeCodes.Point , "Param_Point" },          //102
+            { GHTypeCodes.Vector , "Param_Vector" },        //103
+            { GHTypeCodes.Integer , "Param_Integer" },      //104
+            { GHTypeCodes.Number , "Param_Number" },        //105
+            { GHTypeCodes.Text , "Param_String" },          //106
+            { GHTypeCodes.Line , "Param_Line" },            //107
+            { GHTypeCodes.Curve , "Param_Curve" },          //108
+            { GHTypeCodes.Circle , "Param_Circle" },        //109
+            { GHTypeCodes.PLane , "Param_Plane" },          //110
+            { GHTypeCodes.Rectangle , "Param_Rectangle" },  //111
+            { GHTypeCodes.Box , "Param_Box" },              //112
+            { GHTypeCodes.Surface , "Param_Surface" },      //113
+            { GHTypeCodes.Brep , "Param_Brep" },            //114
+            { GHTypeCodes.Mesh , "Param_Mesh" },            //115
         };
 
         public static Dictionary<GHTypeCodes, string> TypeCodeToValueType { get; } = new Dictionary<GHTypeCodes, string>()
         {
             { GHTypeCodes.Boolean, "GH_Boolean" },
             { GHTypeCodes.Point, "GH_Point" },
+            { GHTypeCodes.Vector , "GH_Vector" },
+            { GHTypeCodes.Integer , "GH_Integer" },
             { GHTypeCodes.Number, "GH_Number" },
-        };
-
-        public static Dictionary<GHTypeCodes, Type> TypeCodeToGeometryType { get; } = new Dictionary<GHTypeCodes, Type>()
-        {
-            { GHTypeCodes.Boolean, typeof(bool) },
-            { GHTypeCodes.Point, typeof(Point3d) },
-            { GHTypeCodes.Number, typeof(double) },
+            { GHTypeCodes.Text, "GH_String" },
+            { GHTypeCodes.Line, "GH_Line" },
+            { GHTypeCodes.Curve, "GH_Curve" },
+            { GHTypeCodes.Circle, "GH_Circle" },
+            { GHTypeCodes.PLane, "GH_Plane" },
+            { GHTypeCodes.Rectangle, "GH_Rectangle" },
+            { GHTypeCodes.Box, "GH_Box" },
+            { GHTypeCodes.Surface, "GH_Surface" },
+            { GHTypeCodes.Brep, "GH_Brep" },
+            { GHTypeCodes.Mesh, "GH_Mesh" }
         };
 
         public ResthopperInput()
@@ -177,13 +194,9 @@ namespace Resthopper.IO
             Assembly rhAssembly = Assembly.LoadFrom(@"C:\Program Files\Rhino WIP\System\RhinoCommon.dll");
 
             Type paramType = assembly.GetType($"Grasshopper.Kernel.Parameters.{TypeCodeToParamType[TypeCode]}");
-            //Param_Boolean 
-            //object instanceOfMyType = Activator.CreateInstance(type);
 
             MethodInfo castMethod = this.GetType().GetMethod("Cast").MakeGenericMethod(paramType);
             dynamic typedParam = castMethod.Invoke(null, new object[] { Param });
-
-            //dynamic typedParam = Convert.ChangeType(Param, paramType);
 
             foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
             {
@@ -209,8 +222,30 @@ namespace Resthopper.IO
                     return JsonConvert.DeserializeObject<bool>(json);
                 case GHTypeCodes.Point:
                     return JsonConvert.DeserializeObject<Point3d>(json);
+                case GHTypeCodes.Vector:
+                    return JsonConvert.DeserializeObject<Vector3d>(json);
+                case GHTypeCodes.Integer:
+                    return JsonConvert.DeserializeObject<int>(json);
                 case GHTypeCodes.Number:
                     return JsonConvert.DeserializeObject<double>(json);
+                case GHTypeCodes.Text:
+                    return JsonConvert.DeserializeObject<string>(json);
+                case GHTypeCodes.Line:
+                    return JsonConvert.DeserializeObject<Line>(json);
+                case GHTypeCodes.Curve:
+                    return JsonConvert.DeserializeObject<Curve>(json);
+                case GHTypeCodes.PLane:
+                    return JsonConvert.DeserializeObject<Plane>(json);
+                case GHTypeCodes.Rectangle:
+                    return JsonConvert.DeserializeObject<Rectangle3d>(json);
+                case GHTypeCodes.Box:
+                    return JsonConvert.DeserializeObject<Box>(json);
+                case GHTypeCodes.Surface:
+                    return JsonConvert.DeserializeObject<Surface>(json);
+                case GHTypeCodes.Brep:
+                    return JsonConvert.DeserializeObject<Brep>(json);
+                case GHTypeCodes.Mesh:
+                    return JsonConvert.DeserializeObject<Mesh>(json);
                 default:
                     return null;
             }
