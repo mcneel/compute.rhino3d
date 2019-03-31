@@ -159,13 +159,97 @@ namespace compute.geometry
                     // Attempt to set data of input object to above value
                     if (!inputParam.TrySetData(inputData))
                     {
-                        //
+                        //If input parsing was unsuccssful
+                        var res = (Response)$"Unable to set input data for for param {group.NickName}.";
+                        res.WithStatusCode(Nancy.HttpStatusCode.BadRequest);
+
+                        return res;
                     }
+
+                    inputs.Add(inputParam);
+                }
+
+                if (group.NickName.Contains("RH_OUT"))
+                {
+                    //If param is flagged as output
+                    var outputParam = new ResthopperOutput();
+
+                    // Attempt to initialize output object
+                    if (!outputParam.TryBuildResthopperOutput(group.NickName, group.Objects()[0], out var message))
+                    {
+                        // If output param could not be built, move on to next.
+                        continue;
+
+                        // (Chuck) Do we want to kill the whole thing here then, too?
+                        var res = (Response)$"Invalid input param {group.NickName}. {message}";
+                        res.WithStatusCode(Nancy.HttpStatusCode.BadRequest);
+
+                        return res;
+                    }
+
+                    if (group.Objects().Count > 1)
+                    {
+                        // (Chuck) Do we want to do something to handle groups with more than one param object?
+                    }
+
+                    outputs.Add(outputParam);
                 }
             }
 
-            return (Response)"OK";
+            // Begin solving and storing output
+            Schema OutputSchema = new Schema();
+            OutputSchema.Algo = Utils.Base64Encode(string.Empty);
 
+            foreach (var output in outputs)
+            {
+                try
+                {
+                    output.Param.CollectData();
+                    output.Param.ComputeData();
+                }
+                catch (Exception e)
+                {
+                    output.Param.Phase = GH_SolutionPhase.Failed;
+
+                    var res = (Response)e.Message;
+                    res.WithStatusCode(Nancy.HttpStatusCode.BadRequest);
+                }
+
+                Resthopper.IO.DataTree<ResthopperObject> OutputTree = new Resthopper.IO.DataTree<ResthopperObject>();
+                OutputTree.ParamName = output.Label;
+
+                var volatileData = output.Param.VolatileData;
+                for (int p = 0; p < volatileData.PathCount; p++)
+                {
+                    List<ResthopperObject> ResthopperObjectList = new List<ResthopperObject>();
+                    foreach (var goo in volatileData.get_Branch(p))
+                    {
+                        if (goo == null)
+                        {
+                            continue;
+                        }
+
+                        dynamic typedGoo = Convert.ChangeType(goo, goo.GetType());
+                        var geo = typedGoo.Value;
+
+                        var rhObj = new ResthopperObject();
+
+                        rhObj.Type = geo.GetType().FullName;
+                        rhObj.Data = JsonConvert.SerializeObject(geo);
+
+                        ResthopperObjectList.Add(rhObj);
+                    }
+
+                    GhPath path = new GhPath(new int[] { p });
+                    OutputTree.Add(path.ToString(), ResthopperObjectList);
+                }
+
+                OutputSchema.Values.Add(OutputTree);
+            }
+
+            #region original
+
+            /*
             // Set input params
             foreach (var obj in definition.Objects)
             {
@@ -494,10 +578,14 @@ namespace compute.geometry
 
                 }
             }
+            */
 
-            Schema OutputSchema = new Schema();
-            OutputSchema.Algo = Utils.Base64Encode(string.Empty);
+            #endregion
 
+            //return (Response)"OK";
+
+            #region originalOutput
+            /*
             // Parse output params
             foreach (var obj in definition.Objects)
             {
@@ -634,7 +722,8 @@ namespace compute.geometry
                     OutputSchema.Values.Add(OutputTree);
                 }
             }
-
+            */
+            #endregion
 
             if (OutputSchema.Values.Count < 1)
                 throw new System.Exceptions.PayAttentionException("Looks like you've missed something..."); // TODO

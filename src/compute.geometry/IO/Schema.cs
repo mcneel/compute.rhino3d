@@ -68,12 +68,54 @@ namespace Resthopper.IO
         }
     }
 
-    public class ResthopperInput
+    public abstract class ResthopperParam
     {
         public string Name { get; set; } = "";
+        public string Label { get; set; }
         public GHTypeCodes TypeCode { get; set; }
         public IGH_Param Param { get; set; }
 
+        public bool TryParseName(string label, out string message)
+        {
+            message = "";
+            Label = label;
+
+            // Begin parsing label for type information
+            var labelData = label.Split(':');
+
+            if (labelData.Length < 2)
+            {
+                message = "Invalid group name format.";
+                return false;
+            }
+
+            if (!int.TryParse(labelData[1], out var val))
+            {
+                message = "Could not parse integer value from group name.";
+                return false;
+            }
+
+            try
+            {
+                TypeCode = (GHTypeCodes)val;
+            }
+            catch
+            {
+                message = "No type found for integer value provided. It may be incorrect or unsupported.";
+                return false;
+            }
+
+            if (labelData.Length == 3)
+            {
+                Name = labelData[2];
+            }
+
+            return true;
+        }
+    }
+
+    public class ResthopperInput : ResthopperParam
+    {
         public static Dictionary<GHTypeCodes, string> TypeCodeToParamType { get; } = new Dictionary<GHTypeCodes, string>()
         {
             { GHTypeCodes.Boolean , "Param_Boolean" },
@@ -119,34 +161,11 @@ namespace Resthopper.IO
 
             Param = param;
 
-            // Begin parsing label for type information
-            var labelData = label.Split(':');
-
-            if (labelData.Length < 2)
+            // Parse label for type information.
+            if (!TryParseName(label, out var msg))
             {
-                message = "Invalid group name format.";
+                message = msg;
                 return false;
-            }
-
-            if (!int.TryParse(labelData[1], out var val))
-            {
-                message = "Could not parse integer value from group name.";
-                return false;
-            }
-
-            try
-            {
-                TypeCode = (GHTypeCodes)val;
-            }
-            catch
-            {
-                message = "No type found for integer value provided. It may be incorrect or unsupported.";
-                return false;
-            }
-
-            if (labelData.Length == 3)
-            {
-                Name = labelData[2];
             }
 
             return true;
@@ -170,21 +189,11 @@ namespace Resthopper.IO
             {
                 GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
 
-                //var objList = new List<Type.GetType($"Grasshopper.Kernel.Types.{TypeCodeToValueType[TypeCode]}")>
-                //List<GH_Boolean> objectList = new List<GH_Boolean>();
                 for (int i = 0; i < entree.Value.Count; i++)
                 {
                     ResthopperObject restobj = entree.Value[i];
-                    //dynamic data = JsonConvert.DeserializeAnonymousType< TypeCodeToGeometryType[TypeCode] > (restobj.Data, TypeCodeToGeometryType[TypeCode]);
                     var data = GetGeometry(restobj.Data, TypeCode);
-                    //Console.WriteLine(data);
-                    //bool boolean = JsonConvert.DeserializeObject<bool>(restobj.Data);
                     dynamic ghObj = Activator.CreateInstance(assembly.GetType($"Grasshopper.Kernel.Types.{TypeCodeToValueType[TypeCode]}"), data);
-
-                    //var t = new GH_Point(data);
-
-                    //ghObj.Value = data;
-
                     typedParam.AddVolatileData(path, i, ghObj);
                 }
             }
@@ -208,8 +217,30 @@ namespace Resthopper.IO
         }
     }
 
-    public class ResthopperOutput
+    public class ResthopperOutput : ResthopperParam
     {
+        public bool TryBuildResthopperOutput(string label, IGH_DocumentObject obj, out string message)
+        {
+            message = "";
 
+            // Attempt cast of generic object to grasshopper param
+            var param = obj as IGH_Param;
+            if (param == null)
+            {
+                message = "Invalid object in group.";
+                return false;
+            }
+
+            Param = param;
+
+            // Parse label for type information.
+            if (!TryParseName(label, out var msg))
+            {
+                message = msg;
+                return false;
+            }
+
+            return true;
+        }
     }
 }
