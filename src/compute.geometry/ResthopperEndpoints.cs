@@ -164,6 +164,8 @@ namespace compute.geometry
                 }
             }
 
+            return (Response)"OK";
+
             // Set input params
             foreach (var obj in definition.Objects)
             {

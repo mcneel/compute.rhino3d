@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Grasshopper.Kernel;
+using Grasshopper.Kernel.Parameters;
 using Grasshopper.Kernel.Types;
 using Grasshopper.Kernel.Data;
+using Rhino.Geometry;
 
 namespace Resthopper.IO
 {
@@ -73,17 +76,33 @@ namespace Resthopper.IO
 
         public static Dictionary<GHTypeCodes, string> TypeCodeToParamType { get; } = new Dictionary<GHTypeCodes, string>()
         {
-            { GHTypeCodes.Boolean , "Param_Boolean" }
+            { GHTypeCodes.Boolean , "Param_Boolean" },
+            { GHTypeCodes.Point , "Param_Point" },
+            { GHTypeCodes.Number , "Param_Number" },
         };
 
         public static Dictionary<GHTypeCodes, string> TypeCodeToValueType { get; } = new Dictionary<GHTypeCodes, string>()
         {
-            { GHTypeCodes.Boolean, "GH_Boolean" }
+            { GHTypeCodes.Boolean, "GH_Boolean" },
+            { GHTypeCodes.Point, "GH_Point" },
+            { GHTypeCodes.Number, "GH_Number" },
+        };
+
+        public static Dictionary<GHTypeCodes, Type> TypeCodeToGeometryType { get; } = new Dictionary<GHTypeCodes, Type>()
+        {
+            { GHTypeCodes.Boolean, typeof(bool) },
+            { GHTypeCodes.Point, typeof(Point3d) },
+            { GHTypeCodes.Number, typeof(double) },
         };
 
         public ResthopperInput()
         {
 
+        }
+
+        public static T Cast<T>(object o)
+        {
+            return (T)o;
         }
 
         public bool TryBuildResthopperInput(string label, IGH_DocumentObject obj, out string message)
@@ -97,6 +116,8 @@ namespace Resthopper.IO
                 message = "Invalid object in group.";
                 return false;
             }
+
+            Param = param;
 
             // Begin parsing label for type information
             var labelData = label.Split(':');
@@ -133,7 +154,17 @@ namespace Resthopper.IO
 
         public bool TrySetData(DataTree<ResthopperObject> tree)
         {
-            dynamic typedParam = Convert.ChangeType(Param, Type.GetType($"Grasshopper.Kernel.Parameters.{TypeCodeToParamType[TypeCode]}"));
+            Assembly assembly = Assembly.LoadFrom("Grasshopper.dll");
+            Assembly rhAssembly = Assembly.LoadFrom("RhinoCommon.dll");
+
+            Type paramType = assembly.GetType($"Grasshopper.Kernel.Parameters.{TypeCodeToParamType[TypeCode]}");
+            //Param_Boolean 
+            //object instanceOfMyType = Activator.CreateInstance(type);
+
+            MethodInfo castMethod = this.GetType().GetMethod("Cast").MakeGenericMethod(paramType);
+            dynamic typedParam = castMethod.Invoke(null, new object[] { Param });
+
+            //dynamic typedParam = Convert.ChangeType(Param, paramType);
 
             foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
             {
@@ -144,16 +175,36 @@ namespace Resthopper.IO
                 for (int i = 0; i < entree.Value.Count; i++)
                 {
                     ResthopperObject restobj = entree.Value[i];
-                    dynamic data = JsonConvert.DeserializeObject(restobj.Data);
+                    //dynamic data = JsonConvert.DeserializeAnonymousType< TypeCodeToGeometryType[TypeCode] > (restobj.Data, TypeCodeToGeometryType[TypeCode]);
+                    var data = GetGeometry(restobj.Data, TypeCode);
+                    //Console.WriteLine(data);
                     //bool boolean = JsonConvert.DeserializeObject<bool>(restobj.Data);
-                    Activator.CreateInstance(Type.GetType($"Grasshopper.Kernel.Types.{TypeCodeToValueType[TypeCode]}"), new[] { data });
-                    //GH_Boolean data = new GH_Boolean(data);
-                    //boolParam.AddVolatileData(path, i, data);
-                    typedParam.AddVolatileData(path, i, data);
+                    dynamic ghObj = Activator.CreateInstance(assembly.GetType($"Grasshopper.Kernel.Types.{TypeCodeToValueType[TypeCode]}"), data);
+
+                    //var t = new GH_Point(data);
+
+                    //ghObj.Value = data;
+
+                    typedParam.AddVolatileData(path, i, ghObj);
                 }
             }
 
             return true;
+        }
+
+        private dynamic GetGeometry(string json, GHTypeCodes type)
+        {
+            switch (type)
+            {
+                case GHTypeCodes.Boolean:
+                    return JsonConvert.DeserializeObject<bool>(json);
+                case GHTypeCodes.Point:
+                    return JsonConvert.DeserializeObject<Point3d>(json);
+                case GHTypeCodes.Number:
+                    return JsonConvert.DeserializeObject<double>(json);
+                default:
+                    return null;
+            }
         }
     }
 

@@ -52,6 +52,7 @@
     </Reference>
     <Reference Include="Grasshopper, Version=7.0.19050.13060, Culture=neutral, PublicKeyToken=dda4f5ec2cd80803, processorArchitecture=MSIL">
       <HintPath>..\packages\Grasshopper.7.0.19050.13065-wip\lib\net45\Grasshopper.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Nancy, Version=1.4.4.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Nancy.1.4.4\lib\net40\Nancy.dll</HintPath>
