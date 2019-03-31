@@ -45,11 +45,10 @@ namespace compute.geometry
 
         static Response Grasshopper(NancyContext ctx)
         {
-            // load grasshopper file
+            // Initialize empty grasshopper archive
             var archive = new GH_Archive();
-            // TODO: stream to string
-            var body = ctx.Request.Body.ToString();
 
+            // Begin parsing http request
             string json = string.Empty;
             using (var reader = new StreamReader(ctx.Request.Body))
             {
@@ -57,11 +56,10 @@ namespace compute.geometry
 
             }
 
-            //GrasshopperInput input = Newtonsoft.Json.JsonConvert.DeserializeObject<GrasshopperInput>(json);
-            //JsonSerializerSettings settings = new JsonSerializerSettings();
-            //settings.ContractResolver = new DictionaryAsArrayResolver();
+            // Deserialize request to Schema class
             Schema input = JsonConvert.DeserializeObject<Schema>(json);
 
+            // Locate and extract grasshopper xml data from request
             string grasshopperXml = string.Empty;
             if (input.Algo != null)
             {
@@ -69,19 +67,44 @@ namespace compute.geometry
                 byte[] byteArray = Convert.FromBase64String(input.Algo);
                 grasshopperXml = System.Text.Encoding.UTF8.GetString(byteArray);
             }
-            else
+            else if (input.Pointer != null)
             {
                 // If request contains pointer
                 string pointer = input.Pointer;
                 grasshopperXml = GetGhxFromPointer(pointer);
                 
             }
-            if (!archive.Deserialize_Xml(grasshopperXml))
-                throw new Exception();
+            else
+            {
+                // If algo and pointer fields are empty
+                var res = (Response)"No grasshopper markup data provided.";
+                res.WithStatusCode(Nancy.HttpStatusCode.BadRequest);
 
+                return res;
+            }
+
+            // Attempt to parse received xml data
+            if (!archive.Deserialize_Xml(grasshopperXml))
+            {
+                // If request could not be parsed
+                var res = (Response)"Unable to deserialize provided markup data.";
+                res.WithStatusCode(Nancy.HttpStatusCode.BadRequest);
+
+                return res;
+            }
+
+            // Initialize empty grasshopper definition
             var definition = new GH_Document();
+
+            // Attempt to extract definition from deserialized xml data
             if (!archive.ExtractObject(definition, "Definition"))
-                throw new Exception();
+            {
+                // If definition could not be extracted
+                var res = (Response)"Unable to extract grasshopper definition from provided markup.";
+                res.WithStatusCode(Nancy.HttpStatusCode.BadRequest);
+
+                return res;
+            }
 
             // Set input params
             foreach (var obj in definition.Objects)
