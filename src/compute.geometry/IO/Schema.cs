@@ -173,8 +173,8 @@ namespace Resthopper.IO
 
         public bool TrySetData(DataTree<ResthopperObject> tree)
         {
-            Assembly assembly = Assembly.LoadFrom("Grasshopper.dll");
-            Assembly rhAssembly = Assembly.LoadFrom("RhinoCommon.dll");
+            Assembly assembly = Assembly.LoadFrom(@"C:\Program Files\Rhino WIP\Plug-ins\Grasshopper\Grasshopper.dll");
+            Assembly rhAssembly = Assembly.LoadFrom(@"C:\Program Files\Rhino WIP\System\RhinoCommon.dll");
 
             Type paramType = assembly.GetType($"Grasshopper.Kernel.Parameters.{TypeCodeToParamType[TypeCode]}");
             //Param_Boolean 

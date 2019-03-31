@@ -16,6 +16,7 @@ using Grasshopper.Kernel.Parameters;
 using Grasshopper.Kernel.Special;
 using Rhino.Geometry;
 using System.Net;
+using Serilog;
 
 namespace compute.geometry
 {
@@ -48,6 +49,8 @@ namespace compute.geometry
         {
             // Initialize empty grasshopper archive
             var archive = new GH_Archive();
+
+            Log.Debug(">>> Solution requested!");
 
             // Begin parsing http request
             string json = string.Empty;
@@ -200,6 +203,12 @@ namespace compute.geometry
             Schema OutputSchema = new Schema();
             OutputSchema.Algo = Utils.Base64Encode(string.Empty);
 
+            // Validate input params
+            foreach (var inParam in inputs)
+            {
+                Log.Debug($"Input {inParam.Label} loaded with {inParam.Param.VolatileDataCount.ToString()} object(s).");
+            }
+
             foreach (var output in outputs)
             {
                 try
@@ -214,6 +223,8 @@ namespace compute.geometry
                     var res = (Response)e.Message;
                     res.WithStatusCode(Nancy.HttpStatusCode.BadRequest);
                 }
+
+                Log.Debug($"Solved for {output.Label} and generated {output.Param.VolatileDataCount.ToString()} object(s).");
 
                 Resthopper.IO.DataTree<ResthopperObject> OutputTree = new Resthopper.IO.DataTree<ResthopperObject>();
                 OutputTree.ParamName = output.Label;
