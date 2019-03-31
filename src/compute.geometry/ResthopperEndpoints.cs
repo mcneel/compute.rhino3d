@@ -199,20 +199,22 @@ namespace compute.geometry
                 }
             }
 
-            // Begin solving and storing output
-            Schema OutputSchema = new Schema();
-            OutputSchema.Algo = Utils.Base64Encode(string.Empty);
-
             // Validate input params
             foreach (var inParam in inputs)
             {
                 Log.Debug($"Input {inParam.Label} loaded with {inParam.Param.VolatileDataCount.ToString()} object(s).");
             }
 
+            // Initialize schema for output results
+            Schema OutputSchema = new Schema();
+            OutputSchema.Algo = Utils.Base64Encode(string.Empty);
+
+            // Begin solving for output params
             foreach (var output in outputs)
             {
                 try
                 {
+                    // These methods handle the logic for crawling down the definition
                     output.Param.CollectData();
                     output.Param.ComputeData();
                 }
@@ -226,9 +228,11 @@ namespace compute.geometry
 
                 Log.Debug($"Solved for {output.Label} and generated {output.Param.VolatileDataCount.ToString()} object(s).");
 
+                // Initialize new tree for this param's outputs
                 Resthopper.IO.DataTree<ResthopperObject> OutputTree = new Resthopper.IO.DataTree<ResthopperObject>();
                 OutputTree.ParamName = output.Label;
 
+                // After a successful solution routine, capture output as volatile data
                 var volatileData = output.Param.VolatileData;
                 for (int p = 0; p < volatileData.PathCount; p++)
                 {
@@ -240,11 +244,12 @@ namespace compute.geometry
                             continue;
                         }
 
+                        // Convert goo from generic object to specific grasshopper type and retrieve value
                         dynamic typedGoo = Convert.ChangeType(goo, goo.GetType());
                         var geo = typedGoo.Value;
 
+                        // Cache output as rhino geometry
                         var rhObj = new ResthopperObject();
-
                         rhObj.Type = geo.GetType().FullName;
                         rhObj.Data = JsonConvert.SerializeObject(geo);
 
@@ -255,11 +260,20 @@ namespace compute.geometry
                     OutputTree.Add(path.ToString(), ResthopperObjectList);
                 }
 
+                // Add results for output object to output schema
                 OutputSchema.Values.Add(OutputTree);
             }
 
             if (OutputSchema.Values.Count < 1)
+            {
+                // If, after everything, there were no results...
                 throw new System.Exceptions.PayAttentionException("Looks like you've missed something..."); // TODO
+            }
+
+            var response = (Response)JsonConvert.SerializeObject(OutputSchema);
+            response.WithStatusCode(Nancy.HttpStatusCode.OK);
+
+            return response;
 
             string returnJson = JsonConvert.SerializeObject(OutputSchema);
             return returnJson;
