@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -104,6 +105,63 @@ namespace compute.geometry
                 res.WithStatusCode(Nancy.HttpStatusCode.BadRequest);
 
                 return res;
+            }
+
+            // Initialize input and output param caches
+            var inputs = new List<ResthopperInput>();
+            var outputs = new List<ResthopperOutput>();
+
+            // Begin iterating through definition objects
+            foreach (var obj in definition.Objects)
+            {
+                // (Chuck) Guard clause. Resthopper only looks for params in properly named groups.
+                var group = obj as GH_Group;
+                if (group == null) continue;
+
+                if (group.NickName.Contains("RH_IN"))
+                {
+                    // If param is flagged as an input
+                    var inputParam = new ResthopperInput();
+                   
+                    // Attempt to initialize input object
+                    if (!inputParam.TryBuildResthopperInput(group.NickName, group.Objects()[0], out var message))
+                    {
+                        // If input param could not be built, move on to next.
+                        continue;
+
+                        // (Chuck) Do we want to kill the whole thing here then, too?
+                        var res = (Response)$"Invalid input param {group.NickName}. {message}";
+                        res.WithStatusCode(Nancy.HttpStatusCode.BadRequest);
+
+                        return res;
+                    }
+
+                    if (group.Objects().Count > 1)
+                    {
+                        // (Chuck) Do we want to do something to handle groups with more than one param object?
+                    }
+
+                    // Attempt to get data for input object from matching request value
+                    var inputData = input.Values.FirstOrDefault(x => x.ParamName == group.NickName);
+
+                    if (inputData == null)
+                    {
+                        // If input value could not be set
+                        continue;
+
+                        // (Chuck) Do we want to kill the whole thing here then, too?
+                        var res = (Response)$"Could not find input value for param {group.NickName}.";
+                        res.WithStatusCode(Nancy.HttpStatusCode.BadRequest);
+
+                        return res;
+                    }
+
+                    // Attempt to set data of input object to above value
+                    if (!inputParam.TrySetData(inputData))
+                    {
+                        //
+                    }
+                }
             }
 
             // Set input params
