@@ -35,7 +35,7 @@ namespace compute.geometry
             var cloudwatch_enabled = false;
             var aws_log_group = Env.GetEnvironmentString("COMPUTE_LOG_CLOUDWATCH_GROUP", "/compute/dev");
 
-            if (Env.GetEnvironmentBool("COMPUTE_LOG_CLOUDWATCH", true))
+            if (Env.GetEnvironmentBool("COMPUTE_LOG_CLOUDWATCH", false))
             {
                 var options = new CloudWatchSinkOptions
                 {
