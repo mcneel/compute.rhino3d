@@ -71,6 +71,18 @@ Add LetsEncrypt SSL Certificate for HTTPS support:
 - `yes` to accept the license agreement.
 - `Q` to Quit.
 
+## Licensing Rhino and Scaling
+Rhino WIP (7) encrypts license information by default, and gets a never-expiring login token from Rhino Accounts. In order to scale your compute service on Amazon Web Services or other PaaS services, you'll need to disable encryption of the license information before creating your machine image.
+
+1. Open Rhino on the template host machine.
+1. From the **Tools** menu, click **Options** then click **Advanced**.
+1. Search for **Rhino.LicensingSettings.CloudZooPlainText**
+1. Select the checkbox to enable the plain text setting.
+1. **Important!** Close all instances of Rhino (Changes do not take effect until Rhino is restarted)
+1. Start Rhino.
+1. Login to the respective Rhino account.
+1. Close Rhino.
+1. Create your machine instance.
 
 ## Running Compute as a service
 
