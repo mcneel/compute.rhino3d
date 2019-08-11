@@ -442,12 +442,30 @@ namespace compute.geometry
                                 {
                                     var jsonobject = ja[currentJa++];
                                     var generics = methodParameters[i].ParameterType.GetGenericArguments();
+
+                                    Type objectType = null;
+                                    bool useSerializer = true;
                                     if (generics == null || generics.Length != 1)
-                                        invokeParameters[i] = jsonobject.ToObject(methodParameters[i].ParameterType, serializer);
+                                    {
+                                        objectType = methodParameters[i].ParameterType;
+                                        useSerializer = true;
+                                    }
                                     else
                                     {
-                                        var arrayType = generics[0].MakeArrayType();
-                                        invokeParameters[i] = jsonobject.ToObject(arrayType);
+                                        objectType = generics[0].MakeArrayType();
+                                        useSerializer = false;
+                                    }
+
+
+                                    invokeParameters[i] = DataCache.GetCachedItem(jsonobject, objectType, useSerializer ? serializer : null);
+
+
+                                    if (invokeParameters[i] == null)
+                                    {
+                                        if (useSerializer)
+                                            invokeParameters[i] = jsonobject.ToObject(objectType, serializer);
+                                        else
+                                            invokeParameters[i] = jsonobject.ToObject(objectType);
                                     }
                                 }
 
