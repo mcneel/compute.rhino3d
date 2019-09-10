@@ -4,9 +4,11 @@
 [![Discourse users](https://img.shields.io/discourse/https/discourse.mcneel.com/users.svg)](https://discourse.mcneel.com/c/serengeti/compute-rhino3d)
 [![YouTrack issues](https://img.shields.io/badge/youtrack-COMPUTE-blue.svg)](https://mcneel.myjetbrains.com/youtrack/issues?q=project:%20Compute)
 
-![](https://www.rhino3d.com/en/7.420921340460724505/images/rhino-compute-new.svg)
+![https://www.rhino3d.com/compute](https://www.rhino3d.com/en/7.420921340460724505/images/rhino-compute-new.svg)
 
-A REST API exposing Rhino's geometry core. This project has two web services:
+## REST API exposing Rhino's geometry core.
+
+This project is composed of two applications:
 - `compute.geometry` provides the geometry REST API
 - `compute.frontend` provides authentication, request stashing (saving POST data for diagnostics), logging, and configuration of request and response headers. `compute.frontend` creates the `compute.geometry` process, monitors its health, and restarts `compute.geometry` as necessary.
 
