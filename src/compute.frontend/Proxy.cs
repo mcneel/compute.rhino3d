@@ -9,6 +9,8 @@ namespace compute.frontend
         {
             int backendPort = Env.GetEnvironmentInt("COMPUTE_BACKEND_PORT", 8081);
 
+            Get["/healthcheck"] = _ => "healthy";
+
             Get["/"] =
             Get["/{uri*}"] = _ =>
             {
@@ -21,7 +23,7 @@ namespace compute.frontend
                 }
                 catch
                 {
-                    return new Nancy.Responses.TextResponse(Nancy.HttpStatusCode.InternalServerError, "Backend not available");
+                    return 500;
                 }
             };
 

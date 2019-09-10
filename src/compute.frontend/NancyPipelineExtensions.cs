@@ -60,7 +60,7 @@ namespace compute.frontend
 
         private static void LogResponse(NancyContext context)
         {
-            if (context.Request.Path == "/healthcheck" && context.Response.StatusCode == Nancy.HttpStatusCode.OK)
+            if (context.Request.Path == "/healthcheck")
                 return;
 
             Log.ForContext<Nancy.Response>()
