@@ -14,6 +14,6 @@ This project is composed of two applications:
 
 Compute is built on top of Rhino 7 for Windows and can run anywhere Rhino 7 for Windows can run. The two typical scenarios are running as a web server on a remote Window Server operating system and running locally on a user's computer for debugging or providing local services to applications.
 
-Start with the [installation guide](https://mcneel.github.io/compute.rhino3d/installation.html) to compile and install your own computer.rhino3d geometry server.
+Start with the [installation guide](docs/installation.md) to compile and install your own computer.rhino3d geometry server.
 
 For more information, see https://www.rhino3d.com/compute
