@@ -121,10 +121,6 @@ if (_is_node)
                     continue;
                 sb.Append($"{T2}{methodName} : function(");
                 List<string> parameters = new List<string>();
-                if (!method.IsStatic())
-                {
-                    parameters.Add(cb.ClassName.ToLower());
-                }
                 for (int i = 0; i < method.ParameterList.Parameters.Count; i++)
                 {
                     bool isOutParamter = false;
@@ -137,6 +133,20 @@ if (_is_node)
                     }
                     if(!isOutParamter)
                         parameters.Add(method.ParameterList.Parameters[i].Identifier.ToString());
+                }
+                if (!method.IsStatic())
+                {
+                    string paramName = cb.ClassName.ToLower();
+                    // make sure this paramName is not already in the parameter list
+                    for(int i=0; i<parameters.Count; i++)
+                    {
+                        if( paramName.Equals(parameters[i],StringComparison.OrdinalIgnoreCase) )
+                        {
+                            paramName = "_" + paramName;
+                            break;
+                        }
+                    }
+                    parameters.Insert(0, paramName);
                 }
 
                 for (int i = 0; i < parameters.Count; i++)
