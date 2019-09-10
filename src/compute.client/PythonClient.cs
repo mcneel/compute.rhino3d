@@ -75,10 +75,11 @@ url = ""https://compute.rhino3d.com/""
 authToken = None
 stopat = 0
 
-def ComputeFetch(endpoint, arglist) :
+
+def ComputeFetch(endpoint, arglist):
     class __Rhino3dmEncoder(json.JSONEncoder):
         def default(self, o):
-            if hasattr(o, ""Encode"") :
+            if hasattr(o, ""Encode""):
                 return o.Encode()
             return json.JSONEncoder.default(self, o)
     global authToken
@@ -96,6 +97,28 @@ def ComputeFetch(endpoint, arglist) :
     }}
     r = requests.post(posturl, data=postdata, headers=headers)
     return r.json()
+
+
+def PythonEvaluate(script, input_, output_names):
+    """"""
+    Evaluate a python script on the compute server. The script can reference an
+    `input` parameter which is passed as a dictionary. The script also has access
+    to an 'output' parameter which is returned from the server.
+
+    Args:
+        script (str): the python script to evaluate
+        input_ (dict): dictionary of data passed to the server for use by the script as an input variable
+        output_names (list): list of strings defining which variables in the script to return
+    Returns:
+        dict: The script has access to an output dict variable that it can fill with values.
+        This information is returned from the server to the client.
+    """"""
+    encodedInput = rhino3dm.ArchivableDictionary.EncodeDict(input_)
+    url = 'rhino/python/evaluate'
+    args = [script, json.dumps(encodedInput), output_names]
+    response = ComputeFetch(url, args)
+    output = rhino3dm.ArchivableDictionary.DecodeDict(json.loads(response))
+    return output
 
 ";
 
@@ -348,21 +371,21 @@ def ComputeFetch(endpoint, arglist) :
 
         private void ReplaceSetupPyVersion()
         {
-            var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "python_client");
-            var path = Path.Combine(dir, "setup.py");
-            string setup;
-            using (var reader = new StreamReader(path))
-            {
-                setup = reader.ReadToEnd();
-            }
-            File.Copy(path, path + ".bak", true);
-            File.Delete(path);
-            setup = System.Text.RegularExpressions.Regex.Replace(setup, @"version=""[0-9\.]*""", $@"version=""{Version}""");
-            using (var writer = new StreamWriter(path))
-            {
-                writer.Write(setup);
-            }
-            File.Delete(path + ".bak");
+            //var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "python_client");
+            //var path = Path.Combine(dir, "setup.py");
+            //string setup;
+            //using (var reader = new StreamReader(path))
+            //{
+            //    setup = reader.ReadToEnd();
+            //}
+            //File.Copy(path, path + ".bak", true);
+            //File.Delete(path);
+            //setup = System.Text.RegularExpressions.Regex.Replace(setup, @"version=""[0-9\.]*""", $@"version=""{Version}""");
+            //using (var writer = new StreamWriter(path))
+            //{
+            //    writer.Write(setup);
+            //}
+            //File.Delete(path + ".bak");
         }
     }
 }

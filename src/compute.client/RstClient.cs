@@ -93,26 +93,27 @@ namespace computegen
                 System.IO.File.WriteAllText(path, sb.ToString());
             }
             var indexPath = System.IO.Path.Combine(di.FullName, "index.rst");
-            WritePythonIndex(indexPath, classes);
+            WriteIndexFile(indexPath, "py", classes);
         }
 
-        static void WritePythonIndex(string path, ClassBuilder[] classes)
+        static void WriteIndexFile(string path, string languageSuffix, ClassBuilder[] classes)
         {
-            StringBuilder contents = new StringBuilder();
-            contents.Append(
-@".. compute_rhino3d documentation master file, created by
-   sphinx-quickstart on Sun Feb 10 12:13:30 2019.
+            string header =
+@".. compute_rhino3d documentation master file.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to compute_rhino3d's documentation!
-===========================================
+Welcome to compute.rhino3d.{{LANGUAGE}}'s documentation!
+==============================================
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-");
+";
+            header = header.Replace("{{LANGUAGE}}", languageSuffix);
+            StringBuilder contents = new StringBuilder();
+            contents.Append(header);
             foreach (var c in classes)
             {
                 contents.AppendLine("   " + c.ClassName);
@@ -131,9 +132,10 @@ Indices and tables
         }
 
 
-        public static void WriteJavascriptDocs(ClassBuilder[] classes)
+        public static void WriteJavascriptDocs(ClassBuilder[] classes, System.IO.DirectoryInfo di)
         {
-            var di = System.IO.Directory.CreateDirectory("docs\\javascript");
+            if (!di.Exists)
+                di.Create();
             foreach (var c in classes)
             {
                 StringBuilder sb = new StringBuilder();
@@ -163,7 +165,12 @@ Indices and tables
                     PythonClient.DocCommentToPythonDoc(comments, method, 1, out defSummary, out parameterList, out returnInfo);
                     if (defSummary.Length > 0)
                     {
-                        sb.Append(defSummary);
+                        var summaryLines = defSummary.ToString().Split(new char[] { '\n' });
+                        foreach(var summaryLine in summaryLines)
+                        {
+                            if(!string.IsNullOrWhiteSpace(summaryLine))
+                                sb.AppendLine($"   {summaryLine.Trim()}");
+                        }
                         sb.AppendLine();
                     }
 
@@ -215,7 +222,7 @@ Indices and tables
                 System.IO.File.WriteAllText(path, sb.ToString());
             }
             var indexPath = System.IO.Path.Combine(di.FullName, "index.rst");
-            WritePythonIndex(indexPath, classes);
+            WriteIndexFile(indexPath, "js", classes);
         }
     }
 }
