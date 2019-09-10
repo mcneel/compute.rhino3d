@@ -1,7 +1,7 @@
-## Getting Started
-
+# Getting Started (Remote Windows Server)
+NOTE: you can install and run compute locally on a desktop running Rhino 7 for debugging against locahost. Ther following instructions are for web server configurations.
 1. Get the [latest build](https://ci.appveyor.com/project/mcneel/compute-rhino3d/branch/master/artifacts) from the `master` branch (or [build from source](#building-from-source)).
-1. Create a Windows Server 2016 computer. (Also a Windows 10 desktop computer with Rhino installed can be used, typically for developers sending debug requests to localhost).
+1. Create a Windows Server 2016 computer.
 1. Remote desktop onto server.
 1. Copy `src/bin/Release` to the server.
 1. Install Rhino using PowerShell\* (as administrator):
