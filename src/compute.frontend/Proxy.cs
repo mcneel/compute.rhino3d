@@ -1,15 +1,20 @@
 ﻿using Nancy.Extensions;
+using Serilog;
+using System;
+using System.Linq;
 using System.Net.Http;
 
 namespace compute.frontend
 {
     public class ProxyModule : Nancy.NancyModule
     {
+        private readonly string[] _skipHeaders = new string[] { "Content-Length", "Content-Type", "Host" };
+
         public ProxyModule()
         {
             int backendPort = Env.GetEnvironmentInt("COMPUTE_BACKEND_PORT", 8081);
 
-            Get["/healthcheck"] = _ => "healthy";
+            Get["/_debug"] = _ => "Hello World!"; // test frontend
 
             Get["/"] =
             Get["/{uri*}"] = _ =>
@@ -21,9 +26,10 @@ namespace compute.frontend
                     var backendResponse = client.GetAsync(proxy_url).Result;
                     return CreateProxyResponse(backendResponse, Context);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    return 500;
+                    Log.Error(ex, "An exception occured while proxying request \"{RequestId}\" to the backend", Context.Items["RequestId"] as string);
+                    return new Nancy.Responses.TextResponse(Nancy.HttpStatusCode.InternalServerError, "Backend not available");
                 }
             };
 
@@ -77,14 +83,14 @@ namespace compute.frontend
             var client = new HttpClient(handler);
             foreach (var header in Context.Request.Headers)
             {
-                if (header.Key == "Content-Length")
-                    continue;
-                if (header.Key == "Content-Type")
+                //Log.Debug("{key}: {value}", header.Key, header.Value);
+                if (_skipHeaders.Contains(header.Key)) // host header causes 400 invalid host error
                     continue;
                 client.DefaultRequestHeaders.Add(header.Key, header.Value);
             }
-            client.DefaultRequestHeaders.Add("X-Compute-Id", (string)Context.Items["RequestId"]);
-            client.DefaultRequestHeaders.Add("X-Compute-Host", (string)Context.Items["Hostname"]);
+            // client.DefaultRequestHeaders.Add("X-Forwarded-For", <UserHostAddress>); // TODO: see RequestLogEnricher.GetUserIPAddress()
+            client.DefaultRequestHeaders.Add("X-Compute-Id", Context.Items["RequestId"] as string);
+            client.DefaultRequestHeaders.Add("X-Compute-Host", Context.Items["Hostname"] as string);
             return client;
         }
 
