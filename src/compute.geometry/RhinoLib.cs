@@ -29,11 +29,11 @@ class RhinoLib
             if(!System.IO.Directory.Exists(rhinoSystemDir))
             {
                 string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-                rhinoSystemDir = System.IO.Path.Combine(programFiles, "Rhino WIP", "System");
+                rhinoSystemDir = System.IO.Path.Combine(programFiles, "Rhino 7 WIP", "System");
             }
 #else
             string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-            string rhinoSystemDir = System.IO.Path.Combine(programFiles, "Rhino WIP", "System");
+            string rhinoSystemDir = System.IO.Path.Combine(programFiles, "Rhino 7 WIP", "System");
 #endif
             Environment.SetEnvironmentVariable("path", envPath + ";" + rhinoSystemDir);
             _pathsSet = true;
