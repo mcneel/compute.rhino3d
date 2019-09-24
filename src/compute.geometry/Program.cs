@@ -63,7 +63,7 @@ namespace compute.geometry
             if (listenUriList.Count > 0)
                 _nancyHost = new NancyHost(config, listenUriList.ToArray());
             else
-                Log.Error("Neither COMPUTE_HTTP_PORT nor COMPIUTE_HTTPS_PORT are set. Not listening!");
+                Log.Error("Neither COMPUTE_HTTP_PORT nor COMPUTE_HTTPS_PORT are set. Not listening!");
             try
             {
                 _nancyHost.Start();
