@@ -90,21 +90,17 @@ namespace compute.geometry
                     if (group.NickName.Contains("RH_IN"))
                     {
                         // It is a RestHopper input group!
-                        GHTypeCodes code = (GHTypeCodes)Int32.Parse(group.NickName.Split(':')[1]);
                         var param = group.Objects()[0];
-                        //GH_Param<IGH_Goo> goo = obj as GH_Param<IGH_Goo>;
 
                         // SetData
                         foreach (Resthopper.IO.DataTree<ResthopperObject> tree in input.Values)
                         {
-                            string paramname = tree.ParamName;
-                            if (group.NickName == paramname)
+                            if (group.NickName == tree.ParamName)
                             {
-                                switch (code)
                                 {
-                                    case GHTypeCodes.Boolean:
-                                        //PopulateParam<GH_Boolean>(goo, tree);
-                                        Param_Boolean boolParam = param as Param_Boolean;
+                                    Param_Boolean boolParam = param as Param_Boolean;
+                                    if (boolParam != null)
+                                    {
                                         foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                         {
                                             GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
@@ -117,10 +113,13 @@ namespace compute.geometry
                                                 boolParam.AddVolatileData(path, i, data);
                                             }
                                         }
-                                        break;
-                                    case GHTypeCodes.Point:
-                                        //PopulateParam<GH_Point>(goo, tree);
-                                        Param_Point ptParam = param as Param_Point;
+                                        continue;
+                                    }
+
+
+                                    Param_Point ptParam = param as Param_Point;
+                                    if (ptParam != null)
+                                    {
                                         foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                         {
                                             GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
@@ -133,10 +132,13 @@ namespace compute.geometry
                                                 ptParam.AddVolatileData(path, i, data);
                                             }
                                         }
-                                        break;
-                                    case GHTypeCodes.Vector:
-                                        //PopulateParam<GH_Vector>(goo, tree);
-                                        Param_Vector vectorParam = param as Param_Vector;
+                                        continue;
+                                    }
+
+
+                                    Param_Vector vectorParam = param as Param_Vector;
+                                    if (vectorParam != null)
+                                    { 
                                         foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                         {
                                             GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
@@ -149,10 +151,13 @@ namespace compute.geometry
                                                 vectorParam.AddVolatileData(path, i, data);
                                             }
                                         }
-                                        break;
-                                    case GHTypeCodes.Integer:
-                                        //PopulateParam<GH_Integer>(goo, tree);
-                                        Param_Integer integerParam = param as Param_Integer;
+                                        continue;
+                                    }
+
+
+                                    Param_Integer integerParam = param as Param_Integer;
+                                    if (integerParam != null)
+                                    {
                                         foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                         {
                                             GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
@@ -165,10 +170,13 @@ namespace compute.geometry
                                                 integerParam.AddVolatileData(path, i, data);
                                             }
                                         }
-                                        break;
-                                    case GHTypeCodes.Number:
-                                        //PopulateParam<GH_Number>(goo, tree);
-                                        Param_Number numberParam = param as Param_Number;
+                                        continue;
+                                    }
+
+
+                                    Param_Number numberParam = param as Param_Number;
+                                    if (numberParam != null)
+                                    { 
                                         foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                         {
                                             GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
@@ -181,10 +189,13 @@ namespace compute.geometry
                                                 numberParam.AddVolatileData(path, i, data);
                                             }
                                         }
-                                        break;
-                                    case GHTypeCodes.Text:
-                                        //PopulateParam<GH_String>(goo, tree);
-                                        Param_String stringParam = param as Param_String;
+                                        continue;
+                                    }
+
+
+                                    Param_String stringParam = param as Param_String;
+                                    if (stringParam != null)
+                                    {
                                         foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                         {
                                             GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
@@ -197,10 +208,13 @@ namespace compute.geometry
                                                 stringParam.AddVolatileData(path, i, data);
                                             }
                                         }
-                                        break;
-                                    case GHTypeCodes.Line:
-                                        //PopulateParam<GH_Line>(goo, tree);
-                                        Param_Line lineParam = param as Param_Line;
+                                        continue;
+                                    }
+
+
+                                    Param_Line lineParam = param as Param_Line;
+                                    if (lineParam != null)
+                                    {
                                         foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                         {
                                             GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
@@ -213,10 +227,13 @@ namespace compute.geometry
                                                 lineParam.AddVolatileData(path, i, data);
                                             }
                                         }
-                                        break;
-                                    case GHTypeCodes.Curve:
-                                        //PopulateParam<GH_Curve>(goo, tree);
-                                        Param_Curve curveParam = param as Param_Curve;
+                                        continue;
+                                    }
+
+
+                                    Param_Curve curveParam = param as Param_Curve;
+                                    if (curveParam != null)
+                                    {
                                         foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                         {
                                             GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
@@ -240,10 +257,13 @@ namespace compute.geometry
                                                 curveParam.AddVolatileData(path, i, ghCurve);
                                             }
                                         }
-                                        break;
-                                    case GHTypeCodes.Circle:
-                                        //PopulateParam<GH_Circle>(goo, tree);
-                                        Param_Circle circleParam = param as Param_Circle;
+                                        continue;
+                                    }
+
+
+                                    Param_Circle circleParam = param as Param_Circle;
+                                    if (circleParam != null)
+                                    {
                                         foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                         {
                                             GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
@@ -256,10 +276,13 @@ namespace compute.geometry
                                                 circleParam.AddVolatileData(path, i, data);
                                             }
                                         }
-                                        break;
-                                    case GHTypeCodes.PLane:
-                                        //PopulateParam<GH_Plane>(goo, tree);
-                                        Param_Plane planeParam = param as Param_Plane;
+                                        continue;
+                                    }
+
+
+                                    Param_Plane planeParam = param as Param_Plane;
+                                    if (planeParam != null)
+                                    {
                                         foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                         {
                                             GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
@@ -272,10 +295,12 @@ namespace compute.geometry
                                                 planeParam.AddVolatileData(path, i, data);
                                             }
                                         }
-                                        break;
-                                    case GHTypeCodes.Rectangle:
-                                        //PopulateParam<GH_Rectangle>(goo, tree);
-                                        Param_Rectangle rectangleParam = param as Param_Rectangle;
+                                        continue;
+                                    }
+
+                                    Param_Rectangle rectangleParam = param as Param_Rectangle;
+                                    if (rectangleParam != null)
+                                    {
                                         foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                         {
                                             GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
@@ -288,10 +313,12 @@ namespace compute.geometry
                                                 rectangleParam.AddVolatileData(path, i, data);
                                             }
                                         }
-                                        break;
-                                    case GHTypeCodes.Box:
-                                        //PopulateParam<GH_Box>(goo, tree);
-                                        Param_Box boxParam = param as Param_Box;
+                                        continue;
+                                    }
+
+                                    Param_Box boxParam = param as Param_Box;
+                                    if (boxParam != null)
+                                    {
                                         foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                         {
                                             GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
@@ -304,10 +331,12 @@ namespace compute.geometry
                                                 boxParam.AddVolatileData(path, i, data);
                                             }
                                         }
-                                        break;
-                                    case GHTypeCodes.Surface:
-                                        //PopulateParam<GH_Surface>(goo, tree);
-                                        Param_Surface surfaceParam = param as Param_Surface;
+                                        continue;
+                                    }
+
+                                    Param_Surface surfaceParam = param as Param_Surface;
+                                    if (surfaceParam != null)
+                                    {
                                         foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                         {
                                             GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
@@ -320,10 +349,12 @@ namespace compute.geometry
                                                 surfaceParam.AddVolatileData(path, i, data);
                                             }
                                         }
-                                        break;
-                                    case GHTypeCodes.Brep:
-                                        //PopulateParam<GH_Brep>(goo, tree);
-                                        Param_Brep brepParam = param as Param_Brep;
+                                        continue;
+                                    }
+
+                                    Param_Brep brepParam = param as Param_Brep;
+                                    if (brepParam != null)
+                                    {
                                         foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                         {
                                             GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
@@ -336,10 +367,12 @@ namespace compute.geometry
                                                 brepParam.AddVolatileData(path, i, data);
                                             }
                                         }
-                                        break;
-                                    case GHTypeCodes.Mesh:
-                                        //PopulateParam<GH_Mesh>(goo, tree);
-                                        Param_Mesh meshParam = param as Param_Mesh;
+                                        continue;
+                                    }
+
+                                    Param_Mesh meshParam = param as Param_Mesh;
+                                    if (meshParam != null)
+                                    {
                                         foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                         {
                                             GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
@@ -352,11 +385,12 @@ namespace compute.geometry
                                                 meshParam.AddVolatileData(path, i, data);
                                             }
                                         }
-                                        break;
+                                        continue;
+                                    }
 
-                                    case GHTypeCodes.Slider:
-                                        //PopulateParam<GH_Number>(goo, tree);
-                                        GH_NumberSlider sliderParam = param as GH_NumberSlider;
+                                    GH_NumberSlider sliderParam = param as GH_NumberSlider;
+                                    if (sliderParam != null)
+                                    {
                                         foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                         {
                                             GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
@@ -369,10 +403,12 @@ namespace compute.geometry
                                                 sliderParam.AddVolatileData(path, i, data);
                                             }
                                         }
-                                        break;
-                                    case GHTypeCodes.BooleanToggle:
-                                        //PopulateParam<GH_Boolean>(goo, tree);
-                                        GH_BooleanToggle toggleParam = param as GH_BooleanToggle;
+                                        continue;
+                                    }
+
+                                    GH_BooleanToggle toggleParam = param as GH_BooleanToggle;
+                                    if (toggleParam != null)
+                                    {
                                         foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                         {
                                             GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
@@ -385,10 +421,12 @@ namespace compute.geometry
                                                 toggleParam.AddVolatileData(path, i, data);
                                             }
                                         }
-                                        break;
-                                    case GHTypeCodes.Panel:
-                                        //PopulateParam<GH_String>(goo, tree);
-                                        GH_Panel panelParam = param as GH_Panel;
+                                        continue;
+                                    }
+
+                                    GH_Panel panelParam = param as GH_Panel;
+                                    if (panelParam != null)
+                                    {
                                         foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                         {
                                             GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
@@ -401,7 +439,8 @@ namespace compute.geometry
                                                 panelParam.AddVolatileData(path, i, data);
                                             }
                                         }
-                                        break;
+                                        continue;
+                                    }
                                 }
                             }
                         }
