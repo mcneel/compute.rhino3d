@@ -70,8 +70,8 @@ namespace compute.geometry
                 // If request contains pointer
                 string pointer = input.Pointer;
                 grasshopperXml = GetGhxFromPointer(pointer);
-                
             }
+
             if (!archive.Deserialize_Xml(grasshopperXml))
                 throw new Exception();
 
@@ -462,7 +462,6 @@ namespace compute.geometry
                     if (group.NickName.Contains("RH_OUT"))
                     {
                         // It is a RestHopper output group!
-                        GHTypeCodes code = (GHTypeCodes)Int32.Parse(group.NickName.Split(':')[1]);
                         var param = group.Objects()[0] as IGH_Param;
                         if (param == null)
                             continue;
