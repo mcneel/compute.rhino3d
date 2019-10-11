@@ -57,7 +57,7 @@ namespace Resthopper.IO
 
         public ResthopperObject(object obj)
         {
-            this.Data = JsonConvert.SerializeObject(obj);
+            this.Data = JsonConvert.SerializeObject(obj, compute.geometry.GeometryResolver.Settings);
             this.Type = obj.GetType().FullName;
         }
     }
