@@ -677,6 +677,14 @@ namespace compute.geometry
                 };
             }
 
+            if(property.DeclaringType == typeof(Rhino.Geometry.Line))
+            {
+                property.ShouldSerialize = _ =>
+                {
+                    return property.PropertyName == "From" || property.PropertyName == "To";
+                };
+            }
+
             if (property.DeclaringType == typeof(Rhino.Geometry.MeshFace))
             {
                 property.ShouldSerialize = _ =>

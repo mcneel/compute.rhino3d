@@ -595,7 +595,7 @@ namespace compute.geometry
                 if (OutputSchema.Values.Count < 1)
                     throw new System.Exceptions.PayAttentionException("Looks like you've missed something..."); // TODO
 
-                string returnJson = JsonConvert.SerializeObject(OutputSchema);
+                string returnJson = JsonConvert.SerializeObject(OutputSchema, GeometryResolver.Settings);
                 return returnJson;
             }
         }
@@ -661,7 +661,7 @@ namespace compute.geometry
 
             ResthopperObject rhObj = new ResthopperObject();
             rhObj.Type = pt.GetType().FullName;
-            rhObj.Data = JsonConvert.SerializeObject(pt);
+            rhObj.Data = JsonConvert.SerializeObject(pt, GeometryResolver.Settings);
             return rhObj;
 
         }
@@ -671,7 +671,7 @@ namespace compute.geometry
 
             ResthopperObject rhObj = new ResthopperObject();
             rhObj.Type = goo.GetType().FullName;
-            rhObj.Data = JsonConvert.SerializeObject(v);
+            rhObj.Data = JsonConvert.SerializeObject(v, GeometryResolver.Settings);
             return rhObj;
         }
         public static void PopulateParam<DataType>(GH_Param<IGH_Goo> Param, Resthopper.IO.DataTree<ResthopperObject> tree)
