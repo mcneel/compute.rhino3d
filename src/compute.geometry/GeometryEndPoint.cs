@@ -583,6 +583,55 @@ namespace compute.geometry
         }
     }
 
+    class PointResolver : JsonConverter
+    {
+        public override bool CanConvert(Type objectType)
+        {
+            return objectType == typeof(Rhino.Geometry.Point3d);
+        }
+
+        public override bool CanRead => true;
+        public override bool CanWrite => false;
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            if (reader.TokenType == JsonToken.StartArray)
+            {
+                var token = Newtonsoft.Json.Linq.JToken.Load(reader);
+                List<double> items = token.ToObject<List<double>>();
+                return new Rhino.Geometry.Point3d(items[0], items[1], items[2]);
+            }
+            /*
+                            JValue jValue = new JValue(reader.Value);
+                            switch (reader.TokenType)
+                            {
+                                case JsonToken.String:
+                                    myCustomType = new MyCustomType((string)jValue);
+                                    break;
+                                case JsonToken.Date:
+                                    myCustomType = new MyCustomType((DateTime)jValue);
+                                    break;
+                                case JsonToken.Boolean:
+                                    myCustomType = new MyCustomType((bool)jValue);
+                                    break;
+                                case JsonToken.Integer:
+                                    int i = (int)jValue;
+                                    myCustomType = new MyCustomType(i);
+                                    break;
+                                default:
+                                    Console.WriteLine("Default case");
+                                    Console.WriteLine(reader.TokenType.ToString());
+                                    break;
+                            }
+                            */
+            return new Rhino.Geometry.Point3d(0, 0, 0);
+        }
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     class ArchivableDictionaryResolver : JsonConverter
     {
         public override bool CanConvert(Type objectType)

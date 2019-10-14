@@ -27,7 +27,7 @@ namespace computegen
                     if (string.IsNullOrWhiteSpace(methodName))
                         continue;
                     sb.Append($".. py:function:: {methodName}(");
-                    List<string> parameters = PythonClient.GetParameterNames(method, c);
+                    List<string> parameters = PythonClient.GetParameterNames(method, c, out int outParamCount);
                     for (int i = 0; i < parameters.Count; i++)
                     {
                         sb.Append(parameters[i] + ", ");
@@ -152,7 +152,7 @@ Indices and tables
                     if (string.IsNullOrWhiteSpace(methodName))
                         continue;
                     sb.Append($".. js:function:: RhinoCompute.{c.ClassName}.{methodName}(");
-                    List<string> parameters = PythonClient.GetParameterNames(method, c);
+                    List<string> parameters = PythonClient.GetParameterNames(method, c, out int outParamCount);
                     for (int i = 0; i < parameters.Count; i++)
                     {
                         sb.Append(parameters[i] + ", ");

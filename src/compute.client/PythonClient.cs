@@ -71,8 +71,8 @@ import requests
 
 __version__ = '{Version}'
 
-url = ""https://compute.rhino3d.com/""
-authToken = None
+url = 'https://compute.rhino3d.com/'
+authToken = ''
 stopat = 0
 
 
@@ -90,7 +90,7 @@ def ComputeFetch(endpoint, arglist):
         if(posturl.find('?')>0): posturl += '&stopat='
         else: posturl += '?stopat='
         posturl += str(stopat)
-    postdata = json.dumps(arglist, cls = __Rhino3dmEncoder)
+    postdata = json.dumps(arglist, cls=__Rhino3dmEncoder)
     headers = {{
         'Authorization': 'Bearer ' + authToken,
         'User-Agent': 'compute.rhino3d.py/' + __version__
@@ -99,26 +99,63 @@ def ComputeFetch(endpoint, arglist):
     return r.json()
 
 
-def PythonEvaluate(script, input_, output_names):
+def PythonEvaluate(script, inputs, output_names):
     """"""
     Evaluate a python script on the compute server. The script can reference an
-    `input` parameter which is passed as a dictionary. The script also has access
-    to an 'output' parameter which is returned from the server.
+    `input` parameter which is passed as a dictionary. The script also has
+    access to an 'output' parameter which is returned from the server.
 
     Args:
         script (str): the python script to evaluate
-        input_ (dict): dictionary of data passed to the server for use by the script as an input variable
-        output_names (list): list of strings defining which variables in the script to return
+        inputs (dict): dictionary of data passed to the server for use by the
+                       script as an input variable
+        output_names (list): list of strings defining which variables in the
+                       script to return
     Returns:
-        dict: The script has access to an output dict variable that it can fill with values.
-        This information is returned from the server to the client.
+        dict: The script has access to an output dict variable that it can
+              fill with values. This information is returned from the server
+              to the client.
     """"""
-    encodedInput = rhino3dm.ArchivableDictionary.EncodeDict(input_)
+    encodedInput = rhino3dm.ArchivableDictionary.EncodeDict(inputs)
     url = 'rhino/python/evaluate'
     args = [script, json.dumps(encodedInput), output_names]
     response = ComputeFetch(url, args)
     output = rhino3dm.ArchivableDictionary.DecodeDict(json.loads(response))
     return output
+
+
+def DecodeToCommonObject(item):
+    if item is None:
+        return None
+    if isinstance(item, list):
+        return [rhino3dm.CommonObject.Decode(x) for x in item]
+    return rhino3dm.CommonObject.Decode(item)
+
+
+def DecodeToPoint3d(item):
+    if item is None:
+        return None
+    if isinstance(item, list):
+        return [DecodeToPoint3d(x) for x in item]
+    return rhino3dm.Point3d(item['X'], item['Y'], item['Z'])
+
+
+def DecodeToVector3d(item):
+    if item is None:
+        return None
+    if isinstance(item, list):
+        return [DecodeToVector3d(x) for x in item]
+    return rhino3dm.Vector3d(item['X'], item['Y'], item['Z'])
+
+
+def DecodeToLine(item):
+    if item is None:
+        return None
+    if isinstance(item, list):
+        return [DecodeToLine(x) for x in item]
+    start = DecodeToPoint3d(item['From'])
+    end = DecodeToPoint3d(item['To'])
+    return rhino3dm.Line(start,end)
 
 ";
 
@@ -266,8 +303,9 @@ def PythonEvaluate(script, input_, output_names):
             return methodName;
         }
 
-        public static List<string> GetParameterNames(MethodDeclarationSyntax method, ClassBuilder cb)
+        public static List<string> GetParameterNames(MethodDeclarationSyntax method, ClassBuilder cb, out int outParamCount)
         {
+            outParamCount = 0;
             List<string> parameters = new List<string>();
             if (!method.IsStatic())
             {
@@ -279,7 +317,10 @@ def PythonEvaluate(script, input_, output_names):
                 foreach (var modifier in method.ParameterList.Parameters[i].Modifiers)
                 {
                     if (modifier.Text == "out")
+                    {
+                        outParamCount++;
                         isOutParameter = true;
+                    }
                 }
 
                 if (!isOutParameter)
@@ -332,7 +373,7 @@ def PythonEvaluate(script, input_, output_names):
                 if( string.IsNullOrWhiteSpace(methodName))
                     continue;
                 sb.Append($"def {methodName}(");
-                List<string> parameters = GetParameterNames(method, cb);
+                List<string> parameters = GetParameterNames(method, cb, out int outParamCount);
                 for (int i = 0; i < parameters.Count; i++)
                 {
                     sb.Append(parameters[i] + ", ");
@@ -359,6 +400,37 @@ def PythonEvaluate(script, input_, output_names):
 
                 string endpoint = method.Identifier.ToString();
                 sb.AppendLine($"{T1}response = Util.ComputeFetch(url, args)");
+
+                if (outParamCount == 0)
+                {
+                    bool returnIsArray = returnInfo.Type.EndsWith("[]");
+                    string returnClassName = returnIsArray ? returnInfo.Type.Substring(0, returnInfo.Type.Length - 2) : returnInfo.Type;
+                    var returnCB = ClassBuilder.Get(returnClassName);
+                    if (returnCB != null)
+                    {
+                        var baseClass = returnCB;
+                        while (true)
+                        {
+                            var b = ClassBuilder.Get(baseClass.BaseClassName);
+                            if (b != null)
+                            {
+                                baseClass = b;
+                                continue;
+                            }
+                            break;
+                        }
+                        if (baseClass.ClassName == "CommonObject" || baseClass.ClassName == "GeometryBase")
+                        {
+                            sb.AppendLine($"{T1}response = Util.DecodeToCommonObject(response)");
+                        }
+                        if (baseClass.ClassName == "Point3d" ||
+                            baseClass.ClassName == "Vector3d" ||
+                            baseClass.ClassName == "Line")
+                        {
+                            sb.AppendLine($"{T1}response = Util.DecodeTo{baseClass.ClassName}(response)");
+                        }
+                    }
+                }
                 sb.AppendLine($"{T1}return response");
                 sb.AppendLine();
 
