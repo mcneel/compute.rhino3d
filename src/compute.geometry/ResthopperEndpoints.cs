@@ -1,14 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
 using Nancy;
 using GH_IO.Serialization;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
-using Rhino.PlugIns;
 using Newtonsoft.Json;
-using Grasshopper;
 using Grasshopper.Kernel.Data;
 using Resthopper.IO;
 using Grasshopper.Kernel.Parameters;
@@ -46,9 +43,7 @@ namespace compute.geometry
         static Response Grasshopper(NancyContext ctx)
         {
             // load grasshopper file
-            var archive = new GH_Archive();
-            // TODO: stream to string
-            var body = ctx.Request.Body.ToString();
+            GH_Archive archive = null;
 
             string json = string.Empty;
             using (var reader = new StreamReader(ctx.Request.Body))
@@ -58,22 +53,36 @@ namespace compute.geometry
 
             Schema input = JsonConvert.DeserializeObject<Schema>(json);
 
-            string grasshopperXml = string.Empty;
             if (input.Algo != null)
             {
-                // If request contains markup
                 byte[] byteArray = Convert.FromBase64String(input.Algo);
-                grasshopperXml = System.Text.Encoding.UTF8.GetString(byteArray);
+                var byteArchive = new GH_Archive();
+                try
+                {
+                    if (byteArchive.Deserialize_Binary(byteArray))
+                        archive = byteArchive;
+                }
+                catch (Exception) { }
+
+                if( archive==null)
+                {
+                    var grasshopperXml = System.Text.Encoding.UTF8.GetString(byteArray);
+                    var xmlArchive = new GH_Archive();
+                    if (xmlArchive.Deserialize_Xml(grasshopperXml))
+                        archive = xmlArchive;
+                }
             }
             else
             {
-                // If request contains pointer
                 string pointer = input.Pointer;
-                grasshopperXml = GetGhxFromPointer(pointer);
+                var grasshopperXml = GetGhxFromPointer(pointer);
+                var xmlArchive = new GH_Archive();
+                if (xmlArchive.Deserialize_Xml(grasshopperXml))
+                    archive = xmlArchive;
             }
 
-            if (!archive.Deserialize_Xml(grasshopperXml))
-                throw new Exception();
+            if ( archive == null )
+                throw new Exception("Unable to load grasshopper definition");
 
             using (var definition = new GH_Document())
             {

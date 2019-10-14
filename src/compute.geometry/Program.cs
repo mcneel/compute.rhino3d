@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using Nancy;
 using Nancy.Bootstrapper;
@@ -17,8 +16,17 @@ namespace compute.geometry
 {
     class Program
     {
+        public static IDisposable RhinoCore { get; set; }
+
         static void Main(string[] args)
         {
+            RhinoInside.Resolver.Initialize();
+#if DEBUG
+            string rhinoSystemDir = @"C:\dev\github\mcneel\rhino\src4\bin\Debug";
+            if (System.IO.Directory.Exists(rhinoSystemDir))
+                RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
+#endif
+
             Logging.Init();
             int backendPort = Env.GetEnvironmentInt("COMPUTE_BACKEND_PORT", 8081);
 
@@ -38,7 +46,9 @@ namespace compute.geometry
                 x.SetDisplayName("compute.geometry");
                 x.SetServiceName("compute.geometry");
             });
-            RhinoLib.ExitInProcess();
+
+            if (RhinoCore != null)
+                RhinoCore.Dispose();
         }
     }
 
@@ -50,7 +60,7 @@ namespace compute.geometry
         public void Start(int http_port)
         {
             Log.Information("Launching RhinoCore library as {User}", Environment.UserName);
-            RhinoLib.LaunchInProcess(RhinoLib.LoadMode.Headless, 0);
+            Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
             var config = new HostConfiguration();
 #if DEBUG
             config.RewriteLocalhost = false;  // Don't require URL registration since geometry service always runs on localhost

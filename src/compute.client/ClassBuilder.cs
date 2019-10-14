@@ -49,6 +49,7 @@ namespace computegen
     class ClassBuilder
     {
         public static Dictionary<string, ClassBuilder> AllClasses { get; private set; }
+        static bool AddToDictionary { get; set; }
 
         public static ClassBuilder[] FilteredList(Dictionary<string, ClassBuilder> classes, string[] filter)
         {
@@ -83,30 +84,47 @@ namespace computegen
         public static void BuildClassDictionary(string sourcePath)
         {
             AllClasses = new Dictionary<string, ClassBuilder>();
+            AddToDictionary = true;
             var options = new Microsoft.CodeAnalysis.CSharp.CSharpParseOptions().WithPreprocessorSymbols("RHINO_SDK").WithDocumentationMode(Microsoft.CodeAnalysis.DocumentationMode.Parse);
             foreach (var file in AllSourceFiles(sourcePath))
             {
                 if (System.IO.Path.GetFileName(file).StartsWith("auto", StringComparison.OrdinalIgnoreCase))
                     continue;
                 string text = System.IO.File.ReadAllText(file);
-                if (!text.Contains("RHINO_SDK"))
-                    continue;
-                if (!text.Contains("Geometry"))
-                    continue;
+                //if (!text.Contains("RHINO_SDK"))
+                //    continue;
+                //if (!text.Contains("Geometry"))
+                //    continue;
 
                 Console.WriteLine($"parse: {file}");
                 var tree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(text, options);
                 SourceFileWalker sfw = new SourceFileWalker();
                 sfw.Construct(tree.GetRoot());
             }
-
+            AddToDictionary = false;
         }
 
         public static ClassBuilder Get(string className)
         {
+            if (string.IsNullOrWhiteSpace(className))
+                return null;
+
             ClassBuilder cb;
             if (AllClasses.TryGetValue(className, out cb))
                 return cb;
+
+            if( !AddToDictionary )
+            {
+                className = className.Split(new char[] { '.' }).Last();
+                foreach (var kv in AllClasses)
+                {
+                    string key = kv.Key.Split(new char[] { '.' }).Last();
+                    if ( key == className)
+                        return kv.Value;
+                }
+                return null;
+            }
+
             cb = new ClassBuilder(className);
             AllClasses[className] = cb;
             return cb;
@@ -137,6 +155,8 @@ namespace computegen
                 return s.Substring(index + 1);
             }
         }
+
+        public string BaseClassName { get; set; }
 
         public List<Tuple<MethodDeclarationSyntax, DocumentationCommentTriviaSyntax>> Methods { get; } = new List<Tuple<MethodDeclarationSyntax, DocumentationCommentTriviaSyntax>>();
 
@@ -198,8 +218,11 @@ namespace computegen
             Visit(node);
         }
 
-        static string ClassName(TypeDeclarationSyntax node)
+        static string ClassName(TypeDeclarationSyntax node, out string baseClassName)
         {
+            baseClassName = null;
+            if( node.BaseList!=null )
+                baseClassName = node.BaseList.Types[0].ToFullString().Trim();
             NamespaceDeclarationSyntax ns = node.Parent as NamespaceDeclarationSyntax;
             string className = node.Identifier.ToString();
             return ns == null ? className : ns.Name + "." + className;
@@ -260,10 +283,16 @@ namespace computegen
                     if (refCount == 0 && outCount < 3)
                     {
                         TypeDeclarationSyntax tds = node.Parent as TypeDeclarationSyntax;
-                        string visitingClass = ClassName(tds);
+                        string visitingClass = ClassName(tds, out string baseClass);
 
                         var docComment = node.GetLeadingTrivia().Select(i => i.GetStructure()).OfType<DocumentationCommentTriviaSyntax>().FirstOrDefault();
-                        ClassBuilder.Get(visitingClass).Methods.Add(new Tuple<MethodDeclarationSyntax, DocumentationCommentTriviaSyntax>(node, docComment));
+                        var cb = ClassBuilder.Get(visitingClass);
+                        if (cb != null)
+                        {
+                            cb.Methods.Add(new Tuple<MethodDeclarationSyntax, DocumentationCommentTriviaSyntax>(node, docComment));
+                            if (!string.IsNullOrWhiteSpace(baseClass))
+                                cb.BaseClassName = baseClass;
+                        }
                     }
                 }
             }

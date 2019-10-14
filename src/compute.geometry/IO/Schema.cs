@@ -1,18 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace Resthopper.IO
 {
     public class Schema
     {
-
-        public Schema() {
-            this.Values = new List<DataTree<ResthopperObject>>();
-        }
+        public Schema() {}
 
         [JsonProperty(PropertyName = "algo")]
         public string Algo { get; set; }
@@ -21,11 +15,7 @@ namespace Resthopper.IO
         public string Pointer { get; set; }
 
         [JsonProperty(PropertyName = "values")]
-
-        public List<DataTree<ResthopperObject>> Values { get; set; }
-
-        //public Dictionary<string, Dictionary<GhPath, List<ResthopperObject>>> Values { get; set; }
-
+        public List<DataTree<ResthopperObject>> Values { get; set; } = new List<DataTree<ResthopperObject>>();
     }
 
     public class IoQuerySchema
@@ -43,7 +33,6 @@ namespace Resthopper.IO
     public class ResthopperObject
     {
         [JsonProperty(PropertyName = "type")]
-        //public Type Type { get; set; }
         public string Type { get; set; }
 
         [JsonProperty(PropertyName = "data")]

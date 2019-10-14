@@ -80,23 +80,6 @@ namespace Resthopper.IO
         }
     }
 
-    public class ResthopperDataTree : DataTree<ResthopperObject>
-    {
-        
-    }
-
-    //public class DictionaryAsArrayResolver : DefaultContractResolver
-    //{
-    //    protected override JsonContract CreateContract(Type objectType) {
-    //        if (objectType.GetInterfaces().Any(i => i == typeof(IDictionary) ||
-    //           (i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>)))) {
-    //            return base.CreateArrayContract(objectType);
-    //        }
-
-    //        return base.CreateContract(objectType);
-    //    }
-    //}
-
 
     public class DataTree<T> 
     {
@@ -118,7 +101,7 @@ namespace Resthopper.IO
 
         //public string ParamName { get; set; }
 
-
+/*
         public ICollection<string> Keys {
             get {
                 return ((IDictionary<string, List<T>>)_tree).Keys;
@@ -142,7 +125,7 @@ namespace Resthopper.IO
                 return ((IDictionary<string, List<T>>)_tree).IsReadOnly;
             }
         }
-
+*/
         public List<T> this[string key] {
             get {
                 return ((IDictionary<string, List<T>>)_tree)[key];
