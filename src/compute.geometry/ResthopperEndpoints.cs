@@ -37,7 +37,7 @@ namespace compute.geometry
                 grasshopperXml = reader.ReadToEnd();
             }
 
-            return grasshopperXml;
+            return StripBom(grasshopperXml);
         }
 
         static Response Grasshopper(NancyContext ctx)
@@ -66,7 +66,7 @@ namespace compute.geometry
 
                 if( archive==null)
                 {
-                    var grasshopperXml = System.Text.Encoding.UTF8.GetString(byteArray);
+                    var grasshopperXml = StripBom(System.Text.Encoding.UTF8.GetString(byteArray));
                     var xmlArchive = new GH_Archive();
                     if (xmlArchive.Deserialize_Xml(grasshopperXml))
                         archive = xmlArchive;
@@ -698,6 +698,16 @@ namespace compute.geometry
 
             }
 
+        }
+
+        // strip bom from string -- [239, 187, 191] in byte array == (char)65279
+        // https://stackoverflow.com/a/54894929/1902446
+        static string StripBom(string str)
+        {
+            if (!string.IsNullOrEmpty(str) && str[0] == (char)65279)
+                str = str.Substring(1);
+
+            return str;
         }
     }
 }
