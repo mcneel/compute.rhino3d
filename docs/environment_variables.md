@@ -1,6 +1,6 @@
 ### Environment variables
 
-All configuration of Compute is done via environment variables.
+All configuration of Compute is done via [environment variables](https://helpdeskgeek.com/how-to/create-custom-environment-variables-in-windows/).
 
 | Environment variable | Type | Default | Description |
 | -------------------- | ---- | ------- | ----------- |
