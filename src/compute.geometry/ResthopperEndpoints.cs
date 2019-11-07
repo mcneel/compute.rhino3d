@@ -15,12 +15,77 @@ using System.Net;
 
 namespace compute.geometry
 {
+    [JsonObject(MemberSerialization.OptOut)]
+    public class ResthopperComponenet
+    {
+        public string Name { get; set; }
+        public string Guid { get; set; }
+        public bool IsObsolete { get; set; }
+        public List<ResthopperComponentParameter> Inputs { get; set; }
+        public List<ResthopperComponentParameter> Outputs { get; set; }
+
+        public ResthopperComponenet()
+        {
+            Inputs = new List<ResthopperComponentParameter>();
+            Outputs = new List<ResthopperComponentParameter>();
+        }
+    }
+
+    [JsonObject(MemberSerialization.OptOut)]
+    public class ResthopperComponentParameter
+    {
+        public string Name { get; set; }
+        public string NickName { get; set; }
+        public string InstanceDescription { get; set; }
+        public bool Optional { get; set; }
+        public string TypeName { get; set; }
+
+        public ResthopperComponentParameter(IGH_Param param)
+        {
+            Name = param.Name;
+            NickName = param.NickName;
+            InstanceDescription = param.InstanceDescription;
+            Optional = param.Optional;
+            TypeName = param.TypeName;
+        }
+    }
+
     public class ResthopperEndpointsModule : Nancy.NancyModule
     {
         public ResthopperEndpointsModule(Nancy.Routing.IRouteCacheProvider routeCacheProvider)
         {
-            Post["/grasshopper"] = _ => Grasshopper(Context);
+            Get["/grasshopper"] = _ => TranspileGrasshopperAssemblies(Context);
+            Post["/grasshopper"] = _ => RunGrasshopper(Context);
             Post["/io"] = _ => GetIoNames(Context);
+        }
+
+        static Response TranspileGrasshopperAssemblies(NancyContext ctx)
+        {
+            var objs = new List<ResthopperComponenet>();
+
+            var proxies = Grasshopper.Instances.ComponentServer.ObjectProxies;
+
+            for (int i = 0; i < proxies.Count; i++)
+            {
+                var rc = new ResthopperComponenet();
+                rc.Name = proxies[i].Desc.Name;
+                rc.Guid = proxies[i].Guid.ToString();
+                rc.IsObsolete = proxies[i].Obsolete;
+
+                var obj = proxies[i].CreateInstance() as IGH_Component;
+
+                if (obj != null)
+                {
+                    var p = obj.Params;
+
+                    p.Input.ForEach(x => rc.Inputs.Add(new ResthopperComponentParameter(x)));
+                    p.Output.ForEach(x => rc.Outputs.Add(new ResthopperComponentParameter(x)));
+                }
+
+                objs.Add(rc);
+            }
+
+            return JsonConvert.SerializeObject(objs);
         }
 
         static string GetGhxFromPointer(string pointer)
@@ -40,7 +105,7 @@ namespace compute.geometry
             return StripBom(grasshopperXml);
         }
 
-        static Response Grasshopper(NancyContext ctx)
+        static Response RunGrasshopper(NancyContext ctx)
         {
             // load grasshopper file
             GH_Archive archive = null;
