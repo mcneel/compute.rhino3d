@@ -16,15 +16,18 @@ using System.Net;
 namespace compute.geometry
 {
     [JsonObject(MemberSerialization.OptOut)]
-    public class ResthopperComponenet
+    public class ResthopperComponent
     {
-        public string Name { get; set; }
         public string Guid { get; set; }
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public string Category { get; set; }
+        public string Subcategory { get; set; }
         public bool IsObsolete { get; set; }
         public List<ResthopperComponentParameter> Inputs { get; set; }
         public List<ResthopperComponentParameter> Outputs { get; set; }
 
-        public ResthopperComponenet()
+        public ResthopperComponent()
         {
             Inputs = new List<ResthopperComponentParameter>();
             Outputs = new List<ResthopperComponentParameter>();
@@ -61,15 +64,18 @@ namespace compute.geometry
 
         static Response TranspileGrasshopperAssemblies(NancyContext ctx)
         {
-            var objs = new List<ResthopperComponenet>();
+            var objs = new List<ResthopperComponent>();
 
             var proxies = Grasshopper.Instances.ComponentServer.ObjectProxies;
 
             for (int i = 0; i < proxies.Count; i++)
             {
-                var rc = new ResthopperComponenet();
-                rc.Name = proxies[i].Desc.Name;
+                var rc = new ResthopperComponent();
                 rc.Guid = proxies[i].Guid.ToString();
+                rc.Name = proxies[i].Desc.Name;
+                rc.Description = proxies[i].Desc.Description;
+                rc.Category = proxies[i].Desc.HasCategory ? proxies[i].Desc.Category : "";
+                rc.Subcategory = proxies[i].Desc.HasSubCategory ? proxies[i].Desc.SubCategory : "";
                 rc.IsObsolete = proxies[i].Obsolete;
 
                 var obj = proxies[i].CreateInstance() as IGH_Component;
