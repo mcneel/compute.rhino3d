@@ -1,6 +1,6 @@
 # Getting Started
 
-The steps below assume that you have a Windows Server machine/VM ready to go. We recommend using the 2016/2019 (LTSC), but it's possible to use 1809, etc. (SAC) if you're comfortable without a desktop enviroment.
+The steps below assume that you have a Windows Server machine/VM ready to go. We recommend using the 2016/2019 (LTSC), but it's possible to use 1809, etc. (SAC) if you're comfortable without a desktop enviroment. Compute can also be run on Windows 10, of course.
 
 1. Get the [latest build](https://ci.appveyor.com/project/mcneel/compute-rhino3d/branch/master/artifacts) from the `master` branch (or [build from source](#building-from-source)).
 1. Log in/remote desktop onto your server.
