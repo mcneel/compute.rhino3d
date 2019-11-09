@@ -30,11 +30,11 @@ See [environment variables](environment_variables.md) for details
 
 HTTPS requires an SSL certificate. If you don't have one already, we recommend using [Let's Encrypt](https://letsencrypt.org).
 
-- Install IIS
-  `Install-WindowsFeature -name Web-Server -IncludeManagementTools`
+
 - Configure a your domain name (e.g. compute.example.com) to point to your server's IP address
 - Download [win-acme](https://pkisharp.github.io/win-acme/) and unzip
 - Start PowerShell as Administrator
+- Run `Install-WindowsFeature -name Web-Server -IncludeManagementTools` to install IIS
 - cd to unzipped directory
 - `& .\wacs.exe`
 - `N` create new certificate
