@@ -20,6 +20,7 @@ namespace compute.geometry
     {
         public string Guid { get; set; }
         public string Name { get; set; }
+        public string NickName { get; set; }
         public string Description { get; set; }
         public string Category { get; set; }
         public string Subcategory { get; set; }
@@ -39,16 +40,16 @@ namespace compute.geometry
     {
         public string Name { get; set; }
         public string NickName { get; set; }
-        public string InstanceDescription { get; set; }
-        public bool Optional { get; set; }
+        public string Description { get; set; }
+        public bool IsOptional { get; set; }
         public string TypeName { get; set; }
 
         public ResthopperComponentParameter(IGH_Param param)
         {
             Name = param.Name;
             NickName = param.NickName;
-            InstanceDescription = param.InstanceDescription;
-            Optional = param.Optional;
+            Description = param.InstanceDescription;
+            IsOptional = param.Optional;
             TypeName = param.TypeName;
         }
     }
@@ -73,6 +74,7 @@ namespace compute.geometry
                 var rc = new ResthopperComponent();
                 rc.Guid = proxies[i].Guid.ToString();
                 rc.Name = proxies[i].Desc.Name;
+                rc.NickName = proxies[i].Desc.NickName;
                 rc.Description = proxies[i].Desc.Description;
                 rc.Category = proxies[i].Desc.HasCategory ? proxies[i].Desc.Category : "";
                 rc.Subcategory = proxies[i].Desc.HasSubCategory ? proxies[i].Desc.SubCategory : "";
