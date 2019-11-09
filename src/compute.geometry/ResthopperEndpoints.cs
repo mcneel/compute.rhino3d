@@ -28,6 +28,8 @@ namespace compute.geometry
         public List<ResthopperComponentParameter> Inputs { get; set; }
         public List<ResthopperComponentParameter> Outputs { get; set; }
 
+        public string LibraryName { get; set; }
+
         public ResthopperComponent()
         {
             Inputs = new List<ResthopperComponentParameter>();
@@ -67,6 +69,16 @@ namespace compute.geometry
         {
             var objs = new List<ResthopperComponent>();
 
+            // Convert ReadOnlyCollection of libraries to list for easy searching
+            var libraries = new List<GH_AssemblyInfo>();
+
+            var gha = Grasshopper.Instances.ComponentServer.Libraries;
+            for (int i = 0; i < gha.Count; i++)
+            {
+                libraries.Add(gha[i]);
+            }
+
+            // Convert Object Proxies to Resthopper Components
             var proxies = Grasshopper.Instances.ComponentServer.ObjectProxies;
 
             for (int i = 0; i < proxies.Count; i++)
@@ -79,6 +91,8 @@ namespace compute.geometry
                 rc.Category = proxies[i].Desc.HasCategory ? proxies[i].Desc.Category : "";
                 rc.Subcategory = proxies[i].Desc.HasSubCategory ? proxies[i].Desc.SubCategory : "";
                 rc.IsObsolete = proxies[i].Obsolete;
+
+                rc.LibraryName = libraries.Find(x => x.Id == proxies[i].LibraryGuid).Name;
 
                 var obj = proxies[i].CreateInstance() as IGH_Component;
 
