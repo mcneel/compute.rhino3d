@@ -12,6 +12,8 @@ using Grasshopper.Kernel.Parameters;
 using Grasshopper.Kernel.Special;
 using Rhino.Geometry;
 using System.Net;
+using System.Reflection;
+using System.Linq;
 
 namespace compute.geometry
 {
@@ -61,8 +63,35 @@ namespace compute.geometry
         public ResthopperEndpointsModule(Nancy.Routing.IRouteCacheProvider routeCacheProvider)
         {
             Get["/grasshopper"] = _ => TranspileGrasshopperAssemblies(Context);
+            Get["/gha"] = _ => Test(Context);
             Post["/grasshopper"] = _ => RunGrasshopper(Context);
             Post["/io"] = _ => GetIoNames(Context);
+        }
+
+        static Response Test(NancyContext ctx)
+        {
+            var proxies = Grasshopper.Instances.ComponentServer.ObjectProxies;
+            IGH_ObjectProxy target = null;
+
+            for (int i = 0; i < proxies.Count; i++)
+            {
+                if (proxies[i].Guid.ToString() == "ce46b74e-00c9-43c4-805a-193b69ea4a11")
+                {
+                    target = proxies[i];
+                }
+            }
+
+            
+
+            var a = Assembly.LoadFrom(target.Location);
+
+            Console.WriteLine(target.Desc.Name);
+            Console.WriteLine(target.Type);
+            Console.WriteLine(a.GetTypes().Where(x => x.Name.IndexOf(target.Desc.Name) > 0 && x.Name.IndexOf("OBSOLETE") < 0).Select(x => x.Name).First());
+
+            //return JsonConvert.SerializeObject(a.GetTypes().First(x => x.Name.IndexOf(target.Desc.Name) > 0 && x.Name.IndexOf("OBSOLETE") < 0).Name);
+            return JsonConvert.SerializeObject(a.GetTypes().Where(x => x.Name.IndexOf(target.Desc.Name) > 0 && x.Name.IndexOf("OBSOLETE") < 0).Select(x => x.GetRuntimeProperty("Name").GetValue(target, null)));
+            //return JsonConvert.SerializeObject(target.Type.IsSubclassOf(typeof(IGH_VariableParameterComponent)));
         }
 
         static Response TranspileGrasshopperAssemblies(NancyContext ctx)
