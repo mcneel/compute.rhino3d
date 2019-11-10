@@ -79,6 +79,7 @@ Compute uses [TopShelf](https://github.com/topshelf/topshelf) to make it easy to
 1. In the _Startup Project_ tab, select _Multiple Startup Projects_, then set both `compute.frontend` and `compute.geometry` to _Start_.
 1. Start the application in the debugger.
 1. Wait for the backend to load :coffee:.
+    ![compute.geometry.exe](images/compute_geometry_screenshot.png)
 1. Browse to http://localhost:8888/version to check that it's working!
 
 
