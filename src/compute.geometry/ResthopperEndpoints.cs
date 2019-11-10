@@ -27,6 +27,7 @@ namespace compute.geometry
         public string Category { get; set; }
         public string Subcategory { get; set; }
         public bool IsObsolete { get; set; }
+        public bool IsVariable { get; set; }
         public List<ResthopperComponentParameter> Inputs { get; set; }
         public List<ResthopperComponentParameter> Outputs { get; set; }
 
@@ -63,35 +64,24 @@ namespace compute.geometry
         public ResthopperEndpointsModule(Nancy.Routing.IRouteCacheProvider routeCacheProvider)
         {
             Get["/grasshopper"] = _ => TranspileGrasshopperAssemblies(Context);
-            Get["/gha"] = _ => Test(Context);
             Post["/grasshopper"] = _ => RunGrasshopper(Context);
             Post["/io"] = _ => GetIoNames(Context);
         }
 
-        static Response Test(NancyContext ctx)
+        static bool IsComponentVariable(IGH_ObjectProxy c)
         {
-            var proxies = Grasshopper.Instances.ComponentServer.ObjectProxies;
-            IGH_ObjectProxy target = null;
+            var a = Assembly.LoadFrom(c.Location);
 
-            for (int i = 0; i < proxies.Count; i++)
+            var assemblyType = a.GetTypes().FirstOrDefault(x => c.Type.ToString() == x.FullName);
+
+            if (assemblyType == null)
             {
-                if (proxies[i].Guid.ToString() == "ce46b74e-00c9-43c4-805a-193b69ea4a11")
-                {
-                    target = proxies[i];
-                }
+                return false;
             }
 
-            
+            var res = assemblyType.GetTypeInfo().DeclaredMethods.Select(x => x.Name).ToList().Contains("CanInsertParameter");
 
-            var a = Assembly.LoadFrom(target.Location);
-
-            Console.WriteLine(target.Desc.Name);
-            Console.WriteLine(target.Type);
-            Console.WriteLine(a.GetTypes().Where(x => x.Name.IndexOf(target.Desc.Name) > 0 && x.Name.IndexOf("OBSOLETE") < 0).Select(x => x.Name).First());
-
-            //return JsonConvert.SerializeObject(a.GetTypes().First(x => x.Name.IndexOf(target.Desc.Name) > 0 && x.Name.IndexOf("OBSOLETE") < 0).Name);
-            return JsonConvert.SerializeObject(a.GetTypes().Where(x => x.Name.IndexOf(target.Desc.Name) > 0 && x.Name.IndexOf("OBSOLETE") < 0).Select(x => x.GetRuntimeProperty("Name").GetValue(target, null)));
-            //return JsonConvert.SerializeObject(target.Type.IsSubclassOf(typeof(IGH_VariableParameterComponent)));
+            return res;
         }
 
         static Response TranspileGrasshopperAssemblies(NancyContext ctx)
@@ -120,6 +110,7 @@ namespace compute.geometry
                 rc.Category = proxies[i].Desc.HasCategory ? proxies[i].Desc.Category : "";
                 rc.Subcategory = proxies[i].Desc.HasSubCategory ? proxies[i].Desc.SubCategory : "";
                 rc.IsObsolete = proxies[i].Obsolete;
+                rc.IsVariable = IsComponentVariable(proxies[i]);
 
                 rc.LibraryName = libraries.Find(x => x.Id == proxies[i].LibraryGuid).Name;
 
