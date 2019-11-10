@@ -4,10 +4,10 @@ The steps below assume that you have a Windows Server machine/VM ready to go. We
 
 1. Get the [latest build](https://ci.appveyor.com/project/mcneel/compute-rhino3d/branch/master/artifacts) from the `master` branch (or [build from source](#building-from-source)).
 1. Log in/remote desktop onto your server.
-1. Copy `src/bin/Release` to the server (copy/paste via RDP).
+1. Unzip _compute-<build_number>.zip_ and copy the entire `Release` folder to the server. (Hint: it may be in `src\bin\`.)
 1. [Download](https://www.rhino3d.com/download/rhino/wip) and install the latest Rhino WIP.
 1. Run Rhino at least once so that you can configure the license (we recommend Cloud Zoo) and validate it.
-1. Start PowerShell, `cd` to the `Release` directory and run `& .\compute.frontend.exe`.
+1. Start PowerShell, `cd path\to\Release` and run `& .\compute.frontend.exe`.
 1. Open a browser and try navigating to `http://localhost/version`
 1. For next steps, see [Configuration](#configuration) and [Running Compute as a service](#running-compute-as-a-service).
 
@@ -64,7 +64,7 @@ Rhino WIP encrypts Cloud Zoo license information by default. In order to scale y
 Compute uses [TopShelf](https://github.com/topshelf/topshelf) to make it easy to configure and run it as a service on Windows.
 
 1. Start PowerShell as Administrator
-1. Run `cd C:\Users\[USERNAME]\Desktop\Release\`
+1. Run `cd path\to\Release\`
 1. Run `& .\compute.frontend install` to install as a service
 1. In the interactive menu, enter your username in the format `.\\[USERNAME]` (for example:`.\steve`) along with password for this account
 1. **Note:** Make sure to run Rhino (and configure the license) at least once _as the user that the service will run as_!
@@ -73,12 +73,13 @@ Compute uses [TopShelf](https://github.com/topshelf/topshelf) to make it easy to
 ## Building from source and debugging
 
 1. [Download](https://www.rhino3d.com/download/rhino/wip) and install the latest Rhino WIP.
-1. Start Rhino WIP at least once to configure its license
-1. Open `src\compute.sln` in Visual Studio 2017 (or later) and compile as `Debug`
-1. In _Solution Explorer_, right-click _Solution 'compute'_, then click _Properties_
-1. In the _Startup Project_ tab, select _Multiple Startup Projects_, then set both `compute.frontend` and `compute.geometry` to _Start_
-1. Start the application in the debugger
-1. Browse to http://localhost:8888/version
+1. Start Rhino WIP at least once to configure its license.
+1. Open `src\compute.sln` in Visual Studio 2017 (or later) and compile as `Debug`.
+1. In _Solution Explorer_, right-click _Solution 'compute'_, then click _Properties_.
+1. In the _Startup Project_ tab, select _Multiple Startup Projects_, then set both `compute.frontend` and `compute.geometry` to _Start_.
+1. Start the application in the debugger.
+1. Wait for the backend to load :coffee:.
+1. Browse to http://localhost:8888/version to check that it's working!
 
 
 ## Notes
