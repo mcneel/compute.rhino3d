@@ -11,6 +11,7 @@ The steps below assume that you have a Windows Server machine/VM ready to go. We
 1. Open a browser and try navigating to `http://localhost/version`
 1. For next steps, see [Configuration](#configuration) and [Running Compute as a service](#running-compute-as-a-service).
 
+
 ## Configuration
 
 ### URL reservation
@@ -44,6 +45,7 @@ HTTPS requires an SSL certificate. If you don't have one already, we recommend u
 - Enter your email address when prompted
 - `yes` to accept the license agreement
 - `Q` to Quit
+
 
 ## Scaling when using the Cloud Zoo
 
@@ -83,6 +85,7 @@ Compute uses [TopShelf](https://github.com/topshelf/topshelf) to make it easy to
 1. Browse to http://localhost:8888/version to check that it's working!
 
 
-## Notes
+## Other things to note
 
+- The "frontend" is where the boring stuff lives – mostly authentication and request logging. The frontend proxies requests through to the "geometry backend". The backend is the bit that exposes a RESTful API that wraps RhinoCommon, Rhino.Python and Grasshopper.
 - There is a health check URL (`/healthcheck`) in case you want to set up a load balancer
