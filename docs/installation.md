@@ -55,6 +55,16 @@ HTTPS requires an SSL certificate. If you don't have one already, we recommend u
 - `yes` to accept the license agreement
 - `Q` to Quit
 
+## Running Compute as a service
+
+Compute uses [TopShelf](https://github.com/topshelf/topshelf) to make it easy to configure and run it as a service on Windows.
+
+1. Start PowerShell as Administrator
+1. Run `cd path\to\Release\`
+1. Run `& .\compute.frontend install` to install as a service
+1. In the interactive menu, enter your username in the format `.\\[USERNAME]` (for example:`.\steve`) along with password for this account
+1. ⚠️ **Important!** Make sure to run Rhino (and configure the license) at least once _as the user that the service will run as_!
+
 ## Scaling when using the Cloud Zoo
 
 Rhino WIP encrypts Cloud Zoo license information by default. In order to create an image and scale your compute service you may need to disable encryption of the license information before creating your machine image. This is also a requirement for creating a [Docker image](../Dockerfile).
@@ -69,16 +79,6 @@ Rhino WIP encrypts Cloud Zoo license information by default. In order to create 
 1. Close Rhino
 
 You can now create your machine image.
-
-## Running Compute as a service
-
-Compute uses [TopShelf](https://github.com/topshelf/topshelf) to make it easy to configure and run it as a service on Windows.
-
-1. Start PowerShell as Administrator
-1. Run `cd path\to\Release\`
-1. Run `& .\compute.frontend install` to install as a service
-1. In the interactive menu, enter your username in the format `.\\[USERNAME]` (for example:`.\steve`) along with password for this account
-1. ⚠️ **Important!** Make sure to run Rhino (and configure the license) at least once _as the user that the service will run as_!
 
 
 ## Building from source and debugging
