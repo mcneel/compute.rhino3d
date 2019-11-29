@@ -21,7 +21,7 @@ assembly_info:
 
 # package artifacts and create codedeploy app revision
 after_build:
-  - 7z a -tzip -r compute-%APPVEYOR_BUILD_VERSION%.zip src\bin\Release\*
+  - 7z a -tzip -r compute-%APPVEYOR_BUILD_VERSION%.zip %APPVEYOR_BUILD_FOLDER%\src\bin\Release\*
   - ps: |
       md dist\src\bin
       cp -r src\bin\Release dist\src\bin\
