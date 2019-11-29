@@ -1,14 +1,24 @@
 # Getting Started
 
-The steps below assume that you have a Windows Server machine/VM ready to go. We recommend using the 2016/2019 (LTSC), but it's possible to use 1809, etc. (SAC) if you're comfortable without a desktop enviroment. Compute can also be run on Windows 10, of course.
+## System Requirements
 
-1. Get the [latest build](https://ci.appveyor.com/project/mcneel/compute-rhino3d/branch/master/artifacts) from the `master` branch (or [build from source](#building-from-source)).
-1. Log in/remote desktop onto your server.
-1. Unzip _compute-<build_number>.zip_ and copy the entire `Release` folder to the server. (Hint: it may be in `src\bin\`.)
+You will need a server or virtual machine with (minimum) Windows Server 2016 or 2019 (LTSC) installed is recommended. It's possible to run Compute on a Windows 10 machine, but this is only recommended for development and testing.
+
+It's still Rhino running under the hood, albeit without the UI, so [spec](https://www.rhino3d.com/6/system_requirements) your machine(s) accordingly. AWS's [t2.medium](https://aws.amazon.com/ec2/instance-types/t2/) instance type (2 vCPU, 4 GB RAM) is a great starting point.
+
+The machine can be totally fresh. Everything else is described in the [Installation](#-installation-) and [Configuration](#configuration) sections below.
+
+## "Installation"
+
+The following steps assume that you are either logged into the computer that will run Compute, or connected via Remote Desktop. Currently there is no "installer", but these are the steps to get things running!
+
+1. Get the [latest build](https://ci.appveyor.com/project/mcneel/compute-rhino3d/branch/master/artifacts) from the `master` branch (the one named _compute-<build_number>.zip_). Alternatively you can [build from source](#building-from-source).
+1. Unzip everything into an empty directory, e.g. `C:\path\to\compute`.
 1. [Download](https://www.rhino3d.com/download/rhino/wip) and install the latest Rhino WIP.
 1. Run Rhino at least once so that you can configure the license (we recommend Cloud Zoo) and validate it.
-1. Start PowerShell, `cd path\to\Release` and run `& .\compute.frontend.exe`.
-1. Open a browser and try navigating to `http://localhost/version`
+1. Start PowerShell, `cd C:\path\to\compute` and run `& .\compute.frontend.exe`.
+1. Open a browser and try navigating to `http://localhost/version`.
+1. Hit <kbd>Ctrl</kbd>+<kbd>C</kbd> to stop Compute
 1. For next steps, see [Configuration](#configuration) and [Running Compute as a service](#running-compute-as-a-service).
 
 
@@ -16,7 +26,7 @@ The steps below assume that you have a Windows Server machine/VM ready to go. We
 
 ### URL reservation
 
-Release builds of Compute listen on all available IP addreses by default. For this to work, you may need to:
+Release builds of Compute listen on 0.0.0.0 by default so that you can connect from another computer. For this to work, you may need to configure URL reservation.
 
 1. Start PowerShell as Administrator.
 1. For HTTP, `netsh http add urlacl url="http://+:80/" user="Everyone"`.
@@ -24,13 +34,12 @@ Release builds of Compute listen on all available IP addreses by default. For th
 
 ### Environment variables
 
-All configuration of Compute is done via environment variables.
+All configuration of Compute – ports, authentication, etc. – is done via environment variables.
 See [environment variables](environment_variables.md) for details
 
 ### HTTPS (optional)
 
 HTTPS requires an SSL certificate. If you don't have one already, we recommend using [Let's Encrypt](https://letsencrypt.org).
-
 
 - Configure a your domain name (e.g. compute.example.com) to point to your server's IP address
 - Download [win-acme](https://pkisharp.github.io/win-acme/) and unzip
@@ -46,21 +55,6 @@ HTTPS requires an SSL certificate. If you don't have one already, we recommend u
 - `yes` to accept the license agreement
 - `Q` to Quit
 
-
-## Scaling when using the Cloud Zoo
-
-Rhino WIP encrypts Cloud Zoo license information by default. In order to scale your compute service on Amazon Web Services or other PaaS services, you may need to disable encryption of the license information before creating your machine image.
-
-1. Open Rhino on the template host machine
-1. From the _Tools_ menu, click _Options_ then click _Advanced_
-1. Search for `Rhino.LicensingSettings.CloudZooPlainText`
-1. Select the checkbox to enable the plain text setting
-1. **Important!** Close all instances of Rhino (Changes do not take effect until Rhino is restarted)
-1. Start Rhino
-1. Log back in to your Rhino Account
-1. Close Rhino
-1. Create your machine instance
-
 ## Running Compute as a service
 
 Compute uses [TopShelf](https://github.com/topshelf/topshelf) to make it easy to configure and run it as a service on Windows.
@@ -69,7 +63,22 @@ Compute uses [TopShelf](https://github.com/topshelf/topshelf) to make it easy to
 1. Run `cd path\to\Release\`
 1. Run `& .\compute.frontend install` to install as a service
 1. In the interactive menu, enter your username in the format `.\\[USERNAME]` (for example:`.\steve`) along with password for this account
-1. **Note:** Make sure to run Rhino (and configure the license) at least once _as the user that the service will run as_!
+1. ⚠️ **Important!** Make sure to run Rhino (and configure the license) at least once _as the user that the service will run as_!
+
+## Scaling when using the Cloud Zoo
+
+Rhino WIP encrypts Cloud Zoo license information by default. In order to create an image and scale your compute service you may need to disable encryption of the license information before creating your machine image. This is also a requirement for creating a [Docker image](../Dockerfile).
+
+1. Open Rhino on the template machine (or host machine, in the case of Docker)
+1. From the _Tools_ menu, click _Options_ then click _Advanced_
+1. Search for `Rhino.LicensingSettings.CloudZooPlainText`
+1. Select the checkbox to enable the plain text setting
+1. ⚠️ **Important!** Close all instances of Rhino – changes do not take effect until Rhino is restarted
+1. Start Rhino
+1. Log back in to your Rhino Account
+1. Close Rhino
+
+You can now create your machine image.
 
 
 ## Building from source and debugging
@@ -80,12 +89,12 @@ Compute uses [TopShelf](https://github.com/topshelf/topshelf) to make it easy to
 1. In _Solution Explorer_, right-click _Solution 'compute'_, then click _Properties_.
 1. In the _Startup Project_ tab, select _Multiple Startup Projects_, then set both `compute.frontend` and `compute.geometry` to _Start_.
 1. Start the application in the debugger.
-1. Wait for the backend to load :coffee:.
+1. Wait for the backend to load... ☕️
     ![compute.geometry.exe](images/compute_geometry_screenshot.png)
 1. Browse to http://localhost:8888/version to check that it's working!
 
 
 ## Other things to note
 
-- The "frontend" is where the boring stuff lives – mostly authentication and request logging. The frontend proxies requests through to the "geometry backend". The backend is the bit that exposes a RESTful API that wraps RhinoCommon, Rhino.Python and Grasshopper.
+- The "frontend" is where the boring stuff lives – mostly authentication and request logging. The frontend proxies requests through to the "geometry backend". The backend is the bit that exposes a RESTful API that wraps functionality in RhinoCommon, Rhino.Python and Grasshopper.
 - There is a health check URL (`/healthcheck`) in case you want to set up a load balancer
