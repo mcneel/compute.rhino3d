@@ -24,13 +24,15 @@ The following steps assume that you are either logged into the computer that wil
 
 ## Configuration
 
-### URL reservation
+### Calling Compute from another computer
 
-Release builds of Compute listen on 0.0.0.0 by default so that you can connect from another computer. For this to work, you may need to configure URL reservation.
+Release builds of Compute listen on 0.0.0.0 by default so that you can connect from another computer. For this to work, you'll need to open ports in the Windows firewall. You may also need to configure URL reservation. The steps below assume you're using ports 80 for HTTP and 443 for HTTPS. If you're using another port, then you probably know what you're doing!
 
-1. Start PowerShell as Administrator.
-1. For HTTP, `netsh http add urlacl url="http://+:80/" user="Everyone"`.
-1. For HTTPS, `netsh http add urlacl url="https://+:443/" user="Everyone"`.
+1. Start PowerShell as Administrator
+1. Run `Install-WindowsFeature -name Web-Server -IncludeManagementTools` to install IIS and automatically open ports 80 and 443
+1. Configure URL reservation:
+    1. For HTTP, `netsh http add urlacl url="http://+:80/" user="Everyone"`
+    1. For HTTPS, `netsh http add urlacl url="https://+:443/" user="Everyone"`
 
 ### Environment variables
 
@@ -41,19 +43,19 @@ See [environment variables](environment_variables.md) for details
 
 HTTPS requires an SSL certificate. If you don't have one already, we recommend using [Let's Encrypt](https://letsencrypt.org).
 
-- Configure a your domain name (e.g. compute.example.com) to point to your server's IP address
-- Download [win-acme](https://pkisharp.github.io/win-acme/) and unzip
-- Start PowerShell as Administrator
-- Run `Install-WindowsFeature -name Web-Server -IncludeManagementTools` to install IIS
-- cd to unzipped directory
-- `& .\wacs.exe`
-- `N` create new certificate
-- `4` manually input host names
-- `compute.example.com` (or similar)
-- `1` for default web site
-- Enter your email address when prompted
-- `yes` to accept the license agreement
-- `Q` to Quit
+1. Configure a your domain name (e.g. compute.example.com) to point to your server's IP address
+1. Download [win-acme](https://pkisharp.github.io/win-acme/) and unzip
+1. Start PowerShell as Administrator
+1. Run `Install-WindowsFeature -name Web-Server -IncludeManagementTools` to install IIS (if you haven't already)
+1. cd to unzipped directory
+1. `& .\wacs.exe`
+1. `N` create new certificate
+1. `4` manually input host names
+1. `compute.example.com` (or similar)
+1. `1` for default web site
+1. Enter your email address when prompted
+1. `yes` to accept the license agreement
+1. `Q` to Quit
 
 ## Running Compute as a service
 
