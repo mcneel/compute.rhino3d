@@ -14,7 +14,7 @@ namespace Rhino.Compute
     {
         public static string WebAddress { get; set; } = "https://compute.rhino3d.com";
         public static string AuthToken { get; set; }
-        public static string Version => "0.6.0";
+        public static string Version => "0.9.0";
 
         public static T Post<T>(string function, params object[] postData)
         {
@@ -1099,17 +1099,13 @@ namespace Rhino.Compute
 
         /// <summary>
         /// Sweep1 function that fits a surface through a profile curve that define the surface cross-sections
-        /// and one curve that defines a surface edge.
-        /// /// </summary>
+        /// and one curve that defines a surface edge. 
+        /// </summary>
         /// <param name="rail">Rail to sweep shapes along</param>
         /// <param name="shape">Shape curve</param>
         /// <param name="closed">Only matters if shape is closed</param>
         /// <param name="tolerance">Tolerance for fitting surface and rails</param>
         /// <returns>Array of Brep sweep results</returns>
-        /// <remarks>
-        /// If you are not producing the sweep results that you are after, then
-        /// use the SweepOneRail class with options to generate the swept geometry.
-        /// </remarks>
         public static Brep[] CreateFromSweep(Curve rail, Curve shape, bool closed, double tolerance)
         {
             return ComputeServer.Post<Brep[]>(ApiAddress(), rail, shape, closed, tolerance);
@@ -1117,17 +1113,13 @@ namespace Rhino.Compute
 
         /// <summary>
         /// Sweep1 function that fits a surface through a profile curve that define the surface cross-sections
-        /// and one curve that defines a surface edge.
-        /// /// </summary>
+        /// and one curve that defines a surface edge. 
+        /// </summary>
         /// <param name="rail">Rail to sweep shapes along</param>
         /// <param name="shape">Shape curve</param>
         /// <param name="closed">Only matters if shape is closed</param>
         /// <param name="tolerance">Tolerance for fitting surface and rails</param>
         /// <returns>Array of Brep sweep results</returns>
-        /// <remarks>
-        /// If you are not producing the sweep results that you are after, then
-        /// use the SweepOneRail class with options to generate the swept geometry.
-        /// </remarks>
         public static Brep[] CreateFromSweep(Remote<Curve> rail, Remote<Curve> shape, bool closed, double tolerance)
         {
             return ComputeServer.Post<Brep[]>(ApiAddress(), rail, shape, closed, tolerance);
@@ -1142,10 +1134,6 @@ namespace Rhino.Compute
         /// <param name="closed">Only matters if shapes are closed</param>
         /// <param name="tolerance">Tolerance for fitting surface and rails</param>
         /// <returns>Array of Brep sweep results</returns>
-        /// <remarks>
-        /// If you are not producing the sweep results that you are after, then
-        /// use the SweepOneRail class with options to generate the swept geometry.
-        /// </remarks>
         public static Brep[] CreateFromSweep(Curve rail, IEnumerable<Curve> shapes, bool closed, double tolerance)
         {
             return ComputeServer.Post<Brep[]>(ApiAddress(), rail, shapes, closed, tolerance);
@@ -1160,10 +1148,6 @@ namespace Rhino.Compute
         /// <param name="closed">Only matters if shapes are closed</param>
         /// <param name="tolerance">Tolerance for fitting surface and rails</param>
         /// <returns>Array of Brep sweep results</returns>
-        /// <remarks>
-        /// If you are not producing the sweep results that you are after, then
-        /// use the SweepOneRail class with options to generate the swept geometry.
-        /// </remarks>
         public static Brep[] CreateFromSweep(Remote<Curve> rail, Remote<IEnumerable<Curve>> shapes, bool closed, double tolerance)
         {
             return ComputeServer.Post<Brep[]>(ApiAddress(), rail, shapes, closed, tolerance);
@@ -1179,10 +1163,6 @@ namespace Rhino.Compute
         /// <param name="closed">Only matters if shape is closed</param>
         /// <param name="tolerance">Tolerance for fitting surface and rails</param>
         /// <returns>Array of Brep sweep results</returns>
-        /// <remarks>
-        /// If you are not producing the sweep results that you are after, then
-        /// use the SweepOneRail class with options to generate the swept geometry.
-        /// </remarks>
         public static Brep[] CreateFromSweepSegmented(Curve rail, Curve shape, bool closed, double tolerance)
         {
             return ComputeServer.Post<Brep[]>(ApiAddress(), rail, shape, closed, tolerance);
@@ -1198,10 +1178,6 @@ namespace Rhino.Compute
         /// <param name="closed">Only matters if shape is closed</param>
         /// <param name="tolerance">Tolerance for fitting surface and rails</param>
         /// <returns>Array of Brep sweep results</returns>
-        /// <remarks>
-        /// If you are not producing the sweep results that you are after, then
-        /// use the SweepOneRail class with options to generate the swept geometry.
-        /// </remarks>
         public static Brep[] CreateFromSweepSegmented(Remote<Curve> rail, Remote<Curve> shape, bool closed, double tolerance)
         {
             return ComputeServer.Post<Brep[]>(ApiAddress(), rail, shape, closed, tolerance);
@@ -1217,10 +1193,6 @@ namespace Rhino.Compute
         /// <param name="closed">Only matters if shapes are closed</param>
         /// <param name="tolerance">Tolerance for fitting surface and rails</param>
         /// <returns>Array of Brep sweep results</returns>
-        /// <remarks>
-        /// If you are not producing the sweep results that you are after, then
-        /// use the SweepOneRail class with options to generate the swept geometry.
-        /// </remarks>
         public static Brep[] CreateFromSweepSegmented(Curve rail, IEnumerable<Curve> shapes, bool closed, double tolerance)
         {
             return ComputeServer.Post<Brep[]>(ApiAddress(), rail, shapes, closed, tolerance);
@@ -1236,10 +1208,6 @@ namespace Rhino.Compute
         /// <param name="closed">Only matters if shapes are closed</param>
         /// <param name="tolerance">Tolerance for fitting surface and rails</param>
         /// <returns>Array of Brep sweep results</returns>
-        /// <remarks>
-        /// If you are not producing the sweep results that you are after, then
-        /// use the SweepOneRail class with options to generate the swept geometry.
-        /// </remarks>
         public static Brep[] CreateFromSweepSegmented(Remote<Curve> rail, Remote<IEnumerable<Curve>> shapes, bool closed, double tolerance)
         {
             return ComputeServer.Post<Brep[]>(ApiAddress(), rail, shapes, closed, tolerance);
@@ -1303,6 +1271,48 @@ namespace Rhino.Compute
         public static Brep[] CreateFromSweep(Remote<Curve> rail1, Remote<Curve> rail2, Remote<IEnumerable<Curve>> shapes, bool closed, double tolerance)
         {
             return ComputeServer.Post<Brep[]>(ApiAddress(), rail1, rail2, shapes, closed, tolerance);
+        }
+
+        /// <summary>
+        /// Sweep2 function that fits a surface through profile curves that define the surface cross-sections
+        /// and two curves that defines a surface edge.
+        /// </summary>
+        /// <param name="rail1">Rail to sweep shapes along</param>
+        /// <param name="rail2">Rail to sweep shapes along</param>
+        /// <param name="shapes">Shape curves</param>
+        /// <param name="start">Optional starting point of sweep. Use Point3d.Unset if you do not want to include a start point.</param>
+        /// <param name="end">Optional ending point of sweep. Use Point3d.Unset if you do not want to include an end point.</param>
+        /// <param name="closed">Only matters if shapes are closed.</param>
+        /// <param name="tolerance">Tolerance for fitting surface and rails.</param>
+        /// <param name="rebuild">The rebuild style.</param>
+        /// <param name="rebuildPointCount">If rebuild == SweepRebuild.Rebuild, the number of points. Otherwise specify 0.</param>
+        /// <param name="refitTolerance">If rebuild == SweepRebuild.Refit, the refit tolerenace. Otherwise, specify 0.0</param>
+        /// <param name="preserveHeight">Removes the association between the height scaling from the width scaling</param>
+        /// <returns>Array of Brep sweep results</returns>
+        public static Brep[] CreateFromSweep(Curve rail1, Curve rail2, IEnumerable<Curve> shapes, Point3d start, Point3d end, bool closed, double tolerance, SweepRebuild rebuild, int rebuildPointCount, double refitTolerance, bool preserveHeight)
+        {
+            return ComputeServer.Post<Brep[]>(ApiAddress(), rail1, rail2, shapes, start, end, closed, tolerance, rebuild, rebuildPointCount, refitTolerance, preserveHeight);
+        }
+
+        /// <summary>
+        /// Sweep2 function that fits a surface through profile curves that define the surface cross-sections
+        /// and two curves that defines a surface edge.
+        /// </summary>
+        /// <param name="rail1">Rail to sweep shapes along</param>
+        /// <param name="rail2">Rail to sweep shapes along</param>
+        /// <param name="shapes">Shape curves</param>
+        /// <param name="start">Optional starting point of sweep. Use Point3d.Unset if you do not want to include a start point.</param>
+        /// <param name="end">Optional ending point of sweep. Use Point3d.Unset if you do not want to include an end point.</param>
+        /// <param name="closed">Only matters if shapes are closed.</param>
+        /// <param name="tolerance">Tolerance for fitting surface and rails.</param>
+        /// <param name="rebuild">The rebuild style.</param>
+        /// <param name="rebuildPointCount">If rebuild == SweepRebuild.Rebuild, the number of points. Otherwise specify 0.</param>
+        /// <param name="refitTolerance">If rebuild == SweepRebuild.Refit, the refit tolerenace. Otherwise, specify 0.0</param>
+        /// <param name="preserveHeight">Removes the association between the height scaling from the width scaling</param>
+        /// <returns>Array of Brep sweep results</returns>
+        public static Brep[] CreateFromSweep(Remote<Curve> rail1, Remote<Curve> rail2, Remote<IEnumerable<Curve>> shapes, Point3d start, Point3d end, bool closed, double tolerance, SweepRebuild rebuild, int rebuildPointCount, double refitTolerance, bool preserveHeight)
+        {
+            return ComputeServer.Post<Brep[]>(ApiAddress(), rail1, rail2, shapes, start, end, closed, tolerance, rebuild, rebuildPointCount, refitTolerance, preserveHeight);
         }
 
         /// <summary>
@@ -2362,8 +2372,8 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Determines if point is inside Brep.  This question only makes sense when
-        /// the brep is a closed manifold.  This function does not not check for
+        /// Determines if point is inside a Brep.  This question only makes sense when
+        /// the brep is a closed and manifold.  This function does not not check for
         /// closed or manifold, so result is not valid in those cases.  Intersects
         /// a line through point with brep, finds the intersection point Q closest
         /// to point, and looks at face normal at Q.  If the point Q is on an edge
@@ -2387,8 +2397,8 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Determines if point is inside Brep.  This question only makes sense when
-        /// the brep is a closed manifold.  This function does not not check for
+        /// Determines if point is inside a Brep.  This question only makes sense when
+        /// the brep is a closed and manifold.  This function does not not check for
         /// closed or manifold, so result is not valid in those cases.  Intersects
         /// a line through point with brep, finds the intersection point Q closest
         /// to point, and looks at face normal at Q.  If the point Q is on an edge
@@ -2409,6 +2419,40 @@ namespace Rhino.Compute
         public static bool IsPointInside(Remote<Brep> brep, Point3d point, double tolerance, bool strictlyIn)
         {
             return ComputeServer.Post<bool>(ApiAddress(), brep, point, tolerance, strictlyIn);
+        }
+
+        /// <summary>
+        /// Finds a point inside of a solid Brep.
+        /// </summary>
+        /// <param name="tolerance">
+        /// Used for intersecting rays and is not necessarily related to the distance from the brep to the found point.
+        /// When in doubt, use the document's model absolute tolerance.
+        /// </param>
+        /// <param name="point">A point inside the solid Brep.</param>
+        /// <returns>
+        /// Returns false if the input is not solid and manifold, if the Brep's bounding box is less than 2.0 * tolerance wide, 
+        /// or if no point could be found due to ray shooting or other errors. Otherwise, true is returned.
+        /// </returns>
+        public static bool GetPointInside(this Brep brep, double tolerance, out Point3d point)
+        {
+            return ComputeServer.Post<bool, Point3d>(ApiAddress(), out point, brep, tolerance);
+        }
+
+        /// <summary>
+        /// Finds a point inside of a solid Brep.
+        /// </summary>
+        /// <param name="tolerance">
+        /// Used for intersecting rays and is not necessarily related to the distance from the brep to the found point.
+        /// When in doubt, use the document's model absolute tolerance.
+        /// </param>
+        /// <param name="point">A point inside the solid Brep.</param>
+        /// <returns>
+        /// Returns false if the input is not solid and manifold, if the Brep's bounding box is less than 2.0 * tolerance wide, 
+        /// or if no point could be found due to ray shooting or other errors. Otherwise, true is returned.
+        /// </returns>
+        public static bool GetPointInside(Remote<Brep> brep, double tolerance, out Point3d point)
+        {
+            return ComputeServer.Post<bool, Point3d>(ApiAddress(), out point, brep, tolerance);
         }
 
         /// <summary>
@@ -7101,6 +7145,7 @@ namespace Rhino.Compute
         {
             return ComputeServer.Post<AreaMassProperties>(ApiAddress("compute-curve"), closedPlanarCurve);
         }
+
         /// <summary>
         /// Computes an AreaMassProperties for a closed planar curve.
         /// </summary>
@@ -7112,6 +7157,7 @@ namespace Rhino.Compute
         {
             return ComputeServer.Post<AreaMassProperties>(ApiAddress("compute-curve_double"), closedPlanarCurve, planarTolerance);
         }
+
         /// <summary>
         /// Computes an AreaMassProperties for a hatch.
         /// </summary>
@@ -7122,6 +7168,7 @@ namespace Rhino.Compute
         {
             return ComputeServer.Post<AreaMassProperties>(ApiAddress("compute-hatch"), hatch);
         }
+
         /// <summary>
         /// Computes an AreaMassProperties for a mesh.
         /// </summary>
@@ -7132,6 +7179,7 @@ namespace Rhino.Compute
         {
             return ComputeServer.Post<AreaMassProperties>(ApiAddress("compute-mesh"), mesh);
         }
+
         /// <summary>
         /// Compute the AreaMassProperties for a single Mesh.
         /// </summary>
@@ -7148,6 +7196,7 @@ namespace Rhino.Compute
                 "compute-mesh_bool_bool_bool_bool"),
                 mesh, area, firstMoments, secondMoments, productMoments);
         }
+
         /// <summary>
         /// Computes an AreaMassProperties for a brep.
         /// </summary>
@@ -7652,7 +7701,7 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Attempts to create a Mesh that is a triangulation of a closed polyline.
+        /// Attempts to create a Mesh that is a triangulation of a simple closed polyline that projects onto a plane.
         /// </summary>
         /// <param name="polyline">must be closed</param>
         /// <returns>
@@ -7783,6 +7832,27 @@ namespace Rhino.Compute
         public static Mesh CreateFromSurface(Remote<Surface> surface, MeshingParameters meshingParameters)
         {
             return ComputeServer.Post<Mesh>(ApiAddress(), surface, meshingParameters);
+        }
+
+        /// <summary>
+        /// Create a mesh from a SubD limit surface
+        /// </summary>
+        /// <param name="subd"></param>
+        /// <param name="displayDensity"></param>
+        /// <returns></returns>
+        public static Mesh CreateFromSubD(SubD subd, int displayDensity)
+        {
+            return ComputeServer.Post<Mesh>(ApiAddress(), subd, displayDensity);
+        }
+
+        /// <summary>
+        /// Create a mesh from a SubD control net
+        /// </summary>
+        /// <param name="subd"></param>
+        /// <returns></returns>
+        public static Mesh CreateFromSubDControlNet(SubD subd)
+        {
+            return ComputeServer.Post<Mesh>(ApiAddress(), subd);
         }
 
         /// <summary>
@@ -7987,6 +8057,84 @@ namespace Rhino.Compute
         public static Mesh[] CreateBooleanSplit(Remote<IEnumerable<Mesh>> meshesToSplit, Remote<IEnumerable<Mesh>> meshSplitters)
         {
             return ComputeServer.Post<Mesh[]>(ApiAddress(), meshesToSplit, meshSplitters);
+        }
+
+        /// <summary>
+        /// Constructs a new extrusion from a curve.
+        /// </summary>
+        /// <param name="curve">A curve to extrude.</param>
+        /// <param name="direction">The direction of extrusion.</param>
+        /// <param name="parameters">The parameters of meshing.</param>
+        /// <param name="boundingBox">The bounding box controls the length of the estrusion.</param>
+        /// <returns>A new mesh, or null on failure.</returns>
+        public static Mesh CreateFromCurveExtrusion(Curve curve, Vector3d direction, MeshingParameters parameters, BoundingBox boundingBox)
+        {
+            return ComputeServer.Post<Mesh>(ApiAddress(), curve, direction, parameters, boundingBox);
+        }
+
+        /// <summary>
+        /// Constructs a new extrusion from a curve.
+        /// </summary>
+        /// <param name="curve">A curve to extrude.</param>
+        /// <param name="direction">The direction of extrusion.</param>
+        /// <param name="parameters">The parameters of meshing.</param>
+        /// <param name="boundingBox">The bounding box controls the length of the estrusion.</param>
+        /// <returns>A new mesh, or null on failure.</returns>
+        public static Mesh CreateFromCurveExtrusion(Remote<Curve> curve, Vector3d direction, MeshingParameters parameters, BoundingBox boundingBox)
+        {
+            return ComputeServer.Post<Mesh>(ApiAddress(), curve, direction, parameters, boundingBox);
+        }
+
+        /// <summary>Repairs meshes with vertices that are too near, using a tolerance value.</summary>
+        /// <param name="meshes">The meshes to be repared.</param>
+        /// <param name="tolerance">A minimum distance for clean vertices.</param>
+        /// <returns>A valid meshes array if successful. If no change was required, some meshes can be null. Otherwise, null, when no changes were done.</returns>
+        /// <remarks><seealso cref="RequireIterativeCleanup"/></remarks>
+        public static Mesh[] CreateFromIterativeCleanup(IEnumerable<Mesh> meshes, double tolerance)
+        {
+            return ComputeServer.Post<Mesh[]>(ApiAddress(), meshes, tolerance);
+        }
+
+        /// <summary>Repairs meshes with vertices that are too near, using a tolerance value.</summary>
+        /// <param name="meshes">The meshes to be repared.</param>
+        /// <param name="tolerance">A minimum distance for clean vertices.</param>
+        /// <returns>A valid meshes array if successful. If no change was required, some meshes can be null. Otherwise, null, when no changes were done.</returns>
+        /// <remarks><seealso cref="RequireIterativeCleanup"/></remarks>
+        public static Mesh[] CreateFromIterativeCleanup(Remote<IEnumerable<Mesh>> meshes, double tolerance)
+        {
+            return ComputeServer.Post<Mesh[]>(ApiAddress(), meshes, tolerance);
+        }
+
+        /// <summary>
+        /// Analyzes some meshes, and determines if a pass of CreateFromIterativeCleanup would change the array.
+        /// <para>All available cleanup steps are used. Currently available cleanup steps are:</para>
+        /// <para>- mending of single precision coincidence even though double precision vertices differ.</para>
+        /// <para>- union of nearly identical vertices, irrespectively of their origin.</para>
+        /// <para>- removal of t-joints along edges.</para>
+        /// </summary>
+        /// <param name="meshes">A list, and array or any enumerable of meshes.</param>
+        /// <param name="tolerance">A 3d distance. This is usually a value of about 10e-7 magnitude.</param>
+        /// <returns>True if meshes would be changed, otherwise false.</returns>
+        /// <remarks><seealso cref="Rhino.Geometry.Mesh.CreateFromIterativeCleanup"/></remarks>
+        public static bool RequireIterativeCleanup(IEnumerable<Mesh> meshes, double tolerance)
+        {
+            return ComputeServer.Post<bool>(ApiAddress(), meshes, tolerance);
+        }
+
+        /// <summary>
+        /// Analyzes some meshes, and determines if a pass of CreateFromIterativeCleanup would change the array.
+        /// <para>All available cleanup steps are used. Currently available cleanup steps are:</para>
+        /// <para>- mending of single precision coincidence even though double precision vertices differ.</para>
+        /// <para>- union of nearly identical vertices, irrespectively of their origin.</para>
+        /// <para>- removal of t-joints along edges.</para>
+        /// </summary>
+        /// <param name="meshes">A list, and array or any enumerable of meshes.</param>
+        /// <param name="tolerance">A 3d distance. This is usually a value of about 10e-7 magnitude.</param>
+        /// <returns>True if meshes would be changed, otherwise false.</returns>
+        /// <remarks><seealso cref="Rhino.Geometry.Mesh.CreateFromIterativeCleanup"/></remarks>
+        public static bool RequireIterativeCleanup(Remote<IEnumerable<Mesh>> meshes, double tolerance)
+        {
+            return ComputeServer.Post<bool>(ApiAddress(), meshes, tolerance);
         }
 
         /// <summary>
@@ -8652,6 +8800,7 @@ namespace Rhino.Compute
         {
             return ComputeServer.Post<Vector3d>(ApiAddress(), mesh, faceIndex, t0, t1, t2, t3);
         }
+
         /// <summary>
         /// Pulls a collection of points to a mesh.
         /// </summary>
@@ -8670,6 +8819,54 @@ namespace Rhino.Compute
         public static Point3d[] PullPointsToMesh(Remote<Mesh> mesh, IEnumerable<Point3d> points)
         {
             return ComputeServer.Post<Point3d[]>(ApiAddress(), mesh, points);
+        }
+
+        /// <summary>
+        /// Gets a polyline approximation of the input curve and then moves its control points to the closest point on the mesh.
+        /// Then it "connects the points" over edges so that a polyline on the mesh is formed.
+        /// </summary>
+        /// <param name="curve">A curve to pull.</param>
+        /// <param name="tolerance">A tolerance value.</param>
+        /// <returns>A polyline curve, or null if none could be constructed.</returns>
+        public static PolylineCurve PullCurve(this Mesh mesh, Curve curve, double tolerance)
+        {
+            return ComputeServer.Post<PolylineCurve>(ApiAddress(), mesh, curve, tolerance);
+        }
+
+        /// <summary>
+        /// Gets a polyline approximation of the input curve and then moves its control points to the closest point on the mesh.
+        /// Then it "connects the points" over edges so that a polyline on the mesh is formed.
+        /// </summary>
+        /// <param name="curve">A curve to pull.</param>
+        /// <param name="tolerance">A tolerance value.</param>
+        /// <returns>A polyline curve, or null if none could be constructed.</returns>
+        public static PolylineCurve PullCurve(Remote<Mesh> mesh, Remote<Curve> curve, double tolerance)
+        {
+            return ComputeServer.Post<PolylineCurve>(ApiAddress(), mesh, curve, tolerance);
+        }
+
+        /// <summary>
+        /// Splits a mesh by adding edges in correspondance with input polylines, and divides the mesh at partitioned areas.
+        /// Polyline segments that are measured not to be on the mesh will be ignored.
+        /// </summary>
+        /// <param name="curves">An array, a list or any enumerable of polyline curves.</param>
+        /// <param name="tolerance">A tolerance value.</param>
+        /// <returns>An array of meshes, or null if no change would happen.</returns>
+        public static Mesh[] SplitWithProjectedPolylines(this Mesh mesh, IEnumerable<PolylineCurve> curves, double tolerance)
+        {
+            return ComputeServer.Post<Mesh[]>(ApiAddress(), mesh, curves, tolerance);
+        }
+
+        /// <summary>
+        /// Splits a mesh by adding edges in correspondance with input polylines, and divides the mesh at partitioned areas.
+        /// Polyline segments that are measured not to be on the mesh will be ignored.
+        /// </summary>
+        /// <param name="curves">An array, a list or any enumerable of polyline curves.</param>
+        /// <param name="tolerance">A tolerance value.</param>
+        /// <returns>An array of meshes, or null if no change would happen.</returns>
+        public static Mesh[] SplitWithProjectedPolylines(Remote<Mesh> mesh, IEnumerable<PolylineCurve> curves, double tolerance)
+        {
+            return ComputeServer.Post<Mesh[]>(ApiAddress(), mesh, curves, tolerance);
         }
 
         /// <summary>
@@ -8918,6 +9115,118 @@ namespace Rhino.Compute
 
         /// <summary>
         /// Reduce polygon count
+        /// <summary>
+        /// Create QuadRemesh from a Brep
+        /// Set Brep Face Mode by setting QuadRemeshParameters.PreserveMeshArrayEdgesMode
+        /// </summary>
+        /// <param name="brep"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
+        public static Mesh QuadRemeshBrep(Brep brep, QuadRemeshParameters parameters)
+        {
+            return ComputeServer.Post<Mesh>(ApiAddress(), brep, parameters);
+        }
+
+        /// <summary>
+        /// Create QuadRemesh from a Brep
+        /// Set Brep Face Mode by setting QuadRemeshParameters.PreserveMeshArrayEdgesMode
+        /// </summary>
+        /// <param name="brep"></param>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
+        public static Mesh QuadRemeshBrep(Remote<Brep> brep, QuadRemeshParameters parameters)
+        {
+            return ComputeServer.Post<Mesh>(ApiAddress(), brep, parameters);
+        }
+
+        /// <summary>
+        /// Create Quad Remesh from a Brep
+        /// </summary>
+        /// <param name="brep">
+        /// Set Brep Face Mode by setting QuadRemeshParameters.PreserveMeshArrayEdgesMode
+        /// </param>
+        /// <param name="parameters"></param>
+        /// <param name="guideCurves">
+        /// A curve array used to influence mesh face layout
+        /// The curves should touch the input mesh
+        /// Set Guide Curve Influence by using QuadRemeshParameters.GuideCurveInfluence
+        /// </param>
+        /// <returns></returns>
+        public static Mesh QuadRemeshBrep(Brep brep, QuadRemeshParameters parameters, IEnumerable<Curve> guideCurves)
+        {
+            return ComputeServer.Post<Mesh>(ApiAddress(), brep, parameters, guideCurves);
+        }
+
+        /// <summary>
+        /// Create Quad Remesh from a Brep
+        /// </summary>
+        /// <param name="brep">
+        /// Set Brep Face Mode by setting QuadRemeshParameters.PreserveMeshArrayEdgesMode
+        /// </param>
+        /// <param name="parameters"></param>
+        /// <param name="guideCurves">
+        /// A curve array used to influence mesh face layout
+        /// The curves should touch the input mesh
+        /// Set Guide Curve Influence by using QuadRemeshParameters.GuideCurveInfluence
+        /// </param>
+        /// <returns></returns>
+        public static Mesh QuadRemeshBrep(Remote<Brep> brep, QuadRemeshParameters parameters, Remote<IEnumerable<Curve>> guideCurves)
+        {
+            return ComputeServer.Post<Mesh>(ApiAddress(), brep, parameters, guideCurves);
+        }
+
+        /// <summary>
+        /// Quad remesh this mesh
+        /// </summary>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
+        public static Mesh QuadRemesh(this Mesh mesh, out Mesh updatedInstance, QuadRemeshParameters parameters)
+        {
+            return ComputeServer.Post<Mesh, Mesh>(ApiAddress(), out updatedInstance, mesh, parameters);
+        }
+
+        /// <summary>
+        /// Quad remesh this mesh
+        /// </summary>
+        /// <param name="parameters"></param>
+        /// <returns></returns>
+        public static Mesh QuadRemesh(Remote<Mesh> mesh, out Mesh updatedInstance, QuadRemeshParameters parameters)
+        {
+            return ComputeServer.Post<Mesh, Mesh>(ApiAddress(), out updatedInstance, mesh, parameters);
+        }
+
+        /// <summary>
+        /// Quad remesh this mesh
+        /// </summary>
+        /// <param name="parameters"></param>
+        /// <param name="guideCurves">
+        /// A curve array used to influence mesh face layout
+        /// The curves should touch the input mesh
+        /// Set Guide Curve Influence by using QuadRemeshParameters.GuideCurveInfluence
+        /// </param>
+        /// <returns></returns>
+        public static Mesh QuadRemesh(this Mesh mesh, out Mesh updatedInstance, QuadRemeshParameters parameters, IEnumerable<Curve> guideCurves)
+        {
+            return ComputeServer.Post<Mesh, Mesh>(ApiAddress(), out updatedInstance, mesh, parameters, guideCurves);
+        }
+
+        /// <summary>
+        /// Quad remesh this mesh
+        /// </summary>
+        /// <param name="parameters"></param>
+        /// <param name="guideCurves">
+        /// A curve array used to influence mesh face layout
+        /// The curves should touch the input mesh
+        /// Set Guide Curve Influence by using QuadRemeshParameters.GuideCurveInfluence
+        /// </param>
+        /// <returns></returns>
+        public static Mesh QuadRemesh(Remote<Mesh> mesh, out Mesh updatedInstance, QuadRemeshParameters parameters, Remote<IEnumerable<Curve>> guideCurves)
+        {
+            return ComputeServer.Post<Mesh, Mesh>(ApiAddress(), out updatedInstance, mesh, parameters, guideCurves);
+        }
+
+        /// <summary>
+        /// Reduce polygon count
         /// </summary>
         /// <param name="desiredPolygonCount">desired or target number of faces</param>
         /// <param name="allowDistortion">
@@ -8932,6 +9241,174 @@ namespace Rhino.Compute
         {
             return ComputeServer.Post<bool, Mesh>(ApiAddress(), out updatedInstance, mesh, desiredPolygonCount, allowDistortion, accuracy, normalizeSize);
         }
+
+        /// <summary>
+        /// Reduce polygon count
+        /// </summary>
+        /// <param name="desiredPolygonCount">desired or target number of faces</param>
+        /// <param name="allowDistortion">
+        /// If true mesh appearance is not changed even if the target polygon count is not reached
+        /// </param>
+        /// <param name="accuracy">Integer from 1 to 10 telling how accurate reduction algorithm
+        ///  to use. Greater number gives more accurate results
+        /// </param>
+        /// <param name="normalizeSize">If true mesh is fitted to an axis aligned unit cube until reduction is complete</param>
+        /// <returns>True if mesh is successfully reduced and false if mesh could not be reduced for some reason.</returns>
+        public static bool Reduce(Remote<Mesh> mesh, out Mesh updatedInstance, int desiredPolygonCount, bool allowDistortion, int accuracy, bool normalizeSize)
+        {
+            return ComputeServer.Post<bool, Mesh>(ApiAddress(), out updatedInstance, mesh, desiredPolygonCount, allowDistortion, accuracy, normalizeSize);
+        }
+
+        /// <summary>
+        /// Reduce polygon count
+        /// </summary>
+        /// <param name="desiredPolygonCount">desired or target number of faces</param>
+        /// <param name="allowDistortion">
+        /// If true mesh appearance is not changed even if the target polygon count is not reached
+        /// </param>
+        /// <param name="accuracy">Integer from 1 to 10 telling how accurate reduction algorithm
+        ///  to use. Greater number gives more accurate results
+        /// </param>
+        /// <param name="normalizeSize">If true mesh is fitted to an axis aligned unit cube until reduction is complete</param>
+        /// <param name="threaded">
+        /// If True then will run computation inside a worker thread and ignore any provided CancellationTokens and ProgressReporters.
+        /// If False then will run on main thread.</param>
+        /// <returns>True if mesh is successfully reduced and false if mesh could not be reduced for some reason.</returns>
+        public static bool Reduce(this Mesh mesh, out Mesh updatedInstance, int desiredPolygonCount, bool allowDistortion, int accuracy, bool normalizeSize, bool threaded)
+        {
+            return ComputeServer.Post<bool, Mesh>(ApiAddress(), out updatedInstance, mesh, desiredPolygonCount, allowDistortion, accuracy, normalizeSize, threaded);
+        }
+
+        /// <summary>
+        /// Reduce polygon count
+        /// </summary>
+        /// <param name="desiredPolygonCount">desired or target number of faces</param>
+        /// <param name="allowDistortion">
+        /// If true mesh appearance is not changed even if the target polygon count is not reached
+        /// </param>
+        /// <param name="accuracy">Integer from 1 to 10 telling how accurate reduction algorithm
+        ///  to use. Greater number gives more accurate results
+        /// </param>
+        /// <param name="normalizeSize">If true mesh is fitted to an axis aligned unit cube until reduction is complete</param>
+        /// <param name="threaded">
+        /// If True then will run computation inside a worker thread and ignore any provided CancellationTokens and ProgressReporters.
+        /// If False then will run on main thread.</param>
+        /// <returns>True if mesh is successfully reduced and false if mesh could not be reduced for some reason.</returns>
+        public static bool Reduce(Remote<Mesh> mesh, out Mesh updatedInstance, int desiredPolygonCount, bool allowDistortion, int accuracy, bool normalizeSize, bool threaded)
+        {
+            return ComputeServer.Post<bool, Mesh>(ApiAddress(), out updatedInstance, mesh, desiredPolygonCount, allowDistortion, accuracy, normalizeSize, threaded);
+        }
+
+        /// <summary>Reduce polygon count</summary>
+        /// <param name="parameters">Parameters</param>
+        /// <returns>True if mesh is successfully reduced and false if mesh could not be reduced for some reason.</returns>
+        public static bool Reduce(this Mesh mesh, out Mesh updatedInstance, ReduceMeshParameters parameters)
+        {
+            return ComputeServer.Post<bool, Mesh>(ApiAddress(), out updatedInstance, mesh, parameters);
+        }
+
+        /// <summary>Reduce polygon count</summary>
+        /// <param name="parameters">Parameters</param>
+        /// <returns>True if mesh is successfully reduced and false if mesh could not be reduced for some reason.</returns>
+        public static bool Reduce(Remote<Mesh> mesh, out Mesh updatedInstance, ReduceMeshParameters parameters)
+        {
+            return ComputeServer.Post<bool, Mesh>(ApiAddress(), out updatedInstance, mesh, parameters);
+        }
+
+        /// <summary>Reduce polygon count</summary>
+        /// <param name="parameters">Parameters</param>
+        /// <param name="threaded">
+        /// If True then will run computation inside a worker thread and ignore any provided CancellationTokens and ProgressReporters.
+        /// If False then will run on main thread.</param>
+        /// <returns>True if mesh is successfully reduced and false if mesh could not be reduced for some reason.</returns>
+        public static bool Reduce(this Mesh mesh, out Mesh updatedInstance, ReduceMeshParameters parameters, bool threaded)
+        {
+            return ComputeServer.Post<bool, Mesh>(ApiAddress(), out updatedInstance, mesh, parameters, threaded);
+        }
+
+        /// <summary>Reduce polygon count</summary>
+        /// <param name="parameters">Parameters</param>
+        /// <param name="threaded">
+        /// If True then will run computation inside a worker thread and ignore any provided CancellationTokens and ProgressReporters.
+        /// If False then will run on main thread.</param>
+        /// <returns>True if mesh is successfully reduced and false if mesh could not be reduced for some reason.</returns>
+        public static bool Reduce(Remote<Mesh> mesh, out Mesh updatedInstance, ReduceMeshParameters parameters, bool threaded)
+        {
+            return ComputeServer.Post<bool, Mesh>(ApiAddress(), out updatedInstance, mesh, parameters, threaded);
+        }
+
+        /// <summary>
+        /// Compute thickness metrics for this mesh.
+        /// </summary>
+        /// <param name="meshes">Meshes to include in thickness analysis.</param>
+        /// <param name="maximumThickness">Maximum thickness to consider. Use as small a thickness as possible to speed up the solver.</param>
+        /// <returns>Array of thickness measurements.</returns>
+        public static MeshThicknessMeasurement[] ComputeThickness(IEnumerable<Mesh> meshes, double maximumThickness)
+        {
+            return ComputeServer.Post<MeshThicknessMeasurement[]>(ApiAddress(), meshes, maximumThickness);
+        }
+
+        /// <summary>
+        /// Compute thickness metrics for this mesh.
+        /// </summary>
+        /// <param name="meshes">Meshes to include in thickness analysis.</param>
+        /// <param name="maximumThickness">Maximum thickness to consider. Use as small a thickness as possible to speed up the solver.</param>
+        /// <returns>Array of thickness measurements.</returns>
+        public static MeshThicknessMeasurement[] ComputeThickness(Remote<IEnumerable<Mesh>> meshes, double maximumThickness)
+        {
+            return ComputeServer.Post<MeshThicknessMeasurement[]>(ApiAddress(), meshes, maximumThickness);
+        }
+
+        /// <summary>
+        /// Compute thickness metrics for this mesh.
+        /// </summary>
+        /// <param name="meshes">Meshes to include in thickness analysis.</param>
+        /// <param name="maximumThickness">Maximum thickness to consider. Use as small a thickness as possible to speed up the solver.</param>
+        /// <param name="cancelToken">Computation cancellation token.</param>
+        /// <returns>Array of thickness measurements.</returns>
+        public static MeshThicknessMeasurement[] ComputeThickness(IEnumerable<Mesh> meshes, double maximumThickness, System.Threading.CancellationToken cancelToken)
+        {
+            return ComputeServer.Post<MeshThicknessMeasurement[]>(ApiAddress(), meshes, maximumThickness, cancelToken);
+        }
+
+        /// <summary>
+        /// Compute thickness metrics for this mesh.
+        /// </summary>
+        /// <param name="meshes">Meshes to include in thickness analysis.</param>
+        /// <param name="maximumThickness">Maximum thickness to consider. Use as small a thickness as possible to speed up the solver.</param>
+        /// <param name="cancelToken">Computation cancellation token.</param>
+        /// <returns>Array of thickness measurements.</returns>
+        public static MeshThicknessMeasurement[] ComputeThickness(Remote<IEnumerable<Mesh>> meshes, double maximumThickness, System.Threading.CancellationToken cancelToken)
+        {
+            return ComputeServer.Post<MeshThicknessMeasurement[]>(ApiAddress(), meshes, maximumThickness, cancelToken);
+        }
+
+        /// <summary>
+        /// Compute thickness metrics for this mesh.
+        /// </summary>
+        /// <param name="meshes">Meshes to include in thickness analysis.</param>
+        /// <param name="maximumThickness">Maximum thickness to consider. Use as small a thickness as possible to speed up the solver.</param>
+        /// <param name="sharpAngle">Sharpness angle in radians.</param>
+        /// <param name="cancelToken">Computation cancellation token.</param>
+        /// <returns>Array of thickness measurements.</returns>
+        public static MeshThicknessMeasurement[] ComputeThickness(IEnumerable<Mesh> meshes, double maximumThickness, double sharpAngle, System.Threading.CancellationToken cancelToken)
+        {
+            return ComputeServer.Post<MeshThicknessMeasurement[]>(ApiAddress(), meshes, maximumThickness, sharpAngle, cancelToken);
+        }
+
+        /// <summary>
+        /// Compute thickness metrics for this mesh.
+        /// </summary>
+        /// <param name="meshes">Meshes to include in thickness analysis.</param>
+        /// <param name="maximumThickness">Maximum thickness to consider. Use as small a thickness as possible to speed up the solver.</param>
+        /// <param name="sharpAngle">Sharpness angle in radians.</param>
+        /// <param name="cancelToken">Computation cancellation token.</param>
+        /// <returns>Array of thickness measurements.</returns>
+        public static MeshThicknessMeasurement[] ComputeThickness(Remote<IEnumerable<Mesh>> meshes, double maximumThickness, double sharpAngle, System.Threading.CancellationToken cancelToken)
+        {
+            return ComputeServer.Post<MeshThicknessMeasurement[]>(ApiAddress(), meshes, maximumThickness, sharpAngle, cancelToken);
+        }
+
         /// <summary>
         /// Constructs contour curves for a mesh, sectioned along a linear axis.
         /// </summary>
@@ -8949,6 +9426,25 @@ namespace Rhino.Compute
         {
             return ComputeServer.Post<Curve[]>(ApiAddress(), meshToContour, contourStart, contourEnd, interval);
         }
+
+        /// <summary>
+        /// Constructs contour curves for a mesh, sectioned along a linear axis.
+        /// </summary>
+        /// <param name="meshToContour">A mesh to contour.</param>
+        /// <param name="contourStart">A start point of the contouring axis.</param>
+        /// <param name="contourEnd">An end point of the contouring axis.</param>
+        /// <param name="interval">An interval distance.</param>
+        /// <returns>An array of curves. This array can be empty.</returns>
+        /// <example>
+        /// <code source='examples\vbnet\ex_makerhinocontours.vb' lang='vbnet'/>
+        /// <code source='examples\cs\ex_makerhinocontours.cs' lang='cs'/>
+        /// <code source='examples\py\ex_makerhinocontours.py' lang='py'/>
+        /// </example>
+        public static Curve[] CreateContourCurves(Remote<Mesh> meshToContour, Point3d contourStart, Point3d contourEnd, double interval)
+        {
+            return ComputeServer.Post<Curve[]>(ApiAddress(), meshToContour, contourStart, contourEnd, interval);
+        }
+
         /// <summary>
         /// Constructs contour curves for a mesh, sectioned at a plane.
         /// </summary>
@@ -9081,6 +9577,27 @@ namespace Rhino.Compute
         {
             return ComputeServer.Post<NurbsCurve>(ApiAddress(), circle, degree, cvCount);
         }
+
+        /// <summary>
+        /// Gets Greville points for this curve.
+        /// </summary>
+        /// <param name="all">If true, then all Greville points are returnd. If false, only edit points are returned.</param>
+        /// <returns>A list of points if successful, null otherwise.</returns>
+        public static Point3dList GrevillePoints(this NurbsCurve nurbscurve, bool all)
+        {
+            return ComputeServer.Post<Point3dList>(ApiAddress(), nurbscurve, all);
+        }
+
+        /// <summary>
+        /// Gets Greville points for this curve.
+        /// </summary>
+        /// <param name="all">If true, then all Greville points are returnd. If false, only edit points are returned.</param>
+        /// <returns>A list of points if successful, null otherwise.</returns>
+        public static Point3dList GrevillePoints(Remote<NurbsCurve> nurbscurve, bool all)
+        {
+            return ComputeServer.Post<Point3dList>(ApiAddress(), nurbscurve, all);
+        }
+
         /// <summary>
         /// Sets all Greville edit points for this curve.
         /// </summary>
@@ -9217,6 +9734,32 @@ namespace Rhino.Compute
         static string ApiAddress([CallerMemberName] string caller = null)
         {
             return ComputeServer.ApiAddress(typeof(NurbsSurface), caller);
+        }
+
+        /// <summary>
+        /// Computes a discrete spline curve on the surface. In other words, computes a sequence 
+        /// of points on the surface, each with a corresponding parameter value.
+        /// </summary>
+        /// <param name="surface">
+        /// The surface on which the curve is constructed. The surface should be G1 continuous. 
+        /// If the surface is closed in the u or v direction and is G1 at the seam, the
+        /// function will construct point sequences that cross over the seam.
+        /// </param>
+        /// <param name="fixedPoints">Surface points to interpolate given by parameters. These must be distinct.</param>
+        /// <param name="tolerance">Relative tolerance used by the solver. When in doubt, use a tolerance of 0.0.</param>
+        /// <param name="periodic">When true constructs a smoothly closed curve.</param>
+        /// <param name="initCount">Maximum number of points to insert beteween fixed points on the first level.</param>
+        /// <param name="levels">The number of levels (between 1 and 3) to be used in multi-level solver. Use 1 for single level solve.</param>
+        /// <returns>
+        /// A sequence of surface points, given by surface parameters, if successful.
+        /// The number of output points is approximatelely: 2 ^ (level-1) * initCount * fixedPoints.Count.
+        /// </returns>
+        /// <remarks>
+        /// To create a curve from the output points, use Surface.CreateCurveOnSurface.
+        /// </remarks>
+        public static Point2d[] CreateCurveOnSurfacePoints(Surface surface, IEnumerable<Point2d> fixedPoints, double tolerance, bool periodic, int initCount, int levels)
+        {
+            return ComputeServer.Post<Point2d[]>(ApiAddress(), surface, fixedPoints, tolerance, periodic, initCount, levels);
         }
 
         /// <summary>
@@ -9494,6 +10037,65 @@ namespace Rhino.Compute
         }
     }
 
+    public static class SubDCompute
+    {
+        static string ApiAddress([CallerMemberName] string caller = null)
+        {
+            return ComputeServer.ApiAddress(typeof(SubD), caller);
+        }
+
+        /// <summary>
+        /// Create a Brep based on this SubD geometry
+        /// </summary>
+        /// <returns></returns>
+        public static Brep ToBrep(this SubD subd, out SubD updatedInstance)
+        {
+            return ComputeServer.Post<Brep, SubD>(ApiAddress(), out updatedInstance, subd);
+        }
+
+        /// <summary>
+        /// Create a new SubD from a mesh
+        /// </summary>
+        /// <param name="mesh"></param>
+        /// <returns></returns>
+        public static SubD CreateFromMesh(Mesh mesh)
+        {
+            return ComputeServer.Post<SubD>(ApiAddress(), mesh);
+        }
+
+        /// <summary>
+        /// Create a new SubD from a mesh
+        /// </summary>
+        /// <param name="mesh"></param>
+        /// <returns></returns>
+        public static SubD CreateFromMesh(Remote<Mesh> mesh)
+        {
+            return ComputeServer.Post<SubD>(ApiAddress(), mesh);
+        }
+
+        /// <summary>
+        /// Create a new SubD from a mesh
+        /// </summary>
+        /// <param name="mesh"></param>
+        /// <param name="options"></param>
+        /// <returns></returns>
+        public static SubD CreateFromMesh(Mesh mesh, SubDCreationOptions options)
+        {
+            return ComputeServer.Post<SubD>(ApiAddress(), mesh, options);
+        }
+
+        /// <summary>
+        /// Create a new SubD from a mesh
+        /// </summary>
+        /// <param name="mesh"></param>
+        /// <param name="options"></param>
+        /// <returns></returns>
+        public static SubD CreateFromMesh(Remote<Mesh> mesh, SubDCreationOptions options)
+        {
+            return ComputeServer.Post<SubD>(ApiAddress(), mesh, options);
+        }
+    }
+
     public static class SurfaceCompute
     {
         static string ApiAddress([CallerMemberName] string caller = null)
@@ -9519,6 +10121,20 @@ namespace Rhino.Compute
         /// Constructs a rolling ball fillet between two surfaces.
         /// </summary>
         /// <param name="surfaceA">A first surface.</param>
+        /// <param name="surfaceB">A second surface.</param>
+        /// <param name="radius">A radius value.</param>
+        /// <param name="tolerance">A tolerance value.</param>
+        /// <returns>A new array of rolling ball fillet surfaces; this array can be empty on failure.</returns>
+        /// <exception cref="ArgumentNullException">If surfaceA or surfaceB are null.</exception>
+        public static Surface[] CreateRollingBallFillet(Remote<Surface> surfaceA, Remote<Surface> surfaceB, double radius, double tolerance)
+        {
+            return ComputeServer.Post<Surface[]>(ApiAddress(), surfaceA, surfaceB, radius, tolerance);
+        }
+
+        /// <summary>
+        /// Constructs a rolling ball fillet between two surfaces.
+        /// </summary>
+        /// <param name="surfaceA">A first surface.</param>
         /// <param name="flipA">A value that indicates whether A should be used in flipped mode.</param>
         /// <param name="surfaceB">A second surface.</param>
         /// <param name="flipB">A value that indicates whether B should be used in flipped mode.</param>
@@ -9535,6 +10151,22 @@ namespace Rhino.Compute
         /// Constructs a rolling ball fillet between two surfaces.
         /// </summary>
         /// <param name="surfaceA">A first surface.</param>
+        /// <param name="flipA">A value that indicates whether A should be used in flipped mode.</param>
+        /// <param name="surfaceB">A second surface.</param>
+        /// <param name="flipB">A value that indicates whether B should be used in flipped mode.</param>
+        /// <param name="radius">A radius value.</param>
+        /// <param name="tolerance">A tolerance value.</param>
+        /// <returns>A new array of rolling ball fillet surfaces; this array can be empty on failure.</returns>
+        /// <exception cref="ArgumentNullException">If surfaceA or surfaceB are null.</exception>
+        public static Surface[] CreateRollingBallFillet(Remote<Surface> surfaceA, bool flipA, Remote<Surface> surfaceB, bool flipB, double radius, double tolerance)
+        {
+            return ComputeServer.Post<Surface[]>(ApiAddress(), surfaceA, flipA, surfaceB, flipB, radius, tolerance);
+        }
+
+        /// <summary>
+        /// Constructs a rolling ball fillet between two surfaces.
+        /// </summary>
+        /// <param name="surfaceA">A first surface.</param>
         /// <param name="uvA">A point in the parameter space of FaceA near where the fillet is expected to hit the surface.</param>
         /// <param name="surfaceB">A second surface.</param>
         /// <param name="uvB">A point in the parameter space of FaceB near where the fillet is expected to hit the surface.</param>
@@ -9543,6 +10175,22 @@ namespace Rhino.Compute
         /// <returns>A new array of rolling ball fillet surfaces; this array can be empty on failure.</returns>
         /// <exception cref="ArgumentNullException">If surfaceA or surfaceB are null.</exception>
         public static Surface[] CreateRollingBallFillet(Surface surfaceA, Point2d uvA, Surface surfaceB, Point2d uvB, double radius, double tolerance)
+        {
+            return ComputeServer.Post<Surface[]>(ApiAddress(), surfaceA, uvA, surfaceB, uvB, radius, tolerance);
+        }
+
+        /// <summary>
+        /// Constructs a rolling ball fillet between two surfaces.
+        /// </summary>
+        /// <param name="surfaceA">A first surface.</param>
+        /// <param name="uvA">A point in the parameter space of FaceA near where the fillet is expected to hit the surface.</param>
+        /// <param name="surfaceB">A second surface.</param>
+        /// <param name="uvB">A point in the parameter space of FaceB near where the fillet is expected to hit the surface.</param>
+        /// <param name="radius">A radius value.</param>
+        /// <param name="tolerance">A tolerance value used for approximating and intersecting offset surfaces.</param>
+        /// <returns>A new array of rolling ball fillet surfaces; this array can be empty on failure.</returns>
+        /// <exception cref="ArgumentNullException">If surfaceA or surfaceB are null.</exception>
+        public static Surface[] CreateRollingBallFillet(Remote<Surface> surfaceA, Point2d uvA, Remote<Surface> surfaceB, Point2d uvB, double radius, double tolerance)
         {
             return ComputeServer.Post<Surface[]>(ApiAddress(), surfaceA, uvA, surfaceB, uvB, radius, tolerance);
         }
@@ -9607,6 +10255,17 @@ namespace Rhino.Compute
         /// </summary>
         /// <param name="surface">The surface to make periodic.</param>
         /// <param name="direction">The direction to make periodic, either 0 = U, or 1 = V.</param>
+        /// <returns>A Surface on success or null on failure.</returns>
+        public static Surface CreatePeriodicSurface(Remote<Surface> surface, int direction)
+        {
+            return ComputeServer.Post<Surface>(ApiAddress(), surface, direction);
+        }
+
+        /// <summary>
+        /// Constructs a periodic surface from a base surface and a direction.
+        /// </summary>
+        /// <param name="surface">The surface to make periodic.</param>
+        /// <param name="direction">The direction to make periodic, either 0 = U, or 1 = V.</param>
         /// <param name="bSmooth">
         /// Controls kink removal. If true, smooths any kinks in the surface and moves control points
         /// to make a smooth surface. If false, control point locations are not changed or changed minimally
@@ -9614,6 +10273,22 @@ namespace Rhino.Compute
         /// </param>
         /// <returns>A periodic surface if successful, null on failure.</returns>
         public static Surface CreatePeriodicSurface(Surface surface, int direction, bool bSmooth)
+        {
+            return ComputeServer.Post<Surface>(ApiAddress(), surface, direction, bSmooth);
+        }
+
+        /// <summary>
+        /// Constructs a periodic surface from a base surface and a direction.
+        /// </summary>
+        /// <param name="surface">The surface to make periodic.</param>
+        /// <param name="direction">The direction to make periodic, either 0 = U, or 1 = V.</param>
+        /// <param name="bSmooth">
+        /// Controls kink removal. If true, smooths any kinks in the surface and moves control points
+        /// to make a smooth surface. If false, control point locations are not changed or changed minimally
+        /// (only one point may move) and only the knot vector is altered.
+        /// </param>
+        /// <returns>A periodic surface if successful, null on failure.</returns>
+        public static Surface CreatePeriodicSurface(Remote<Surface> surface, int direction, bool bSmooth)
         {
             return ComputeServer.Post<Surface>(ApiAddress(), surface, direction, bSmooth);
         }
@@ -9643,26 +10318,91 @@ namespace Rhino.Compute
         {
             return ComputeServer.Post<Surface>(ApiAddress(), surface, uv, delta, uLength, vLength, tolerance, fixEnds);
         }
+
         /// <summary>
-        /// Gets an estimate of the size of the rectangle that would be created
-        /// if the 3d surface where flattened into a rectangle.
+        /// Creates a soft edited surface from an exising surface using a smooth field of influence.
         /// </summary>
-        /// <param name="width">corresponds to the first surface parameter.</param>
-        /// <param name="height">corresponds to the second surface parameter.</param>
-        /// <returns>true if successful.</returns>
-        /// <example>
-        /// Reparameterize a surface to minimize distortion in the map from parameter space to 3d.
-        /// Surface surf = ...;
-        /// double width, height;
-        /// if ( surf.GetSurfaceSize( out width, out height ) )
-        /// {
-        ///   surf.SetDomain( 0, new ON_Interval( 0.0, width ) );
-        ///   surf.SetDomain( 1, new ON_Interval( 0.0, height ) );
-        /// }
-        /// </example>
-        public static bool GetSurfaceSize(this Surface surface, out double width, out double height)
+        /// <param name="surface">The surface to soft edit.</param>
+        /// <param name="uv">
+        /// A point in the parameter space to move from. This location on the surface is moved, 
+        /// and the move is smoothly tapered off with increasing distance along the surface from
+        /// this parameter.
+        /// </param>
+        /// <param name="delta">The direction and magitude, or maximum distance, of the move.</param>
+        /// <param name="uLength">
+        /// The distance along the surface's u-direction from the editing point over which the
+        /// strength of the editing falls off smoothly.
+        /// </param>
+        /// <param name="vLength">
+        /// The distance along the surface's v-direction from the editing point over which the
+        /// strength of the editing falls off smoothly.
+        /// </param>
+        /// <param name="tolerance">The active document's model absolute tolerance.</param>
+        /// <param name="fixEnds">Keeps edge locations fixed.</param>
+        /// <returns>The soft edited surface if successful. null on failure.</returns>
+        public static Surface CreateSoftEditSurface(Remote<Surface> surface, Point2d uv, Vector3d delta, double uLength, double vLength, double tolerance, bool fixEnds)
         {
-            return ComputeServer.Post<bool, double, double>(ApiAddress(), out width, out height, surface);
+            return ComputeServer.Post<Surface>(ApiAddress(), surface, uv, delta, uLength, vLength, tolerance, fixEnds);
+        }
+
+        /// <summary>
+        /// Copies a surface so that all locations at the corners of the copied surface are specified distances from the original surface.
+        /// </summary>
+        /// <param name="uMinvMin">Offset distance at Domain(0).Min, Domain(1).Min.</param>
+        /// <param name="uMinvMax">Offset distance at Domain(0).Min, Domain(1).Max.</param>
+        /// <param name="uMaxvMin">Offset distance at Domain(0).Max, Domain(1).Min.</param>
+        /// <param name="uMaxvMax">Offset distance at Domain(0).Max, Domain(1).Max.</param>
+        /// <param name="tolerance">The offset tolerance.</param>
+        /// <returns>The offset surface if successful, null otherwise.</returns>
+        public static Surface VariableOffset(this Surface surface, out Surface updatedInstance, double uMinvMin, double uMinvMax, double uMaxvMin, double uMaxvMax, double tolerance)
+        {
+            return ComputeServer.Post<Surface, Surface>(ApiAddress(), out updatedInstance, surface, uMinvMin, uMinvMax, uMaxvMin, uMaxvMax, tolerance);
+        }
+
+        /// <summary>
+        /// Copies a surface so that all locations at the corners of the copied surface are specified distances from the original surface.
+        /// </summary>
+        /// <param name="uMinvMin">Offset distance at Domain(0).Min, Domain(1).Min.</param>
+        /// <param name="uMinvMax">Offset distance at Domain(0).Min, Domain(1).Max.</param>
+        /// <param name="uMaxvMin">Offset distance at Domain(0).Max, Domain(1).Min.</param>
+        /// <param name="uMaxvMax">Offset distance at Domain(0).Max, Domain(1).Max.</param>
+        /// <param name="tolerance">The offset tolerance.</param>
+        /// <returns>The offset surface if successful, null otherwise.</returns>
+        public static Surface VariableOffset(Remote<Surface> surface, out Surface updatedInstance, double uMinvMin, double uMinvMax, double uMaxvMin, double uMaxvMax, double tolerance)
+        {
+            return ComputeServer.Post<Surface, Surface>(ApiAddress(), out updatedInstance, surface, uMinvMin, uMinvMax, uMaxvMin, uMaxvMax, tolerance);
+        }
+
+        /// <summary>
+        /// Copies a surface so that all locations at the corners, and from specified interior locations, of the copied surface are specified distances from the original surface.
+        /// </summary>
+        /// <param name="uMinvMin">Offset distance at Domain(0).Min, Domain(1).Min.</param>
+        /// <param name="uMinvMax">Offset distance at Domain(0).Min, Domain(1).Max.</param>
+        /// <param name="uMaxvMin">Offset distance at Domain(0).Max, Domain(1).Min.</param>
+        /// <param name="uMaxvMax">Offset distance at Domain(0).Max, Domain(1).Max.</param>
+        /// <param name="interiorParameters">An array of interior uv parameters to offset from.</param>
+        /// <param name="interiorDistances">>An array of offset distances at the interior uv parameters.</param>
+        /// <param name="tolerance">The offset tolerance.</param>
+        /// <returns>The offset surface if successful, null otherwise.</returns>
+        public static Surface VariableOffset(this Surface surface, out Surface updatedInstance, double uMinvMin, double uMinvMax, double uMaxvMin, double uMaxvMax, IEnumerable<Point2d> interiorParameters, IEnumerable<double> interiorDistances, double tolerance)
+        {
+            return ComputeServer.Post<Surface, Surface>(ApiAddress(), out updatedInstance, surface, uMinvMin, uMinvMax, uMaxvMin, uMaxvMax, interiorParameters, interiorDistances, tolerance);
+        }
+
+        /// <summary>
+        /// Copies a surface so that all locations at the corners, and from specified interior locations, of the copied surface are specified distances from the original surface.
+        /// </summary>
+        /// <param name="uMinvMin">Offset distance at Domain(0).Min, Domain(1).Min.</param>
+        /// <param name="uMinvMax">Offset distance at Domain(0).Min, Domain(1).Max.</param>
+        /// <param name="uMaxvMin">Offset distance at Domain(0).Max, Domain(1).Min.</param>
+        /// <param name="uMaxvMax">Offset distance at Domain(0).Max, Domain(1).Max.</param>
+        /// <param name="interiorParameters">An array of interior uv parameters to offset from.</param>
+        /// <param name="interiorDistances">>An array of offset distances at the interior uv parameters.</param>
+        /// <param name="tolerance">The offset tolerance.</param>
+        /// <returns>The offset surface if successful, null otherwise.</returns>
+        public static Surface VariableOffset(Remote<Surface> surface, out Surface updatedInstance, double uMinvMin, double uMinvMax, double uMaxvMin, double uMaxvMax, IEnumerable<Point2d> interiorParameters, IEnumerable<double> interiorDistances, double tolerance)
+        {
+            return ComputeServer.Post<Surface, Surface>(ApiAddress(), out updatedInstance, surface, uMinvMin, uMinvMax, uMaxvMin, uMaxvMax, interiorParameters, interiorDistances, tolerance);
         }
 
         /// <summary>
@@ -9672,6 +10412,17 @@ namespace Rhino.Compute
         /// <param name="v">A v parameter.</param>
         /// <returns>A side.</returns>
         public static IsoStatus ClosestSide(this Surface surface, double u, double v)
+        {
+            return ComputeServer.Post<IsoStatus>(ApiAddress(), surface, u, v);
+        }
+
+        /// <summary>
+        /// Gets the side that is closest, in terms of 3D-distance, to a U and V parameter.
+        /// </summary>
+        /// <param name="u">A u parameter.</param>
+        /// <param name="v">A v parameter.</param>
+        /// <returns>A side.</returns>
+        public static IsoStatus ClosestSide(Remote<Surface> surface, double u, double v)
         {
             return ComputeServer.Post<IsoStatus>(ApiAddress(), surface, u, v);
         }
@@ -9689,6 +10440,23 @@ namespace Rhino.Compute
         /// </param>
         /// <returns>New extended surface on success.</returns>
         public static Surface Extend(this Surface surface, IsoStatus edge, double extensionLength, bool smooth)
+        {
+            return ComputeServer.Post<Surface>(ApiAddress(), surface, edge, extensionLength, smooth);
+        }
+
+        /// <summary>
+        /// Extends an untrimmed surface along one edge.
+        /// </summary>
+        /// <param name="edge">
+        /// Edge to extend.  Must be North, South, East, or West.
+        /// </param>
+        /// <param name="extensionLength">distance to extend.</param>
+        /// <param name="smooth">
+        /// true for smooth (C-infinity) extension. 
+        /// false for a C1- ruled extension.
+        /// </param>
+        /// <returns>New extended surface on success.</returns>
+        public static Surface Extend(Remote<Surface> surface, IsoStatus edge, double extensionLength, bool smooth)
         {
             return ComputeServer.Post<Surface>(ApiAddress(), surface, edge, extensionLength, smooth);
         }
@@ -9713,6 +10481,25 @@ namespace Rhino.Compute
         }
 
         /// <summary>
+        /// Rebuilds an existing surface to a given degree and point count.
+        /// </summary>
+        /// <param name="uDegree">the output surface u degree.</param>
+        /// <param name="vDegree">the output surface u degree.</param>
+        /// <param name="uPointCount">
+        /// The number of points in the output surface u direction. Must be bigger
+        /// than uDegree (maximum value is 1000)
+        /// </param>
+        /// <param name="vPointCount">
+        /// The number of points in the output surface v direction. Must be bigger
+        /// than vDegree (maximum value is 1000)
+        /// </param>
+        /// <returns>new rebuilt surface on success. null on failure.</returns>
+        public static NurbsSurface Rebuild(Remote<Surface> surface, int uDegree, int vDegree, int uPointCount, int vPointCount)
+        {
+            return ComputeServer.Post<NurbsSurface>(ApiAddress(), surface, uDegree, vDegree, uPointCount, vPointCount);
+        }
+
+        /// <summary>
         /// Rebuilds an existing surface with a new surface to a given point count in either the u or v directions independently.
         /// </summary>
         /// <param name="direction">The direction (0 = U, 1 = V).</param>
@@ -9721,6 +10508,19 @@ namespace Rhino.Compute
         /// <param name="refitTolerance">The refit tolerance. When in doubt, use the document's model absolute tolerance.</param>
         /// <returns>new rebuilt surface on success. null on failure.</returns>
         public static NurbsSurface RebuildOneDirection(this Surface surface, int direction, int pointCount, LoftType loftType, double refitTolerance)
+        {
+            return ComputeServer.Post<NurbsSurface>(ApiAddress(), surface, direction, pointCount, loftType, refitTolerance);
+        }
+
+        /// <summary>
+        /// Rebuilds an existing surface with a new surface to a given point count in either the u or v directions independently.
+        /// </summary>
+        /// <param name="direction">The direction (0 = U, 1 = V).</param>
+        /// <param name="pointCount">The number of points in the output surface in the "direction" direction.</param>
+        /// <param name="loftType">The loft type</param>
+        /// <param name="refitTolerance">The refit tolerance. When in doubt, use the document's model absolute tolerance.</param>
+        /// <returns>new rebuilt surface on success. null on failure.</returns>
+        public static NurbsSurface RebuildOneDirection(Remote<Surface> surface, int direction, int pointCount, LoftType loftType, double refitTolerance)
         {
             return ComputeServer.Post<NurbsSurface>(ApiAddress(), surface, direction, pointCount, loftType, refitTolerance);
         }
@@ -9743,6 +10543,23 @@ namespace Rhino.Compute
         }
 
         /// <summary>
+        /// Input the parameters of the point on the surface that is closest to testPoint.
+        /// </summary>
+        /// <param name="testPoint">A point to test against.</param>
+        /// <param name="u">U parameter of the surface that is closest to testPoint.</param>
+        /// <param name="v">V parameter of the surface that is closest to testPoint.</param>
+        /// <returns>true on success, false on failure.</returns>
+        /// <example>
+        /// <code source='examples\vbnet\ex_orientonsrf.vb' lang='vbnet'/>
+        /// <code source='examples\cs\ex_orientonsrf.cs' lang='cs'/>
+        /// <code source='examples\py\ex_orientonsrf.py' lang='py'/>
+        /// </example>
+        public static bool ClosestPoint(Remote<Surface> surface, Point3d testPoint, out double u, out double v)
+        {
+            return ComputeServer.Post<bool, double, double>(ApiAddress(), out u, out v, surface, testPoint);
+        }
+
+        /// <summary>
         /// Find parameters of the point on a surface that is locally closest to
         /// the testPoint. The search for a local close point starts at seed parameters.
         /// </summary>
@@ -9758,12 +10575,38 @@ namespace Rhino.Compute
         }
 
         /// <summary>
+        /// Find parameters of the point on a surface that is locally closest to
+        /// the testPoint. The search for a local close point starts at seed parameters.
+        /// </summary>
+        /// <param name="testPoint">A point to test against.</param>
+        /// <param name="seedU">The seed parameter in the U direction.</param>
+        /// <param name="seedV">The seed parameter in the V direction.</param>
+        /// <param name="u">U parameter of the surface that is closest to testPoint.</param>
+        /// <param name="v">V parameter of the surface that is closest to testPoint.</param>
+        /// <returns>true if the search is successful, false if the search fails.</returns>
+        public static bool LocalClosestPoint(Remote<Surface> surface, Point3d testPoint, double seedU, double seedV, out double u, out double v)
+        {
+            return ComputeServer.Post<bool, double, double>(ApiAddress(), out u, out v, surface, testPoint, seedU, seedV);
+        }
+
+        /// <summary>
         /// Constructs a new surface which is offset from the current surface.
         /// </summary>
         /// <param name="distance">Distance (along surface normal) to offset.</param>
         /// <param name="tolerance">Offset accuracy.</param>
         /// <returns>The offsetted surface or null on failure.</returns>
         public static Surface Offset(this Surface surface, double distance, double tolerance)
+        {
+            return ComputeServer.Post<Surface>(ApiAddress(), surface, distance, tolerance);
+        }
+
+        /// <summary>
+        /// Constructs a new surface which is offset from the current surface.
+        /// </summary>
+        /// <param name="distance">Distance (along surface normal) to offset.</param>
+        /// <param name="tolerance">Offset accuracy.</param>
+        /// <returns>The offsetted surface or null on failure.</returns>
+        public static Surface Offset(Remote<Surface> surface, double distance, double tolerance)
         {
             return ComputeServer.Post<Surface>(ApiAddress(), surface, distance, tolerance);
         }
@@ -9778,6 +10621,16 @@ namespace Rhino.Compute
             return ComputeServer.Post<Surface>(ApiAddress(), surface, uDegree, vDegree, fitTolerance);
         }
 
+        /// <summary>Fits a new surface through an existing surface.</summary>
+        /// <param name="uDegree">the output surface U degree. Must be bigger than 1.</param>
+        /// <param name="vDegree">the output surface V degree. Must be bigger than 1.</param>
+        /// <param name="fitTolerance">The fitting tolerance.</param>
+        /// <returns>A surface, or null on error.</returns>
+        public static Surface Fit(Remote<Surface> surface, int uDegree, int vDegree, double fitTolerance)
+        {
+            return ComputeServer.Post<Surface>(ApiAddress(), surface, uDegree, vDegree, fitTolerance);
+        }
+
         /// <summary>
         /// Returns a curve that interpolates points on a surface. The interpolant lies on the surface.
         /// </summary>
@@ -9785,6 +10638,17 @@ namespace Rhino.Compute
         /// <param name="tolerance">Tolerance used for the fit of the pushup curve. Generally, the resulting interpolating curve will be within tolerabce of the surface.</param>
         /// <returns>A new NURBS curve if successful, or null on error.</returns>
         public static NurbsCurve InterpolatedCurveOnSurfaceUV(this Surface surface, System.Collections.Generic.IEnumerable<Point2d> points, double tolerance)
+        {
+            return ComputeServer.Post<NurbsCurve>(ApiAddress(), surface, points, tolerance);
+        }
+
+        /// <summary>
+        /// Returns a curve that interpolates points on a surface. The interpolant lies on the surface.
+        /// </summary>
+        /// <param name="points">List of at least two UV parameter locations on the surface.</param>
+        /// <param name="tolerance">Tolerance used for the fit of the pushup curve. Generally, the resulting interpolating curve will be within tolerabce of the surface.</param>
+        /// <returns>A new NURBS curve if successful, or null on error.</returns>
+        public static NurbsCurve InterpolatedCurveOnSurfaceUV(Remote<Surface> surface, System.Collections.Generic.IEnumerable<Point2d> points, double tolerance)
         {
             return ComputeServer.Post<NurbsCurve>(ApiAddress(), surface, points, tolerance);
         }
@@ -9813,12 +10677,46 @@ namespace Rhino.Compute
         }
 
         /// <summary>
+        /// Returns a curve that interpolates points on a surface. The interpolant lies on the surface.
+        /// </summary>
+        /// <param name="points">List of at least two UV parameter locations on the surface.</param>
+        /// <param name="tolerance">Tolerance used for the fit of the pushup curve. Generally, the resulting interpolating curve will be within tolerabce of the surface.</param>
+        /// <param name="closed">If false, the interpolating curve is not closed. If true, the interpolating curve is closed, and the last point and first point should generally not be equal.</param>
+        /// <param name="closedSurfaceHandling">
+        /// If 0, all points must be in the rectangular domain of the surface. If the surface is closed in some direction, 
+        /// then this routine will interpret each point and place it at an appropriate location in the the covering space. 
+        /// This is the simplest option and should give good results. 
+        /// If 1, then more options for more control of handling curves going across seams are available.
+        /// If the surface is closed in some direction, then the points are taken as points in the covering space. 
+        /// Example, if srf.IsClosed(0)=true and srf.IsClosed(1)=false and srf.Domain(0)=srf.Domain(1)=Interval(0,1) 
+        /// then if closedSurfaceHandling=1 a point(u, v) in points can have any value for the u coordinate, but must have 0&lt;=v&lt;=1.  
+        /// In particular, if points = { (0.0,0.5), (2.0,0.5) } then the interpolating curve will wrap around the surface two times in the closed direction before ending at start of the curve.
+        /// If closed=true the last point should equal the first point plus an integer multiple of the period on a closed direction.
+        /// </param>
+        /// <returns>A new NURBS curve if successful, or null on error.</returns>
+        public static NurbsCurve InterpolatedCurveOnSurfaceUV(Remote<Surface> surface, System.Collections.Generic.IEnumerable<Point2d> points, double tolerance, bool closed, int closedSurfaceHandling)
+        {
+            return ComputeServer.Post<NurbsCurve>(ApiAddress(), surface, points, tolerance, closed, closedSurfaceHandling);
+        }
+
+        /// <summary>
         /// Constructs an interpolated curve on a surface, using 3D points.
         /// </summary>
         /// <param name="points">A list, an array or any enumerable set of points.</param>
         /// <param name="tolerance">A tolerance value.</param>
         /// <returns>A new nurbs curve, or null on error.</returns>
         public static NurbsCurve InterpolatedCurveOnSurface(this Surface surface, System.Collections.Generic.IEnumerable<Point3d> points, double tolerance)
+        {
+            return ComputeServer.Post<NurbsCurve>(ApiAddress(), surface, points, tolerance);
+        }
+
+        /// <summary>
+        /// Constructs an interpolated curve on a surface, using 3D points.
+        /// </summary>
+        /// <param name="points">A list, an array or any enumerable set of points.</param>
+        /// <param name="tolerance">A tolerance value.</param>
+        /// <returns>A new nurbs curve, or null on error.</returns>
+        public static NurbsCurve InterpolatedCurveOnSurface(Remote<Surface> surface, System.Collections.Generic.IEnumerable<Point3d> points, double tolerance)
         {
             return ComputeServer.Post<NurbsCurve>(ApiAddress(), surface, points, tolerance);
         }
@@ -9831,6 +10729,18 @@ namespace Rhino.Compute
         /// <param name="tolerance">tolerance used in fitting discrete solution.</param>
         /// <returns>a geodesic curve on the surface on success. null on failure.</returns>
         public static Curve ShortPath(this Surface surface, Point2d start, Point2d end, double tolerance)
+        {
+            return ComputeServer.Post<Curve>(ApiAddress(), surface, start, end, tolerance);
+        }
+
+        /// <summary>
+        /// Constructs a geodesic between 2 points, used by ShortPath command in Rhino.
+        /// </summary>
+        /// <param name="start">start point of curve in parameter space. Points must be distinct in the domain of thie surface.</param>
+        /// <param name="end">end point of curve in parameter space. Points must be distinct in the domain of thie surface.</param>
+        /// <param name="tolerance">tolerance used in fitting discrete solution.</param>
+        /// <returns>a geodesic curve on the surface on success. null on failure.</returns>
+        public static Curve ShortPath(Remote<Surface> surface, Point2d start, Point2d end, double tolerance)
         {
             return ComputeServer.Post<Curve>(ApiAddress(), surface, start, end, tolerance);
         }
@@ -9858,7 +10768,7 @@ namespace Rhino.Compute
         /// </param>
         /// <param name="curve2dSubdomain">The curve interval (a sub-domain of the original curve) to use.</param>
         /// <returns>3d curve.</returns>
-        public static Curve Pushup(this Surface surface, Remote<Curve> curve2d, double tolerance, Interval curve2dSubdomain)
+        public static Curve Pushup(Remote<Surface> surface, Remote<Curve> curve2d, double tolerance, Interval curve2dSubdomain)
         {
             return ComputeServer.Post<Curve>(ApiAddress(), surface, curve2d, tolerance, curve2dSubdomain);
         }
@@ -9884,7 +10794,7 @@ namespace Rhino.Compute
         /// the maximum acceptable distance from the returned 3d curve to the image of curve_2d on the surface.
         /// </param>
         /// <returns>3d curve.</returns>
-        public static Curve Pushup(this Surface surface, Remote<Curve> curve2d, double tolerance)
+        public static Curve Pushup(Remote<Surface> surface, Remote<Curve> curve2d, double tolerance)
         {
             return ComputeServer.Post<Curve>(ApiAddress(), surface, curve2d, tolerance);
         }
@@ -9912,7 +10822,7 @@ namespace Rhino.Compute
         /// to the locus of points on the surface that are closest to curve_3d.
         /// </param>
         /// <returns>2d curve.</returns>
-        public static Curve Pullback(this Surface surface, Remote<Curve> curve3d, double tolerance)
+        public static Curve Pullback(Remote<Surface> surface, Remote<Curve> curve3d, double tolerance)
         {
             return ComputeServer.Post<Curve>(ApiAddress(), surface, curve3d, tolerance);
         }
@@ -9942,7 +10852,7 @@ namespace Rhino.Compute
         /// </param>
         /// <param name="curve3dSubdomain">A subdomain of the curve to sample.</param>
         /// <returns>2d curve.</returns>
-        public static Curve Pullback(this Surface surface, Remote<Curve> curve3d, double tolerance, Interval curve3dSubdomain)
+        public static Curve Pullback(Remote<Surface> surface, Remote<Curve> curve3d, double tolerance, Interval curve3dSubdomain)
         {
             return ComputeServer.Post<Curve>(ApiAddress(), surface, curve3d, tolerance, curve3dSubdomain);
         }
@@ -10086,8 +10996,7 @@ namespace Rhino.Compute.Intersect
         /// </summary>
         /// <param name="curveA">First curve for intersection.</param>
         /// <param name="curveB">Second curve for intersection.</param>
-        /// <param name="tolerance">Intersection tolerance. If the curves approach each other to within tolerance, 
-        /// an intersection is assumed.</param>
+        /// <param name="tolerance">Intersection tolerance. If the curves approach each other to within tolerance, an intersection is assumed.</param>
         /// <param name="overlapTolerance">The tolerance with which the curves are tested.</param>
         /// <returns>A collection of intersection events.</returns>
         /// <example>
@@ -10105,8 +11014,7 @@ namespace Rhino.Compute.Intersect
         /// </summary>
         /// <param name="curveA">First curve for intersection.</param>
         /// <param name="curveB">Second curve for intersection.</param>
-        /// <param name="tolerance">Intersection tolerance. If the curves approach each other to within tolerance, 
-        /// an intersection is assumed.</param>
+        /// <param name="tolerance">Intersection tolerance. If the curves approach each other to within tolerance, an intersection is assumed.</param>
         /// <param name="overlapTolerance">The tolerance with which the curves are tested.</param>
         /// <returns>A collection of intersection events.</returns>
         /// <example>
@@ -10123,9 +11031,8 @@ namespace Rhino.Compute.Intersect
         /// Intersects a curve and an infinite line. 
         /// </summary>
         /// <param name="curve">Curve for intersection.</param>
-        /// <param name="line">Infinite line to intesect.</param>
-        /// <param name="tolerance">Intersection tolerance. If the curves approach each other to within tolerance, 
-        /// an intersection is assumed.</param>
+        /// <param name="line">Infinite line to intersect.</param>
+        /// <param name="tolerance">Intersection tolerance. If the curves approach each other to within tolerance, an intersection is assumed.</param>
         /// <param name="overlapTolerance">The tolerance with which the curves are tested.</param>
         /// <returns>A collection of intersection events.</returns>
         public static CurveIntersections CurveLine(Curve curve, Line line, double tolerance, double overlapTolerance)
@@ -10137,9 +11044,8 @@ namespace Rhino.Compute.Intersect
         /// Intersects a curve and an infinite line. 
         /// </summary>
         /// <param name="curve">Curve for intersection.</param>
-        /// <param name="line">Infinite line to intesect.</param>
-        /// <param name="tolerance">Intersection tolerance. If the curves approach each other to within tolerance, 
-        /// an intersection is assumed.</param>
+        /// <param name="line">Infinite line to intersect.</param>
+        /// <param name="tolerance">Intersection tolerance. If the curves approach each other to within tolerance, an intersection is assumed.</param>
         /// <param name="overlapTolerance">The tolerance with which the curves are tested.</param>
         /// <returns>A collection of intersection events.</returns>
         public static CurveIntersections CurveLine(Remote<Curve> curve, Line line, double tolerance, double overlapTolerance)
@@ -10152,8 +11058,7 @@ namespace Rhino.Compute.Intersect
         /// </summary>
         /// <param name="curve">Curve for intersection.</param>
         /// <param name="surface">Surface for intersection.</param>
-        /// <param name="tolerance">Intersection tolerance. If the curve approaches the surface to within tolerance, 
-        /// an intersection is assumed.</param>
+        /// <param name="tolerance">Intersection tolerance. If the curve approaches the surface to within tolerance, an intersection is assumed.</param>
         /// <param name="overlapTolerance">The tolerance with which the curves are tested.</param>
         /// <returns>A collection of intersection events.</returns>
         /// <example>
@@ -10171,8 +11076,7 @@ namespace Rhino.Compute.Intersect
         /// </summary>
         /// <param name="curve">Curve for intersection.</param>
         /// <param name="surface">Surface for intersection.</param>
-        /// <param name="tolerance">Intersection tolerance. If the curve approaches the surface to within tolerance, 
-        /// an intersection is assumed.</param>
+        /// <param name="tolerance">Intersection tolerance. If the curve approaches the surface to within tolerance, an intersection is assumed.</param>
         /// <param name="overlapTolerance">The tolerance with which the curves are tested.</param>
         /// <returns>A collection of intersection events.</returns>
         /// <example>
@@ -10180,19 +11084,18 @@ namespace Rhino.Compute.Intersect
         /// <code source='examples\cs\ex_curvesurfaceintersect.cs' lang='cs'/>
         /// <code source='examples\py\ex_curvesurfaceintersect.py' lang='py'/>
         /// </example>
-        public static CurveIntersections CurveSurface(Remote<Curve> curve, Surface surface, double tolerance, double overlapTolerance)
+        public static CurveIntersections CurveSurface(Remote<Curve> curve, Remote<Surface> surface, double tolerance, double overlapTolerance)
         {
             return ComputeServer.Post<CurveIntersections>(ApiAddress(), curve, surface, tolerance, overlapTolerance);
         }
 
         /// <summary>
-        /// Intersects a (sub)curve and a surface.
+        /// Intersects a sub-curve and a surface.
         /// </summary>
         /// <param name="curve">Curve for intersection.</param>
-        /// <param name="curveDomain">Domain of surbcurve to take into consideration for Intersections.</param>
+        /// <param name="curveDomain">Domain of sub-curve to take into consideration for Intersections.</param>
         /// <param name="surface">Surface for intersection.</param>
-        /// <param name="tolerance">Intersection tolerance. If the curve approaches the surface to within tolerance, 
-        /// an intersection is assumed.</param>
+        /// <param name="tolerance">Intersection tolerance. If the curve approaches the surface to within tolerance, an intersection is assumed.</param>
         /// <param name="overlapTolerance">The tolerance with which the curves are tested.</param>
         /// <returns>A collection of intersection events.</returns>
         public static CurveIntersections CurveSurface(Curve curve, Interval curveDomain, Surface surface, double tolerance, double overlapTolerance)
@@ -10201,18 +11104,59 @@ namespace Rhino.Compute.Intersect
         }
 
         /// <summary>
-        /// Intersects a (sub)curve and a surface.
+        /// Intersects a sub-curve and a surface.
         /// </summary>
         /// <param name="curve">Curve for intersection.</param>
-        /// <param name="curveDomain">Domain of surbcurve to take into consideration for Intersections.</param>
+        /// <param name="curveDomain">Domain of sub-curve to take into consideration for Intersections.</param>
         /// <param name="surface">Surface for intersection.</param>
-        /// <param name="tolerance">Intersection tolerance. If the curve approaches the surface to within tolerance, 
-        /// an intersection is assumed.</param>
+        /// <param name="tolerance">Intersection tolerance. If the curve approaches the surface to within tolerance, an intersection is assumed.</param>
         /// <param name="overlapTolerance">The tolerance with which the curves are tested.</param>
         /// <returns>A collection of intersection events.</returns>
-        public static CurveIntersections CurveSurface(Remote<Curve> curve, Interval curveDomain, Surface surface, double tolerance, double overlapTolerance)
+        public static CurveIntersections CurveSurface(Remote<Curve> curve, Interval curveDomain, Remote<Surface> surface, double tolerance, double overlapTolerance)
         {
             return ComputeServer.Post<CurveIntersections>(ApiAddress(), curve, curveDomain, surface, tolerance, overlapTolerance);
+        }
+
+        /// <summary>
+        /// Intersects a curve with a Brep. This function returns the 3D points of intersection
+        /// and 3D overlap curves. If an error occurs while processing overlap curves, this function 
+        /// will return false, but it will still provide partial results.
+        /// </summary>
+        /// <param name="curve">Curve for intersection.</param>
+        /// <param name="brep">Brep for intersection.</param>
+        /// <param name="tolerance">Fitting and near miss tolerance.</param>
+        /// <param name="overlapCurves">The overlap curves will be returned here.</param>
+        /// <param name="intersectionPoints">The intersection points will be returned here.</param>
+        /// <returns>true on success, false on failure.</returns>
+        /// <example>
+        /// <code source='examples\vbnet\ex_elevation.vb' lang='vbnet'/>
+        /// <code source='examples\cs\ex_elevation.cs' lang='cs'/>
+        /// <code source='examples\py\ex_elevation.py' lang='py'/>
+        /// </example>
+        public static bool CurveBrep(Curve curve, Brep brep, double tolerance, out Curve[] overlapCurves, out Point3d[] intersectionPoints)
+        {
+            return ComputeServer.Post<bool, Curve[], Point3d[]>(ApiAddress(), out overlapCurves, out intersectionPoints, curve, brep, tolerance);
+        }
+
+        /// <summary>
+        /// Intersects a curve with a Brep. This function returns the 3D points of intersection
+        /// and 3D overlap curves. If an error occurs while processing overlap curves, this function 
+        /// will return false, but it will still provide partial results.
+        /// </summary>
+        /// <param name="curve">Curve for intersection.</param>
+        /// <param name="brep">Brep for intersection.</param>
+        /// <param name="tolerance">Fitting and near miss tolerance.</param>
+        /// <param name="overlapCurves">The overlap curves will be returned here.</param>
+        /// <param name="intersectionPoints">The intersection points will be returned here.</param>
+        /// <returns>true on success, false on failure.</returns>
+        /// <example>
+        /// <code source='examples\vbnet\ex_elevation.vb' lang='vbnet'/>
+        /// <code source='examples\cs\ex_elevation.cs' lang='cs'/>
+        /// <code source='examples\py\ex_elevation.py' lang='py'/>
+        /// </example>
+        public static bool CurveBrep(Remote<Curve> curve, Remote<Brep> brep, double tolerance, out Curve[] overlapCurves, out Point3d[] intersectionPoints)
+        {
+            return ComputeServer.Post<bool, Curve[], Point3d[]>(ApiAddress(), out overlapCurves, out intersectionPoints, curve, brep, tolerance);
         }
 
         /// <summary>
@@ -10228,6 +11172,49 @@ namespace Rhino.Compute.Intersect
         {
             return ComputeServer.Post<bool, double[]>(ApiAddress(), out t, curve, brep, tolerance, angleTolerance);
         }
+
+        /// <summary>
+        /// Intersect a curve with a Brep. This function returns the intersection parameters on the curve.
+        /// </summary>
+        /// <param name="curve">Curve.</param>
+        /// <param name="brep">Brep.</param>
+        /// <param name="tolerance">Absolute tolerance for intersections.</param>
+        /// <param name="angleTolerance">Angle tolerance in radians.</param>
+        /// <param name="t">Curve parameters at intersections.</param>
+        /// <returns>True on success, false on failure.</returns>
+        public static bool CurveBrep(Remote<Curve> curve, Remote<Brep> brep, double tolerance, double angleTolerance, out double[] t)
+        {
+            return ComputeServer.Post<bool, double[]>(ApiAddress(), out t, curve, brep, tolerance, angleTolerance);
+        }
+
+        /// <summary>
+        /// Intersects a curve with a Brep face.
+        /// </summary>
+        /// <param name="curve">A curve.</param>
+        /// <param name="face">A brep face.</param>
+        /// <param name="tolerance">Fitting and near miss tolerance.</param>
+        /// <param name="overlapCurves">A overlap curves array argument. This out reference is assigned during the call.</param>
+        /// <param name="intersectionPoints">A points array argument. This out reference is assigned during the call.</param>
+        /// <returns>true on success, false on failure.</returns>
+        public static bool CurveBrepFace(Curve curve, BrepFace face, double tolerance, out Curve[] overlapCurves, out Point3d[] intersectionPoints)
+        {
+            return ComputeServer.Post<bool, Curve[], Point3d[]>(ApiAddress(), out overlapCurves, out intersectionPoints, curve, face, tolerance);
+        }
+
+        /// <summary>
+        /// Intersects a curve with a Brep face.
+        /// </summary>
+        /// <param name="curve">A curve.</param>
+        /// <param name="face">A brep face.</param>
+        /// <param name="tolerance">Fitting and near miss tolerance.</param>
+        /// <param name="overlapCurves">A overlap curves array argument. This out reference is assigned during the call.</param>
+        /// <param name="intersectionPoints">A points array argument. This out reference is assigned during the call.</param>
+        /// <returns>true on success, false on failure.</returns>
+        public static bool CurveBrepFace(Remote<Curve> curve, BrepFace face, double tolerance, out Curve[] overlapCurves, out Point3d[] intersectionPoints)
+        {
+            return ComputeServer.Post<bool, Curve[], Point3d[]>(ApiAddress(), out overlapCurves, out intersectionPoints, curve, face, tolerance);
+        }
+
         /// <summary>
         /// Intersects two Surfaces.
         /// </summary>
@@ -10238,6 +11225,20 @@ namespace Rhino.Compute.Intersect
         /// <param name="intersectionPoints">The intersection points will be returned here.</param>
         /// <returns>true on success, false on failure.</returns>
         public static bool SurfaceSurface(Surface surfaceA, Surface surfaceB, double tolerance, out Curve[] intersectionCurves, out Point3d[] intersectionPoints)
+        {
+            return ComputeServer.Post<bool, Curve[], Point3d[]>(ApiAddress(), out intersectionCurves, out intersectionPoints, surfaceA, surfaceB, tolerance);
+        }
+
+        /// <summary>
+        /// Intersects two Surfaces.
+        /// </summary>
+        /// <param name="surfaceA">First Surface for intersection.</param>
+        /// <param name="surfaceB">Second Surface for intersection.</param>
+        /// <param name="tolerance">Intersection tolerance.</param>
+        /// <param name="intersectionCurves">The intersection curves will be returned here.</param>
+        /// <param name="intersectionPoints">The intersection points will be returned here.</param>
+        /// <returns>true on success, false on failure.</returns>
+        public static bool SurfaceSurface(Remote<Surface> surfaceA, Remote<Surface> surfaceB, double tolerance, out Curve[] intersectionCurves, out Point3d[] intersectionPoints)
         {
             return ComputeServer.Post<bool, Curve[], Point3d[]>(ApiAddress(), out intersectionCurves, out intersectionPoints, surfaceA, surfaceB, tolerance);
         }
@@ -10293,13 +11294,13 @@ namespace Rhino.Compute.Intersect
         /// <param name="intersectionCurves">The intersection curves array argument. This out reference is assigned during the call.</param>
         /// <param name="intersectionPoints">The intersection points array argument. This out reference is assigned during the call.</param>
         /// <returns>true on success; false on failure.</returns>
-        public static bool BrepSurface(Remote<Brep> brep, Surface surface, double tolerance, out Curve[] intersectionCurves, out Point3d[] intersectionPoints)
+        public static bool BrepSurface(Remote<Brep> brep, Remote<Surface> surface, double tolerance, out Curve[] intersectionCurves, out Point3d[] intersectionPoints)
         {
             return ComputeServer.Post<bool, Curve[], Point3d[]>(ApiAddress(), out intersectionCurves, out intersectionPoints, brep, surface, tolerance);
         }
 
         /// <summary>
-        /// Quickly intersects two meshes. Overlaps and near misses are ignored.
+        /// This is an old overload kept for compatibility. Overlaps and near misses are ignored.
         /// </summary>
         /// <param name="meshA">First mesh for intersection.</param>
         /// <param name="meshB">Second mesh for intersection.</param>
@@ -10310,7 +11311,7 @@ namespace Rhino.Compute.Intersect
         }
 
         /// <summary>
-        /// Quickly intersects two meshes. Overlaps and near misses are ignored.
+        /// This is an old overload kept for compatibility. Overlaps and near misses are ignored.
         /// </summary>
         /// <param name="meshA">First mesh for intersection.</param>
         /// <param name="meshB">Second mesh for intersection.</param>
@@ -10321,56 +11322,26 @@ namespace Rhino.Compute.Intersect
         }
 
         /// <summary>
-        /// Intersects two meshes. Overlaps and perforations are handled in the output list.
-        /// </summary>
-        /// <param name="meshes">The mesh input list. It cannot be null.</param>
-        /// <param name="tolerance">A tolerance value. If negative, the positive value will be used.
-        /// WARNING! Good tolerance values are in the magnitude of 10^-7, or RhinoMath.SqrtEpsilon*10.</param>
-        /// <param name="performPreprocessing">Indicates if preprocessing should be executed.</param>
-        /// <param name="mode">The required working mode.</param>
-        /// <param name="textLog">A text log, or null.</param>
-        /// <returns>An array of both intersects, and overlaps.</returns>
-        public static Polyline[] MeshMesh(IEnumerable<Mesh> meshes, double tolerance, SetsCombinations mode = SetsCombinations.Cross, bool performPreprocessing = true, FileIO.TextLog textLog = null)
-        {
-            return ComputeServer.Post<Polyline[]>(ApiAddress(), meshes, tolerance, mode, performPreprocessing, textLog);
-        }
-
-        /// <summary>
-        /// Intersects two meshes. Overlaps and perforations are handled in the output list.
-        /// </summary>
-        /// <param name="meshes">The mesh input list. It cannot be null.</param>
-        /// <param name="tolerance">A tolerance value. If negative, the positive value will be used.
-        /// WARNING! Good tolerance values are in the magnitude of 10^-7, or RhinoMath.SqrtEpsilon*10.</param>
-        /// <param name="performPreprocessing">Indicates if preprocessing should be executed.</param>
-        /// <param name="mode">The required working mode.</param>
-        /// <param name="textLog">A text log, or null.</param>
-        /// <returns>An array of both intersects, and overlaps.</returns>
-        public static Polyline[] MeshMesh(Remote<IEnumerable<Mesh>> meshes, double tolerance, SetsCombinations mode = SetsCombinations.Cross, bool performPreprocessing = true, FileIO.TextLog textLog = null)
-        {
-            return ComputeServer.Post<Polyline[]>(ApiAddress(), meshes, tolerance, mode, performPreprocessing, textLog);
-        }
-
-        /// <summary>
-        /// Intersects two meshes. Overlaps and near misses are handled.
+        /// Intersects two meshes. Overlaps and near misses are handled. This is an old method kept for compatibility.
         /// </summary>
         /// <param name="meshA">First mesh for intersection.</param>
         /// <param name="meshB">Second mesh for intersection.</param>
         /// <param name="tolerance">A tolerance value. If negative, the positive value will be used.
         /// WARNING! Good tolerance values are in the magnitude of 10^-7, or RhinoMath.SqrtEpsilon*10.</param>
-        /// <returns>An array of intersection polylines.</returns>
+        /// <returns>An array of intersection and overlaps polylines.</returns>
         public static Polyline[] MeshMeshAccurate(Mesh meshA, Mesh meshB, double tolerance)
         {
             return ComputeServer.Post<Polyline[]>(ApiAddress(), meshA, meshB, tolerance);
         }
 
         /// <summary>
-        /// Intersects two meshes. Overlaps and near misses are handled.
+        /// Intersects two meshes. Overlaps and near misses are handled. This is an old method kept for compatibility.
         /// </summary>
         /// <param name="meshA">First mesh for intersection.</param>
         /// <param name="meshB">Second mesh for intersection.</param>
         /// <param name="tolerance">A tolerance value. If negative, the positive value will be used.
         /// WARNING! Good tolerance values are in the magnitude of 10^-7, or RhinoMath.SqrtEpsilon*10.</param>
-        /// <returns>An array of intersection polylines.</returns>
+        /// <returns>An array of intersection and overlaps polylines.</returns>
         public static Polyline[] MeshMeshAccurate(Remote<Mesh> meshA, Remote<Mesh> meshB, double tolerance)
         {
             return ComputeServer.Post<Polyline[]>(ApiAddress(), meshA, meshB, tolerance);
@@ -10492,6 +11463,20 @@ namespace Rhino.Compute.Intersect
         /// <exception cref="ArgumentNullException">geometry is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">maxReflections is strictly outside the [1-1000] range.</exception>
         public static Point3d[] RayShoot(Ray3d ray, IEnumerable<GeometryBase> geometry, int maxReflections)
+        {
+            return ComputeServer.Post<Point3d[]>(ApiAddress(), ray, geometry, maxReflections);
+        }
+
+        /// <summary>
+        /// Computes point intersections that occur when shooting a ray to a collection of surfaces.
+        /// </summary>
+        /// <param name="ray">A ray used in intersection.</param>
+        /// <param name="geometry">Only Surface and Brep objects are currently supported. Trims are ignored on Breps.</param>
+        /// <param name="maxReflections">The maximum number of reflections. This value should be any value between 1 and 1000, inclusive.</param>
+        /// <returns>An array of points: one for each face that was passed by the faceIds out reference.</returns>
+        /// <exception cref="ArgumentNullException">geometry is null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">maxReflections is strictly outside the [1-1000] range.</exception>
+        public static Point3d[] RayShoot(Ray3d ray, Remote<IEnumerable<GeometryBase>> geometry, int maxReflections)
         {
             return ComputeServer.Post<Point3d[]>(ApiAddress(), ray, geometry, maxReflections);
         }
@@ -10631,74 +11616,74 @@ namespace Rhino.Compute.Intersect
         {
             return ComputeServer.Post<Point3d[], int[]>(ApiAddress(), out indices, breps, points, direction, tolerance);
         }
+
+        public class IntersectionEvent
+        {
+            /// <summary>
+            /// All curve intersection events are either a single point or an overlap.
+            /// </summary>
+            public bool IsPoint { get; set; }
+
+            /// <summary>
+            /// All curve intersection events are either a single point or an overlap.
+            /// </summary>
+            /// <example>
+            /// <code source='examples\vbnet\ex_curvesurfaceintersect.vb' lang='vbnet'/>
+            /// <code source='examples\cs\ex_curvesurfaceintersect.cs' lang='cs'/>
+            /// <code source='examples\py\ex_curvesurfaceintersect.py' lang='py'/>
+            /// </example>
+            public bool IsOverlap { get; set; }
+
+            /// <summary>
+            /// Gets the point on Curve A where the intersection occured. 
+            /// If the intersection type is overlap, then this will return the 
+            /// start of the overlap region.
+            /// </summary>
+            public Point3d PointA { get; set; }
+            /// <summary>
+            /// Gets the end point of the overlap on Curve A. 
+            /// If the intersection type is not overlap, this value is meaningless.
+            /// </summary>
+            public Point3d PointA2 { get; set; }
+
+            /// <summary>
+            /// Gets the point on Curve B (or Surface B) where the intersection occured. 
+            /// If the intersection type is overlap, then this will return the 
+            /// start of the overlap region.
+            /// </summary>
+            public Point3d PointB { get; set; }
+            /// <summary>
+            /// Gets the end point of the overlap on Curve B (or Surface B). 
+            /// If the intersection type is not overlap, this value is meaningless.
+            /// </summary>
+            public Point3d PointB2 { get; set; }
+
+            /// <summary>
+            /// Gets the parameter on Curve A where the intersection occured. 
+            /// If the intersection type is overlap, then this will return the 
+            /// start of the overlap region.
+            /// </summary>
+            public double ParameterA { get; set; }
+            /// <summary>
+            /// Gets the parameter on Curve B where the intersection occured. 
+            /// If the intersection type is overlap, then this will return the 
+            /// start of the overlap region.
+            /// </summary>
+            public double ParameterB { get; set; }
+
+            /// <summary>
+            /// Gets the interval on curve A where the overlap occurs. 
+            /// If the intersection type is not overlap, this value is meaningless.
+            /// </summary>
+            public Interval OverlapA { get; set; }
+
+            /// <summary>
+            /// Gets the interval on curve B where the overlap occurs. 
+            /// If the intersection type is not overlap, this value is meaningless.
+            /// </summary>
+            public Interval OverlapB { get; set; }
+        }
+
+        public class CurveIntersections : List<IntersectionEvent> { }
     }
-
-    public class IntersectionEvent
-    {
-        /// <summary>
-        /// All curve intersection events are either a single point or an overlap.
-        /// </summary>
-        public bool IsPoint { get; set; }
-
-        /// <summary>
-        /// All curve intersection events are either a single point or an overlap.
-        /// </summary>
-        /// <example>
-        /// <code source='examples\vbnet\ex_curvesurfaceintersect.vb' lang='vbnet'/>
-        /// <code source='examples\cs\ex_curvesurfaceintersect.cs' lang='cs'/>
-        /// <code source='examples\py\ex_curvesurfaceintersect.py' lang='py'/>
-        /// </example>
-        public bool IsOverlap { get; set; }
-
-        /// <summary>
-        /// Gets the point on Curve A where the intersection occured. 
-        /// If the intersection type is overlap, then this will return the 
-        /// start of the overlap region.
-        /// </summary>
-        public Point3d PointA { get; set; }
-        /// <summary>
-        /// Gets the end point of the overlap on Curve A. 
-        /// If the intersection type is not overlap, this value is meaningless.
-        /// </summary>
-        public Point3d PointA2 { get; set; }
-
-        /// <summary>
-        /// Gets the point on Curve B (or Surface B) where the intersection occured. 
-        /// If the intersection type is overlap, then this will return the 
-        /// start of the overlap region.
-        /// </summary>
-        public Point3d PointB { get; set; }
-        /// <summary>
-        /// Gets the end point of the overlap on Curve B (or Surface B). 
-        /// If the intersection type is not overlap, this value is meaningless.
-        /// </summary>
-        public Point3d PointB2 { get; set; }
-
-        /// <summary>
-        /// Gets the parameter on Curve A where the intersection occured. 
-        /// If the intersection type is overlap, then this will return the 
-        /// start of the overlap region.
-        /// </summary>
-        public double ParameterA { get; set; }
-        /// <summary>
-        /// Gets the parameter on Curve B where the intersection occured. 
-        /// If the intersection type is overlap, then this will return the 
-        /// start of the overlap region.
-        /// </summary>
-        public double ParameterB { get; set; }
-
-        /// <summary>
-        /// Gets the interval on curve A where the overlap occurs. 
-        /// If the intersection type is not overlap, this value is meaningless.
-        /// </summary>
-        public Interval OverlapA { get; set; }
-
-        /// <summary>
-        /// Gets the interval on curve B where the overlap occurs. 
-        /// If the intersection type is not overlap, this value is meaningless.
-        /// </summary>
-        public Interval OverlapB { get; set; }
-    }
-
-    public class CurveIntersections : List<IntersectionEvent> { }
 }
