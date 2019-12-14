@@ -88,7 +88,17 @@ namespace computegen
             get
             {
               return
-@"    Grasshopper: {
+@"    Python: {
+        pythonEvaluate : function(script, input, output){
+            let inputEncoded = rhino3dm.ArchivableDictionary.encodeDict(input);
+            let url = 'rhino/python/evaluate';
+            let args = [script, JSON.stringify(inputEncoded), output];
+            let result = await compute.computeFetch(url, args);
+            let objects = rhino3dm.ArchivableDictionary.decodeDict(JSON.parse(result));
+            return objects;
+        }
+    },
+    Grasshopper: {
         DataTree: class {
             constructor(name) {
                 this.data = { 'ParamName': name, 'InnerTree': {} }
