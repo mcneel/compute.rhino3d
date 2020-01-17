@@ -29,7 +29,7 @@ after_build:
       7z a -tzip -r compute-deploy-${env:APPVEYOR_BUILD_VERSION}.zip ${env:APPVEYOR_BUILD_FOLDER}\dist\*
 artifacts:
   - path: compute-$(APPVEYOR_BUILD_VERSION).zip
-  - path: compute-deploy-$(APPVEYOR_BUILD_VERSION).zip
+  #- path: compute-deploy-$(APPVEYOR_BUILD_VERSION).zip
 deploy:
   - provider: S3
     region: $(AWS_DEFAULT_REGION)
