@@ -139,6 +139,9 @@ namespace compute.geometry
                         name = genericArgs[0].Name + "Array";
                     }
                     name = name.Replace("[]", "Array").Replace("Int32", "Int").Replace("Boolean", "Bool");
+                    if (name.Equals("JObject"))
+                        name = "jsonobject";
+
                     extra.Append(name);
                 }
                 Path = Path + extra.ToString();
