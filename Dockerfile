@@ -4,12 +4,10 @@
 
 ### builder image
 FROM mcr.microsoft.com/dotnet/framework/sdk:4.8 as builder
-RUN powershell -Command Invoke-WebRequest -OutFile nuget.exe https://dist.nuget.org/win-x86-commandline/v5.0.2/nuget.exe
 
 # copy everything, restore nuget packages and build app
 COPY src/ ./src/
-RUN nuget.exe restore .\src\compute.sln
-RUN msbuild /p:Configuration=Release src/compute.sln
+RUN msbuild /p:Configuration=Release /restore src/compute.sln
 
 ### main image
 FROM mcr.microsoft.com/windows:1903
