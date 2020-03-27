@@ -28,6 +28,8 @@ namespace compute.geometry
 #endif
 
             Logging.Init();
+            LogVersions();
+
             int backendPort = Env.GetEnvironmentInt("COMPUTE_BACKEND_PORT", 8081);
 
             Topshelf.HostFactory.Run(x =>
@@ -49,6 +51,18 @@ namespace compute.geometry
 
             if (RhinoCore != null)
                 RhinoCore.Dispose();
+        }
+
+        private static void LogVersions()
+        {
+            string compute_version = null, rhino_version = null;
+            try
+            {
+                compute_version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
+                rhino_version = typeof(Rhino.RhinoApp).Assembly.GetName().Version.ToString();
+            }
+            catch { }
+            Log.Information("Compute {ComputeVersion}, Rhino {RhinoVersion}", compute_version, rhino_version);
         }
     }
 
