@@ -145,9 +145,16 @@ namespace compute.frontend
                     using (var stream = new MemoryStream())
                     {
                         ctx.Response.Contents.Invoke(stream);
-
-                        logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
-                            "ResponseContentLength", stream.Length));
+                        try
+                        {
+                            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
+                                "ResponseContentLength", stream.Length));
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                            // skip logging content length if stream is prematurely closed
+                            // seems to happen a lot when debugging
+                        }
                     }
 
                     logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
