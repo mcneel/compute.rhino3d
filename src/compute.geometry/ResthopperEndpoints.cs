@@ -12,6 +12,7 @@ using Grasshopper.Kernel.Parameters;
 using Grasshopper.Kernel.Special;
 using Rhino.Geometry;
 using System.Net;
+using Nancy.Extensions;
 
 namespace compute.geometry
 {
@@ -45,13 +46,7 @@ namespace compute.geometry
             // load grasshopper file
             GH_Archive archive = null;
 
-            string json = string.Empty;
-            using (var reader = new StreamReader(ctx.Request.Body))
-            {
-                json = reader.ReadToEnd();
-            }
-
-            Schema input = JsonConvert.DeserializeObject<Schema>(json);
+            Schema input = JsonConvert.DeserializeObject<Schema>(ctx.Request.Body.AsString());
 
             if (input.Algo != null)
             {
@@ -259,8 +254,8 @@ namespace compute.geometry
                                                 }
                                                 catch
                                                 {
-                                                    Rhino.Geometry.NurbsCurve data = JsonConvert.DeserializeObject<Rhino.Geometry.NurbsCurve>(restobj.Data);
-                                                    Rhino.Geometry.Curve c = new Rhino.Geometry.NurbsCurve(data);
+                                                    var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(restobj.Data);
+                                                    var c = (Rhino.Geometry.Curve)Rhino.Runtime.CommonObject.FromJSON(dict);
                                                     ghCurve = new GH_Curve(c);
                                                 }
                                                 curveParam.AddVolatileData(path, i, ghCurve);
@@ -453,8 +448,6 @@ namespace compute.geometry
                                 }
                             }
                         }
-
-
                     }
                 }
 
