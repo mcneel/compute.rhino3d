@@ -105,7 +105,6 @@ namespace compute.frontend
         {
             // Set up compute to run on a secondary process
             // Proxy requests through to the backend process.
-            string backendPort = Env.GetEnvironmentString("COMPUTE_BACKEND_PORT", "8081");
             var info = new System.Diagnostics.ProcessStartInfo();
             info.UseShellExecute = false;
             foreach (System.Collections.DictionaryEntry entry in Environment.GetEnvironmentVariables())
@@ -115,7 +114,7 @@ namespace compute.frontend
 
             info.FileName = "compute.geometry.exe";
 
-            Log.Information("Starting back-end geometry service on port {Port}", backendPort);
+            Log.Information("Spawning back-end geometry service");
             _backendProcess = System.Diagnostics.Process.Start(info);
             _backendProcess.EnableRaisingEvents = true;
             _backendProcess.Exited += _backendProcess_Exited;

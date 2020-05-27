@@ -1,8 +1,10 @@
-﻿using Nancy.Extensions;
+﻿using Nancy;
+using Nancy.Extensions;
 using Serilog;
 using System;
 using System.Linq;
 using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace compute.frontend
 {
@@ -12,7 +14,13 @@ namespace compute.frontend
 
         public ProxyModule()
         {
-            int backendPort = Env.GetEnvironmentInt("COMPUTE_BACKEND_PORT", 8081);
+            // use a different backend port for debugging, so we don't have to reserve/unreserve ports when testing in Release
+#if DEBUG
+            int defaultBackendPort = 8082;
+#else
+            int defaultBackendPort = 8081;
+#endif
+            int backendPort = Env.GetEnvironmentInt("COMPUTE_BACKEND_PORT", defaultBackendPort);
 
             Get["/_debug"] = _ => "Hello World!"; // test frontend
 
@@ -20,41 +28,41 @@ namespace compute.frontend
             Get["/{uri*}"] = _ =>
             {
                 var proxy_url = GetProxyUrl((string)_.uri, backendPort, Context.Request.Query);
-                var client = CreateProxyClient(Context);
-                try
-                {
-                    var backendResponse = client.GetAsync(proxy_url).Result;
-                    return CreateProxyResponse(backendResponse, Context);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "An exception occured while proxying request \"{RequestId}\" to the backend", Context.Items["RequestId"] as string);
-                    return new Nancy.Responses.TextResponse(Nancy.HttpStatusCode.InternalServerError, "Backend not available");
-                }
+                var req = new HttpRequestMessage(HttpMethod.Get, proxy_url);
+
+                return DoRequest(Context, req).Result;
             };
 
             Post["/"] =
             Post["/{uri*}"] = _ =>
             {
                 var proxy_url = GetProxyUrl((string)_.uri, backendPort, Context.Request.Query);
-                var client = CreateProxyClient(Context);
                 object o_content;
                 StringContent content;
                 if (Context.Items.TryGetValue("request-body", out o_content))
                     content = new StringContent(o_content as string);
                 else
                     content = new StringContent(Context.Request.Body.AsString());
+                var req = new HttpRequestMessage(HttpMethod.Post, proxy_url);
+                req.Content = content;
 
-                try
-                {
-                    var backendResponse = client.PostAsync(proxy_url, content).Result;
-                    return CreateProxyResponse(backendResponse, Context);
-                }
-                catch
-                {
-                    return 500;
-                }
+                return DoRequest(Context, req).Result;
             };
+        }
+
+        private async Task<Response> DoRequest(NancyContext ctx, HttpRequestMessage req)
+        {
+            var client = CreateProxyClient(ctx);
+            try
+            {
+                var backendResponse = await client.SendAsync(req);
+                return CreateProxyResponse(backendResponse, ctx);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "An exception occured while proxying request \"{RequestId}\" to the backend", Context.Items["RequestId"] as string);
+                return new Nancy.Responses.TextResponse(Nancy.HttpStatusCode.InternalServerError, "{ \"message\": \"Backend not available\" }");
+            }
         }
 
         string GetProxyUrl(string path, int backendPort, Nancy.DynamicDictionary querystring)

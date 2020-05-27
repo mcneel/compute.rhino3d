@@ -55,7 +55,7 @@ namespace compute.frontend
         {
             context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
             context.Response.Headers.Add("Access-Control-Allow-Methods", "OPTIONS,POST,GET,HEAD");
-            context.Response.Headers.Add("Access-Control-Allow-Headers", "Authorization,Origin,Accept,Content-Type,User-Agent,Access-Control-Allow-Headers,Access-Control-Request-Method,Access-Control-Request-Headers");
+            context.Response.Headers.Add("Access-Control-Allow-Headers", "Authorization,Origin,Accept,Content-Type,User-Agent,Access-Control-Allow-Headers,Access-Control-Request-Method,Access-Control-Request-Headers,api_token");
         }
 
         private static void LogResponse(NancyContext context)
@@ -145,9 +145,16 @@ namespace compute.frontend
                     using (var stream = new MemoryStream())
                     {
                         ctx.Response.Contents.Invoke(stream);
-
-                        logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
-                            "ResponseContentLength", stream.Length));
+                        try
+                        {
+                            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
+                                "ResponseContentLength", stream.Length));
+                        }
+                        catch (ObjectDisposedException)
+                        {
+                            // skip logging content length if stream is prematurely closed
+                            // seems to happen a lot when debugging
+                        }
                     }
 
                     logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(

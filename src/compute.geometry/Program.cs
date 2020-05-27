@@ -30,7 +30,13 @@ namespace compute.geometry
             Logging.Init();
             LogVersions();
 
-            int backendPort = Env.GetEnvironmentInt("COMPUTE_BACKEND_PORT", 8081);
+            // use a different backend port for debugging, so we don't have to reserve/unreserve ports when testing in Release
+#if DEBUG
+            int defaultBackendPort = 8082;
+#else
+            int defaultBackendPort = 8081;
+#endif
+            int backendPort = Env.GetEnvironmentInt("COMPUTE_BACKEND_PORT", defaultBackendPort);
 
             Topshelf.HostFactory.Run(x =>
             {
