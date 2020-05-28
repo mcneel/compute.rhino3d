@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using GH_IO.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -7,6 +8,20 @@ namespace compute.geometry
 {
     static class DataCache
     {
+        public static GH_Archive GetCachedArchive(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                return null;
+            GH_Archive archive = System.Runtime.Caching.MemoryCache.Default.Get(key) as GH_Archive;
+            if( archive == null )
+            {
+                archive = ResthopperEndpointsModule.ArchiveFromUrl(key);
+                if( archive != null)
+                    System.Runtime.Caching.MemoryCache.Default.Add(key, archive, CachePolicy);
+            }
+            return archive;
+        }
+
         public static object GetCachedItem(JToken token, Type objectType, JsonSerializer serializer)
         {
             string jsonString = token.ToString();
