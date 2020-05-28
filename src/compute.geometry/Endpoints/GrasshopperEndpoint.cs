@@ -66,21 +66,22 @@ namespace compute.geometry.Endpoints
                     var item = obj as Newtonsoft.Json.Linq.JObject;
                     string instanceGuid = item.GetValue("instanceGuid").ToString();
                     var id = new System.Guid(instanceGuid);
-                    var component = definition.FindComponent(id);
+                    var component = definition.FindParameter(id);
                     Newtonsoft.Json.Linq.JToken pointsToken;
                     if(item.TryGetValue("points", out pointsToken))
                     {
-                        var method = component.GetType().GetMethod("SetSolvePoints");
-                        List<Rhino.Geometry.Point3d> points = new List<Rhino.Geometry.Point3d>();
-                        foreach(var pointToken in pointsToken)
-                        {
-                            var pts = pointToken as Newtonsoft.Json.Linq.JArray;
-                            double x = (double)pts[0];
-                            double y = (double)pts[1];
-                            double z = (double)pts[2];
-                            points.Add(new Rhino.Geometry.Point3d(x, y, z));
-                        }
-                        method.Invoke(component, new object[] { points });
+                        var method = component.GetType().GetMethod("AssignContextualData");
+                        method.Invoke(component, new object[] { pointsToken });
+                        //List<Rhino.Geometry.Point3d> points = new List<Rhino.Geometry.Point3d>();
+                        //foreach(var pointToken in pointsToken)
+                        //{
+                        //    var pts = pointToken as Newtonsoft.Json.Linq.JArray;
+                        //    double x = (double)pts[0];
+                        //    double y = (double)pts[1];
+                        //    double z = (double)pts[2];
+                        //    points.Add(new Rhino.Geometry.Point3d(x, y, z));
+                        //}
+                        //method.Invoke(component, new object[] { points });
                     }
                 }
 
@@ -91,10 +92,10 @@ namespace compute.geometry.Endpoints
                 var jobject = new Newtonsoft.Json.Linq.JObject();
                 for (int i = 0; i < components.Count; i++)
                 {
-                    var method = components[i].GetType().GetMethod("GetCollectedGeometry");
+                    var method = components[i].GetType().GetMethod("GetContextualGeometry");
                     if (method != null)
                     {
-                        var geometryArray = method.Invoke(components[i], null) as Rhino.Geometry.GeometryBase[];
+                        var geometryArray = method.Invoke(components[i], null) as IEnumerable<Rhino.Geometry.GeometryBase>;
                         var id = components[i].InstanceGuid;
                         jobject.Add("instanceId", id);
                         var ja = new Newtonsoft.Json.Linq.JArray();
