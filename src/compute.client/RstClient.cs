@@ -7,10 +7,12 @@ namespace computegen
 {
     class RstClient
     {
-        public static void WritePythonDocs(ClassBuilder[] classes)
+        public static void WritePythonDocs(string basePythonDirectory, ClassBuilder[] classes)
         {
             PythonClient.SpacesPerTab = 3;
-            var di = System.IO.Directory.CreateDirectory("docs\\python");
+            var di = new System.IO.DirectoryInfo(System.IO.Path.Combine(basePythonDirectory, "docs"));
+            if( !di.Exists )
+                di = System.IO.Directory.CreateDirectory("docs\\python");
             foreach (var c in classes)
             {
                 StringBuilder sb = new StringBuilder();

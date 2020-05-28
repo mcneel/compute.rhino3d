@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -30,6 +29,9 @@ namespace computegen
 
             var utilPath = System.IO.Path.Combine(packageBase, "Util.py");
             System.IO.File.WriteAllText(utilPath, UtilModuleContents);
+
+            //var ghPath = System.IO.Path.Combine(packageBase, "Grasshopper.py");
+            //System.IO.File.WriteAllText(ghPath, GrasshopperModuleContents);
 
             foreach (var kv in ClassBuilder.AllClasses)
             {

@@ -61,7 +61,7 @@ namespace computegen
             var py = new PythonClient();
             py.Write(ClassBuilder.AllClasses, basePythonDirectory, filter);
             Console.WriteLine("Writing python docs");
-            RstClient.WritePythonDocs(classes);
+            RstClient.WritePythonDocs(basePythonDirectory, classes);
 
             // C#
             Console.WriteLine("Writing C# client");
