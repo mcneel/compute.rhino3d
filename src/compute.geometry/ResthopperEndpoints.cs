@@ -80,7 +80,10 @@ namespace compute.geometry
 
         static Response Grasshopper(NancyContext ctx)
         {
-            Schema input = JsonConvert.DeserializeObject<Schema>(ctx.Request.Body.AsString());
+            string body = ctx.Request.Body.AsString();
+            if (body.StartsWith("[") && body.EndsWith("]"))
+                body = body.Substring(1, body.Length - 2);
+            Schema input = JsonConvert.DeserializeObject<Schema>(body);
 
             // load grasshopper file
             GH_Archive archive = ArchiveFromEmbeddedJson(input.Algo);

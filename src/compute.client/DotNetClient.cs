@@ -40,8 +40,12 @@ namespace computegen
             StringBuilder sb = new StringBuilder();
             if (comment != null)
             {
-                string formattedComment = comment.ToFullString().Replace(T1, T2);
-                sb.Append(T2 + formattedComment);
+                string formattedComment = T2 + comment.ToFullString().Replace(T1, T2);
+                foreach(var line in formattedComment.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None))
+                {
+                    if (!line.Contains("<since>") && !string.IsNullOrWhiteSpace(line))
+                        sb.AppendLine(line);
+                }
             }
             bool useAsReturnType;
             if (method.IsNonConst(out useAsReturnType) && useAsReturnType)
