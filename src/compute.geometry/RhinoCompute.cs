@@ -14,7 +14,7 @@ namespace Rhino.Compute
     {
         public static string WebAddress { get; set; } = "https://compute.rhino3d.com";
         public static string AuthToken { get; set; }
-        public static string Version => "0.9.0";
+        public static string Version => "0.11.0";
 
         public static T Post<T>(string function, params object[] postData)
         {
@@ -23,8 +23,8 @@ namespace Rhino.Compute
 
         public static T PostWithConverter<T>(string function, JsonConverter converter, params object[] postData)
         {
-            if (string.IsNullOrWhiteSpace(AuthToken))
-                throw new UnauthorizedAccessException("AuthToken must be set");
+            if (string.IsNullOrWhiteSpace(AuthToken) && WebAddress.Equals("https://compute.rhino3d.com"))
+                throw new UnauthorizedAccessException("AuthToken must be set for compute.rhino3d.com");
 
             for( int i=0; i<postData.Length; i++ )
             {
@@ -45,7 +45,8 @@ namespace Rhino.Compute
             string uri = (WebAddress + function).ToLower();
             var request = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(uri);
             request.ContentType = "application/json";
-            request.Headers.Add("Authorization", "Bearer " + AuthToken);
+            if(!string.IsNullOrEmpty(AuthToken))
+                request.Headers.Add("Authorization", "Bearer " + AuthToken);
             request.UserAgent = "compute.rhino3d.cs/" + Version;
             request.Method = "POST";
             using (var streamWriter = new StreamWriter(request.GetRequestStream()))
@@ -252,7 +253,7 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Constructs an array of cubic, non-rational beziers that fit a curve to a tolerance.
+        /// Constructs an array of cubic, non-rational Beziers that fit a curve to a tolerance.
         /// </summary>
         /// <param name="sourceCurve">A curve to approximate.</param>
         /// <param name="distanceTolerance">
@@ -270,7 +271,7 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Constructs an array of cubic, non-rational beziers that fit a curve to a tolerance.
+        /// Constructs an array of cubic, non-rational Beziers that fit a curve to a tolerance.
         /// </summary>
         /// <param name="sourceCurve">A curve to approximate.</param>
         /// <param name="distanceTolerance">
@@ -324,7 +325,7 @@ namespace Rhino.Compute
         /// <param name="direction">The parameter direction (0 = U, 1 = V). The face's underlying surface must be closed in this direction.</param>
         /// <param name="parameter">The parameter at which to place the seam.</param>
         /// <param name="tolerance">Tolerance used to cut up surface.</param>
-        /// <returns>A new Brep that has the same geoemtry as the face with a relocated seam if successful, or null on failure.</returns>
+        /// <returns>A new Brep that has the same geometry as the face with a relocated seam if successful, or null on failure.</returns>
         public static Brep ChangeSeam(BrepFace face, int direction, double parameter, double tolerance)
         {
             return ComputeServer.Post<Brep>(ApiAddress(), face, direction, parameter, tolerance);
@@ -905,7 +906,7 @@ namespace Rhino.Compute
         /// like a stiff material; higher, less like a stiff material.  That is,
         /// each span is made to more closely match the spans adjacent to it if there
         /// is no input geometry mapping to that area of the surface when the
-        /// flexibility value is low.  The scale is logrithmic. Numbers around 0.001
+        /// flexibility value is low.  The scale is logarithmic. Numbers around 0.001
         /// or 0.1 make the patch pretty stiff and numbers around 10 or 100 make the
         /// surface flexible.
         /// </param>
@@ -961,7 +962,7 @@ namespace Rhino.Compute
         /// like a stiff material; higher, less like a stiff material.  That is,
         /// each span is made to more closely match the spans adjacent to it if there
         /// is no input geometry mapping to that area of the surface when the
-        /// flexibility value is low.  The scale is logrithmic. Numbers around 0.001
+        /// flexibility value is low.  The scale is logarithmic. Numbers around 0.001
         /// or 0.1 make the patch pretty stiff and numbers around 10 or 100 make the
         /// surface flexible.
         /// </param>
@@ -1286,7 +1287,7 @@ namespace Rhino.Compute
         /// <param name="tolerance">Tolerance for fitting surface and rails.</param>
         /// <param name="rebuild">The rebuild style.</param>
         /// <param name="rebuildPointCount">If rebuild == SweepRebuild.Rebuild, the number of points. Otherwise specify 0.</param>
-        /// <param name="refitTolerance">If rebuild == SweepRebuild.Refit, the refit tolerenace. Otherwise, specify 0.0</param>
+        /// <param name="refitTolerance">If rebuild == SweepRebuild.Refit, the refit tolerance. Otherwise, specify 0.0</param>
         /// <param name="preserveHeight">Removes the association between the height scaling from the width scaling</param>
         /// <returns>Array of Brep sweep results</returns>
         public static Brep[] CreateFromSweep(Curve rail1, Curve rail2, IEnumerable<Curve> shapes, Point3d start, Point3d end, bool closed, double tolerance, SweepRebuild rebuild, int rebuildPointCount, double refitTolerance, bool preserveHeight)
@@ -1307,7 +1308,7 @@ namespace Rhino.Compute
         /// <param name="tolerance">Tolerance for fitting surface and rails.</param>
         /// <param name="rebuild">The rebuild style.</param>
         /// <param name="rebuildPointCount">If rebuild == SweepRebuild.Rebuild, the number of points. Otherwise specify 0.</param>
-        /// <param name="refitTolerance">If rebuild == SweepRebuild.Refit, the refit tolerenace. Otherwise, specify 0.0</param>
+        /// <param name="refitTolerance">If rebuild == SweepRebuild.Refit, the refit tolerance. Otherwise, specify 0.0</param>
         /// <param name="preserveHeight">Removes the association between the height scaling from the width scaling</param>
         /// <returns>Array of Brep sweep results</returns>
         public static Brep[] CreateFromSweep(Remote<Curve> rail1, Remote<Curve> rail2, Remote<IEnumerable<Curve>> shapes, Point3d start, Point3d end, bool closed, double tolerance, SweepRebuild rebuild, int rebuildPointCount, double refitTolerance, bool preserveHeight)
@@ -1349,7 +1350,7 @@ namespace Rhino.Compute
         /// <param name="curveToExtrude">the curve to extrude</param>
         /// <param name="distance">the distance to extrude</param>
         /// <param name="direction">the direction of the extrusion</param>
-        /// <param name="basePoint">the basepoint of the extrusion</param>
+        /// <param name="basePoint">the base point of the extrusion</param>
         /// <param name="draftAngleRadians">angle of the extrusion</param>
         /// <param name="cornerType"></param>
         /// <param name="tolerance">tolerance to use for the extrusion</param>
@@ -1366,7 +1367,7 @@ namespace Rhino.Compute
         /// <param name="curveToExtrude">the curve to extrude</param>
         /// <param name="distance">the distance to extrude</param>
         /// <param name="direction">the direction of the extrusion</param>
-        /// <param name="basePoint">the basepoint of the extrusion</param>
+        /// <param name="basePoint">the base point of the extrusion</param>
         /// <param name="draftAngleRadians">angle of the extrusion</param>
         /// <param name="cornerType"></param>
         /// <param name="tolerance">tolerance to use for the extrusion</param>
@@ -1383,7 +1384,7 @@ namespace Rhino.Compute
         /// <param name="curveToExtrude">the curve to extrude</param>
         /// <param name="distance">the distance to extrude</param>
         /// <param name="direction">the direction of the extrusion</param>
-        /// <param name="basePoint">the basepoint of the extrusion</param>
+        /// <param name="basePoint">the base point of the extrusion</param>
         /// <param name="draftAngleRadians">angle of the extrusion</param>
         /// <param name="cornerType"></param>
         /// <returns>array of breps on success</returns>
@@ -1399,7 +1400,7 @@ namespace Rhino.Compute
         /// <param name="curveToExtrude">the curve to extrude</param>
         /// <param name="distance">the distance to extrude</param>
         /// <param name="direction">the direction of the extrusion</param>
-        /// <param name="basePoint">the basepoint of the extrusion</param>
+        /// <param name="basePoint">the base point of the extrusion</param>
         /// <param name="draftAngleRadians">angle of the extrusion</param>
         /// <param name="cornerType"></param>
         /// <returns>array of breps on success</returns>
@@ -1496,7 +1497,7 @@ namespace Rhino.Compute
         /// <param name="uv1">A parameter face1 at the side you want to keep after filleting.</param>
         /// <param name="radius">The fillet radius.</param>
         /// <param name="extend">If true, then when one input surface is longer than the other, the fillet surface is extended to the input surface edges.</param>
-        /// <param name="tolerance">The tolerance. In in doubt, the the document's model absolute tolerance.</param>
+        /// <param name="tolerance">The tolerance. When in doubt, use the document's model absolute tolerance.</param>
         /// <returns>Array of Breps if successful.</returns>
         public static Brep[] CreateFilletSurface(BrepFace face0, Point2d uv0, BrepFace face1, Point2d uv1, double radius, bool extend, double tolerance)
         {
@@ -1513,7 +1514,7 @@ namespace Rhino.Compute
         /// <param name="radius">The fillet radius.</param>
         /// <param name="trim">If true, the input faces will be trimmed, if false, the input faces will be split.</param>
         /// <param name="extend">If true, then when one input surface is longer than the other, the fillet surface is extended to the input surface edges.</param>
-        /// <param name="tolerance">The tolerance. In in doubt, the the document's model absolute tolerance.</param>
+        /// <param name="tolerance">The tolerance. When in doubt, use the document's model absolute tolerance.</param>
         /// <param name="outBreps0">The trim or split results of the Brep owned by face0.</param>
         /// <param name="outBreps1">The trim or split results of the Brep owned by face1.</param>
         /// <returns>Array of Breps if successful.</returns>
@@ -1532,7 +1533,7 @@ namespace Rhino.Compute
         /// <param name="uv1">A parameter face1 at the side you want to keep after chamfering.</param>
         /// <param name="radius1">The distance from the intersection of face1 to the edge of the chamfer.</param>
         /// <param name="extend">If true, then when one input surface is longer than the other, the chamfer surface is extended to the input surface edges.</param>
-        /// <param name="tolerance">The tolerance. In in doubt, the the document's model absolute tolerance.</param>
+        /// <param name="tolerance">The tolerance. When in doubt, use the document's model absolute tolerance.</param>
         /// <returns>Array of Breps if successful.</returns>
         public static Brep[] CreateChamferSurface(BrepFace face0, Point2d uv0, double radius0, BrepFace face1, Point2d uv1, double radius1, bool extend, double tolerance)
         {
@@ -1550,7 +1551,7 @@ namespace Rhino.Compute
         /// <param name="radius1">The distance from the intersection of face1 to the edge of the chamfer.</param>
         /// <param name="trim">If true, the input faces will be trimmed, if false, the input faces will be split.</param>
         /// <param name="extend">If true, then when one input surface is longer than the other, the chamfer surface is extended to the input surface edges.</param>
-        /// <param name="tolerance">The tolerance. In in doubt, the the document's model absolute tolerance.</param>
+        /// <param name="tolerance">The tolerance. When in doubt, use the document's model absolute tolerance.</param>
         /// <param name="outBreps0">The trim or split results of the Brep owned by face0.</param>
         /// <param name="outBreps1">The trim or split results of the Brep owned by face1.</param>
         /// <returns>Array of Breps if successful.</returns>
@@ -2201,7 +2202,7 @@ namespace Rhino.Compute
         /// <param name="brep">The solid Brep to shell.</param>
         /// <param name="facesToRemove">The indices of the Brep faces to remove. These surfaces are removed and the remainder is offset inward, using the outer parts of the removed surfaces to join the inner and outer parts.</param>
         /// <param name="distance">The distance, or thickness, for the shell. This is a signed distance value with respect to face normals and flipped faces.</param>
-        /// <param name="tolerance">The offset tolerane. When in doubt, use the document's absolute tolerance.</param>
+        /// <param name="tolerance">The offset tolerance. When in doubt, use the document's absolute tolerance.</param>
         /// <returns>An array of Brep results or null on failure.</returns>
         public static Brep[] CreateShell(Brep brep, IEnumerable<int> facesToRemove, double distance, double tolerance)
         {
@@ -2214,7 +2215,7 @@ namespace Rhino.Compute
         /// <param name="brep">The solid Brep to shell.</param>
         /// <param name="facesToRemove">The indices of the Brep faces to remove. These surfaces are removed and the remainder is offset inward, using the outer parts of the removed surfaces to join the inner and outer parts.</param>
         /// <param name="distance">The distance, or thickness, for the shell. This is a signed distance value with respect to face normals and flipped faces.</param>
-        /// <param name="tolerance">The offset tolerane. When in doubt, use the document's absolute tolerance.</param>
+        /// <param name="tolerance">The offset tolerance. When in doubt, use the document's absolute tolerance.</param>
         /// <returns>An array of Brep results or null on failure.</returns>
         public static Brep[] CreateShell(Remote<Brep> brep, IEnumerable<int> facesToRemove, double distance, double tolerance)
         {
@@ -2373,7 +2374,7 @@ namespace Rhino.Compute
 
         /// <summary>
         /// Determines if point is inside a Brep.  This question only makes sense when
-        /// the brep is a closed and manifold.  This function does not not check for
+        /// the brep is a closed and manifold.  This function does not check for
         /// closed or manifold, so result is not valid in those cases.  Intersects
         /// a line through point with brep, finds the intersection point Q closest
         /// to point, and looks at face normal at Q.  If the point Q is on an edge
@@ -2398,7 +2399,7 @@ namespace Rhino.Compute
 
         /// <summary>
         /// Determines if point is inside a Brep.  This question only makes sense when
-        /// the brep is a closed and manifold.  This function does not not check for
+        /// the brep is a closed and manifold.  This function does not check for
         /// closed or manifold, so result is not valid in those cases.  Intersects
         /// a line through point with brep, finds the intersection point Q closest
         /// to point, and looks at face normal at Q.  If the point Q is on an edge
@@ -2700,7 +2701,7 @@ namespace Rhino.Compute
         /// <param name="intersectionTolerance">The tolerance with which to compute intersections.</param>
         /// <returns>A new array of Breps. This array can be empty.</returns>
         /// <remarks>
-        /// A Curve in cutters is extruded to produce a surface to use as a cutter. The extrusion direction is choosen, as in the Rhino Split command,
+        /// A Curve in cutters is extruded to produce a surface to use as a cutter. The extrusion direction is chosen, as in the Rhino Split command,
         /// based on the properties of the active view. In particular the construction plane Normal and whether the active view is a plan view, 
         /// a parallel projection with construction plane normal as the view direction. If planView is false and the curve is planar then the curve
         /// is extruded perpendicular to the curve, otherwise the curve is extruded in the normal direction.
@@ -2719,7 +2720,7 @@ namespace Rhino.Compute
         /// <param name="intersectionTolerance">The tolerance with which to compute intersections.</param>
         /// <returns>A new array of Breps. This array can be empty.</returns>
         /// <remarks>
-        /// A Curve in cutters is extruded to produce a surface to use as a cutter. The extrusion direction is choosen, as in the Rhino Split command,
+        /// A Curve in cutters is extruded to produce a surface to use as a cutter. The extrusion direction is chosen, as in the Rhino Split command,
         /// based on the properties of the active view. In particular the construction plane Normal and whether the active view is a plan view, 
         /// a parallel projection with construction plane normal as the view direction. If planView is false and the curve is planar then the curve
         /// is extruded perpendicular to the curve, otherwise the curve is extruded in the normal direction.
@@ -2770,7 +2771,7 @@ namespace Rhino.Compute
         /// component of Brep that does not intersect the cutter is kept if and only
         /// if it is contained in the inside of Cutter.  That is the region bounded by
         /// cutter opposite from the normal of cutter, or in the case of a Plane cutter
-        /// the halfspace opposite from the plane normal.
+        /// the half space opposite from the plane normal.
         /// </summary>
         /// <param name="cutter">A cutting plane.</param>
         /// <param name="intersectionTolerance">A tolerance value with which to compute intersections.</param>
@@ -2787,7 +2788,7 @@ namespace Rhino.Compute
         /// component of Brep that does not intersect the cutter is kept if and only
         /// if it is contained in the inside of Cutter.  That is the region bounded by
         /// cutter opposite from the normal of cutter, or in the case of a Plane cutter
-        /// the halfspace opposite from the plane normal.
+        /// the half space opposite from the plane normal.
         /// </summary>
         /// <param name="cutter">A cutting plane.</param>
         /// <param name="intersectionTolerance">A tolerance value with which to compute intersections.</param>
@@ -2798,9 +2799,9 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Unjoins, or separates, edges within the Brep. Note, seams in closed surfaces will not separate.
+        /// Un-joins, or separates, edges within the Brep. Note, seams in closed surfaces will not separate.
         /// </summary>
-        /// <param name="edgesToUnjoin">The indices of the Brep edges to unjoin.</param>
+        /// <param name="edgesToUnjoin">The indices of the Brep edges to un-join.</param>
         /// <returns>This Brep is not modified, the trim results are returned in an array.</returns>
         public static Brep[] UnjoinEdges(this Brep brep, IEnumerable<int> edgesToUnjoin)
         {
@@ -2808,9 +2809,9 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Unjoins, or separates, edges within the Brep. Note, seams in closed surfaces will not separate.
+        /// Un-joins, or separates, edges within the Brep. Note, seams in closed surfaces will not separate.
         /// </summary>
-        /// <param name="edgesToUnjoin">The indices of the Brep edges to unjoin.</param>
+        /// <param name="edgesToUnjoin">The indices of the Brep edges to un-join.</param>
         /// <returns>This Brep is not modified, the trim results are returned in an array.</returns>
         public static Brep[] UnjoinEdges(Remote<Brep> brep, IEnumerable<int> edgesToUnjoin)
         {
@@ -3011,7 +3012,7 @@ namespace Rhino.Compute
 
         /// <summary>
         /// No support is available for this function.
-        /// <para>Expert user function that converts all geometry in brep to nurbs form.</para>
+        /// <para>Expert user function that converts all geometry in Brep to NURB form.</para>
         /// </summary>
         /// <remarks>
         /// Don't call this function unless you know exactly what you are doing.
@@ -3023,7 +3024,7 @@ namespace Rhino.Compute
 
         /// <summary>
         /// No support is available for this function.
-        /// <para>Expert user function that converts all geometry in brep to nurbs form.</para>
+        /// <para>Expert user function that converts all geometry in Brep to NURB form.</para>
         /// </summary>
         /// <remarks>
         /// Don't call this function unless you know exactly what you are doing.
@@ -3036,7 +3037,7 @@ namespace Rhino.Compute
         /// <summary>
         /// Fills in missing or fixes incorrect component information from a Brep. 
         /// Useful when reading Brep information from other file formats that do not 
-        /// provide as complete of a Brep definition as requried by Rhino.
+        /// provide as complete of a Brep definition as required by Rhino.
         /// </summary>
         /// <param name="tolerance">The repair tolerance. When in doubt, use the document's model absolute tolerance.</param>
         /// <returns>True on success.</returns>
@@ -3048,7 +3049,7 @@ namespace Rhino.Compute
         /// <summary>
         /// Fills in missing or fixes incorrect component information from a Brep. 
         /// Useful when reading Brep information from other file formats that do not 
-        /// provide as complete of a Brep definition as requried by Rhino.
+        /// provide as complete of a Brep definition as required by Rhino.
         /// </summary>
         /// <param name="tolerance">The repair tolerance. When in doubt, use the document's model absolute tolerance.</param>
         /// <returns>True on success.</returns>
@@ -3260,7 +3261,7 @@ namespace Rhino.Compute
         /// </summary>
         /// <param name="tolerance">tolerance for fitting 3d edge curves.</param>
         /// <param name="rebuildSharedEdges">
-        /// if false and and edge is used by this face and a neighbor, then the edge
+        /// if false and edge is used by this face and a neighbor, then the edge
         /// will be skipped.
         /// </param>
         /// <param name="rebuildVertices">
@@ -3351,14 +3352,14 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Creates a soft edited curve from an exising curve using a smooth field of influence.
+        /// Creates a soft edited curve from an existing curve using a smooth field of influence.
         /// </summary>
         /// <param name="curve">The curve to soft edit.</param>
         /// <param name="t">
         /// A parameter on the curve to move from. This location on the curve is moved, and the move
         ///  is smoothly tapered off with increasing distance along the curve from this parameter.
         /// </param>
-        /// <param name="delta">The direction and magitude, or maximum distance, of the move.</param>
+        /// <param name="delta">The direction and magnitude, or maximum distance, of the move.</param>
         /// <param name="length">
         /// The distance along the curve from the editing point over which the strength 
         /// of the editing falls off smoothly.
@@ -3371,14 +3372,14 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Creates a soft edited curve from an exising curve using a smooth field of influence.
+        /// Creates a soft edited curve from an existing curve using a smooth field of influence.
         /// </summary>
         /// <param name="curve">The curve to soft edit.</param>
         /// <param name="t">
         /// A parameter on the curve to move from. This location on the curve is moved, and the move
         ///  is smoothly tapered off with increasing distance along the curve from this parameter.
         /// </param>
-        /// <param name="delta">The direction and magitude, or maximum distance, of the move.</param>
+        /// <param name="delta">The direction and magnitude, or maximum distance, of the move.</param>
         /// <param name="length">
         /// The distance along the curve from the editing point over which the strength 
         /// of the editing falls off smoothly.
@@ -3715,7 +3716,7 @@ namespace Rhino.Compute
 
         /// <summary>
         /// Creates curves between two open or closed input curves. Use sample points method to make curves compatible.
-        /// This is how the algorithm workd: Divides the two curves into an equal number of points, finds the midpoint between the 
+        /// This is how the algorithm works: Divides the two curves into an equal number of points, finds the midpoint between the 
         /// corresponding points on the curves and interpolates the tween curve through those points. There is no matching of curves
         /// direction. Caller must match input curves direction before calling the function.
         /// </summary>
@@ -3731,7 +3732,7 @@ namespace Rhino.Compute
 
         /// <summary>
         /// Creates curves between two open or closed input curves. Use sample points method to make curves compatible.
-        /// This is how the algorithm workd: Divides the two curves into an equal number of points, finds the midpoint between the 
+        /// This is how the algorithm works: Divides the two curves into an equal number of points, finds the midpoint between the 
         /// corresponding points on the curves and interpolates the tween curve through those points. There is no matching of curves
         /// direction. Caller must match input curves direction before calling the function.
         /// </summary>
@@ -3747,7 +3748,7 @@ namespace Rhino.Compute
 
         /// <summary>
         /// Creates curves between two open or closed input curves. Use sample points method to make curves compatible.
-        /// This is how the algorithm workd: Divides the two curves into an equal number of points, finds the midpoint between the 
+        /// This is how the algorithm works: Divides the two curves into an equal number of points, finds the midpoint between the 
         /// corresponding points on the curves and interpolates the tween curve through those points. There is no matching of curves
         /// direction. Caller must match input curves direction before calling the function.
         /// </summary>
@@ -3764,7 +3765,7 @@ namespace Rhino.Compute
 
         /// <summary>
         /// Creates curves between two open or closed input curves. Use sample points method to make curves compatible.
-        /// This is how the algorithm workd: Divides the two curves into an equal number of points, finds the midpoint between the 
+        /// This is how the algorithm works: Divides the two curves into an equal number of points, finds the midpoint between the 
         /// corresponding points on the curves and interpolates the tween curve through those points. There is no matching of curves
         /// direction. Caller must match input curves direction before calling the function.
         /// </summary>
@@ -3842,7 +3843,7 @@ namespace Rhino.Compute
         /// <param name="joinTolerance">Joining tolerance, 
         /// i.e. the distance between segment end-points that is allowed.</param>
         /// <param name="preserveDirection">
-        /// <para>If true, curve endpoints will be compared to curve startpoints.</para>
+        /// <para>If true, curve endpoints will be compared to curve start points.</para>
         /// <para>If false, all start and endpoints will be compared and copies of input curves may be reversed in output.</para>
         /// </param>
         /// <returns>An array of joint curves. This array can be empty.</returns>
@@ -3859,7 +3860,7 @@ namespace Rhino.Compute
         /// <param name="joinTolerance">Joining tolerance, 
         /// i.e. the distance between segment end-points that is allowed.</param>
         /// <param name="preserveDirection">
-        /// <para>If true, curve endpoints will be compared to curve startpoints.</para>
+        /// <para>If true, curve endpoints will be compared to curve start points.</para>
         /// <para>If false, all start and endpoints will be compared and copies of input curves may be reversed in output.</para>
         /// </param>
         /// <returns>An array of joint curves. This array can be empty.</returns>
@@ -4251,7 +4252,7 @@ namespace Rhino.Compute
         /// <param name="curveA">The first curve.</param>
         /// <param name="curveB">The second curve.</param>
         /// <param name="vectorA">A vector defining the normal direction of the plane which the first curve is drawn upon.</param>
-        /// <param name="vectorB">A vector defining the normal direction of the plane which the seconf curve is drawn upon.</param>
+        /// <param name="vectorB">A vector defining the normal direction of the plane which the second curve is drawn upon.</param>
         /// <param name="tolerance">The tolerance for the operation.</param>
         /// <param name="angleTolerance">The angle tolerance for the operation.</param>
         /// <returns>An array containing one or more curves if successful.</returns>
@@ -4267,7 +4268,7 @@ namespace Rhino.Compute
         /// <param name="curveA">The first curve.</param>
         /// <param name="curveB">The second curve.</param>
         /// <param name="vectorA">A vector defining the normal direction of the plane which the first curve is drawn upon.</param>
-        /// <param name="vectorB">A vector defining the normal direction of the plane which the seconf curve is drawn upon.</param>
+        /// <param name="vectorB">A vector defining the normal direction of the plane which the second curve is drawn upon.</param>
         /// <param name="tolerance">The tolerance for the operation.</param>
         /// <param name="angleTolerance">The angle tolerance for the operation.</param>
         /// <returns>An array containing one or more curves if successful.</returns>
@@ -4540,7 +4541,7 @@ namespace Rhino.Compute
         /// Pull a curve to a BrepFace using closest point projection.
         /// </summary>
         /// <param name="curve">Curve to pull.</param>
-        /// <param name="face">Brepface that pulls.</param>
+        /// <param name="face">Brep face that pulls.</param>
         /// <param name="tolerance">Tolerance to use for pulling.</param>
         /// <returns>An array of pulled curves, or an empty array on failure.</returns>
         public static Curve[] PullToBrepFace(Curve curve, BrepFace face, double tolerance)
@@ -4552,7 +4553,7 @@ namespace Rhino.Compute
         /// Pull a curve to a BrepFace using closest point projection.
         /// </summary>
         /// <param name="curve">Curve to pull.</param>
-        /// <param name="face">Brepface that pulls.</param>
+        /// <param name="face">Brep face that pulls.</param>
         /// <param name="tolerance">Tolerance to use for pulling.</param>
         /// <returns>An array of pulled curves, or an empty array on failure.</returns>
         public static Curve[] PullToBrepFace(Remote<Curve> curve, BrepFace face, double tolerance)
@@ -4688,7 +4689,7 @@ namespace Rhino.Compute
 
         /// <summary>
         /// If IsClosed, just return true. Otherwise, decide if curve can be closed as 
-        /// follows: Linear curves polylinear curves with 2 segments, Nurbs with 3 or less 
+        /// follows: Linear curves polylinear curves with 2 segments, NURBS with 3 or less 
         /// control points cannot be made closed. Also, if tolerance > 0 and the gap between 
         /// start and end is larger than tolerance, curve cannot be made closed. 
         /// Adjust the curve's endpoint to match its start point.
@@ -4704,7 +4705,7 @@ namespace Rhino.Compute
 
         /// <summary>
         /// If IsClosed, just return true. Otherwise, decide if curve can be closed as 
-        /// follows: Linear curves polylinear curves with 2 segments, Nurbs with 3 or less 
+        /// follows: Linear curves polylinear curves with 2 segments, NURBS with 3 or less 
         /// control points cannot be made closed. Also, if tolerance > 0 and the gap between 
         /// start and end is larger than tolerance, curve cannot be made closed. 
         /// Adjust the curve's endpoint to match its start point.
@@ -4889,7 +4890,7 @@ namespace Rhino.Compute
         /// This curve must be closed or the return value will be Unset.
         /// </summary>
         /// <param name="testPoint">Point to test.</param>
-        /// <param name="plane">Plane in in which to compare point and region.</param>
+        /// <param name="plane">Plane in which to compare point and region.</param>
         /// <returns>Relationship between point and curve region.</returns>
         public static PointContainment Contains(this Curve curve, Point3d testPoint, Plane plane)
         {
@@ -4901,7 +4902,7 @@ namespace Rhino.Compute
         /// This curve must be closed or the return value will be Unset.
         /// </summary>
         /// <param name="testPoint">Point to test.</param>
-        /// <param name="plane">Plane in in which to compare point and region.</param>
+        /// <param name="plane">Plane in which to compare point and region.</param>
         /// <returns>Relationship between point and curve region.</returns>
         public static PointContainment Contains(Remote<Curve> curve, Point3d testPoint, Plane plane)
         {
@@ -4913,7 +4914,7 @@ namespace Rhino.Compute
         /// This curve must be closed or the return value will be Unset.
         /// </summary>
         /// <param name="testPoint">Point to test.</param>
-        /// <param name="plane">Plane in in which to compare point and region.</param>
+        /// <param name="plane">Plane in which to compare point and region.</param>
         /// <param name="tolerance">Tolerance to use during comparison.</param>
         /// <returns>Relationship between point and curve region.</returns>
         public static PointContainment Contains(this Curve curve, Point3d testPoint, Plane plane, double tolerance)
@@ -4926,7 +4927,7 @@ namespace Rhino.Compute
         /// This curve must be closed or the return value will be Unset.
         /// </summary>
         /// <param name="testPoint">Point to test.</param>
-        /// <param name="plane">Plane in in which to compare point and region.</param>
+        /// <param name="plane">Plane in which to compare point and region.</param>
         /// <param name="tolerance">Tolerance to use during comparison.</param>
         /// <returns>Relationship between point and curve region.</returns>
         public static PointContainment Contains(Remote<Curve> curve, Point3d testPoint, Plane plane, double tolerance)
@@ -5245,7 +5246,7 @@ namespace Rhino.Compute
         /// <summary>Used to quickly find short curves.</summary>
         /// <param name="tolerance">Length threshold value for "shortness".</param>
         /// <param name="subdomain">
-        /// The test is performed on the interval that is the intersection of subdomain with Domain()
+        /// The test is performed on the interval that is the intersection of sub-domain with Domain()
         /// </param>
         /// <returns>true if the length of the curve is &lt;= tolerance.</returns>
         /// <remarks>Faster than calling Length() and testing the result.</remarks>
@@ -5257,7 +5258,7 @@ namespace Rhino.Compute
         /// <summary>Used to quickly find short curves.</summary>
         /// <param name="tolerance">Length threshold value for "shortness".</param>
         /// <param name="subdomain">
-        /// The test is performed on the interval that is the intersection of subdomain with Domain()
+        /// The test is performed on the interval that is the intersection of sub-domain with Domain()
         /// </param>
         /// <returns>true if the length of the curve is &lt;= tolerance.</returns>
         /// <remarks>Faster than calling Length() and testing the result.</remarks>
@@ -5369,10 +5370,10 @@ namespace Rhino.Compute
         /// A fractional tolerance of 1e-8 is used in this version of the function.
         /// </summary>
         /// <param name="segmentLength">
-        /// Length of segment to measure. Must be less than or equal to the length of the subdomain.
+        /// Length of segment to measure. Must be less than or equal to the length of the sub-domain.
         /// </param>
         /// <param name="t">
-        /// Parameter such that the length of the curve from the start of the subdomain to t is s.
+        /// Parameter such that the length of the curve from the start of the sub-domain to t is s.
         /// </param>
         /// <param name="subdomain">
         /// The calculation is performed on the specified sub-domain of the curve rather than the whole curve.
@@ -5388,10 +5389,10 @@ namespace Rhino.Compute
         /// A fractional tolerance of 1e-8 is used in this version of the function.
         /// </summary>
         /// <param name="segmentLength">
-        /// Length of segment to measure. Must be less than or equal to the length of the subdomain.
+        /// Length of segment to measure. Must be less than or equal to the length of the sub-domain.
         /// </param>
         /// <param name="t">
-        /// Parameter such that the length of the curve from the start of the subdomain to t is s.
+        /// Parameter such that the length of the curve from the start of the sub-domain to t is s.
         /// </param>
         /// <param name="subdomain">
         /// The calculation is performed on the specified sub-domain of the curve rather than the whole curve.
@@ -5406,10 +5407,10 @@ namespace Rhino.Compute
         /// Gets the parameter along the curve which coincides with a given length along the curve.
         /// </summary>
         /// <param name="segmentLength">
-        /// Length of segment to measure. Must be less than or equal to the length of the subdomain.
+        /// Length of segment to measure. Must be less than or equal to the length of the sub-domain.
         /// </param>
         /// <param name="t">
-        /// Parameter such that the length of the curve from the start of the subdomain to t is s.
+        /// Parameter such that the length of the curve from the start of the sub-domain to t is s.
         /// </param>
         /// <param name="fractionalTolerance">
         /// Desired fractional precision. 
@@ -5428,10 +5429,10 @@ namespace Rhino.Compute
         /// Gets the parameter along the curve which coincides with a given length along the curve.
         /// </summary>
         /// <param name="segmentLength">
-        /// Length of segment to measure. Must be less than or equal to the length of the subdomain.
+        /// Length of segment to measure. Must be less than or equal to the length of the sub-domain.
         /// </param>
         /// <param name="t">
-        /// Parameter such that the length of the curve from the start of the subdomain to t is s.
+        /// Parameter such that the length of the curve from the start of the sub-domain to t is s.
         /// </param>
         /// <param name="fractionalTolerance">
         /// Desired fractional precision. 
@@ -5710,7 +5711,7 @@ namespace Rhino.Compute
         /// </param>
         /// <param name="subdomain">
         /// The calculation is performed on the specified sub-domain of the curve. 
-        /// A 0.0 s value corresponds to subdomain->Min() and a 1.0 s value corresponds to subdomain->Max().
+        /// A 0.0 s value corresponds to sub-domain->Min() and a 1.0 s value corresponds to sub-domain->Max().
         /// </param>
         /// <returns>
         /// If successful, array of curve parameters such that the length of the curve from its start to t[i] is s[i]*curve_length. 
@@ -5735,7 +5736,7 @@ namespace Rhino.Compute
         /// </param>
         /// <param name="subdomain">
         /// The calculation is performed on the specified sub-domain of the curve. 
-        /// A 0.0 s value corresponds to subdomain->Min() and a 1.0 s value corresponds to subdomain->Max().
+        /// A 0.0 s value corresponds to sub-domain->Min() and a 1.0 s value corresponds to sub-domain->Max().
         /// </param>
         /// <returns>
         /// If successful, array of curve parameters such that the length of the curve from its start to t[i] is s[i]*curve_length. 
@@ -5763,7 +5764,7 @@ namespace Rhino.Compute
         /// </param>
         /// <param name="subdomain">
         /// The calculation is performed on the specified sub-domain of the curve. 
-        /// A 0.0 s value corresponds to subdomain->Min() and a 1.0 s value corresponds to subdomain->Max().
+        /// A 0.0 s value corresponds to sub-domain->Min() and a 1.0 s value corresponds to sub-domain->Max().
         /// </param>
         /// <returns>
         /// If successful, array of curve parameters such that the length of the curve from its start to t[i] is s[i]*curve_length. 
@@ -5791,7 +5792,7 @@ namespace Rhino.Compute
         /// </param>
         /// <param name="subdomain">
         /// The calculation is performed on the specified sub-domain of the curve. 
-        /// A 0.0 s value corresponds to subdomain->Min() and a 1.0 s value corresponds to subdomain->Max().
+        /// A 0.0 s value corresponds to sub-domain->Min() and a 1.0 s value corresponds to sub-domain->Max().
         /// </param>
         /// <returns>
         /// If successful, array of curve parameters such that the length of the curve from its start to t[i] is s[i]*curve_length. 
@@ -5991,7 +5992,7 @@ namespace Rhino.Compute
         /// <summary>
         /// Calculates 3d points on a curve where the linear distance between the points is equal.
         /// </summary>
-        /// <param name="distance">The distance betwen division points.</param>
+        /// <param name="distance">The distance between division points.</param>
         /// <returns>An array of equidistant points, or null on error.</returns>
         public static Point3d[] DivideEquidistant(this Curve curve, double distance)
         {
@@ -6001,7 +6002,7 @@ namespace Rhino.Compute
         /// <summary>
         /// Calculates 3d points on a curve where the linear distance between the points is equal.
         /// </summary>
-        /// <param name="distance">The distance betwen division points.</param>
+        /// <param name="distance">The distance between division points.</param>
         /// <returns>An array of equidistant points, or null on error.</returns>
         public static Point3d[] DivideEquidistant(Remote<Curve> curve, double distance)
         {
@@ -6377,17 +6378,17 @@ namespace Rhino.Compute
         ///	1. All the PolyCurve segments are LineCurve, PolylineCurve, ArcCurve, or NurbsCurve.
         /// </para>
         /// <para>
-        ///	2. The Nurbs Curves segments do not have fully multiple interior knots.
+        ///	2. The NURBS Curves segments do not have fully multiple interior knots.
         /// </para>
         /// <para>
-        ///	3. Rational Nurbs curves do not have constant weights.
+        ///	3. Rational NURBS curves do not have constant weights.
         /// </para>
         /// <para>
         ///	4. Any segment for which IsLinear() or IsArc() is true is a Line, 
         ///        Polyline segment, or an Arc.
         /// </para>
         /// <para>
-        ///	5. Adjacent Colinear or Cocircular segments are combined.
+        ///	5. Adjacent co-linear or co-circular segments are combined.
         /// </para>
         /// <para>
         ///	6. Segments that meet with G1-continuity have there ends tuned up so
@@ -6410,17 +6411,17 @@ namespace Rhino.Compute
         ///	1. All the PolyCurve segments are LineCurve, PolylineCurve, ArcCurve, or NurbsCurve.
         /// </para>
         /// <para>
-        ///	2. The Nurbs Curves segments do not have fully multiple interior knots.
+        ///	2. The NURBS Curves segments do not have fully multiple interior knots.
         /// </para>
         /// <para>
-        ///	3. Rational Nurbs curves do not have constant weights.
+        ///	3. Rational NURBS curves do not have constant weights.
         /// </para>
         /// <para>
         ///	4. Any segment for which IsLinear() or IsArc() is true is a Line, 
         ///        Polyline segment, or an Arc.
         /// </para>
         /// <para>
-        ///	5. Adjacent Colinear or Cocircular segments are combined.
+        ///	5. Adjacent co-linear or co-circular segments are combined.
         /// </para>
         /// <para>
         ///	6. Segments that meet with G1-continuity have there ends tuned up so
@@ -6479,7 +6480,7 @@ namespace Rhino.Compute
         /// <para>2 = preserve start point, 1st and 2nd derivative</para>
         /// </param>
         /// <param name="clampEnd">Same as clampStart.</param>
-        /// <param name="iterations">The number of iteratoins to use in adjusting the curve.</param>
+        /// <param name="iterations">The number of iterations to use in adjusting the curve.</param>
         /// <returns>Returns new faired Curve on success, null on failure.</returns>
         public static Curve Fair(this Curve curve, double distanceTolerance, double angleTolerance, int clampStart, int clampEnd, int iterations)
         {
@@ -6499,7 +6500,7 @@ namespace Rhino.Compute
         /// <para>2 = preserve start point, 1st and 2nd derivative</para>
         /// </param>
         /// <param name="clampEnd">Same as clampStart.</param>
-        /// <param name="iterations">The number of iteratoins to use in adjusting the curve.</param>
+        /// <param name="iterations">The number of iterations to use in adjusting the curve.</param>
         /// <returns>Returns new faired Curve on success, null on failure.</returns>
         public static Curve Fair(Remote<Curve> curve, double distanceTolerance, double angleTolerance, int clampStart, int clampEnd, int iterations)
         {
@@ -6546,7 +6547,7 @@ namespace Rhino.Compute
         /// <param name="pointCount">Number of control points in the rebuild curve.</param>
         /// <param name="degree">Degree of curve. Valid values are between and including 1 and 11.</param>
         /// <param name="preserveTangents">If true, the end tangents of the input curve will be preserved.</param>
-        /// <returns>A Nurbs curve on success or null on failure.</returns>
+        /// <returns>A NURBS curve on success or null on failure.</returns>
         public static NurbsCurve Rebuild(this Curve curve, int pointCount, int degree, bool preserveTangents)
         {
             return ComputeServer.Post<NurbsCurve>(ApiAddress(), curve, pointCount, degree, preserveTangents);
@@ -6558,7 +6559,7 @@ namespace Rhino.Compute
         /// <param name="pointCount">Number of control points in the rebuild curve.</param>
         /// <param name="degree">Degree of curve. Valid values are between and including 1 and 11.</param>
         /// <param name="preserveTangents">If true, the end tangents of the input curve will be preserved.</param>
-        /// <returns>A Nurbs curve on success or null on failure.</returns>
+        /// <returns>A NURBS curve on success or null on failure.</returns>
         public static NurbsCurve Rebuild(Remote<Curve> curve, int pointCount, int degree, bool preserveTangents)
         {
             return ComputeServer.Post<NurbsCurve>(ApiAddress(), curve, pointCount, degree, preserveTangents);
@@ -6570,7 +6571,7 @@ namespace Rhino.Compute
         /// <param name="mainSegmentCount">
         /// If mainSegmentCount &lt;= 0, then both subSegmentCount and mainSegmentCount are ignored. 
         /// If mainSegmentCount &gt; 0, then subSegmentCount must be &gt;= 1. In this 
-        /// case the nurb will be broken into mainSegmentCount equally spaced 
+        /// case the NURBS will be broken into mainSegmentCount equally spaced 
         /// chords. If needed, each of these chords can be split into as many 
         /// subSegmentCount sub-parts if the subdivision is necessary for the 
         /// mesh to meet the other meshing constraints. In particular, if 
@@ -6608,7 +6609,7 @@ namespace Rhino.Compute
         /// <param name="mainSegmentCount">
         /// If mainSegmentCount &lt;= 0, then both subSegmentCount and mainSegmentCount are ignored. 
         /// If mainSegmentCount &gt; 0, then subSegmentCount must be &gt;= 1. In this 
-        /// case the nurb will be broken into mainSegmentCount equally spaced 
+        /// case the NURBS will be broken into mainSegmentCount equally spaced 
         /// chords. If needed, each of these chords can be split into as many 
         /// subSegmentCount sub-parts if the subdivision is necessary for the 
         /// mesh to meet the other meshing constraints. In particular, if 
@@ -6646,7 +6647,7 @@ namespace Rhino.Compute
         /// <param name="mainSegmentCount">
         /// If mainSegmentCount &lt;= 0, then both subSegmentCount and mainSegmentCount are ignored. 
         /// If mainSegmentCount &gt; 0, then subSegmentCount must be &gt;= 1. In this 
-        /// case the nurb will be broken into mainSegmentCount equally spaced 
+        /// case the NURBS will be broken into mainSegmentCount equally spaced 
         /// chords. If needed, each of these chords can be split into as many 
         /// subSegmentCount sub-parts if the subdivision is necessary for the 
         /// mesh to meet the other meshing constraints. In particular, if 
@@ -6672,7 +6673,7 @@ namespace Rhino.Compute
         /// <param name="keepStartPoint">If true the starting point of the curve 
         /// is added to the polyline. If false the starting point of the curve is 
         /// not added to the polyline.</param>
-        /// <param name="curveDomain">This subdomain of the NURBS curve is approximated.</param>
+        /// <param name="curveDomain">This sub-domain of the NURBS curve is approximated.</param>
         /// <returns>PolylineCurve on success, null on error.</returns>
         public static PolylineCurve ToPolyline(this Curve curve, int mainSegmentCount, int subSegmentCount, double maxAngleRadians, double maxChordLengthRatio, double maxAspectRatio, double tolerance, double minEdgeLength, double maxEdgeLength, bool keepStartPoint, Interval curveDomain)
         {
@@ -6685,7 +6686,7 @@ namespace Rhino.Compute
         /// <param name="mainSegmentCount">
         /// If mainSegmentCount &lt;= 0, then both subSegmentCount and mainSegmentCount are ignored. 
         /// If mainSegmentCount &gt; 0, then subSegmentCount must be &gt;= 1. In this 
-        /// case the nurb will be broken into mainSegmentCount equally spaced 
+        /// case the NURBS will be broken into mainSegmentCount equally spaced 
         /// chords. If needed, each of these chords can be split into as many 
         /// subSegmentCount sub-parts if the subdivision is necessary for the 
         /// mesh to meet the other meshing constraints. In particular, if 
@@ -6711,7 +6712,7 @@ namespace Rhino.Compute
         /// <param name="keepStartPoint">If true the starting point of the curve 
         /// is added to the polyline. If false the starting point of the curve is 
         /// not added to the polyline.</param>
-        /// <param name="curveDomain">This subdomain of the NURBS curve is approximated.</param>
+        /// <param name="curveDomain">This sub-domain of the NURBS curve is approximated.</param>
         /// <returns>PolylineCurve on success, null on error.</returns>
         public static PolylineCurve ToPolyline(Remote<Curve> curve, int mainSegmentCount, int subSegmentCount, double maxAngleRadians, double maxChordLengthRatio, double maxAspectRatio, double tolerance, double minEdgeLength, double maxEdgeLength, bool keepStartPoint, Interval curveDomain)
         {
@@ -6797,7 +6798,7 @@ namespace Rhino.Compute
         /// <summary>
         /// Offsets this curve. If you have a nice offset, then there will be one entry in 
         /// the array. If the original curve had kinks or the offset curve had self 
-        /// intersections, you will get multiple segments in the offset_curves[] array.
+        /// intersections, you will get multiple segments in the output array.
         /// </summary>
         /// <param name="plane">Offset solution plane.</param>
         /// <param name="distance">The positive or negative distance to offset.</param>
@@ -6812,7 +6813,7 @@ namespace Rhino.Compute
         /// <summary>
         /// Offsets this curve. If you have a nice offset, then there will be one entry in 
         /// the array. If the original curve had kinks or the offset curve had self 
-        /// intersections, you will get multiple segments in the offset_curves[] array.
+        /// intersections, you will get multiple segments in the output array.
         /// </summary>
         /// <param name="plane">Offset solution plane.</param>
         /// <param name="distance">The positive or negative distance to offset.</param>
@@ -6827,7 +6828,7 @@ namespace Rhino.Compute
         /// <summary>
         /// Offsets this curve. If you have a nice offset, then there will be one entry in 
         /// the array. If the original curve had kinks or the offset curve had self 
-        /// intersections, you will get multiple segments in the offset_curves[] array.
+        /// intersections, you will get multiple segments in the output array.
         /// </summary>
         /// <param name="directionPoint">A point that indicates the direction of the offset.</param>
         /// <param name="normal">The normal to the offset plane.</param>
@@ -6843,7 +6844,7 @@ namespace Rhino.Compute
         /// <summary>
         /// Offsets this curve. If you have a nice offset, then there will be one entry in 
         /// the array. If the original curve had kinks or the offset curve had self 
-        /// intersections, you will get multiple segments in the offset_curves[] array.
+        /// intersections, you will get multiple segments in the output array.
         /// </summary>
         /// <param name="directionPoint">A point that indicates the direction of the offset.</param>
         /// <param name="normal">The normal to the offset plane.</param>
@@ -7589,7 +7590,7 @@ namespace Rhino.Compute
         /// <param name="around">Number of faces around the cylinder.</param>
         /// <param name="capBottom">If true end at Cylinder.Height1 should be capped.</param>
         /// <param name="capTop">If true end at Cylinder.Height2 should be capped.</param>
-        /// <param name="quadCaps">If true and it's possible to make quad caps, ie. around is even, then caps will have quad faces.</param>
+        /// <param name="quadCaps">If true and it's possible to make quad caps, i.e.. around is even, then caps will have quad faces.</param>
         /// <exception cref="ArgumentException">Thrown when cylinder is invalid.</exception>
         /// <returns>Returns a mesh cylinder if successful, null otherwise.</returns>
         public static Mesh CreateFromCylinder(Cylinder cylinder, int vertical, int around, bool capBottom, bool capTop, bool quadCaps)
@@ -7625,7 +7626,7 @@ namespace Rhino.Compute
         /// <param name="vertical">Number of faces in the top-to-bottom direction.</param>
         /// <param name="around">Number of faces around the cone.</param>
         /// <param name="solid">If false the mesh will be open with no faces on the circular planar portion.</param>
-        /// <param name="quadCaps">If true and it's possible to make quad caps, ie. around is even, then caps will have quad faces.</param>
+        /// <param name="quadCaps">If true and it's possible to make quad caps, i.e.. around is even, then caps will have quad faces.</param>
         /// <exception cref="ArgumentException">Thrown when cone is invalid.</exception>
         /// <returns>A valid mesh if successful.</returns>
         public static Mesh CreateFromCone(Cone cone, int vertical, int around, bool solid, bool quadCaps)
@@ -7866,7 +7867,7 @@ namespace Rhino.Compute
         /// unpredictable and is likely to not include the entire outer boundary.
         /// </param>
         /// <param name="angleToleranceRadians">
-        /// Maximum angle between unit tangents and adjacent verticies. Used to
+        /// Maximum angle between unit tangents and adjacent vertices. Used to
         /// divide curve inputs that cannot otherwise be represented as a polyline.
         /// </param>
         /// <param name="innerBoundaryCurves">
@@ -7925,7 +7926,7 @@ namespace Rhino.Compute
         /// unpredictable and is likely to not include the entire outer boundary.
         /// </param>
         /// <param name="angleToleranceRadians">
-        /// Maximum angle between unit tangents and adjacent verticies. Used to
+        /// Maximum angle between unit tangents and adjacent vertices. Used to
         /// divide curve inputs that cannot otherwise be represented as a polyline.
         /// </param>
         /// <param name="innerBoundaryCurves">
@@ -8065,7 +8066,7 @@ namespace Rhino.Compute
         /// <param name="curve">A curve to extrude.</param>
         /// <param name="direction">The direction of extrusion.</param>
         /// <param name="parameters">The parameters of meshing.</param>
-        /// <param name="boundingBox">The bounding box controls the length of the estrusion.</param>
+        /// <param name="boundingBox">The bounding box controls the length of the extrusion.</param>
         /// <returns>A new mesh, or null on failure.</returns>
         public static Mesh CreateFromCurveExtrusion(Curve curve, Vector3d direction, MeshingParameters parameters, BoundingBox boundingBox)
         {
@@ -8078,7 +8079,7 @@ namespace Rhino.Compute
         /// <param name="curve">A curve to extrude.</param>
         /// <param name="direction">The direction of extrusion.</param>
         /// <param name="parameters">The parameters of meshing.</param>
-        /// <param name="boundingBox">The bounding box controls the length of the estrusion.</param>
+        /// <param name="boundingBox">The bounding box controls the length of the extrusion.</param>
         /// <returns>A new mesh, or null on failure.</returns>
         public static Mesh CreateFromCurveExtrusion(Remote<Curve> curve, Vector3d direction, MeshingParameters parameters, BoundingBox boundingBox)
         {
@@ -8086,7 +8087,7 @@ namespace Rhino.Compute
         }
 
         /// <summary>Repairs meshes with vertices that are too near, using a tolerance value.</summary>
-        /// <param name="meshes">The meshes to be repared.</param>
+        /// <param name="meshes">The meshes to be repaired.</param>
         /// <param name="tolerance">A minimum distance for clean vertices.</param>
         /// <returns>A valid meshes array if successful. If no change was required, some meshes can be null. Otherwise, null, when no changes were done.</returns>
         /// <remarks><seealso cref="RequireIterativeCleanup"/></remarks>
@@ -8096,7 +8097,7 @@ namespace Rhino.Compute
         }
 
         /// <summary>Repairs meshes with vertices that are too near, using a tolerance value.</summary>
-        /// <param name="meshes">The meshes to be repared.</param>
+        /// <param name="meshes">The meshes to be repaired.</param>
         /// <param name="tolerance">A minimum distance for clean vertices.</param>
         /// <returns>A valid meshes array if successful. If no change was required, some meshes can be null. Otherwise, null, when no changes were done.</returns>
         /// <remarks><seealso cref="RequireIterativeCleanup"/></remarks>
@@ -8163,7 +8164,7 @@ namespace Rhino.Compute
         /// <param name="angleToleranceRadians">Angle at which to make unique vertices.</param>
         /// <param name="modifyNormals">
         /// Determines whether new vertex normals will have the same vertex normal as the original (false)
-        /// or vertex normals made from the corrsponding face normals (true)
+        /// or vertex normals made from the corresponding face normals (true)
         /// </param>
         public static Mesh Unweld(this Mesh mesh, double angleToleranceRadians, bool modifyNormals)
         {
@@ -8178,7 +8179,7 @@ namespace Rhino.Compute
         /// <param name="angleToleranceRadians">Angle at which to make unique vertices.</param>
         /// <param name="modifyNormals">
         /// Determines whether new vertex normals will have the same vertex normal as the original (false)
-        /// or vertex normals made from the corrsponding face normals (true)
+        /// or vertex normals made from the corresponding face normals (true)
         /// </param>
         public static Mesh Unweld(Remote<Mesh> mesh, double angleToleranceRadians, bool modifyNormals)
         {
@@ -8461,6 +8462,7 @@ namespace Rhino.Compute
 
         /// <summary>
         /// Split a mesh with a collection of meshes.
+        /// Does not split at coplanar intersections.
         /// </summary>
         /// <param name="meshes">Meshes to split with.</param>
         /// <returns>An array of mesh segments representing the split result.</returns>
@@ -8471,6 +8473,7 @@ namespace Rhino.Compute
 
         /// <summary>
         /// Split a mesh with a collection of meshes.
+        /// Does not split at coplanar intersections.
         /// </summary>
         /// <param name="meshes">Meshes to split with.</param>
         /// <returns>An array of mesh segments representing the split result.</returns>
@@ -8530,13 +8533,13 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Explode the mesh into submeshes where a submesh is a collection of faces that are contained
+        /// Explode the mesh into sub-meshes where a sub-mesh is a collection of faces that are contained
         /// within a closed loop of "unwelded" edges. Unwelded edges are edges where the faces that share
         /// the edge have unique mesh vertexes (not mesh topology vertexes) at both ends of the edge.
         /// </summary>
         /// <returns>
-        /// Array of submeshes on success; null on error. If the count in the returned array is 1, then
-        /// nothing happened and the ouput is essentially a copy of the input.
+        /// Array of sub-meshes on success; null on error. If the count in the returned array is 1, then
+        /// nothing happened and the output is essentially a copy of the input.
         /// </returns>
         public static Mesh[] ExplodeAtUnweldedEdges(this Mesh mesh)
         {
@@ -8544,13 +8547,13 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Explode the mesh into submeshes where a submesh is a collection of faces that are contained
+        /// Explode the mesh into sub-meshes where a sub-mesh is a collection of faces that are contained
         /// within a closed loop of "unwelded" edges. Unwelded edges are edges where the faces that share
         /// the edge have unique mesh vertexes (not mesh topology vertexes) at both ends of the edge.
         /// </summary>
         /// <returns>
-        /// Array of submeshes on success; null on error. If the count in the returned array is 1, then
-        /// nothing happened and the ouput is essentially a copy of the input.
+        /// Array of sub-meshes on success; null on error. If the count in the returned array is 1, then
+        /// nothing happened and the output is essentially a copy of the input.
         /// </returns>
         public static Mesh[] ExplodeAtUnweldedEdges(Remote<Mesh> mesh)
         {
@@ -8560,7 +8563,7 @@ namespace Rhino.Compute
         /// <summary>
         /// Gets the point on the mesh that is closest to a given test point.
         /// </summary>
-        /// <param name="testPoint">Point to seach for.</param>
+        /// <param name="testPoint">Point to search for.</param>
         /// <returns>The point on the mesh closest to testPoint, or Point3d.Unset on failure.</returns>
         public static Point3d ClosestPoint(this Mesh mesh, Point3d testPoint)
         {
@@ -8570,7 +8573,7 @@ namespace Rhino.Compute
         /// <summary>
         /// Gets the point on the mesh that is closest to a given test point.
         /// </summary>
-        /// <param name="testPoint">Point to seach for.</param>
+        /// <param name="testPoint">Point to search for.</param>
         /// <returns>The point on the mesh closest to testPoint, or Point3d.Unset on failure.</returns>
         public static Point3d ClosestPoint(Remote<Mesh> mesh, Point3d testPoint)
         {
@@ -8618,7 +8621,7 @@ namespace Rhino.Compute
         /// <summary>
         /// Gets the point on the mesh that is closest to a given test point.
         /// </summary>
-        /// <param name="testPoint">Point to seach for.</param>
+        /// <param name="testPoint">Point to search for.</param>
         /// <param name="pointOnMesh">Point on the mesh closest to testPoint.</param>
         /// <param name="maximumDistance">
         /// Optional upper bound on the distance from test point to the mesh. 
@@ -8639,7 +8642,7 @@ namespace Rhino.Compute
         /// <summary>
         /// Gets the point on the mesh that is closest to a given test point.
         /// </summary>
-        /// <param name="testPoint">Point to seach for.</param>
+        /// <param name="testPoint">Point to search for.</param>
         /// <param name="pointOnMesh">Point on the mesh closest to testPoint.</param>
         /// <param name="maximumDistance">
         /// Optional upper bound on the distance from test point to the mesh. 
@@ -8660,7 +8663,7 @@ namespace Rhino.Compute
         /// <summary>
         /// Gets the point on the mesh that is closest to a given test point.
         /// </summary>
-        /// <param name="testPoint">Point to seach for.</param>
+        /// <param name="testPoint">Point to search for.</param>
         /// <param name="pointOnMesh">Point on the mesh closest to testPoint.</param>
         /// <param name="normalAtPoint">The normal vector of the mesh at the closest point.</param>
         /// <param name="maximumDistance">
@@ -8682,7 +8685,7 @@ namespace Rhino.Compute
         /// <summary>
         /// Gets the point on the mesh that is closest to a given test point.
         /// </summary>
-        /// <param name="testPoint">Point to seach for.</param>
+        /// <param name="testPoint">Point to search for.</param>
         /// <param name="pointOnMesh">Point on the mesh closest to testPoint.</param>
         /// <param name="normalAtPoint">The normal vector of the mesh at the closest point.</param>
         /// <param name="maximumDistance">
@@ -8704,7 +8707,7 @@ namespace Rhino.Compute
         /// <summary>
         /// Evaluate a mesh at a set of barycentric coordinates.
         /// </summary>
-        /// <param name="meshPoint">MeshPoint instance contiaining a valid Face Index and Barycentric coordinates.</param>
+        /// <param name="meshPoint">MeshPoint instance containing a valid Face Index and Barycentric coordinates.</param>
         /// <returns>A Point on the mesh or Point3d.Unset if the faceIndex is not valid or if the barycentric coordinates could not be evaluated.</returns>
         public static Point3d PointAt(this Mesh mesh, MeshPoint meshPoint)
         {
@@ -8714,7 +8717,7 @@ namespace Rhino.Compute
         /// <summary>
         /// Evaluate a mesh at a set of barycentric coordinates.
         /// </summary>
-        /// <param name="meshPoint">MeshPoint instance contiaining a valid Face Index and Barycentric coordinates.</param>
+        /// <param name="meshPoint">MeshPoint instance containing a valid Face Index and Barycentric coordinates.</param>
         /// <returns>A Point on the mesh or Point3d.Unset if the faceIndex is not valid or if the barycentric coordinates could not be evaluated.</returns>
         public static Point3d PointAt(Remote<Mesh> mesh, MeshPoint meshPoint)
         {
@@ -8754,7 +8757,7 @@ namespace Rhino.Compute
         /// <summary>
         /// Evaluate a mesh normal at a set of barycentric coordinates.
         /// </summary>
-        /// <param name="meshPoint">MeshPoint instance contiaining a valid Face Index and Barycentric coordinates.</param>
+        /// <param name="meshPoint">MeshPoint instance containing a valid Face Index and Barycentric coordinates.</param>
         /// <returns>A Normal vector to the mesh or Vector3d.Unset if the faceIndex is not valid or if the barycentric coordinates could not be evaluated.</returns>
         public static Vector3d NormalAt(this Mesh mesh, MeshPoint meshPoint)
         {
@@ -8764,7 +8767,7 @@ namespace Rhino.Compute
         /// <summary>
         /// Evaluate a mesh normal at a set of barycentric coordinates.
         /// </summary>
-        /// <param name="meshPoint">MeshPoint instance contiaining a valid Face Index and Barycentric coordinates.</param>
+        /// <param name="meshPoint">MeshPoint instance containing a valid Face Index and Barycentric coordinates.</param>
         /// <returns>A Normal vector to the mesh or Vector3d.Unset if the faceIndex is not valid or if the barycentric coordinates could not be evaluated.</returns>
         public static Vector3d NormalAt(Remote<Mesh> mesh, MeshPoint meshPoint)
         {
@@ -8846,7 +8849,7 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Splits a mesh by adding edges in correspondance with input polylines, and divides the mesh at partitioned areas.
+        /// Splits a mesh by adding edges in correspondence with input polylines, and divides the mesh at partitioned areas.
         /// Polyline segments that are measured not to be on the mesh will be ignored.
         /// </summary>
         /// <param name="curves">An array, a list or any enumerable of polyline curves.</param>
@@ -8858,7 +8861,7 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Splits a mesh by adding edges in correspondance with input polylines, and divides the mesh at partitioned areas.
+        /// Splits a mesh by adding edges in correspondence with input polylines, and divides the mesh at partitioned areas.
         /// Polyline segments that are measured not to be on the mesh will be ignored.
         /// </summary>
         /// <param name="curves">An array, a list or any enumerable of polyline curves.</param>
@@ -9113,8 +9116,6 @@ namespace Rhino.Compute
             return ComputeServer.Post<Mesh>(ApiAddress(), mesh, softeningRadius, chamfer, faceted, force, angleThreshold);
         }
 
-        /// <summary>
-        /// Reduce polygon count
         /// <summary>
         /// Create QuadRemesh from a Brep
         /// Set Brep Face Mode by setting QuadRemeshParameters.PreserveMeshArrayEdgesMode
@@ -9508,7 +9509,7 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Createsa a parabola from vertex and end points.
+        /// Creates a parabola from vertex and end points.
         /// </summary>
         /// <param name="vertex">The vertex point.</param>
         /// <param name="startPoint">The start point.</param>
@@ -9532,11 +9533,11 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Create a uniform non-ratonal cubic NURBS approximation of an arc.
+        /// Create a uniform non-rational cubic NURBS approximation of an arc.
         /// </summary>
         /// <param name="arc"></param>
         /// <param name="degree">&gt;=1</param>
-        /// <param name="cvCount">cv count &gt;=5</param>
+        /// <param name="cvCount">CV count &gt;=5</param>
         /// <returns>NURBS curve approximation of an arc on success</returns>
         public static NurbsCurve CreateFromArc(Arc arc, int degree, int cvCount)
         {
@@ -9571,7 +9572,7 @@ namespace Rhino.Compute
         /// </summary>
         /// <param name="circle"></param>
         /// <param name="degree">&gt;=1</param>
-        /// <param name="cvCount">cv count &gt;=5</param>
+        /// <param name="cvCount">CV count &gt;=5</param>
         /// <returns>NURBS curve approximation of a circle on success</returns>
         public static NurbsCurve CreateFromCircle(Circle circle, int degree, int cvCount)
         {
@@ -9581,7 +9582,7 @@ namespace Rhino.Compute
         /// <summary>
         /// Gets Greville points for this curve.
         /// </summary>
-        /// <param name="all">If true, then all Greville points are returnd. If false, only edit points are returned.</param>
+        /// <param name="all">If true, then all Greville points are returns. If false, only edit points are returned.</param>
         /// <returns>A list of points if successful, null otherwise.</returns>
         public static Point3dList GrevillePoints(this NurbsCurve nurbscurve, bool all)
         {
@@ -9591,7 +9592,7 @@ namespace Rhino.Compute
         /// <summary>
         /// Gets Greville points for this curve.
         /// </summary>
-        /// <param name="all">If true, then all Greville points are returnd. If false, only edit points are returned.</param>
+        /// <param name="all">If true, then all Greville points are returns. If false, only edit points are returned.</param>
         /// <returns>A list of points if successful, null otherwise.</returns>
         public static Point3dList GrevillePoints(Remote<NurbsCurve> nurbscurve, bool all)
         {
@@ -9632,7 +9633,7 @@ namespace Rhino.Compute
         /// <param name="axisStart">Helix's axis starting point or center of spiral.</param>
         /// <param name="axisDir">Helix's axis vector or normal to spiral's plane.</param>
         /// <param name="radiusPoint">
-        /// Point used only to get a vector that is perpedicular to the axis. In
+        /// Point used only to get a vector that is perpendicular to the axis. In
         /// particular, this vector must not be (anti)parallel to the axis vector.
         /// </param>
         /// <param name="pitch">
@@ -9640,7 +9641,7 @@ namespace Rhino.Compute
         /// between the helix's "threads".
         /// </param>
         /// <param name="turnCount">The number of turns in spiral or helix. Positive
-        /// values produce counter-clockwise orientation, negitive values produce
+        /// values produce counter-clockwise orientation, negative values produce
         /// clockwise orientation. Note, for a helix, turnCount * pitch = length of
         /// the helix's axis.
         /// </param>
@@ -9659,7 +9660,7 @@ namespace Rhino.Compute
         /// <param name="t0">Starting portion of rail curve's domain to sweep along.</param>
         /// <param name="t1">Ending portion of rail curve's domain to sweep along.</param>
         /// <param name="radiusPoint">
-        /// Point used only to get a vector that is perpedicular to the axis. In
+        /// Point used only to get a vector that is perpendicular to the axis. In
         /// particular, this vector must not be (anti)parallel to the axis vector.
         /// </param>
         /// <param name="pitch">
@@ -9670,18 +9671,18 @@ namespace Rhino.Compute
         /// The turn count. If != 0, then the resulting helix will have this many
         /// turns. If = 0, then pitch must be != 0 and the approximate distance
         /// between turns will be set to pitch. Positive values produce counter-clockwise
-        /// orientation, negitive values produce clockwise orientation.
+        /// orientation, negative values produce clockwise orientation.
         /// </param>
         /// <param name="radius0">
-        /// The starting radius. At least one radii must benonzero. Negative values
+        /// The starting radius. At least one radii must be nonzero. Negative values
         /// are allowed.
         /// </param>
         /// <param name="radius1">
-        /// The ending radius. At least ont radii must be nonzero. Negative values
+        /// The ending radius. At least one radii must be nonzero. Negative values
         /// are allowed.
         /// </param>
         /// <param name="pointsPerTurn">
-        /// Number of points to intepolate per turn. Must be greater than 4.
+        /// Number of points to interpolate per turn. Must be greater than 4.
         /// When in doubt, use 12.
         /// </param>
         /// <returns>NurbsCurve on success, null on failure.</returns>
@@ -9697,7 +9698,7 @@ namespace Rhino.Compute
         /// <param name="t0">Starting portion of rail curve's domain to sweep along.</param>
         /// <param name="t1">Ending portion of rail curve's domain to sweep along.</param>
         /// <param name="radiusPoint">
-        /// Point used only to get a vector that is perpedicular to the axis. In
+        /// Point used only to get a vector that is perpendicular to the axis. In
         /// particular, this vector must not be (anti)parallel to the axis vector.
         /// </param>
         /// <param name="pitch">
@@ -9708,18 +9709,18 @@ namespace Rhino.Compute
         /// The turn count. If != 0, then the resulting helix will have this many
         /// turns. If = 0, then pitch must be != 0 and the approximate distance
         /// between turns will be set to pitch. Positive values produce counter-clockwise
-        /// orientation, negitive values produce clockwise orientation.
+        /// orientation, negative values produce clockwise orientation.
         /// </param>
         /// <param name="radius0">
-        /// The starting radius. At least one radii must benonzero. Negative values
+        /// The starting radius. At least one radii must be nonzero. Negative values
         /// are allowed.
         /// </param>
         /// <param name="radius1">
-        /// The ending radius. At least ont radii must be nonzero. Negative values
+        /// The ending radius. At least one radii must be nonzero. Negative values
         /// are allowed.
         /// </param>
         /// <param name="pointsPerTurn">
-        /// Number of points to intepolate per turn. Must be greater than 4.
+        /// Number of points to interpolate per turn. Must be greater than 4.
         /// When in doubt, use 12.
         /// </param>
         /// <returns>NurbsCurve on success, null on failure.</returns>
@@ -9748,11 +9749,11 @@ namespace Rhino.Compute
         /// <param name="fixedPoints">Surface points to interpolate given by parameters. These must be distinct.</param>
         /// <param name="tolerance">Relative tolerance used by the solver. When in doubt, use a tolerance of 0.0.</param>
         /// <param name="periodic">When true constructs a smoothly closed curve.</param>
-        /// <param name="initCount">Maximum number of points to insert beteween fixed points on the first level.</param>
+        /// <param name="initCount">Maximum number of points to insert between fixed points on the first level.</param>
         /// <param name="levels">The number of levels (between 1 and 3) to be used in multi-level solver. Use 1 for single level solve.</param>
         /// <returns>
         /// A sequence of surface points, given by surface parameters, if successful.
-        /// The number of output points is approximatelely: 2 ^ (level-1) * initCount * fixedPoints.Count.
+        /// The number of output points is approximately: 2 ^ (level-1) * initCount * fixedPoints.Count.
         /// </returns>
         /// <remarks>
         /// To create a curve from the output points, use Surface.CreateCurveOnSurface.
@@ -9774,11 +9775,11 @@ namespace Rhino.Compute
         /// <param name="fixedPoints">Surface points to interpolate given by parameters. These must be distinct.</param>
         /// <param name="tolerance">Relative tolerance used by the solver. When in doubt, use a tolerance of 0.0.</param>
         /// <param name="periodic">When true constructs a smoothly closed curve.</param>
-        /// <param name="initCount">Maximum number of points to insert beteween fixed points on the first level.</param>
+        /// <param name="initCount">Maximum number of points to insert between fixed points on the first level.</param>
         /// <param name="levels">The number of levels (between 1 and 3) to be used in multi-level solver. Use 1 for single level solve.</param>
         /// <returns>
         /// A sequence of surface points, given by surface parameters, if successful.
-        /// The number of output points is approximatelely: 2 ^ (level-1) * initCount * fixedPoints.Count.
+        /// The number of output points is approximately: 2 ^ (level-1) * initCount * fixedPoints.Count.
         /// </returns>
         /// <remarks>
         /// To create a curve from the output points, use Surface.CreateCurveOnSurface.
@@ -9792,7 +9793,7 @@ namespace Rhino.Compute
         /// Fit a sequence of 2d points on a surface to make a curve on the surface.
         /// </summary>
         /// <param name="surface">Surface on which to construct curve.</param>
-        /// <param name="points">Parameter space coodinates of the points to interpolate.</param>
+        /// <param name="points">Parameter space coordinates of the points to interpolate.</param>
         /// <param name="tolerance">Curve should be within tolerance of surface and points.</param>
         /// <param name="periodic">When true make a periodic curve.</param>
         /// <returns>A curve interpolating the points if successful, null on error.</returns>
@@ -9808,7 +9809,7 @@ namespace Rhino.Compute
         /// Fit a sequence of 2d points on a surface to make a curve on the surface.
         /// </summary>
         /// <param name="surface">Surface on which to construct curve.</param>
-        /// <param name="points">Parameter space coodinates of the points to interpolate.</param>
+        /// <param name="points">Parameter space coordinates of the points to interpolate.</param>
         /// <param name="tolerance">Curve should be within tolerance of surface and points.</param>
         /// <param name="periodic">When true make a periodic curve.</param>
         /// <returns>A curve interpolating the points if successful, null on error.</returns>
@@ -9827,7 +9828,7 @@ namespace Rhino.Compute
         /// <param name="surface1">The second surface.</param>
         /// <param name="nurb0">The first output NURBS surface.</param>
         /// <param name="nurb1">The second output NURBS surface.</param>
-        /// <returns>true if successsful, false on failure.</returns>
+        /// <returns>true if successful, false on failure.</returns>
         public static bool MakeCompatible(Surface surface0, Surface surface1, out NurbsSurface nurb0, out NurbsSurface nurb1)
         {
             return ComputeServer.Post<bool, NurbsSurface, NurbsSurface>(ApiAddress(), out nurb0, out nurb1, surface0, surface1);
@@ -9941,24 +9942,24 @@ namespace Rhino.Compute
         /// </summary>
         /// <param name="uCurves">An array, a list or any enumerable set of U curves.</param>
         /// <param name="uContinuityStart">
-        /// continuity at first U segment, 0 = loose, 1 = pos, 2 = tan, 3 = curvature.
+        /// continuity at first U segment, 0 = loose, 1 = position, 2 = tan, 3 = curvature.
         /// </param>
         /// <param name="uContinuityEnd">
-        /// continuity at last U segment, 0 = loose, 1 = pos, 2 = tan, 3 = curvature.
+        /// continuity at last U segment, 0 = loose, 1 = position, 2 = tan, 3 = curvature.
         /// </param>
         /// <param name="vCurves">An array, a list or any enumerable set of V curves.</param>
         /// <param name="vContinuityStart">
-        /// continuity at first V segment, 0 = loose, 1 = pos, 2 = tan, 3 = curvature.
+        /// continuity at first V segment, 0 = loose, 1 = position, 2 = tan, 3 = curvature.
         /// </param>
         /// <param name="vContinuityEnd">
-        /// continuity at last V segment, 0 = loose, 1 = pos, 2 = tan, 3 = curvature.
+        /// continuity at last V segment, 0 = loose, 1 = position, 2 = tan, 3 = curvature.
         /// </param>
         /// <param name="edgeTolerance">tolerance to use along network surface edge.</param>
         /// <param name="interiorTolerance">tolerance to use for the interior curves.</param>
         /// <param name="angleTolerance">angle tolerance to use.</param>
         /// <param name="error">
         /// If the NurbsSurface could not be created, the error value describes where
-        /// the failure occured.  0 = success,  1 = curve sorter failed, 2 = network initializing failed,
+        /// the failure occurred.  0 = success,  1 = curve sorter failed, 2 = network initializing failed,
         /// 3 = failed to build surface, 4 = network surface is not valid.
         /// </param>
         /// <returns>A NurbsSurface or null on failure.</returns>
@@ -9972,24 +9973,24 @@ namespace Rhino.Compute
         /// </summary>
         /// <param name="uCurves">An array, a list or any enumerable set of U curves.</param>
         /// <param name="uContinuityStart">
-        /// continuity at first U segment, 0 = loose, 1 = pos, 2 = tan, 3 = curvature.
+        /// continuity at first U segment, 0 = loose, 1 = position, 2 = tan, 3 = curvature.
         /// </param>
         /// <param name="uContinuityEnd">
-        /// continuity at last U segment, 0 = loose, 1 = pos, 2 = tan, 3 = curvature.
+        /// continuity at last U segment, 0 = loose, 1 = position, 2 = tan, 3 = curvature.
         /// </param>
         /// <param name="vCurves">An array, a list or any enumerable set of V curves.</param>
         /// <param name="vContinuityStart">
-        /// continuity at first V segment, 0 = loose, 1 = pos, 2 = tan, 3 = curvature.
+        /// continuity at first V segment, 0 = loose, 1 = position, 2 = tan, 3 = curvature.
         /// </param>
         /// <param name="vContinuityEnd">
-        /// continuity at last V segment, 0 = loose, 1 = pos, 2 = tan, 3 = curvature.
+        /// continuity at last V segment, 0 = loose, 1 = position, 2 = tan, 3 = curvature.
         /// </param>
         /// <param name="edgeTolerance">tolerance to use along network surface edge.</param>
         /// <param name="interiorTolerance">tolerance to use for the interior curves.</param>
         /// <param name="angleTolerance">angle tolerance to use.</param>
         /// <param name="error">
         /// If the NurbsSurface could not be created, the error value describes where
-        /// the failure occured.  0 = success,  1 = curve sorter failed, 2 = network initializing failed,
+        /// the failure occurred.  0 = success,  1 = curve sorter failed, 2 = network initializing failed,
         /// 3 = failed to build surface, 4 = network surface is not valid.
         /// </param>
         /// <returns>A NurbsSurface or null on failure.</returns>
@@ -9999,16 +10000,16 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Builds a surface from an autosorted network of curves/edges.
+        /// Builds a surface from an auto-sorted network of curves/edges.
         /// </summary>
         /// <param name="curves">An array, a list or any enumerable set of curves/edges, sorted automatically into U and V curves.</param>
-        /// <param name="continuity">continuity along edges, 0 = loose, 1 = pos, 2 = tan, 3 = curvature.</param>
+        /// <param name="continuity">continuity along edges, 0 = loose, 1 = position, 2 = tan, 3 = curvature.</param>
         /// <param name="edgeTolerance">tolerance to use along network surface edge.</param>
         /// <param name="interiorTolerance">tolerance to use for the interior curves.</param>
         /// <param name="angleTolerance">angle tolerance to use.</param>
         /// <param name="error">
         /// If the NurbsSurface could not be created, the error value describes where
-        /// the failure occured.  0 = success,  1 = curve sorter failed, 2 = network initializing failed,
+        /// the failure occurred.  0 = success,  1 = curve sorter failed, 2 = network initializing failed,
         /// 3 = failed to build surface, 4 = network surface is not valid.
         /// </param>
         /// <returns>A NurbsSurface or null on failure.</returns>
@@ -10018,16 +10019,16 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Builds a surface from an autosorted network of curves/edges.
+        /// Builds a surface from an auto-sorted network of curves/edges.
         /// </summary>
         /// <param name="curves">An array, a list or any enumerable set of curves/edges, sorted automatically into U and V curves.</param>
-        /// <param name="continuity">continuity along edges, 0 = loose, 1 = pos, 2 = tan, 3 = curvature.</param>
+        /// <param name="continuity">continuity along edges, 0 = loose, 1 = position, 2 = tan, 3 = curvature.</param>
         /// <param name="edgeTolerance">tolerance to use along network surface edge.</param>
         /// <param name="interiorTolerance">tolerance to use for the interior curves.</param>
         /// <param name="angleTolerance">angle tolerance to use.</param>
         /// <param name="error">
         /// If the NurbsSurface could not be created, the error value describes where
-        /// the failure occured.  0 = success,  1 = curve sorter failed, 2 = network initializing failed,
+        /// the failure occurred.  0 = success,  1 = curve sorter failed, 2 = network initializing failed,
         /// 3 = failed to build surface, 4 = network surface is not valid.
         /// </param>
         /// <returns>A NurbsSurface or null on failure.</returns>
@@ -10294,7 +10295,7 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Creates a soft edited surface from an exising surface using a smooth field of influence.
+        /// Creates a soft edited surface from an existing surface using a smooth field of influence.
         /// </summary>
         /// <param name="surface">The surface to soft edit.</param>
         /// <param name="uv">
@@ -10302,7 +10303,7 @@ namespace Rhino.Compute
         /// and the move is smoothly tapered off with increasing distance along the surface from
         /// this parameter.
         /// </param>
-        /// <param name="delta">The direction and magitude, or maximum distance, of the move.</param>
+        /// <param name="delta">The direction and magnitude, or maximum distance, of the move.</param>
         /// <param name="uLength">
         /// The distance along the surface's u-direction from the editing point over which the
         /// strength of the editing falls off smoothly.
@@ -10320,7 +10321,7 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Creates a soft edited surface from an exising surface using a smooth field of influence.
+        /// Creates a soft edited surface from an existing surface using a smooth field of influence.
         /// </summary>
         /// <param name="surface">The surface to soft edit.</param>
         /// <param name="uv">
@@ -10328,7 +10329,7 @@ namespace Rhino.Compute
         /// and the move is smoothly tapered off with increasing distance along the surface from
         /// this parameter.
         /// </param>
-        /// <param name="delta">The direction and magitude, or maximum distance, of the move.</param>
+        /// <param name="delta">The direction and magnitude, or maximum distance, of the move.</param>
         /// <param name="uLength">
         /// The distance along the surface's u-direction from the editing point over which the
         /// strength of the editing falls off smoothly.
@@ -10380,8 +10381,8 @@ namespace Rhino.Compute
         /// <param name="uMinvMax">Offset distance at Domain(0).Min, Domain(1).Max.</param>
         /// <param name="uMaxvMin">Offset distance at Domain(0).Max, Domain(1).Min.</param>
         /// <param name="uMaxvMax">Offset distance at Domain(0).Max, Domain(1).Max.</param>
-        /// <param name="interiorParameters">An array of interior uv parameters to offset from.</param>
-        /// <param name="interiorDistances">>An array of offset distances at the interior uv parameters.</param>
+        /// <param name="interiorParameters">An array of interior UV parameters to offset from.</param>
+        /// <param name="interiorDistances">>An array of offset distances at the interior UV parameters.</param>
         /// <param name="tolerance">The offset tolerance.</param>
         /// <returns>The offset surface if successful, null otherwise.</returns>
         public static Surface VariableOffset(this Surface surface, out Surface updatedInstance, double uMinvMin, double uMinvMax, double uMaxvMin, double uMaxvMax, IEnumerable<Point2d> interiorParameters, IEnumerable<double> interiorDistances, double tolerance)
@@ -10396,8 +10397,8 @@ namespace Rhino.Compute
         /// <param name="uMinvMax">Offset distance at Domain(0).Min, Domain(1).Max.</param>
         /// <param name="uMaxvMin">Offset distance at Domain(0).Max, Domain(1).Min.</param>
         /// <param name="uMaxvMax">Offset distance at Domain(0).Max, Domain(1).Max.</param>
-        /// <param name="interiorParameters">An array of interior uv parameters to offset from.</param>
-        /// <param name="interiorDistances">>An array of offset distances at the interior uv parameters.</param>
+        /// <param name="interiorParameters">An array of interior UV parameters to offset from.</param>
+        /// <param name="interiorDistances">>An array of offset distances at the interior UV parameters.</param>
         /// <param name="tolerance">The offset tolerance.</param>
         /// <returns>The offset surface if successful, null otherwise.</returns>
         public static Surface VariableOffset(Remote<Surface> surface, out Surface updatedInstance, double uMinvMin, double uMinvMax, double uMaxvMin, double uMaxvMax, IEnumerable<Point2d> interiorParameters, IEnumerable<double> interiorDistances, double tolerance)
@@ -10594,7 +10595,7 @@ namespace Rhino.Compute
         /// </summary>
         /// <param name="distance">Distance (along surface normal) to offset.</param>
         /// <param name="tolerance">Offset accuracy.</param>
-        /// <returns>The offsetted surface or null on failure.</returns>
+        /// <returns>The offset surface or null on failure.</returns>
         public static Surface Offset(this Surface surface, double distance, double tolerance)
         {
             return ComputeServer.Post<Surface>(ApiAddress(), surface, distance, tolerance);
@@ -10605,7 +10606,7 @@ namespace Rhino.Compute
         /// </summary>
         /// <param name="distance">Distance (along surface normal) to offset.</param>
         /// <param name="tolerance">Offset accuracy.</param>
-        /// <returns>The offsetted surface or null on failure.</returns>
+        /// <returns>The offset surface or null on failure.</returns>
         public static Surface Offset(Remote<Surface> surface, double distance, double tolerance)
         {
             return ComputeServer.Post<Surface>(ApiAddress(), surface, distance, tolerance);
@@ -10635,7 +10636,7 @@ namespace Rhino.Compute
         /// Returns a curve that interpolates points on a surface. The interpolant lies on the surface.
         /// </summary>
         /// <param name="points">List of at least two UV parameter locations on the surface.</param>
-        /// <param name="tolerance">Tolerance used for the fit of the pushup curve. Generally, the resulting interpolating curve will be within tolerabce of the surface.</param>
+        /// <param name="tolerance">Tolerance used for the fit of the push-up curve. Generally, the resulting interpolating curve will be within tolerance of the surface.</param>
         /// <returns>A new NURBS curve if successful, or null on error.</returns>
         public static NurbsCurve InterpolatedCurveOnSurfaceUV(this Surface surface, System.Collections.Generic.IEnumerable<Point2d> points, double tolerance)
         {
@@ -10646,7 +10647,7 @@ namespace Rhino.Compute
         /// Returns a curve that interpolates points on a surface. The interpolant lies on the surface.
         /// </summary>
         /// <param name="points">List of at least two UV parameter locations on the surface.</param>
-        /// <param name="tolerance">Tolerance used for the fit of the pushup curve. Generally, the resulting interpolating curve will be within tolerabce of the surface.</param>
+        /// <param name="tolerance">Tolerance used for the fit of the push-up curve. Generally, the resulting interpolating curve will be within tolerance of the surface.</param>
         /// <returns>A new NURBS curve if successful, or null on error.</returns>
         public static NurbsCurve InterpolatedCurveOnSurfaceUV(Remote<Surface> surface, System.Collections.Generic.IEnumerable<Point2d> points, double tolerance)
         {
@@ -10657,11 +10658,11 @@ namespace Rhino.Compute
         /// Returns a curve that interpolates points on a surface. The interpolant lies on the surface.
         /// </summary>
         /// <param name="points">List of at least two UV parameter locations on the surface.</param>
-        /// <param name="tolerance">Tolerance used for the fit of the pushup curve. Generally, the resulting interpolating curve will be within tolerabce of the surface.</param>
+        /// <param name="tolerance">Tolerance used for the fit of the push-up curve. Generally, the resulting interpolating curve will be within tolerance of the surface.</param>
         /// <param name="closed">If false, the interpolating curve is not closed. If true, the interpolating curve is closed, and the last point and first point should generally not be equal.</param>
         /// <param name="closedSurfaceHandling">
         /// If 0, all points must be in the rectangular domain of the surface. If the surface is closed in some direction, 
-        /// then this routine will interpret each point and place it at an appropriate location in the the covering space. 
+        /// then this routine will interpret each point and place it at an appropriate location in the covering space. 
         /// This is the simplest option and should give good results. 
         /// If 1, then more options for more control of handling curves going across seams are available.
         /// If the surface is closed in some direction, then the points are taken as points in the covering space. 
@@ -10680,11 +10681,11 @@ namespace Rhino.Compute
         /// Returns a curve that interpolates points on a surface. The interpolant lies on the surface.
         /// </summary>
         /// <param name="points">List of at least two UV parameter locations on the surface.</param>
-        /// <param name="tolerance">Tolerance used for the fit of the pushup curve. Generally, the resulting interpolating curve will be within tolerabce of the surface.</param>
+        /// <param name="tolerance">Tolerance used for the fit of the push-up curve. Generally, the resulting interpolating curve will be within tolerance of the surface.</param>
         /// <param name="closed">If false, the interpolating curve is not closed. If true, the interpolating curve is closed, and the last point and first point should generally not be equal.</param>
         /// <param name="closedSurfaceHandling">
         /// If 0, all points must be in the rectangular domain of the surface. If the surface is closed in some direction, 
-        /// then this routine will interpret each point and place it at an appropriate location in the the covering space. 
+        /// then this routine will interpret each point and place it at an appropriate location in the covering space. 
         /// This is the simplest option and should give good results. 
         /// If 1, then more options for more control of handling curves going across seams are available.
         /// If the surface is closed in some direction, then the points are taken as points in the covering space. 
@@ -10704,7 +10705,7 @@ namespace Rhino.Compute
         /// </summary>
         /// <param name="points">A list, an array or any enumerable set of points.</param>
         /// <param name="tolerance">A tolerance value.</param>
-        /// <returns>A new nurbs curve, or null on error.</returns>
+        /// <returns>A new NURBS curve, or null on error.</returns>
         public static NurbsCurve InterpolatedCurveOnSurface(this Surface surface, System.Collections.Generic.IEnumerable<Point3d> points, double tolerance)
         {
             return ComputeServer.Post<NurbsCurve>(ApiAddress(), surface, points, tolerance);
@@ -10715,7 +10716,7 @@ namespace Rhino.Compute
         /// </summary>
         /// <param name="points">A list, an array or any enumerable set of points.</param>
         /// <param name="tolerance">A tolerance value.</param>
-        /// <returns>A new nurbs curve, or null on error.</returns>
+        /// <returns>A new NURBS curve, or null on error.</returns>
         public static NurbsCurve InterpolatedCurveOnSurface(Remote<Surface> surface, System.Collections.Generic.IEnumerable<Point3d> points, double tolerance)
         {
             return ComputeServer.Post<NurbsCurve>(ApiAddress(), surface, points, tolerance);
@@ -10724,8 +10725,8 @@ namespace Rhino.Compute
         /// <summary>
         /// Constructs a geodesic between 2 points, used by ShortPath command in Rhino.
         /// </summary>
-        /// <param name="start">start point of curve in parameter space. Points must be distinct in the domain of thie surface.</param>
-        /// <param name="end">end point of curve in parameter space. Points must be distinct in the domain of thie surface.</param>
+        /// <param name="start">start point of curve in parameter space. Points must be distinct in the domain of the surface.</param>
+        /// <param name="end">end point of curve in parameter space. Points must be distinct in the domain of the surface.</param>
         /// <param name="tolerance">tolerance used in fitting discrete solution.</param>
         /// <returns>a geodesic curve on the surface on success. null on failure.</returns>
         public static Curve ShortPath(this Surface surface, Point2d start, Point2d end, double tolerance)
@@ -10736,8 +10737,8 @@ namespace Rhino.Compute
         /// <summary>
         /// Constructs a geodesic between 2 points, used by ShortPath command in Rhino.
         /// </summary>
-        /// <param name="start">start point of curve in parameter space. Points must be distinct in the domain of thie surface.</param>
-        /// <param name="end">end point of curve in parameter space. Points must be distinct in the domain of thie surface.</param>
+        /// <param name="start">start point of curve in parameter space. Points must be distinct in the domain of the surface.</param>
+        /// <param name="end">end point of curve in parameter space. Points must be distinct in the domain of the surface.</param>
         /// <param name="tolerance">tolerance used in fitting discrete solution.</param>
         /// <returns>a geodesic curve on the surface on success. null on failure.</returns>
         public static Curve ShortPath(Remote<Surface> surface, Point2d start, Point2d end, double tolerance)
@@ -10835,7 +10836,7 @@ namespace Rhino.Compute
         /// the maximum acceptable 3d distance between from surface(curve_2d(t))
         /// to the locus of points on the surface that are closest to curve_3d.
         /// </param>
-        /// <param name="curve3dSubdomain">A subdomain of the curve to sample.</param>
+        /// <param name="curve3dSubdomain">A sub-domain of the curve to sample.</param>
         /// <returns>2d curve.</returns>
         public static Curve Pullback(this Surface surface, Curve curve3d, double tolerance, Interval curve3dSubdomain)
         {
@@ -10850,7 +10851,7 @@ namespace Rhino.Compute
         /// the maximum acceptable 3d distance between from surface(curve_2d(t))
         /// to the locus of points on the surface that are closest to curve_3d.
         /// </param>
-        /// <param name="curve3dSubdomain">A subdomain of the curve to sample.</param>
+        /// <param name="curve3dSubdomain">A sub-domain of the curve to sample.</param>
         /// <returns>2d curve.</returns>
         public static Curve Pullback(Remote<Surface> surface, Remote<Curve> curve3d, double tolerance, Interval curve3dSubdomain)
         {
@@ -10858,6 +10859,52 @@ namespace Rhino.Compute
         }
     }
 
+    public static class GrasshopperCompute
+    {
+        static string ApiAddress()
+        {
+            return "grasshopper";
+        }
+
+        public static List<GrasshopperDataTree> EvaluateDefinition(string definition, IEnumerable<GrasshopperDataTree> trees)
+        {
+            Schema schema = new Schema();
+            string algo = null;
+            string pointer = null;
+            if (definition.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            {
+                pointer = definition;
+            }
+            else
+            {
+                var bytes = File.ReadAllBytes(definition);
+                algo = Convert.ToBase64String(bytes);
+            }
+
+            schema.Algo = algo;
+            schema.Pointer = pointer;
+            schema.Values = new List<GrasshopperDataTree>(trees);
+            var rc = ComputeServer.Post<Schema>(ApiAddress(), schema);
+
+            return rc.Values;
+        }
+
+        // Keep private; only used for JSON serialization
+        class Schema
+        {
+            public Schema() { }
+
+            [JsonProperty(PropertyName = "algo")]
+            public string Algo { get; set; }
+
+            [JsonProperty(PropertyName = "pointer")]
+            public string Pointer { get; set; }
+
+            [JsonProperty(PropertyName = "values")]
+            public List<GrasshopperDataTree> Values { get; set; } = new List<GrasshopperDataTree>();
+        }
+
+    }
 }
 
 namespace Rhino.Compute.Intersect
@@ -11304,7 +11351,7 @@ namespace Rhino.Compute.Intersect
         /// </summary>
         /// <param name="meshA">First mesh for intersection.</param>
         /// <param name="meshB">Second mesh for intersection.</param>
-        /// <returns>An array of intersection line segments, or null.</returns>
+        /// <returns>An array of intersection line segments, or null if no intersections were found.</returns>
         public static Line[] MeshMeshFast(Mesh meshA, Mesh meshB)
         {
             return ComputeServer.Post<Line[]>(ApiAddress(), meshA, meshB);
@@ -11315,7 +11362,7 @@ namespace Rhino.Compute.Intersect
         /// </summary>
         /// <param name="meshA">First mesh for intersection.</param>
         /// <param name="meshB">Second mesh for intersection.</param>
-        /// <returns>An array of intersection line segments, or null.</returns>
+        /// <returns>An array of intersection line segments, or null if no intersections were found.</returns>
         public static Line[] MeshMeshFast(Remote<Mesh> meshA, Remote<Mesh> meshB)
         {
             return ComputeServer.Post<Line[]>(ApiAddress(), meshA, meshB);
@@ -11454,12 +11501,12 @@ namespace Rhino.Compute.Intersect
         }
 
         /// <summary>
-        /// Computes point intersections that occur when shooting a ray to a collection of surfaces.
+        /// Computes point intersections that occur when shooting a ray to a collection of surfaces and Breps.
         /// </summary>
         /// <param name="ray">A ray used in intersection.</param>
         /// <param name="geometry">Only Surface and Brep objects are currently supported. Trims are ignored on Breps.</param>
         /// <param name="maxReflections">The maximum number of reflections. This value should be any value between 1 and 1000, inclusive.</param>
-        /// <returns>An array of points: one for each face that was passed by the faceIds out reference.</returns>
+        /// <returns>An array of points: one for each surface or Brep face that was hit, or an empty array on failure.</returns>
         /// <exception cref="ArgumentNullException">geometry is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">maxReflections is strictly outside the [1-1000] range.</exception>
         public static Point3d[] RayShoot(Ray3d ray, IEnumerable<GeometryBase> geometry, int maxReflections)
@@ -11468,12 +11515,12 @@ namespace Rhino.Compute.Intersect
         }
 
         /// <summary>
-        /// Computes point intersections that occur when shooting a ray to a collection of surfaces.
+        /// Computes point intersections that occur when shooting a ray to a collection of surfaces and Breps.
         /// </summary>
         /// <param name="ray">A ray used in intersection.</param>
         /// <param name="geometry">Only Surface and Brep objects are currently supported. Trims are ignored on Breps.</param>
         /// <param name="maxReflections">The maximum number of reflections. This value should be any value between 1 and 1000, inclusive.</param>
-        /// <returns>An array of points: one for each face that was passed by the faceIds out reference.</returns>
+        /// <returns>An array of points: one for each surface or Brep face that was hit, or an empty array on failure.</returns>
         /// <exception cref="ArgumentNullException">geometry is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">maxReflections is strictly outside the [1-1000] range.</exception>
         public static Point3d[] RayShoot(Ray3d ray, Remote<IEnumerable<GeometryBase>> geometry, int maxReflections)
@@ -11685,5 +11732,295 @@ namespace Rhino.Compute.Intersect
         }
 
         public class CurveIntersections : List<IntersectionEvent> { }
+    }
+}
+
+namespace Rhino.Compute
+{
+    public class GrasshopperObject
+    {
+        [JsonProperty(PropertyName = "type")]
+        public string Type { get; set; }
+
+        [JsonProperty(PropertyName = "data")]
+        public string Data { get; set; }
+
+        [JsonConstructor]
+        public GrasshopperObject()
+        {
+        }
+
+        public GrasshopperObject(object obj)
+        {
+            this.Data = JsonConvert.SerializeObject(obj, GeometryResolver.Settings);
+            this.Type = obj.GetType().FullName;
+        }
+
+        /// <summary>
+        /// Used internally for RestHopperObject serialization
+        /// </summary>
+        class GeometryResolver : Newtonsoft.Json.Serialization.DefaultContractResolver
+        {
+            static JsonSerializerSettings _settings;
+            public static JsonSerializerSettings Settings
+            {
+                get
+                {
+                    if (_settings == null)
+                    {
+                        _settings = new JsonSerializerSettings { ContractResolver = new GeometryResolver() };
+                        // return V6 ON_Objects for now
+                        var options = new Rhino.FileIO.SerializationOptions();
+                        options.RhinoVersion = 6;
+                        options.WriteUserData = true;
+                        _settings.Context = new System.Runtime.Serialization.StreamingContext(System.Runtime.Serialization.StreamingContextStates.All, options);
+                        //_settings.Converters.Add(new ArchivableDictionaryResolver());
+                    }
+                    return _settings;
+                }
+            }
+
+            protected override Newtonsoft.Json.Serialization.JsonProperty CreateProperty(System.Reflection.MemberInfo member, MemberSerialization memberSerialization)
+            {
+                var property = base.CreateProperty(member, memberSerialization);
+                if (property.DeclaringType == typeof(Rhino.Geometry.Circle))
+                {
+                    property.ShouldSerialize = _ =>
+                    {
+                        return property.PropertyName != "IsValid" && property.PropertyName != "BoundingBox" && property.PropertyName != "Diameter" && property.PropertyName != "Circumference";
+                    };
+
+                }
+                if (property.DeclaringType == typeof(Rhino.Geometry.Plane))
+                {
+                    property.ShouldSerialize = _ =>
+                    {
+                        return property.PropertyName != "IsValid" && property.PropertyName != "OriginX" && property.PropertyName != "OriginY" && property.PropertyName != "OriginZ";
+                    };
+                }
+
+                if (property.DeclaringType == typeof(Rhino.Geometry.Point3f) ||
+                    property.DeclaringType == typeof(Rhino.Geometry.Point2f) ||
+                    property.DeclaringType == typeof(Rhino.Geometry.Vector2f) ||
+                    property.DeclaringType == typeof(Rhino.Geometry.Vector3f))
+                {
+                    property.ShouldSerialize = _ =>
+                    {
+                        return property.PropertyName == "X" || property.PropertyName == "Y" || property.PropertyName == "Z";
+                    };
+                }
+
+                if (property.DeclaringType == typeof(Rhino.Geometry.Line))
+                {
+                    property.ShouldSerialize = _ =>
+                    {
+                        return property.PropertyName == "From" || property.PropertyName == "To";
+                    };
+                }
+
+                if (property.DeclaringType == typeof(Rhino.Geometry.MeshFace))
+                {
+                    property.ShouldSerialize = _ =>
+                    {
+                        return property.PropertyName != "IsTriangle" && property.PropertyName != "IsQuad";
+                    };
+                }
+                return property;
+            }
+        }
+    }
+
+
+    public class GrasshopperPath
+    {
+        public int[] Path
+        {
+            get; set;
+        }
+
+        public GrasshopperPath()
+        {
+            //this.Path = new int[0];
+        }
+
+        public GrasshopperPath(int path)
+        {
+            this.Path = new int[] { path };
+        }
+
+
+        public GrasshopperPath(int[] path)
+        {
+            this.Path = path;
+        }
+
+        public GrasshopperPath(string path)
+        {
+            this.Path = FromString(path);
+        }
+
+        public override string ToString()
+        {
+            string sPath = "{ ";
+            foreach (int i in this.Path)
+            {
+                sPath += $"{i}; ";
+            }
+            sPath += "}";
+            return sPath;
+        }
+
+        public static int[] FromString(string path)
+        {
+            string primer = path.Replace(" ", "").Replace("{", "").Replace("}", "");
+            string[] stringValues = primer.Split(';');
+            List<int> ints = new List<int>();
+            foreach (string s in stringValues)
+            {
+                if (s != string.Empty)
+                {
+                    ints.Add(Int32.Parse(s));
+                }
+            }
+            return ints.ToArray();
+        }
+
+        public GrasshopperPath(GrasshopperPath pathObj, int i)
+        {
+            int[] path = pathObj.Path;
+            this.Path = new int[path.Length + 1];
+
+            for (int j = 0; j < path.Length; j++)
+            {
+                this.Path[j] = path[j];
+            }
+            this.Path[path.Length] = i;
+        }
+    }
+
+
+    public class GrasshopperDataTree
+    {
+        public GrasshopperDataTree(string paramName)
+        {
+            ParamName = paramName;
+            _tree = new Dictionary<string, List<GrasshopperObject>>();
+        }
+
+        private Dictionary<string, List<GrasshopperObject>> _tree;
+        public string ParamName { get; }
+
+
+        public Dictionary<string, List<GrasshopperObject>> InnerTree
+        {
+            get { return _tree; }
+            set { _tree = value; }
+        }
+
+        public List<GrasshopperObject> this[string key]
+        {
+            get
+            {
+                return ((IDictionary<string, List<GrasshopperObject>>)_tree)[key];
+            }
+
+            set
+            {
+                ((IDictionary<string, List<GrasshopperObject>>)_tree)[key] = value;
+            }
+        }
+
+        public bool Contains(GrasshopperObject item)
+        {
+
+            foreach (var list in _tree.Values)
+            {
+                if (list.Contains(item))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public void Append(List<GrasshopperObject> items, GrasshopperPath GhPath)
+        {
+            this.Append(items, GhPath.ToString());
+        }
+
+        public void Append(List<GrasshopperObject> items, string GhPath)
+        {
+
+            if (!_tree.ContainsKey(GhPath))
+            {
+                _tree.Add(GhPath, new List<GrasshopperObject>());
+            }
+            _tree[GhPath].AddRange(items);
+            //_GhPathIndexer.Add(item.Index, GhPath);
+        }
+
+        public void Append(GrasshopperObject item, GrasshopperPath path)
+        {
+            this.Append(item, path.ToString());
+        }
+
+        public void Append(GrasshopperObject item, string GhPath)
+        {
+            if (!_tree.ContainsKey(GhPath))
+            {
+                _tree.Add(GhPath, new List<GrasshopperObject>());
+            }
+            _tree[GhPath].Add(item);
+        }
+
+        public bool ContainsKey(string key)
+        {
+            return ((IDictionary<string, List<GrasshopperObject>>)_tree).ContainsKey(key);
+        }
+
+        public void Add(string key, List<GrasshopperObject> value)
+        {
+            ((IDictionary<string, List<GrasshopperObject>>)_tree).Add(key, value);
+        }
+
+        public bool Remove(string key)
+        {
+            return ((IDictionary<string, List<GrasshopperObject>>)_tree).Remove(key);
+        }
+
+        public bool TryGetValue(string key, out List<GrasshopperObject> value)
+        {
+            return ((IDictionary<string, List<GrasshopperObject>>)_tree).TryGetValue(key, out value);
+        }
+
+        public void Add(KeyValuePair<string, List<GrasshopperObject>> item)
+        {
+            ((IDictionary<string, List<GrasshopperObject>>)_tree).Add(item);
+        }
+
+        public void Clear()
+        {
+            ((IDictionary<string, List<GrasshopperObject>>)_tree).Clear();
+        }
+
+        public bool Contains(KeyValuePair<string, List<GrasshopperObject>> item)
+        {
+            return ((IDictionary<string, List<GrasshopperObject>>)_tree).Contains(item);
+        }
+
+        public void CopyTo(KeyValuePair<string, List<GrasshopperObject>>[] array, int arrayIndex)
+        {
+            ((IDictionary<string, List<GrasshopperObject>>)_tree).CopyTo(array, arrayIndex);
+        }
+
+        public bool Remove(KeyValuePair<string, List<GrasshopperObject>> item)
+        {
+            return ((IDictionary<string, List<GrasshopperObject>>)_tree).Remove(item);
+        }
+
+        public IEnumerator<KeyValuePair<string, List<GrasshopperObject>>> GetEnumerator()
+        {
+            return ((IDictionary<string, List<GrasshopperObject>>)_tree).GetEnumerator();
+        }
     }
 }
