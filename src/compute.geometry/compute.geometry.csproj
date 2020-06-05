@@ -48,6 +48,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ApiKey.cs" />
     <Compile Include="DataCache.cs" />
     <Compile Include="Endpoints\GrasshopperEndpoint.cs" />
     <Compile Include="Environment.cs" />
