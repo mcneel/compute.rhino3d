@@ -147,6 +147,8 @@ namespace compute.geometry
             Nancy.StaticConfiguration.DisableErrorTraces = false;
             pipelines.OnError += (ctx, ex) => LogError(ctx, ex);
             pipelines.AfterRequest += AddCORSSupport;
+            ApiKey.Initialize(pipelines);
+
 
             Rhino.Runtime.HostUtils.RegisterComputeEndpoint("grasshopper", typeof(Endpoints.GrasshopperEndpoint));
 
