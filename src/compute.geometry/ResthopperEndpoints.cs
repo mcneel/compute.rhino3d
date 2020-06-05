@@ -620,6 +620,7 @@ namespace compute.geometry
         static Response GetIoNames(NancyContext ctx)
         {
             string json = ctx.Request.Body.AsString();
+            
             IoQuerySchema input = JsonConvert.DeserializeObject<IoQuerySchema>(json);
             string pointer = input.RequestedFile;
             GH_Archive archive = DataCache.GetCachedArchive(pointer);
@@ -633,6 +634,9 @@ namespace compute.geometry
             // Parse input and output names
             List<string> InputNames = new List<string>();
             List<string> OutputNames = new List<string>();
+            var Inputs = new List<IoParamSchema>();
+            var Outputs = new List<IoParamSchema>();
+
             foreach (var obj in definition.Objects)
             {
                 var group = obj as GH_Group;
@@ -641,19 +645,53 @@ namespace compute.geometry
                 if (group.NickName.Contains("RH_IN"))
                 {
                     InputNames.Add(group.NickName);
+
+                    var i = new IoParamSchema
+                    {
+                        Name = group.NickName,
+                        ParamType = (group.Objects()[0] as IGH_Param).TypeName
+                    };
+
+                    Inputs.Add(i);
                 }
                 else if (group.NickName.Contains("RH_OUT"))
                 {
                     OutputNames.Add(group.NickName);
+
+                    var o = new IoParamSchema
+                    {
+                        Name = group.NickName,
+                        ParamType = (group.Objects()[0] as IGH_Param).TypeName
+                    };
+
+                    Outputs.Add(o);
                 }
             }
 
-            IoResponseSchema response = new IoResponseSchema();
-            response.InputNames = InputNames;
-            response.OutputNames = OutputNames;
+            string jsonResponse;
+            if (ctx.Request.Query.Count > 0 && ctx.Request.Query.ContainsKey("params") && ctx.Request.Query["params"])
+            {
+                var responseParams = new IoParamResponseSchema
+                {
+                    Inputs = Inputs,
+                    Outputs = Outputs
+                };
 
-            string jsonResponse = JsonConvert.SerializeObject(response);
+                jsonResponse = JsonConvert.SerializeObject(responseParams);
+
+            } else
+            {
+                IoResponseSchema response = new IoResponseSchema
+                {
+                    InputNames = InputNames,
+                    OutputNames = OutputNames
+                };
+                
+                jsonResponse = JsonConvert.SerializeObject(response);
+            }
+            
             return jsonResponse;
+
         }
 
         public static ResthopperObject GetResthopperPoint(GH_Point goo)
