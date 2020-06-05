@@ -24,6 +24,18 @@ namespace Resthopper.IO
         public string RequestedFile { get; set; }
     }
 
+    public class IoParamSchema
+    {
+        public string Name { get; set; }
+        public string ParamType { get; set; }
+    }
+
+    public class IoParamResponseSchema
+    {
+        public List<IoParamSchema> Inputs { get; set; }
+        public List<IoParamSchema> Outputs { get; set; }
+    }
+
     public class IoResponseSchema
     {
         public List<string> InputNames { get; set; }
