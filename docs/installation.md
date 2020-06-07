@@ -1,12 +1,12 @@
-# Getting Started
+# Installation
 
-## System Requirements
+For running compute locally and debugging, you need to have Rhino 7 for Windows installed on your computer. **The following instructions are for setting up compute as a web server.**
 
-You will need a server or virtual machine with (minimum) Windows Server 2016 or 2019 (LTSC) installed is recommended. It's possible to run Compute on a Windows 10 machine, but this is only recommended for development and testing.
+## System Requirements (Web Server)
+
+For a web server, you will need a server or virtual machine with (minimum) Windows Server 2016. Windows Server 2019 (LTSC) is recommended.
 
 It's still Rhino running under the hood, albeit without the UI, so [spec](https://www.rhino3d.com/6/system_requirements) your machine(s) accordingly. AWS's [t2.medium](https://aws.amazon.com/ec2/instance-types/t2/) instance type (2 vCPU, 4 GB RAM) is a great starting point.
-
-The machine can be totally fresh. Everything else is described in the [Installation](#-installation-) and [Configuration](#configuration) sections below.
 
 ## "Installation"
 
