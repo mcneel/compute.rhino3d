@@ -28,7 +28,7 @@ namespace compute.geometry
                 loadComputePlugsin.Invoke(null, null);
 
             Nancy.StaticConfiguration.DisableErrorTraces = false;
-            pipelines.OnError += (ctx, ex) => LogError(ctx, ex);
+            pipelines.OnError += LogError;
             ApiKey.Initialize(pipelines);
 
 
@@ -60,8 +60,12 @@ namespace compute.geometry
 
         private static dynamic LogError(NancyContext ctx, Exception ex)
         {
-            string id = ctx.Request.Headers["X-Compute-Id"].FirstOrDefault();
-            Log.Error(ex, "An exception occured while processing request \"{RequestId}\"", id);
+            string id = ctx.Request.Headers["X-Compute-Id"].FirstOrDefault(); // set by frontend
+            var msg = "An exception occured while processing request";
+            if (id != null)
+                Log.Error(ex, msg + " \"{RequestId}\"", id);
+            else
+                Log.Error(ex, msg);
             return null;
         }
     }
