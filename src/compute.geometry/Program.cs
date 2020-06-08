@@ -29,38 +29,22 @@ namespace compute.geometry
 
             int port = Env.GetEnvironmentInt("COMPUTE_BACKEND_PORT", 8081);
 
-            //            Topshelf.HostFactory.Run(x =>
-            //            {
-            //                x.UseSerilog();
-            //                x.ApplyCommandLine();
-            //                x.SetStartTimeout(new TimeSpan(0, 1, 0));
-            //                x.Service<NancySelfHost>(s =>
-            //                  {
-            //                      s.ConstructUsing(name => new NancySelfHost());
-            //                      s.WhenStarted(tc => tc.Start(port));
-            //                      s.WhenStopped(tc => tc.Stop());
-            //                  });
-            //                x.RunAsPrompt();
-            //                //x.RunAsLocalService();
-            //                x.SetDisplayName("compute.geometry");
-            //                x.SetServiceName("compute.geometry");
-            //            });
-
-            var url = $"http://localhost:{port}";
-
-            StartOptions options = new StartOptions(url);
-
-            // disable built-in owin tracing by using a null traceoutput
-            options.Settings.Add(
-                typeof(Microsoft.Owin.Hosting.Tracing.ITraceOutputFactory).FullName,
-                typeof(NullTraceOutputFactory).AssemblyQualifiedName);
-
-            //using (WebApp.Start<Startup>(url))
-            using (WebApp.Start<Startup>(options))
+            Topshelf.HostFactory.Run(x =>
             {
-                Log.Information("Running on {Url}", url);
-                Console.ReadLine();
-            }
+                x.UseSerilog();
+                x.ApplyCommandLine();
+                x.SetStartTimeout(new TimeSpan(0, 1, 0));
+                x.Service<OwinSelfHost>(s =>
+                  {
+                      s.ConstructUsing(name => new OwinSelfHost());
+                      s.WhenStarted(tc => tc.Start(port));
+                      s.WhenStopped(tc => tc.Stop());
+                  });
+                x.RunAsPrompt();
+                //x.RunAsLocalService();
+                x.SetDisplayName("compute.geometry");
+                //x.SetServiceName("compute.geometry");
+            });
 
             if (RhinoCore != null)
                 RhinoCore.Dispose();
@@ -79,7 +63,34 @@ namespace compute.geometry
         }
     }
 
-    public class NullTraceOutputFactory : Microsoft.Owin.Hosting.Tracing.ITraceOutputFactory
+    internal class OwinSelfHost
+    {
+        IDisposable _host;
+
+        public void Start(int port)
+        {
+            // TODO: add option to listen on http://+:{port}
+            var url = $"http://localhost:{port}";
+
+            StartOptions options = new StartOptions(url);
+
+            // disable built-in owin tracing by using a null traceoutput
+            // otherwise we get some of rhino's diagnostic traces showing up
+            options.Settings.Add(
+                typeof(Microsoft.Owin.Hosting.Tracing.ITraceOutputFactory).FullName,
+                typeof(NullTraceOutputFactory).AssemblyQualifiedName);
+
+            _host = WebApp.Start<Startup>(options);
+            Log.Information("Listening on {Url}", url);
+        }
+
+        public void Stop()
+        {
+            _host.Dispose();
+        }
+    }
+
+    internal class NullTraceOutputFactory : Microsoft.Owin.Hosting.Tracing.ITraceOutputFactory
     {
         public TextWriter Create(string outputFile)
         {
