@@ -28,8 +28,8 @@ namespace compute.geometry
                 .MinimumLevel.Debug()
 #endif
                 .Enrich.FromLogContext()
-                .Enrich.WithProperty("Source", "geometry")
-                .WriteTo.Console(outputTemplate: "{Timestamp:o} {Level:w3}: {Source} {Message:lj} {Properties:j}{NewLine}{Exception}")
+                //.Enrich.WithProperty("Source", "geometry")
+                .WriteTo.Console()
                 .WriteTo.File(new JsonFormatter(), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
 
             var cloudwatch_enabled = false;
