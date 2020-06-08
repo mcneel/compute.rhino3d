@@ -14,9 +14,6 @@ namespace compute.geometry
 
         protected override void ApplicationStartup(TinyIoCContainer container, IPipelines pipelines)
         {
-            Log.Information("Launching RhinoCore library as {User}", Environment.UserName);
-            Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
-
             // Load GH at startup so it can get initialized on the main thread
             var pluginObject = Rhino.RhinoApp.GetPlugInObject("Grasshopper");
             var runheadless = pluginObject?.GetType().GetMethod("RunHeadless");

@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using Microsoft.Owin.Hosting;
+﻿using Microsoft.Owin.Hosting;
 using Nancy;
 using Nancy.Routing;
 using Serilog;
+using System;
+using System.IO;
+using System.Net;
+using System.Reflection;
+using System.Text;
 using Topshelf;
 
 namespace compute.geometry
@@ -27,8 +27,6 @@ namespace compute.geometry
             Logging.Init();
             LogVersions();
 
-            int port = Env.GetEnvironmentInt("COMPUTE_BACKEND_PORT", 8081);
-
             Topshelf.HostFactory.Run(x =>
             {
                 x.UseSerilog();
@@ -37,13 +35,11 @@ namespace compute.geometry
                 x.Service<OwinSelfHost>(s =>
                   {
                       s.ConstructUsing(name => new OwinSelfHost());
-                      s.WhenStarted(tc => tc.Start(port));
+                      s.WhenStarted(tc => tc.Start());
                       s.WhenStopped(tc => tc.Stop());
                   });
                 x.RunAsPrompt();
-                //x.RunAsLocalService();
                 x.SetDisplayName("compute.geometry");
-                //x.SetServiceName("compute.geometry");
             });
 
             if (RhinoCore != null)
@@ -65,12 +61,27 @@ namespace compute.geometry
 
     internal class OwinSelfHost
     {
+        int _port;
         IDisposable _host;
 
-        public void Start(int port)
+        public OwinSelfHost()
         {
-            // TODO: add option to listen on http://+:{port}
-            var url = $"http://localhost:{port}";
+            _port = Env.GetEnvironmentInt("COMPUTE_BACKEND_PORT", 8081);
+        }
+
+        public void Start()
+        {
+            Log.Information("Launching RhinoCore library as {User}", Environment.UserName);
+            Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
+
+            // Debug:   listen on localhost only
+            // Release: attempt to listen on 0.0.0.0 (fall back to localhost)
+
+#if DEBUG
+            var url = $"http://localhost:{_port}";
+#else
+            var url = $"http://+:{_port}";
+#endif
 
             StartOptions options = new StartOptions(url);
 
@@ -80,7 +91,28 @@ namespace compute.geometry
                 typeof(Microsoft.Owin.Hosting.Tracing.ITraceOutputFactory).FullName,
                 typeof(NullTraceOutputFactory).AssemblyQualifiedName);
 
-            _host = WebApp.Start<Startup>(options);
+            try
+            {
+                _host = WebApp.Start<Startup>(options);
+            }
+            catch (TargetInvocationException ex)
+            {
+                // catch exception when urlacl not configured correctly or user not admin
+                // TODO: add link to troubleshooting
+#if DEBUG
+                throw;
+#else
+                if (!(ex.InnerException is HttpListenerException))
+                    throw;
+
+                Log.Warning("Unable to listen on {Url}", url);
+                url = $"http://localhost:{_port}";
+                Log.Warning("Attempting to listen on {Url} instead...", url);
+                options.Urls.Clear();
+                options.Urls.Add(url);
+                _host = WebApp.Start<Startup>(options);
+#endif
+            }
             Log.Information("Listening on {Url}", url);
         }
 
