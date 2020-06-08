@@ -22,6 +22,7 @@ namespace Resthopper.IO
     {
         [JsonProperty(PropertyName = "requestedFile")]
         public string RequestedFile { get; set; }
+
     }
 
     public class IoParamSchema
@@ -30,16 +31,13 @@ namespace Resthopper.IO
         public string ParamType { get; set; }
     }
 
-    public class IoParamResponseSchema
-    {
-        public List<IoParamSchema> Inputs { get; set; }
-        public List<IoParamSchema> Outputs { get; set; }
-    }
-
     public class IoResponseSchema
     {
         public List<string> InputNames { get; set; }
         public List<string> OutputNames { get; set; }
+
+        public List<IoParamSchema> Inputs { get; set; }
+        public List<IoParamSchema> Outputs { get; set; }
     }
 
     public class ResthopperObject

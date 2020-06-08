@@ -668,27 +668,15 @@ namespace compute.geometry
                 }
             }
 
-            string jsonResponse;
-            if (ctx.Request.Query.Count > 0 && ctx.Request.Query.ContainsKey("params") && ctx.Request.Query["params"])
+            var response = new IoResponseSchema
             {
-                var responseParams = new IoParamResponseSchema
-                {
-                    Inputs = Inputs,
-                    Outputs = Outputs
-                };
+                InputNames = InputNames,
+                OutputNames = OutputNames,
+                Inputs = Inputs,
+                Outputs = Outputs
+            };
 
-                jsonResponse = JsonConvert.SerializeObject(responseParams);
-
-            } else
-            {
-                IoResponseSchema response = new IoResponseSchema
-                {
-                    InputNames = InputNames,
-                    OutputNames = OutputNames
-                };
-                
-                jsonResponse = JsonConvert.SerializeObject(response);
-            }
+            string jsonResponse = JsonConvert.SerializeObject(response);
             
             return jsonResponse;
 
