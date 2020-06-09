@@ -8,6 +8,8 @@ using Nancy.Bootstrapper;
 using Serilog.Core;
 using Serilog.Events;
 using System.IO;
+using Nancy.Responses.Negotiation;
+using Nancy.ErrorHandling;
 
 namespace compute.frontend
 {
@@ -24,6 +26,7 @@ namespace compute.frontend
             pipelines.OnError += (ctx, ex) =>
             {
                 Log.Error(ex, "An exception occured while processing request \"{RequestId}\"", ctx.Items["RequestId"] as string);
+                // cors handled in default status code handler
                 return null;
             };
         }
@@ -51,11 +54,16 @@ namespace compute.frontend
             context.Response.Headers.Add("X-Compute-Host", context.Items["Hostname"] as string);
         }
 
-        private static void AddCORSSupport(NancyContext context)
+        internal static void AddCORSSupport(NancyContext context)
         {
-            context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
-            context.Response.Headers.Add("Access-Control-Allow-Methods", "OPTIONS,POST,GET,HEAD");
-            context.Response.Headers.Add("Access-Control-Allow-Headers", "Authorization,Origin,Accept,Content-Type,User-Agent,Access-Control-Allow-Headers,Access-Control-Request-Method,Access-Control-Request-Headers,api_token");
+            if (context.Request.Headers.Keys.Contains("Origin"))
+            {
+                context.Response
+                    .WithHeader("Access-Control-Allow-Origin", "*")
+                    .WithHeader("Access-Control-Allow-Methods", "OPTIONS,POST,GET,HEAD")
+                    .WithHeader("Access-Control-Allow-Headers", "Authorization,Origin,Accept,Content-Type,User-Agent," +
+                                "Access-Control-Allow-Headers,Access-Control-Request-Method,Access-Control-Request-Headers,api_token");
+            }
         }
 
         private static void LogResponse(NancyContext context)
@@ -189,6 +197,21 @@ namespace compute.frontend
             }
 
             return ip;
+        }
+    }
+
+    /// <summary>
+    /// Extends the default status code handler (404 and 500) with CORS headers.
+    /// See https://git.io/JfyRA
+    /// </summary>
+    public class DefaultStatusCodeHandler : Nancy.ErrorHandling.DefaultStatusCodeHandler, IStatusCodeHandler
+    {
+        public DefaultStatusCodeHandler(IResponseNegotiator responseNegotiator) : base(responseNegotiator) { }
+
+        public new void Handle(Nancy.HttpStatusCode statusCode, NancyContext context)
+        {
+            base.Handle(statusCode, context);
+            NancyPipelineExtensions.AddCORSSupport(context);
         }
     }
 }
