@@ -25,9 +25,9 @@ namespace compute.geometry
                 loadComputePlugsin.Invoke(null, null);
 
             Nancy.StaticConfiguration.DisableErrorTraces = false;
+
             pipelines.OnError += LogError;
             ApiKey.Initialize(pipelines);
-
 
             Rhino.Runtime.HostUtils.RegisterComputeEndpoint("grasshopper", typeof(Endpoints.GrasshopperEndpoint));
 
