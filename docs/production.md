@@ -67,6 +67,7 @@ Rhino encrypts license information by default. In order to create an image and s
 1. Close Rhino
 1. Copy `%appdata%\McNeel\Rhinoceros\6.0\License Manager\Licenses\cloudzoo.json` for use on your compute instance.
 1. Copy `%programdata%\McNeel\Rhinoceros\6.0\License Manager\Licenses\{GUID}.lic` for use on your compute instance. Note that the GUID that names this file changes with each version of Rhino. Rhino 6 and Rhino 7 WIP use 55500d41-3a41-4474-99b3-684032a4f4df.
+1. Copy `%appdata%\McNeel\Rhinoceros\7.0\settings\Settings-Scheme__Default.xml` for use on your compute instance.
 
 ## 3. Launch Your Virtual Machine
 
@@ -80,6 +81,7 @@ Rhino encrypts license information by default. In order to create an image and s
 
 1. Copy the `cloudzoo.json` file from step 2 to `%appdata%\McNeel\Rhinoceros\6.0\License Manager\Licenses\cloudzoo.json` on your VM.
 1. Copy the `{GUID}.lic` file from step 2 to `%programdata%\McNeel\Rhinoceros\7.0\License Manager\Licenses\{GUID}.lic` on your VM.
+1. Copy the `Settings-Scheme__Default.xml` file from step 2 to `%appdata%\McNeel\Rhinoceros\7.0\settings\Settings-Scheme__Default.xml` on your VM.
 
 ## 6. Start the Compute Service
 
