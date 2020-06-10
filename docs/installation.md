@@ -80,7 +80,7 @@ Rhino WIP encrypts Cloud Zoo license information by default. In order to create 
 1. Log back in to your Rhino Account
 1. Close Rhino
 
-An unencrpted login token will be created at `%appdata%\McNeel\Rhinoceros\7.0\License Manager\Licenses`. You can move this token to other computers. 
+An unencrpted login token will be created at `%appdata%\McNeel\Rhinoceros\6.0\License Manager\Licenses`. You can move this token to other computers. 
 
 *Warning: do not share your cloudzoo.json file - it allows people to use Rhino and bill your core-hour team.* 
 
