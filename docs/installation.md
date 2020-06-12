@@ -12,7 +12,7 @@ It's still Rhino running under the hood, albeit without the UI, so [spec](https:
 
 The following steps assume that you are either logged into the computer that will run Compute, or connected via Remote Desktop. Currently there is no "installer", but these are the steps to get things running!
 
-1. Get the [latest build](https://ci.appveyor.com/api/projects/mcneel/compute-rhino3d/artifacts/compute.zip?branch=master) from the `master` branch. Alternatively you can [build from source](#building-from-source).
+1. Get the [latest build](https://ci.appveyor.com/api/projects/mcneel/compute-rhino3d/artifacts/compute.zip?branch=master&pr=false) from the `master` branch. Alternatively you can [build from source](#building-from-source).
 1. Unzip everything into an empty directory, e.g. `C:\path\to\compute`.
 1. [Download](https://www.rhino3d.com/download/rhino/wip) and install the latest Rhino WIP.
 1. Run Rhino at least once so that you can configure the license (we recommend Cloud Zoo) and validate it.

@@ -34,7 +34,7 @@ if ((Test-Path "C:\Users/Administrator\Desktop\win-acme") -eq $false) {
 
 # Download and unzip latest build of compute
 if ((Test-Path "C:\Users\Administrator\Desktop\compute") -eq $false) {
-    Invoke-WebRequest "https://ci.appveyor.com/api/projects/mcneel/compute-rhino3d/artifacts/compute.zip?branch=master" -OutFile "compute.zip"
+    Invoke-WebRequest "https://ci.appveyor.com/api/projects/mcneel/compute-rhino3d/artifacts/compute.zip?branch=master&pr=false" -OutFile "compute.zip"
     Expand-Archive "compute.zip" -DestinationPath "C:\Users\Administrator\Desktop\compute"
     Remove-Item "compute.zip"
 }
