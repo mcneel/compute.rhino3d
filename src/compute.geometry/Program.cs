@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using Microsoft.Owin.Hosting;
 using Nancy;
-using Nancy.Bootstrapper;
-using Nancy.Conventions;
-using Nancy.Extensions;
-using Nancy.Hosting.Self;
 using Nancy.Routing;
-using Nancy.TinyIoc;
 using Serilog;
+using System;
+using System.IO;
+using System.Net;
+using System.Reflection;
+using System.Text;
 using Topshelf;
 
 namespace compute.geometry
@@ -23,36 +20,26 @@ namespace compute.geometry
             RhinoInside.Resolver.Initialize();
 #if DEBUG
             string rhinoSystemDir = @"C:\dev\github\mcneel\rhino\src4\bin\Debug";
-            if (System.IO.Directory.Exists(rhinoSystemDir))
+            if (File.Exists(rhinoSystemDir + "\\Rhino.exe"))
                 RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
 #endif
 
             Logging.Init();
             LogVersions();
 
-            // use a different backend port for debugging, so we don't have to reserve/unreserve ports when testing in Release
-#if DEBUG
-            int defaultBackendPort = 8082;
-#else
-            int defaultBackendPort = 8081;
-#endif
-            int backendPort = Env.GetEnvironmentInt("COMPUTE_BACKEND_PORT", defaultBackendPort);
-
             Topshelf.HostFactory.Run(x =>
             {
                 x.UseSerilog();
                 x.ApplyCommandLine();
                 x.SetStartTimeout(new TimeSpan(0, 1, 0));
-                x.Service<NancySelfHost>(s =>
+                x.Service<OwinSelfHost>(s =>
                   {
-                      s.ConstructUsing(name => new NancySelfHost());
-                      s.WhenStarted(tc => tc.Start(backendPort));
+                      s.ConstructUsing(name => new OwinSelfHost());
+                      s.WhenStarted(tc => tc.Start());
                       s.WhenStopped(tc => tc.Stop());
                   });
                 x.RunAsPrompt();
-                //x.RunAsLocalService();
                 x.SetDisplayName("compute.geometry");
-                x.SetServiceName("compute.geometry");
             });
 
             if (RhinoCore != null)
@@ -72,121 +59,91 @@ namespace compute.geometry
         }
     }
 
-    public class NancySelfHost
+    internal class OwinSelfHost
     {
-        private NancyHost _nancyHost;
-        private System.Diagnostics.Process _backendProcess = null;
+        const string _env_port = "COMPUTE_BACKEND_PORT";
+        const string _env_bind = "COMPUTE_BIND_URLS";
+        string[] _bind;
+        IDisposable _host;
 
-        public void Start(int http_port)
+        public OwinSelfHost()
         {
-            Log.Information("Launching RhinoCore library as {User}", Environment.UserName);
-            Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
-            var config = new HostConfiguration();
-#if DEBUG
-            config.RewriteLocalhost = false;  // Don't require URL registration since geometry service always runs on localhost
-#endif
-            var listenUriList = new List<Uri>();
+            var str = Env.GetEnvironmentString(_env_bind, null);
 
-            if (http_port > 0)
-                listenUriList.Add(new Uri($"http://localhost:{http_port}"));
-
-            if (listenUriList.Count > 0)
-                _nancyHost = new NancyHost(config, listenUriList.ToArray());
-            else
-                Log.Error("Neither COMPUTE_HTTP_PORT nor COMPUTE_HTTPS_PORT are set. Not listening!");
-            try
+            if (!string.IsNullOrEmpty(str))
             {
-                _nancyHost.Start();
-                foreach (var uri in listenUriList)
-                    Log.Information("compute.geometry running on {Uri}", uri.OriginalString);
+                _bind = str.Split(';');
+
+                if (Env.GetEnvironmentInt(_env_port, 0) > 0)
+                    Log.Warning($"Ignoring deprecated {_env_port} environment variable");
             }
-            catch (AutomaticUrlReservationCreationFailureException)
+
+            // fallback to existing behaviour (COMPUTE_BACKEND_PORT)
+            // Debug:   listen on localhost only
+            // Release: attempt to listen on 0.0.0.0 (fall back to localhost)
+            else
             {
-                Log.Error(GetAutomaticUrlReservationCreationFailureExceptionMessage(listenUriList));
-                Environment.Exit(1);
+                var port = Env.GetEnvironmentInt(_env_port, 8081);
+#if DEBUG
+                var url = $"http://localhost:{port}";
+#else
+                var url = $"http://+:{port}";
+#endif
+                _bind = new string[] { url };
             }
         }
 
-        // TODO: move this somewhere else
-        string GetAutomaticUrlReservationCreationFailureExceptionMessage(List<Uri> listenUriList)
+        public void Start()
         {
-            var msg = new StringBuilder();
-            msg.AppendLine("Url not reserved. From an elevated command promt, run:");
-            msg.AppendLine();
-            foreach (var uri in listenUriList)
-                msg.AppendLine($"netsh http add urlacl url=\"{uri.Scheme}://+:{uri.Port}/\" user=\"Everyone\"");
-            return msg.ToString();
+            Log.Information("Launching RhinoCore library as {User}", Environment.UserName);
+            Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
+
+            StartOptions options = new StartOptions();
+            foreach (var url in _bind)
+            {
+                options.Urls.Add(url);
+            }
+
+            // disable built-in owin tracing by using a null traceoutput
+            // otherwise we get some of rhino's diagnostic traces showing up
+            options.Settings.Add(
+                typeof(Microsoft.Owin.Hosting.Tracing.ITraceOutputFactory).FullName,
+                typeof(NullTraceOutputFactory).AssemblyQualifiedName);
+
+            Log.Information("Starting listener(s): {Urls}", _bind);
+
+            // start listener and unpack HttpListenerException if thrown
+            // (missing urlacl or lack of permissions)
+            try
+            {
+                _host = WebApp.Start<Startup>(options);
+            }
+            catch (TargetInvocationException ex)
+            {
+                if (ex.InnerException is HttpListenerException hle)
+                    throw hle; // TODO: add link to troubleshooting
+
+                throw ex;
+            }
+            catch
+            {
+                throw;
+            }
+
+            Log.Information("Listening on {Urls}", _bind);
         }
 
         public void Stop()
         {
-            if (_backendProcess != null)
-                _backendProcess.Kill();
-            _nancyHost.Stop();
+            _host?.Dispose();
         }
     }
 
-    public class Bootstrapper : Nancy.DefaultNancyBootstrapper
+    internal class NullTraceOutputFactory : Microsoft.Owin.Hosting.Tracing.ITraceOutputFactory
     {
-        private byte[] _favicon;
-
-        protected override void ApplicationStartup(TinyIoCContainer container, IPipelines pipelines)
+        public TextWriter Create(string outputFile)
         {
-            Log.Debug("ApplicationStartup");
-
-            // Load GH at startup so it can get initialized on the main thread
-            var pluginObject = Rhino.RhinoApp.GetPlugInObject("Grasshopper");
-            var runheadless = pluginObject?.GetType().GetMethod("RunHeadless");
-            if (runheadless != null)
-                runheadless.Invoke(pluginObject, null);
-
-            var loadComputePlugsin = typeof(Rhino.PlugIns.PlugIn).GetMethod("LoadComputeExtensionPlugins");
-            if (loadComputePlugsin != null)
-                loadComputePlugsin.Invoke(null, null);
-
-            Nancy.StaticConfiguration.DisableErrorTraces = false;
-            pipelines.OnError += (ctx, ex) => LogError(ctx, ex);
-            pipelines.AfterRequest += AddCORSSupport;
-            ApiKey.Initialize(pipelines);
-
-
-            Rhino.Runtime.HostUtils.RegisterComputeEndpoint("grasshopper", typeof(Endpoints.GrasshopperEndpoint));
-
-            base.ApplicationStartup(container, pipelines);
-        }
-
-        private static void AddCORSSupport(NancyContext context)
-        {
-            context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
-            context.Response.Headers.Add("Access-Control-Allow-Methods", "OPTIONS,POST,GET,HEAD");
-            context.Response.Headers.Add("Access-Control-Allow-Headers", "Authorization,Origin,Accept,Content-Type,User-Agent,Access-Control-Allow-Headers,Access-Control-Request-Method,Access-Control-Request-Headers");
-        }
-        protected override void ConfigureConventions(NancyConventions nancyConventions)
-        {
-            base.ConfigureConventions(nancyConventions);
-            nancyConventions.StaticContentsConventions.Add(StaticContentConventionBuilder.AddDirectory("docs"));
-        }
-
-        protected override byte[] FavIcon
-        {
-            get { return _favicon ?? (_favicon = LoadFavIcon()); }
-        }
-
-        private byte[] LoadFavIcon()
-        {
-            using (var resourceStream = GetType().Assembly.GetManifestResourceStream("compute.geometry.favicon.ico"))
-            {
-                var memoryStream = new System.IO.MemoryStream();
-                resourceStream.CopyTo(memoryStream);
-                return memoryStream.GetBuffer();
-            }
-        }
-
-        private static dynamic LogError(NancyContext ctx, Exception ex)
-        {
-            string id = ctx.Request.Headers["X-Compute-Id"].FirstOrDefault();
-            Log.Error(ex, "An exception occured while processing request \"{RequestId}\"", id);
-            return null;
+            return StreamWriter.Null;
         }
     }
 
