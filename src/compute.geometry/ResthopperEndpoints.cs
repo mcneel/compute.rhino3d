@@ -20,7 +20,7 @@ namespace compute.geometry
     {
         public ResthopperEndpointsModule(Nancy.Routing.IRouteCacheProvider routeCacheProvider)
         {
-            Post["/grasshopper"] = _ => Grasshopper(Context);
+            Post["/grasshopper"] = _ => GrasshopperNewVersion(Context);
             Post["/io"] = _ => GetIoNames(Context);
         }
 
@@ -78,6 +78,31 @@ namespace compute.geometry
             return null;
         }
 
+        static Response GrasshopperNewVersion(NancyContext ctx)
+        {
+            string body = ctx.Request.Body.AsString();
+            if (body.StartsWith("[") && body.EndsWith("]"))
+                body = body.Substring(1, body.Length - 2);
+            Schema input = JsonConvert.DeserializeObject<Schema>(body);
+
+            // load grasshopper file
+            GrasshopperDefinition definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
+            if (definition == null)
+                definition = GrasshopperDefinition.FromBase64String(input.Algo);
+            if (definition == null)
+                throw new Exception("Unable to load grasshopper definition");
+
+            definition.SetInputs(input.Values);
+            var output = definition.Solve();
+            string returnJson = JsonConvert.SerializeObject(output, GeometryResolver.Settings);
+            return returnJson;
+        }
+
+        /// <summary>
+        /// Keeping old version around for a little bit. Will delete soon
+        /// </summary>
+        /// <param name="ctx"></param>
+        /// <returns></returns>
         static Response Grasshopper(NancyContext ctx)
         {
             string body = ctx.Request.Body.AsString();

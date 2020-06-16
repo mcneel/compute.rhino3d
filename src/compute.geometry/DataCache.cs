@@ -8,6 +8,18 @@ namespace compute.geometry
 {
     static class DataCache
     {
+        public static GrasshopperDefinition GetCachedDefinition(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                return null;
+            return System.Runtime.Caching.MemoryCache.Default.Get(key) as GrasshopperDefinition;
+        }
+
+        public static void SetCachedDefinition(string key, GrasshopperDefinition definition)
+        {
+            System.Runtime.Caching.MemoryCache.Default.Set(key, definition, CachePolicy);
+        }
+
         public static GH_Archive GetCachedArchive(string key)
         {
             if (string.IsNullOrWhiteSpace(key))
