@@ -40,7 +40,7 @@ namespace Resthopper.IO
         public List<IoParamSchema> Outputs { get; set; }
     }
 
-    public class ResthopperObject
+    public class ResthopperObject : IEquatable<ResthopperObject>
     {
         [JsonProperty(PropertyName = "type")]
         public string Type { get; set; }
@@ -51,13 +51,17 @@ namespace Resthopper.IO
         [JsonConstructor]
         public ResthopperObject()
         {
-
         }
 
         public ResthopperObject(object obj)
         {
-            this.Data = JsonConvert.SerializeObject(obj, compute.geometry.GeometryResolver.Settings);
-            this.Type = obj.GetType().FullName;
+            Data = JsonConvert.SerializeObject(obj, compute.geometry.GeometryResolver.Settings);
+            Type = obj.GetType().FullName;
+        }
+
+        public bool Equals(ResthopperObject other)
+        {
+            return string.Equals(Type, other.Type) && string.Equals(Data, other.Data);
         }
     }
 }

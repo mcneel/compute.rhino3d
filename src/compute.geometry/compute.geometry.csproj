@@ -55,6 +55,7 @@
     <Compile Include="Environment.cs" />
     <Compile Include="FixedEndpoints.cs" />
     <Compile Include="GeometryEndPoint.cs" />
+    <Compile Include="GrasshopperDefinition.cs" />
     <Compile Include="IO\GhPath.cs" />
     <Compile Include="IO\Utilities.cs" />
     <Compile Include="IO\Schema.cs" />
