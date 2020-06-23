@@ -22,7 +22,7 @@ namespace compute.geometry
             if (context.Request.Method == "GET" || context.Request.Method == "OPTIONS")
                 return null; // GET and OPTIONS requests are free
 
-            var requestIds = new List<string>(context.Request.Headers["rhino_compute_key"]);
+            var requestIds = new List<string>(context.Request.Headers["RhinoComputeKey"]);
             if (requestIds.Count != 1)
                 return NoKeyResponse();
             var key_in_header = requestIds[0];
