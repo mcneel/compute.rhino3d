@@ -67,18 +67,19 @@ namespace compute.geometry
                     continue;
 
                 string nickname = group.NickName;
-                if ( nickname.Contains("RH_IN"))
+                var groupObjects = group.Objects();
+                if ( nickname.Contains("RH_IN") && groupObjects.Count>0)
                 {
-                    var param = group.Objects()[0] as IGH_Param;
+                    var param = groupObjects[0] as IGH_Param;
                     if (param != null)
                     {
                         rc._input[nickname] = new InputGroup(param);
                     }
                 }
 
-                if (nickname.Contains("RH_OUT"))
+                if (nickname.Contains("RH_OUT") && groupObjects.Count > 0)
                 {
-                    var param = group.Objects()[0] as IGH_Param;
+                    var param = groupObjects[0] as IGH_Param;
                     if (param != null)
                     {
                         rc._output[nickname] = param;
