@@ -40,9 +40,10 @@ namespace computegen
             System.IO.File.WriteAllText(path, clientText.ToString());
         }
 
-        protected const string T1 = "    ";
-        protected const string T2 = "        ";
-        protected const string T3 = "            ";
+        protected virtual int TabSize { get { return 4; } }
+        protected string T1 { get { return "".PadLeft(TabSize); } }
+        protected string T2 { get { return "".PadLeft(TabSize*2); } }
+        protected string T3 { get { return "".PadLeft(TabSize*3); } }
 
         protected virtual string Prefix
         {
@@ -64,6 +65,6 @@ namespace computegen
             return s;
         }
 
-        protected static string Version => "0.11.0";
+        protected static string Version => "0.12.0";
     }
 }
