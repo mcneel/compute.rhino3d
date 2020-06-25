@@ -87,67 +87,22 @@ namespace compute.geometry
 
         static Response GetIoNames(NancyContext ctx)
         {
-            string json = ctx.Request.Body.AsString();
-            
-            IoQuerySchema input = JsonConvert.DeserializeObject<IoQuerySchema>(json);
-            string pointer = input.RequestedFile;
-            GH_Archive archive = DataCache.GetCachedArchive(pointer);
+            string body = ctx.Request.Body.AsString();
+            if (body.StartsWith("[") && body.EndsWith("]"))
+                body = body.Substring(1, body.Length - 2);
 
-            var definition = new GH_Document();
-            if (!archive.ExtractObject(definition, "Definition"))
-            {
-                throw new Exception("Unable to extract definition");
-            }
+            Schema input = JsonConvert.DeserializeObject<Schema>(body);
 
-            // Parse input and output names
-            List<string> InputNames = new List<string>();
-            List<string> OutputNames = new List<string>();
-            var Inputs = new List<IoParamSchema>();
-            var Outputs = new List<IoParamSchema>();
+            // load grasshopper file
+            GrasshopperDefinition definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
+            if (definition == null)
+                definition = GrasshopperDefinition.FromBase64String(input.Algo);
+            if (definition == null)
+                throw new Exception("Unable to load grasshopper definition");
 
-            foreach (var obj in definition.Objects)
-            {
-                var group = obj as GH_Group;
-                if (group == null) continue;
+            string jsonResponse = JsonConvert.SerializeObject(definition.GetInputsAndOutputs());
 
-                if (group.NickName.Contains("RH_IN"))
-                {
-                    InputNames.Add(group.NickName);
-
-                    var i = new IoParamSchema
-                    {
-                        Name = group.NickName,
-                        ParamType = (group.Objects()[0] as IGH_Param).TypeName
-                    };
-
-                    Inputs.Add(i);
-                }
-                else if (group.NickName.Contains("RH_OUT"))
-                {
-                    OutputNames.Add(group.NickName);
-
-                    var o = new IoParamSchema
-                    {
-                        Name = group.NickName,
-                        ParamType = (group.Objects()[0] as IGH_Param).TypeName
-                    };
-
-                    Outputs.Add(o);
-                }
-            }
-
-            var response = new IoResponseSchema
-            {
-                InputNames = InputNames,
-                OutputNames = OutputNames,
-                Inputs = Inputs,
-                Outputs = Outputs
-            };
-
-            string jsonResponse = JsonConvert.SerializeObject(response);
-            
             return jsonResponse;
-
         }
 
         public static ResthopperObject GetResthopperPoint(GH_Point goo)

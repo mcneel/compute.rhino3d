@@ -548,6 +548,44 @@ namespace compute.geometry
             return outputSchema;
         }
 
+        public IoResponseSchema GetInputsAndOutputs()
+        {
+            // Parse input and output names
+            List<string> InputNames = new List<string>();
+            List<string> OutputNames = new List<string>();
+            var Inputs = new List<IoParamSchema>();
+            var Outputs = new List<IoParamSchema>();
+
+            foreach (var i in _input)
+            {
+                InputNames.Add(i.Key);
+
+                Inputs.Add(new IoParamSchema
+                {
+                    Name = i.Key,
+                    ParamType = i.Value.Param.TypeName
+                });
+            }
+
+            foreach (var o in _output)
+            {
+                OutputNames.Add(o.Key);
+                Outputs.Add(new IoParamSchema
+                {
+                    Name = o.Key,
+                    ParamType = o.Value.TypeName
+                });
+            }
+
+            return new IoResponseSchema
+            {
+                InputNames = InputNames,
+                OutputNames = OutputNames,
+                Inputs = Inputs,
+                Outputs = Outputs
+            };
+        }
+
         public static GH_Archive ArchiveFromUrl(string url)
         {
             if (string.IsNullOrWhiteSpace(url))
