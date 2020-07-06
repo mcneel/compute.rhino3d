@@ -1,5 +1,7 @@
 # escape=`
 
+# see https://discourse.mcneel.com/t/docker-support/89322 for usage
+
 # NOTE: use 'process' isolation to build image (otherwise rhino fails to install)
 
 ### builder image
