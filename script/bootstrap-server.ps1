@@ -51,7 +51,7 @@ if ((Test-Path "$appDirectory\compute") -eq $false) {
 
 
 Write-Step 'Download latest Rhino 7'
-$rhino7DownloadUrl = "https://www.rhino3d.com/download/rhino-for-windows/7/wip/direct?email='$EmailAddress'"
+$rhino7DownloadUrl = "https://www.rhino3d.com/download/rhino-for-windows/7/wip/direct?email=$EmailAddress"
 $rhino7Setup = "rhino7_setup.exe"
 Download $rhino7DownloadUrl $rhino7Setup
 
