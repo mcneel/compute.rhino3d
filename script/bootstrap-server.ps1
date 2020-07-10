@@ -32,7 +32,7 @@ Write-Step 'Set environment variable'
 if ($PSBoundParameters.ContainsKey('ApiKey')) {
     [System.Environment]::SetEnvironmentVariable("RHINO_COMPUTE_KEY", $ApiKey, "Machine")
 }
-[Steve.Environment]::SetEnvironmentVariable("COMPUTE_BACKEND_PORT", 80, "Machine")
+[System.Environment]::SetEnvironmentVariable("COMPUTE_BACKEND_PORT", 80, "Machine")
 
 Write-Step 'Install IIS'
 Install-WindowsFeature -name Web-Server -IncludeManagementTools
