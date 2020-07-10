@@ -74,10 +74,12 @@ $settingsXml = '
 </settings>
 '
 $settingsFile = "$env:APPDATA\McNeel\Rhinoceros\7.0\settings\settings-Scheme__Default.xml"
-Out-File -FilePath $settingsFile -InputObject $settingsXml
+New-Item -Force -Path $settingsFile -Value $settingsXml
 
 Write-Step 'Copy license files for Rhino'
+New-Item -ItemType File -Path "$env:APPDATA\McNeel\Rhinoceros\6.0\License Manager\Licenses\cloudzoo.json" -Force
 Copy-Item "$home\Desktop\cloudzoo.json" -Destination "$env:APPDATA\McNeel\Rhinoceros\6.0\License Manager\Licenses\cloudzoo.json"
+New-Item -ItemType File -Path "$env:ProgramData\McNeel\Rhinoceros\6.0\License Manager\Licenses\55500d41-3a41-4474-99b3-684032a4f4df.lic" -Force
 Copy-Item "$home\Desktop\55500d41-3a41-4474-99b3-684032a4f4df.lic" -Destination "$env:ProgramData\McNeel\Rhinoceros\6.0\License Manager\Licenses\55500d41-3a41-4474-99b3-684032a4f4df.lic"
 
 
