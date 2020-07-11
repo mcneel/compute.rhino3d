@@ -8,13 +8,18 @@ param (
 
 $appDirectory = "$home\Desktop"
 
+# TODO: scripting of license setup is not working yet
+# leave commented out until we figure out how to properly implement
+
 # make sure cloudzoo.json and GUID.lic files are on desktop
+<#
 if ((Test-Path "$home\Desktop\cloudzoo.json") -eq $false) {
     throw "cloudzoo.json needs to be copied to the desktop"
 }
 if ((Test-Path "$home\Desktop\55500d41-3a41-4474-99b3-684032a4f4df.lic") -eq $false) {
     throw "55500d41-3a41-4474-99b3-684032a4f4df.lic needs to be copied to the desktop"
 }
+#>
 
 function Write-Step { 
     Write-Host "== "$args[0] -ForegroundColor Darkgreen
@@ -62,6 +67,7 @@ Start-Process -FilePath $rhino7Setup -ArgumentList "-passive" -Wait
 # delete installer
 Remove-Item $rhino7Setup
 
+<#
 Write-Step 'Tell license manager to use CloudZooPlainText'
 $settingsXml = '
 <?xml version="1.0" encoding="utf-8"?>
@@ -81,7 +87,8 @@ New-Item -ItemType File -Path "$env:APPDATA\McNeel\Rhinoceros\6.0\License Manage
 Copy-Item "$home\Desktop\cloudzoo.json" -Destination "$env:APPDATA\McNeel\Rhinoceros\6.0\License Manager\Licenses\cloudzoo.json"
 New-Item -ItemType File -Path "$env:ProgramData\McNeel\Rhinoceros\6.0\License Manager\Licenses\55500d41-3a41-4474-99b3-684032a4f4df.lic" -Force
 Copy-Item "$home\Desktop\55500d41-3a41-4474-99b3-684032a4f4df.lic" -Destination "$env:ProgramData\McNeel\Rhinoceros\6.0\License Manager\Licenses\55500d41-3a41-4474-99b3-684032a4f4df.lic"
-
+#>
+Write-Step 'Run Rhino to set up license'
 
 Write-Step 'Next Steps: Install and start geometry service'
 # go to compute directory and run
