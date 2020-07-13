@@ -59,6 +59,8 @@ Rhino encrypts license information by default. In order to create an image and s
 1. From the **Tools** menu, click **Options** then click **Advanced**
 1. Search for `Rhino.LicensingSettings.CloudZooPlainText`
 1. Select the checkbox to enable the plain text setting
+1. Search for `Rhino.LicensingSettings.ManualEntitySelection`
+1. Select the `ManualEntitySelection` checkbox to set the value to True. 
 1. Click OK to close the Options dialog box.
 1. Run the `Logout` command to logout of Rhino. 
 1. ⚠️ **Important!** Close all instances of Rhino – changes do not take effect until Rhino is restarted
