@@ -106,6 +106,9 @@ namespace compute.frontend
             string domainName = IPGlobalProperties.GetIPGlobalProperties().DomainName;
             string hostName = Dns.GetHostName();
 
+            if (string.IsNullOrWhiteSpace(domainName)) // exit early if no domain name
+                return hostName;
+
             domainName = "." + domainName;
             if (!hostName.EndsWith(domainName)) // if hostname does not already include domain name
             {
