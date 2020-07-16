@@ -24,7 +24,7 @@ SHELL ["powershell", "-Command"]
 # NOTE: edit this if you use a different version of rhino!
 # the url below will always redirect to the latest rhino 7 wip (email required)
 # https://www.rhino3d.com/download/rhino-for-windows/7/wip/direct?email=EMAIL
-ADD http://files.mcneel.com/dujour/exe/20200616/rhino_en-us_7.0.20168.13075.exe rhino_installer.exe
+ADD http://files.mcneel.com/dujour/exe/20200714/rhino_en-us_7.0.20196.12025.exe rhino_installer.exe
 RUN Start-Process .\rhino_installer.exe -ArgumentList '-package', '-quiet' -NoNewWindow -Wait
 RUN Remove-Item .\rhino_installer.exe
 
