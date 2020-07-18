@@ -3,23 +3,19 @@
 
 param (
     [Parameter(Mandatory=$true)][string] $EmailAddress,
-    [Parameter(Mandatory=$true)][string] $ApiKey
+    [Parameter(Mandatory=$true)][string] $ApiKey,
+    [switch] $install = $false
 )
 
 $appDirectory = "$home\Desktop"
 
-# TODO: scripting of license setup is not working yet
-# leave commented out until we figure out how to properly implement
-
 # make sure cloudzoo.json and GUID.lic files are on desktop
-<#
 if ((Test-Path "$home\Desktop\cloudzoo.json") -eq $false) {
     throw "cloudzoo.json needs to be copied to the desktop"
 }
 if ((Test-Path "$home\Desktop\55500d41-3a41-4474-99b3-684032a4f4df.lic") -eq $false) {
     throw "55500d41-3a41-4474-99b3-684032a4f4df.lic needs to be copied to the desktop"
 }
-#>
 
 function Write-Step { 
     Write-Host "== "$args[0] -ForegroundColor Darkgreen
@@ -33,10 +29,12 @@ function Download {
 }
 
 
-Write-Step 'Set environment variable'
+Write-Step 'Set environment variables'
 if ($PSBoundParameters.ContainsKey('ApiKey')) {
+    Write-Host "RHINO_COMPUTE_KEY=$ApiKey"
     [System.Environment]::SetEnvironmentVariable("RHINO_COMPUTE_KEY", $ApiKey, "Machine")
 }
+Write-Host "COMPUTE_BACKEND_PORT=80"
 [System.Environment]::SetEnvironmentVariable("COMPUTE_BACKEND_PORT", 80, "Machine")
 
 Write-Step 'Install IIS'
@@ -67,10 +65,9 @@ Start-Process -FilePath $rhino7Setup -ArgumentList "-passive" -Wait
 # delete installer
 Remove-Item $rhino7Setup
 
-<#
+
 Write-Step 'Tell license manager to use CloudZooPlainText'
-$settingsXml = '
-<?xml version="1.0" encoding="utf-8"?>
+$settingsXml = [xml]'<?xml version="1.0" encoding="utf-8"?>
 <settings id="2.0">
   <settings>
     <child key="LicensingSettings">
@@ -80,21 +77,23 @@ $settingsXml = '
 </settings>
 '
 $settingsFile = "$env:APPDATA\McNeel\Rhinoceros\7.0\settings\settings-Scheme__Default.xml"
-New-Item -Force -Path $settingsFile -Value $settingsXml
+New-Item -ItemType File -Path $settingsFile -Force
+$settingsXml.Save($settingsFile)
 
 Write-Step 'Copy license files for Rhino'
 New-Item -ItemType File -Path "$env:APPDATA\McNeel\Rhinoceros\6.0\License Manager\Licenses\cloudzoo.json" -Force
 Copy-Item "$home\Desktop\cloudzoo.json" -Destination "$env:APPDATA\McNeel\Rhinoceros\6.0\License Manager\Licenses\cloudzoo.json"
 New-Item -ItemType File -Path "$env:ProgramData\McNeel\Rhinoceros\6.0\License Manager\Licenses\55500d41-3a41-4474-99b3-684032a4f4df.lic" -Force
 Copy-Item "$home\Desktop\55500d41-3a41-4474-99b3-684032a4f4df.lic" -Destination "$env:ProgramData\McNeel\Rhinoceros\6.0\License Manager\Licenses\55500d41-3a41-4474-99b3-684032a4f4df.lic"
-#>
-Write-Step 'Run Rhino to set up license'
 
-Write-Step 'Next Steps: Install and start geometry service'
-# go to compute directory and run
-# ./compute.geometry.exe install
-# username = .\Administrator
-# password = account password
-# ./compute.geometry.exe start
+Write-Step 'Install and start geometry service'
+if ($install) {
+    Write-Host 'Installing compute.geometry as a service...'
+    Write-Host "TIP: For the username, use '.\$env:UserName'"
+    Start-Process "$appDirectory\compute\compute.geometry.exe" -ArgumentList "install" -Wait
+} else {
+    Write-Host "No '-install' flag. Skipping..."
+}
 
-
+Write-Step 'Restart Windows!'
+shutdown /r /t 5
