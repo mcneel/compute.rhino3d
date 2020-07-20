@@ -2,7 +2,7 @@
 
 To use Compute in production requires several major elements:
 
-1. Set up a core-hour billing team in Rhino Accounts.
+1. [Set up a core-hour billing team in Rhino Accounts.](#core-hour-billing)
 1. Obtain an OAuth2 token to be used on every compute instance.
 1. Launch a virtual machine
 1. Install Rhino and Compute
