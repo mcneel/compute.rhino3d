@@ -2,7 +2,7 @@
 
 To use Compute in production requires several major elements:
 
-1. [Set up a core-hour billing team in Rhino Accounts.](#core-hour-billing)
+1. [Set up a core-hour billing team in Rhino Accounts.](#1-core-hour-billing)
 1. Obtain an OAuth2 token to be used on every compute instance.
 1. Launch a virtual machine
 1. Install Rhino and Compute
@@ -18,7 +18,7 @@ To use Compute in production requires several major elements:
 1. Click **New Team**
 1. Enter the name and description for your new team, then click **Create New Team**
 1. From the **Action** menu, click **Edit Payment Information...**, then click **Add Payment Information**
-1. Edit your credit card details, then click **Save**
+1. Enter your credit card details, then click **Save**
 1. Visit https://www.rhino3d.com/licenses
 1. Under **Team Licenses** click your new team
 1. Click the **Manage Team** button, then click **Manage Core-Hour Billing**
@@ -30,9 +30,9 @@ To use Compute in production requires several major elements:
 ### 2.a. Create a Service Account
 
 1. Open a private browsing window in your web browser.
-1. Choose a `service email address` that will be used /only/ on your compute instances.
+1. Choose a `service email address` that will be used *only* on your compute instances.
 1. Ensure that your `service email address` does not have a Rhino account, and that you can receive emails for the account.
-1. Visit https://accounts.rhino3d.com/ and create an account for your `service email address`
+1. Visit https://accounts.rhino3d.com/ in the private browsing window and create an account for your `service email address`
 1. Leave your private browsing window open; you'll need it again soon.
 
 ### 2.b. Invite the Service Account to your Core-Hour Billing Team
@@ -58,18 +58,19 @@ Rhino encrypts license information by default. In order to create an image and s
 1. Start Rhino on your development computer.
 1. From the **Tools** menu, click **Options** then click **Advanced**
 1. Search for `Rhino.LicensingSettings.CloudZooPlainText`
-1. Select the checkbox to enable the plain text setting
+1. Set `CloudZooPlainText` to True.
 1. Search for `Rhino.LicensingSettings.ManualEntitySelection`
-1. Select the `ManualEntitySelection` checkbox to set the value to True. 
+1. Set `ManualEntitySelection` to True. 
 1. Click OK to close the Options dialog box.
 1. Run the `Logout` command to logout of Rhino. 
 1. ⚠️ **Important!** Close all instances of Rhino – changes do not take effect until Rhino is restarted
 1. Start Rhino
-1. Login to your Rhino Account
+1. Login to your Service Account
+1. Select your Core Hour Billing Team, then click Get License
 1. Close Rhino
-1. Copy `%appdata%\McNeel\Rhinoceros\6.0\License Manager\Licenses\cloudzoo.json` for use on your compute instance.
-1. Copy `%programdata%\McNeel\Rhinoceros\6.0\License Manager\Licenses\{GUID}.lic` for use on your compute instance. Note that the GUID that names this file changes with each version of Rhino. Rhino 6 and Rhino 7 WIP use 55500d41-3a41-4474-99b3-684032a4f4df.
-1. Copy `%appdata%\McNeel\Rhinoceros\7.0\settings\Settings-Scheme__Default.xml` for use on your compute instance.
+1. Create a "Compute Licenses" folder on your desktop
+1. Copy `%appdata%\McNeel\Rhinoceros\6.0\License Manager\Licenses\cloudzoo.json` to your Compute Licenses folder.
+1. Copy `%programdata%\McNeel\Rhinoceros\6.0\License Manager\Licenses\{GUID}.lic`  to your Compute Licenses folder. Note that the GUID that names this file changes with each version of Rhino. Rhino 6 and Rhino 7 WIP use 55500d41-3a41-4474-99b3-684032a4f4df.
 
 ## 3. Launch Your Virtual Machine
 
