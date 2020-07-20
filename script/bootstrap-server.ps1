@@ -34,6 +34,7 @@ if ($PSBoundParameters.ContainsKey('ApiKey')) {
     Write-Host "RHINO_COMPUTE_KEY=$ApiKey"
     [System.Environment]::SetEnvironmentVariable("RHINO_COMPUTE_KEY", $ApiKey, "Machine")
 }
+# TODO: use COMPUTE_BIND_URLS='http://+:80'
 Write-Host "COMPUTE_BACKEND_PORT=80"
 [System.Environment]::SetEnvironmentVariable("COMPUTE_BACKEND_PORT", 80, "Machine")
 
@@ -57,6 +58,7 @@ Write-Step 'Download latest Rhino 7'
 $rhino7DownloadUrl = "https://www.rhino3d.com/download/rhino-for-windows/7/wip/direct?email=$EmailAddress"
 $rhino7Setup = "rhino7_setup.exe"
 Download $rhino7DownloadUrl $rhino7Setup
+# TODO: print rhino version
 
 # Automated install
 # https://wiki.mcneel.com/rhino/installingrhino/6
