@@ -13,6 +13,7 @@ Things to pay attention to...
 * Set a public ip
 * Set a "Name" tag to help keep track of instances
 * Configure security group to allow Compute traffic
+    * RDP - 3389 TCP
     * HTTP - 80 TCP
     * HTTPS - 443 TCP
 * Key pair
