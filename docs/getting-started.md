@@ -33,6 +33,6 @@ On your local machine...
 * Run the command below in a powershell window (change `EMAIL` and `API_KEY` to your email address and an API key of your choice)
 
 <pre>
-iwr -useb https://raw.githubusercontent.com/mcneel/compute.rhino3d/will/bootstrap-complete/script/bootstrap-server.ps1 -outfile bootstrap.ps1
+iwr -useb https://raw.githubusercontent.com/mcneel/compute.rhino3d/master/script/bootstrap-server.ps1 -outfile bootstrap.ps1
 .\bootstrap.ps1 -emailaddress <i><b>EMAIL</b></i> -apikey <i><b>API_KEY</b></i> -install
 </pre>
