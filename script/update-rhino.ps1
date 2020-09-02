@@ -24,13 +24,20 @@ function Download {
 }
 
 try {
-    Write-Step 'Creating temp directory'
-    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName())
-    $null = New-Item -ItemType Directory -Path $tempDir -Force -ErrorAction SilentlyContinue
     $rhino7DownloadUrl = "https://www.rhino3d.com/download/rhino-for-windows/7/wip/direct?email=$Email"
     $uri = (Invoke-WebRequest-With-Try-Catch -Method 'HEAD' -MaximumRedirection 0 -Uri $rhino7DownloadUrl).headers.Location.AbsoluteUri
     $packageName = [System.IO.Path]::GetFileName($uri)
     $packageVersion = [System.IO.Path]::GetFileNameWithoutExtension($uri).split('_')[-1]
+
+    $installedVersion = [Version] (get-itemproperty -Path HKLM:\SOFTWARE\McNeel\Rhinoceros\7.0\Install -name "version").Version
+
+    if([Version]$packageVersion -le $installedVersion){
+        throw "Latest version avaliable $packageVersion seems to be already installed!"
+    }
+
+    Write-Step 'Creating temp directory'
+    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName())
+    $null = New-Item -ItemType Directory -Path $tempDir -Force -ErrorAction SilentlyContinue
 
     Write-Step "Downloading Rhino version $packageVersion"
     $packagePath = Join-Path -Path $tempDir -ChildPath $packageName
@@ -45,7 +52,9 @@ try {
 }
 finally {
     Write-Step 'Deleting temp directory'
-    Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+    if((-not [string]::IsNullOrEmpty($tempDir)) -and (Test-Path -Path $tempDir)) {
+        Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
 }
 
 
