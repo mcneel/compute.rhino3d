@@ -1,4 +1,4 @@
-# Update rhino-WIP
+# Update Rhino
 # Requires -RunAsAdministrator
 param (
     [Parameter(Mandatory = $true)][string] $Email
