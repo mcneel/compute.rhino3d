@@ -525,11 +525,9 @@ namespace compute.geometry
                                         break;
                                     }
                                 }
-                                if (!isConst)
-                                    outParamCount++;
                             }
                         }
-                        if (method.ReturnType != typeof(void))
+                        if (method.ReturnType != typeof(void) || (!method.IsStatic && !isConst))
                             outParamCount++;
                         var invokeResult = method.Invoke(invokeObj, invokeParameters);
                         if (outParamCount < 1)
