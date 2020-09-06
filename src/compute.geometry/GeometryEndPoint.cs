@@ -7,6 +7,8 @@ using System.Linq;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
 using System.Runtime.Serialization;
+using Rhino.Geometry;
+using Rhino.Runtime;
 
 namespace compute.geometry
 {
@@ -466,9 +468,35 @@ namespace compute.geometry
                                     if (invokeParameters[i] == null)
                                     {
                                         if (useSerializer)
+                                        {
                                             invokeParameters[i] = jsonobject.ToObject(objectType, serializer);
+                                        }
                                         else
-                                            invokeParameters[i] = jsonobject.ToObject(objectType);
+                                        {
+                                            if (objectType == typeof(GeometryBase[]))
+                                            {
+                                                // 6 Sept 2020 S. Baer
+                                                // This needs to be tuned up. Json.Net is having issues creating arrays of
+                                                // GeometryBase since that class is abstract. I think we need to generalize this
+                                                // solution, but for now I can repeat the issue when calling
+                                                // AreaMassProperties.Compute(IEnumerable<GeometryBase>)
+                                                // from an endpoint
+                                                GeometryBase[] items = new GeometryBase[jsonobject.Count()];
+                                                for (int itemIndex = 0; itemIndex < items.Length; itemIndex++)
+                                                {
+                                                    var jsonElement = jsonobject[itemIndex];
+                                                    int archive3dm = (int)jsonElement["archive3dm"];
+                                                    int opennurbs = (int)jsonElement["opennurbs"];
+                                                    string data = (string)jsonElement["data"];
+                                                    items[itemIndex] = CommonObject.FromBase64String(archive3dm, opennurbs, data) as GeometryBase;
+                                                }
+                                                invokeParameters[i] = items;
+                                            }
+                                            else
+                                            {
+                                                invokeParameters[i] = jsonobject.ToObject(objectType);
+                                            }
+                                        }
                                     }
                                 }
 
