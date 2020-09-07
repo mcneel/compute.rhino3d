@@ -12,17 +12,16 @@ COPY src/ ./src/
 RUN msbuild /p:Configuration=Release /restore /v:Minimal src/compute.sln
 
 ### main image
-# NOTE: rhino will not install unless the "full" windows base image is used
-# this dockerfile is set up to build on my machine (Windows 10 build 1903)
-# if you need to build and/or run it on another version of windows then you'll
-# need to change the tag, e.g. 1809 for Windows Server 2019
-FROM mcr.microsoft.com/windows:1903
+# tag must match windows host for build (and run, if running with process isolation)
+# e.g. 1903 for Windows 10 version 1903 host
+FROM mcr.microsoft.com/windows:1809
 
-# uncomment to install .net 4.8 if you're using the 1809 base image (see https://git.io/JUYio)
-# RUN curl -fSLo dotnet-framework-installer.exe https://download.visualstudio.microsoft.com/download/pr/7afca223-55d2-470a-8edc-6a1739ae3252/abd170b4b0ec15ad0222a809b761a036/ndp48-x86-x64-allos-enu.exe `
-#     && .\dotnet-framework-installer.exe /q `
-#     && del .\dotnet-framework-installer.exe `
-#     && powershell Remove-Item -Force -Recurse ${Env:TEMP}\*
+# install .net 4.8 if you're using the 1809 base image (see https://git.io/JUYio)
+# comment this out for 1903 and newer
+RUN curl -fSLo dotnet-framework-installer.exe https://download.visualstudio.microsoft.com/download/pr/7afca223-55d2-470a-8edc-6a1739ae3252/abd170b4b0ec15ad0222a809b761a036/ndp48-x86-x64-allos-enu.exe `
+    && .\dotnet-framework-installer.exe /q `
+    && del .\dotnet-framework-installer.exe `
+    && powershell Remove-Item -Force -Recurse ${Env:TEMP}\*
 
 # install rhino (with “-package -quiet” args)
 # NOTE: edit this if you use a different version of rhino!
