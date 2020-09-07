@@ -1,8 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<settings id="2.0">
-  <settings>
-    <child key="LicensingSettings">
-      <entry key="CloudZooPlainText">True</entry>
-    </child>
-  </settings>
-</settings>
