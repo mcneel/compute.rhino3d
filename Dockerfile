@@ -27,7 +27,7 @@ RUN curl -fSLo dotnet-framework-installer.exe https://download.visualstudio.micr
 # NOTE: edit this if you use a different version of rhino!
 # the url below will always redirect to the latest rhino 7 wip (email required)
 # https://www.rhino3d.com/download/rhino-for-windows/7/wip/direct?email=EMAIL
-RUN curl -fSLo rhino_installer.exe http://files.mcneel.com/dujour/exe/20200901/rhino_en-us_7.0.20245.13385.exe `
+RUN curl -fSLo rhino_installer.exe http://files.mcneel.com/dujour/exe/20200915/rhino_en-us_7.0.20259.15365.exe `
     && .\rhino_installer.exe -package -quiet `
     && del .\rhino_installer.exe
 
