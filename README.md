@@ -7,20 +7,10 @@
 
 ## REST API for RhinoCommon and Grasshopper
 
-For more information, see https://www.rhino3d.com/compute
+For more information, see https://www.rhino3d.com/compute.
 
-Compute is built on top of Rhino 7 for Windows and can run anywhere Rhino 7 for Windows can run. The two typical scenarios are:
-- Running as a web server on the internet
-- Running locally on a user's computer for debugging purposes
+Compute is built on top of Rhino 7 for Windows and can run anywhere Rhino 7 for Windows can run.
 
-Start with the [installation guide](docs/installation.md) to setup your own Compute server, or [compile Compute](docs/installation.md#building-from-source-and-debugging) for local debugging or developing your own features.
+🛠 Start with ["Developing with Rhino Compute"](docs/develop.md) to run Compute locally for testing and debugging.
 
-```
-iwr -useb https://raw.githubusercontent.com/mcneel/compute.rhino3d/master/script/bootstrap-server.ps1 -outfile bootstrap.ps1; .\bootstrap.ps1
-```
-
-Arguments
-
-* `-EmailAddress EMAIL` - the Rhino download link requires a valid email
-* `-ApiKey KEY` - set an API key to secure the server
-* `-install` - (optional) install the compute.geometry service
+📡 See ["Deploying Rhino Compute"](docs/deploy.md) to setup your own Compute server.
