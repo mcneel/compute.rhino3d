@@ -43,7 +43,7 @@ ENV COMPUTE_BIND_URLS="http://+:80"
 EXPOSE 80
 
 # uncomment to build core-hour billing credentials into image (not recommended)
-# see https://github.com/mcneel/compute.rhino3d/blob/master/docs/production.md
+# see https://github.com/mcneel/compute.rhino3d/blob/master/docs/deploy.md#2-set-up-core-hour-billing
 # ENV RHINO_TOKEN="TOKEN"
 
 CMD ["compute.geometry.exe"]
