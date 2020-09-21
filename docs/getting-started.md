@@ -14,7 +14,7 @@ As an example, you can deploy Compute to one of Amazon's EC2 instances. Here are
 
 * AMI: "Microsoft Windows Server 2019 Base"
 * Recommended instance type: t2.medium (2 vCPU, 4 GB RAM)
-* Set a public ip, or better yet use an [Elastic IP and Route53](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-to-ec2-instance.html)
+* Assign a public ip, or better yet use an [Elastic IP and Route53](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-to-ec2-instance.html)
 * Set a "Name" tag to help keep track of instances
 * Configure the security group to allow Compute traffic
     * RDP - 3389 TCP
@@ -46,8 +46,10 @@ iwr -useb https://raw.githubusercontent.com/mcneel/compute.rhino3d/master/script
 .\bootstrap.ps1 -emailaddress <i><b>EMAIL</b></i> -apikey <i><b>API_KEY</b></i> -install
 </pre>
 
+<!-- TODO: use master branch link -->
+
 ```powershell
-iwr -useb https://raw.githubusercontent.com/mcneel/compute.rhino3d/master/script/bootstrap-server.ps1 -outfile bootstrap.ps1; .\bootstrap.ps1 -install
+iwr -useb https://raw.githubusercontent.com/mcneel/compute.rhino3d/will/docs-sep-2020/script/bootstrap-server.ps1 -outfile bootstrap.ps1; .\bootstrap.ps1 -install
 ```
 
 <!-- TODO: test bootstrap script on windows and add RHINO_TOKEN -->

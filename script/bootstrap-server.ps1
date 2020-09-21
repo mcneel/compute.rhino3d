@@ -80,7 +80,7 @@ Download $rhino7DownloadUrl $rhino7Setup
 
 Write-Step 'Install Rhino'
 # automated install (https://wiki.mcneel.com/rhino/installingrhino/6)
-Start-Process -FilePath $rhino7Setup -ArgumentList "-passive" -Wait
+Start-Process -FilePath $rhino7Setup -ArgumentList '-passive', '-norestart' -Wait
 # delete installer
 Remove-Item $rhino7Setup
 
