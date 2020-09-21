@@ -2,8 +2,8 @@
 
 This is a short guide to getting set up to compile and debug Compute on your local Windows 10 machine.
 
-1. [Download](https://www.rhino3d.com/download/rhino/wip) and install the latest Rhino WIP.
-1. Start Rhino WIP at least once to configure its license.
+1. [Download](https://www.rhino3d.com/download/rhino-for-windows/wip) and install Rhino 7 WIP.
+1. Start Rhino at least once to configure its license.
 1. Clone this repository.
 1. Open `src\compute.sln` in Visual Studio 2019 and compile as `Debug`.
 1. Make sure that `compute.geometry` is set as the startup project.

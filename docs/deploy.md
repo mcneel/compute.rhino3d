@@ -2,29 +2,12 @@
 
 This is a short guide to deploying Compute to a server or virtual machine. For setting up Compute locally for development and testing, see [develop.md](develop.md).
 
-1. Prepare Windows
-2. Set up Core-Hour Billing
+1. Set up Core-Hour Billing
+2. Prepare Windows
 3. Install Rhino and Compute
 4. Verify Compute and license usage
 
-## 1. Prepare Windows
-
-To run Compute you'll need a server or virtual machine pre-installed with Windows Server 2019.
-
-We'll assume you're deploying Compute to one of Amazon's EC2 instances. Here are a few things to pay attention to when setting up the virtual machine...
-
-* Start with the "Microsoft Windows Server 2019 Base" AMI.
-* The t2.medium instance type (2 vCPU, 4 GB RAM) is recommended.
-* Assign a public ip, or better yet use an [Elastic IP and Route53](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-to-ec2-instance.html).
-* Set a "Name" tag to help keep track of instances.
-* Configure the security group to allow Compute traffic:
-    * RDP - 3389 TCP
-    * HTTP - 80 TCP
-    * HTTPS - 443 TCP
-
-While you're waiting for the virtual machine to spin up, move on to step 2.
-
-## 2. Set up Core-Hour Billing
+## 1. Set up Core-Hour Billing
 
 1. Go to the [Licenses Portal](https://www.rhino3d.com/licenses?_forceEmpty=true) (Login to your Rhino account if prompted).
 2. Click _Create New Team_ and create a team to use for your compute project.
@@ -35,6 +18,23 @@ While you're waiting for the virtual machine to spin up, move on to step 2.
 7. We'll pass this token to the bootstrap script in the next step to set the `RHINO_TOKEN` environment variable on the virtual machine. Just leave the page open for now.
 
 ⚠️ _**WARNING:** This token allows anyone with it to charge your team at will. Do **NOT** share this token with anyone._
+
+## 2. Prepare Windows
+
+To run Compute you'll need a server or virtual machine pre-installed with Windows Server 2019.
+
+We'll assume you're deploying Compute to one of Amazon's EC2 instances. There are a few things to pay attention to when setting up the instance – use this as a guide if you're using a virtual machine from another cloud provider or a physical server.
+
+* Start with the "Microsoft Windows Server 2019 Base" AMI.
+* The t2.medium instance type (2 vCPU, 4 GB RAM) is recommended.
+* Assign a public ip, or better yet use an [Elastic IP and Route53](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-to-ec2-instance.html).
+* Set a "Name" tag to help keep track of instances.
+* Configure the security group to allow Compute traffic:
+    * RDP - 3389 TCP
+    * HTTP - 80 TCP
+    * HTTPS - 443 TCP
+
+Wait for the virtual machine to spin up... ☕️
 
 ## 3. Install Rhino and Compute
 
