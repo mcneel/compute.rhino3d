@@ -1,6 +1,6 @@
-# Getting started with Rhino Compute
+# Deploying Rhino Compute
 
-This is a short guide to deploying Compute to a Windows Server computer or virtual machine. This is not the guide for setting up Compute locally for development and testing.
+This is a short guide to deploying Compute to a server or virtual machine. For setting up Compute locally for development and testing, see [develop.md](develop.md).
 
 1. Prepare Windows
 2. Set up Core-Hour Billing
@@ -11,13 +11,13 @@ This is a short guide to deploying Compute to a Windows Server computer or virtu
 
 To run Compute you'll need a server or virtual machine pre-installed with Windows Server 2019.
 
-As an example, you can deploy Compute to one of Amazon's EC2 instances. Here are a few things to pay attention to when setting up the virtual machine...
+We'll assume you're deploying Compute to one of Amazon's EC2 instances. Here are a few things to pay attention to when setting up the virtual machine...
 
-* AMI: "Microsoft Windows Server 2019 Base"
-* Recommended instance type: t2.medium (2 vCPU, 4 GB RAM)
-* Assign a public ip, or better yet use an [Elastic IP and Route53](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-to-ec2-instance.html)
-* Set a "Name" tag to help keep track of instances
-* Configure the security group to allow Compute traffic
+* Start with the "Microsoft Windows Server 2019 Base" AMI.
+* The t2.medium instance type (2 vCPU, 4 GB RAM) is recommended.
+* Assign a public ip, or better yet use an [Elastic IP and Route53](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-to-ec2-instance.html).
+* Set a "Name" tag to help keep track of instances.
+* Configure the security group to allow Compute traffic:
     * RDP - 3389 TCP
     * HTTP - 80 TCP
     * HTTPS - 443 TCP
@@ -32,7 +32,7 @@ While you're waiting for the virtual machine to spin up, move on to step 2.
 4. Check the checkbox next to Rhino 6 and Rhino 7 and the checkbox signaling you agree to pay.
 5. Click _Save_, and enter payment information when prompted for your new team.
 6. Once the payment information is saved and core-hour billing is enabled, click _Action_ -> _Get Auth Token_.
-7. We'll pass this token to the bootstrap script in the next step to set the `RHINO_TOKEN` environment variable on the virtual machine. For now, just 
+7. We'll pass this token to the bootstrap script in the next step to set the `RHINO_TOKEN` environment variable on the virtual machine. Just leave the page open for now.
 
 ⚠️ _**WARNING:** This token allows anyone with it to charge your team at will. Do **NOT** share this token with anyone._
 
@@ -53,5 +53,5 @@ At the end of the installation process, Windows will restart to complete the set
 
 1. Open a browser and go to http://public-dns-or-ip/version. If Compute is working it will return its version and Rhino's version.
 1. Visit https://www.rhino3d.com/licenses
-1. Under **Team Licenses** click your new team
+1. Under **Team Licenses** click your new team.
 1. Verify that Rhino is in use in your core-hour billing team.
