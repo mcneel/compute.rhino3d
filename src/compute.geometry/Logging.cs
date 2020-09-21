@@ -1,14 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Amazon.CloudWatchLogs;
+﻿using System.IO;
 using Serilog;
-using Serilog.Events;
 using Serilog.Formatting.Json;
-using Serilog.Sinks.AwsCloudWatch;
 
 namespace compute.geometry
 {
@@ -33,38 +25,8 @@ namespace compute.geometry
                 .WriteTo.Console()
                 .WriteTo.File(new JsonFormatter(), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
 
-            var cloudwatch_enabled = false;
-            var aws_log_group = Env.GetEnvironmentString("COMPUTE_LOG_CLOUDWATCH_GROUP", "/compute/dev");
-
-            if (Env.GetEnvironmentBool("COMPUTE_LOG_CLOUDWATCH", false))
-            {
-                var options = new CloudWatchSinkOptions
-                {
-                    LogGroupName = aws_log_group,
-                    MinimumLogEventLevel = LogEventLevel.Debug,
-                    TextFormatter = new JsonFormatter(),
-                    LogGroupRetentionPolicy = LogGroupRetentionPolicy.SixMonths,
-#if !DEBUG
-                    Period = TimeSpan.FromSeconds(60)
-#endif
-                };
-
-                var aws_region_string = Env.GetEnvironmentString("AWS_REGION_ENDPOINT", "us-east-1");
-                var aws_region_endpoint = Amazon.RegionEndpoint.GetBySystemName(aws_region_string);
-                var aws_client = new AmazonCloudWatchLogsClient(aws_region_endpoint);
-
-                logger.WriteTo.AmazonCloudWatch(options, aws_client);
-
-                cloudwatch_enabled = true;
-            }
-
             Log.Logger = logger.CreateLogger();
-
             Log.Debug("Logging to {LogPath}", Path.GetDirectoryName(path));
-
-            if (cloudwatch_enabled)
-                Log.ForContext("LogGroup", aws_log_group)
-                    .Debug("Amazon CloudWatch logging enabled");
 
             _enabled = true;
         }
