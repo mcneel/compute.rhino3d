@@ -73,9 +73,6 @@
     <EmbeddedResource Include="favicon.ico" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="AWSSDK.S3">
-      <Version>3.3.24</Version>
-    </PackageReference>
     <PackageReference Include="Microsoft.Owin.Cors">
       <Version>4.0.1</Version>
     </PackageReference>
