@@ -73,9 +73,6 @@
     <EmbeddedResource Include="favicon.ico" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="AWSSDK.CloudWatchLogs">
-      <Version>3.3.4.10</Version>
-    </PackageReference>
     <PackageReference Include="AWSSDK.S3">
       <Version>3.3.24</Version>
     </PackageReference>
@@ -105,9 +102,6 @@
     </PackageReference>
     <PackageReference Include="Serilog">
       <Version>2.7.1</Version>
-    </PackageReference>
-    <PackageReference Include="Serilog.Sinks.AwsCloudWatch">
-      <Version>4.0.131</Version>
     </PackageReference>
     <PackageReference Include="Serilog.Sinks.Console">
       <Version>3.1.1</Version>
