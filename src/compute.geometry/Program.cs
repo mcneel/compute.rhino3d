@@ -98,6 +98,10 @@ namespace compute.geometry
             Log.Information("Launching RhinoCore library as {User}", Environment.UserName);
             Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
 
+            Rhino.Runtime.HostUtils.OnExceptionReport += (source, ex) => {
+                Log.Error(ex, "An exception occured while processing request");
+            };
+
             StartOptions options = new StartOptions();
             foreach (var url in _bind)
             {
