@@ -84,11 +84,7 @@ namespace compute.geometry
             else
             {
                 var port = Env.GetEnvironmentInt(_env_port, 8081);
-#if DEBUG
                 var url = $"http://localhost:{port}";
-#else
-                var url = $"http://+:{port}";
-#endif
                 _bind = new string[] { url };
             }
         }
