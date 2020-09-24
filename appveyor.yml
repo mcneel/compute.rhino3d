@@ -3,25 +3,23 @@ version: '{build}'
 environment:
   AWS_DEFAULT_REGION: us-east-1
 
-# build
-image: Visual Studio 2017
-configuration: Release
-before_build:
-  - nuget restore src\compute.sln
-  - ps: (get-content .\src\compute.geometry\FixedEndpoints.cs).replace('git_sha = null', 'git_sha = "' + ${env:APPVEYOR_REPO_COMMIT}.Substring(0, 8) + '"') | set-content .\src\compute.geometry\FixedEndpoints.cs
-build:
-  project: src\compute.sln
-  verbosity: minimal
-
 # patch assembly info
 assembly_info:
   patch: true
   file: '**\AssemblyInfo.cs'
   assembly_version: '1.0.0.{version}'
 
+# build
+image: Visual Studio 2019
+before_build:
+  - ps: (get-content .\src\compute.geometry\FixedEndpoints.cs).replace('git_sha = null', 'git_sha = "' + ${env:APPVEYOR_REPO_COMMIT}.Substring(0, 8) + '"') | set-content .\src\compute.geometry\FixedEndpoints.cs
+build_script:
+  - msbuild src\compute.sln -restore -p:Configuration=Release -v:minimal -logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+  - 7z a -tzip -r compute.zip %APPVEYOR_BUILD_FOLDER%\src\bin\Release\*
+  - msbuild src\compute.frontend -restore -p:Configuration=Release -v:minimal -logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
+
 # package artifacts and create codedeploy app revision
 after_build:
-  - 7z a -tzip -r compute.zip %APPVEYOR_BUILD_FOLDER%\src\bin\Release\*
   - ps: |
       md dist\src\bin
       cp -r src\bin\Release dist\src\bin\
