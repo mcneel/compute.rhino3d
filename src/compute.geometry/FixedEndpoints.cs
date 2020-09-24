@@ -14,7 +14,6 @@ namespace compute.geometry
             Get["version"] = _ => GetVersion(Context);
             Get["servertime"] = _ => ServerTime(Context);
             Get["sdk/csharp"] = _ => CSharpSdk(Context);
-            Post["hammertime"] = _ => HammerTime(Context);
         }
 
         static Response HomePage(NancyContext ctx)
@@ -62,46 +61,6 @@ namespace compute.geometry
                 }
             };
             return response.AsAttachment("RhinoCompute.cs", "text/plain" );
-        }
-
-        /// <summary>
-        /// Do a heavy mesh boolean (for testing things like auto-scaling)
-        /// </summary>
-        static Response HammerTime(NancyContext ctx)
-        {
-            // protect from abuse - "X-Commpute-Secret" header must match COMPUTE_SECRET env var
-            var secret = Environment.GetEnvironmentVariable("COMPUTE_SECRET");
-            if (string.IsNullOrEmpty(secret))
-                return HttpStatusCode.NotFound;
-            var client_secrets = new List<string>(ctx.Request.Headers["X-Compute-Secret"]);
-            if (client_secrets.Count != 1 || client_secrets[0] != secret)
-                return HttpStatusCode.NotFound;
-
-            Console.WriteLine("It's hammer time!", null);
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-
-            var pt = Rhino.Geometry.Point3d.Origin;
-            var vec = Rhino.Geometry.Vector3d.ZAxis;
-            vec.Unitize();
-            var sp1 = new Rhino.Geometry.Sphere(pt, 12);
-            var msp1 = Rhino.Geometry.Mesh.CreateFromSphere(sp1, 1000, 1000);
-            var msp2 = msp1.DuplicateMesh();
-            msp2.Translate(new Rhino.Geometry.Vector3d(10, 10, 10));
-            var msp3 = Rhino.Geometry.Mesh.CreateBooleanIntersection(
-                new Rhino.Geometry.Mesh[] { msp1 },
-                new Rhino.Geometry.Mesh[] { msp2 }
-                );
-
-            watch.Stop();
-            Console.WriteLine($"The party lasted for {watch.Elapsed.TotalSeconds} seconds!", null);
-
-            var values = new Dictionary<string, double>() {
-                { "answer", msp3[0].Volume() },
-                { "elapsed_time", watch.Elapsed.TotalMilliseconds }
-            };
-            var response = (Response)Newtonsoft.Json.JsonConvert.SerializeObject(values);
-            response.ContentType = "application/json";
-            return response;
         }
     }
 }
