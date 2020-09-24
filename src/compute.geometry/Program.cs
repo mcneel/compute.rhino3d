@@ -17,6 +17,9 @@ namespace compute.geometry
 
         static void Main(string[] args)
         {
+            Config.Load();
+            Logging.Init();
+
             RhinoInside.Resolver.Initialize();
 #if DEBUG
             string rhinoSystemDir = @"C:\dev\github\mcneel\rhino\src4\bin\Debug";
@@ -24,7 +27,6 @@ namespace compute.geometry
                 RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
 #endif
 
-            Logging.Init();
             LogVersions();
 
             Topshelf.HostFactory.Run(x =>
@@ -61,32 +63,12 @@ namespace compute.geometry
 
     internal class OwinSelfHost
     {
-        const string _env_port = "COMPUTE_BACKEND_PORT";
-        const string _env_bind = "COMPUTE_BIND_URLS";
-        string[] _bind;
+        readonly string[] _bind;
         IDisposable _host;
 
         public OwinSelfHost()
         {
-            var str = Env.GetEnvironmentString(_env_bind, null);
-
-            if (!string.IsNullOrEmpty(str))
-            {
-                _bind = str.Split(';');
-
-                if (Env.GetEnvironmentInt(_env_port, 0) > 0)
-                    Log.Warning($"Ignoring deprecated {_env_port} environment variable");
-            }
-
-            // fallback to existing behaviour (COMPUTE_BACKEND_PORT)
-            // Debug:   listen on localhost only
-            // Release: attempt to listen on 0.0.0.0 (fall back to localhost)
-            else
-            {
-                var port = Env.GetEnvironmentInt(_env_port, 8081);
-                var url = $"http://localhost:{port}";
-                _bind = new string[] { url };
-            }
+            _bind = Config.Urls;
         }
 
         public void Start()

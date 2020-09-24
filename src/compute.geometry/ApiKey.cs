@@ -8,9 +8,9 @@ namespace compute.geometry
         static string _apiKey;
         public static void Initialize(Nancy.Bootstrapper.IPipelines pipelines)
         {
-            _apiKey = System.Environment.GetEnvironmentVariable("RHINO_COMPUTE_KEY");
-            // If no key has been set as an environment variable, then limiting
-            // requests based on a key is disabled
+            _apiKey = Config.ApiKey;
+
+            // disable if empty
             if (string.IsNullOrWhiteSpace(_apiKey))
                 return;
 
