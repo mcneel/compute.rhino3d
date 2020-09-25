@@ -73,6 +73,7 @@ namespace compute.geometry
 
         public void Start()
         {
+            Log.Debug("Rhino system directory: {Path}", RhinoInside.Resolver.RhinoSystemDirectory);
             Log.Information("Launching RhinoCore library as {User}", Environment.UserName);
             Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
 
@@ -86,12 +87,6 @@ namespace compute.geometry
                 options.Urls.Add(url);
             }
 
-            // disable built-in owin tracing by using a null traceoutput
-            // otherwise we get some of rhino's diagnostic traces showing up
-            options.Settings.Add(
-                typeof(Microsoft.Owin.Hosting.Tracing.ITraceOutputFactory).FullName,
-                typeof(NullTraceOutputFactory).AssemblyQualifiedName);
-
             Log.Information("Starting listener(s): {Urls}", _bind);
 
             // start listener and unpack HttpListenerException if thrown
@@ -100,12 +95,9 @@ namespace compute.geometry
             {
                 _host = WebApp.Start<Startup>(options);
             }
-            catch (TargetInvocationException ex)
+            catch (TargetInvocationException ex) when (ex.InnerException is HttpListenerException hle)
             {
-                if (ex.InnerException is HttpListenerException hle)
-                    throw hle; // TODO: add link to troubleshooting
-
-                throw ex;
+                throw hle;
             }
             catch
             {
@@ -118,14 +110,6 @@ namespace compute.geometry
         public void Stop()
         {
             _host?.Dispose();
-        }
-    }
-
-    internal class NullTraceOutputFactory : Microsoft.Owin.Hosting.Tracing.ITraceOutputFactory
-    {
-        public TextWriter Create(string outputFile)
-        {
-            return StreamWriter.Null;
         }
     }
 
