@@ -1,13 +1,15 @@
 # Deploying Rhino Compute
 
-This is a short guide to deploying Compute to a server or virtual machine. For setting up Compute locally for development and testing, see [develop.md](develop.md).
+This is a short guide to deploying Compute to a server environment. To run Compute locally for development and testing, see [develop.md](develop.md).
 
 1. Set up Core-Hour Billing
-2. Prepare Windows
+2. Prepare Windows Server
 3. Install Rhino and Compute
 4. Verify Compute and license usage
 
 ## 1. Set up Core-Hour Billing
+
+Core-hour billing is required when running Rhino on a Windows Server-based operating system.
 
 1. Go to the [Licenses Portal](https://www.rhino3d.com/licenses?_forceEmpty=true) (Login to your Rhino account if prompted).
 2. Click _Create New Team_ and create a team to use for your compute project.
@@ -19,11 +21,11 @@ This is a short guide to deploying Compute to a server or virtual machine. For s
 
 ⚠️ _**WARNING:** This token allows anyone with it to charge your team at will. Do **NOT** share this token with anyone._
 
-## 2. Prepare Windows
+## 2. Prepare Windows Server
 
 To run Compute you'll need a server or virtual machine pre-installed with Windows Server 2019.
 
-We'll assume you're deploying Compute to one of Amazon's EC2 instances. There are a few things to pay attention to when setting up the instance – use this as a guide if you're using a virtual machine from another cloud provider or a physical server.
+We'll assume you're deploying Compute to one of Amazon's EC2 instances. There are a few things to pay attention to when setting up the instance – use this as a rough guide if you're using a virtual machine from another cloud provider or a physical server.
 
 * Start with the "Microsoft Windows Server 2019 Base" AMI.
 * The t2.medium instance type (2 vCPU, 4 GB RAM) is recommended.

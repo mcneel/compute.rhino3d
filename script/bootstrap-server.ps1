@@ -20,9 +20,12 @@ Write-Host @"
 
 "@
 
-# TODO: check os is server
-# $os = Get-WmiObject -Class Win32_OperatingSystem | ForEach-Object -MemberName Caption
-# $os -like '*server*'
+# check os is server
+$os = Get-WmiObject -Class Win32_OperatingSystem | ForEach-Object -MemberName Caption
+if ($os -notlike '*server*') {
+    Write-Host "The script is intended for use on Windows Server. Detected '$os'" -ForegroundColor Red
+    exit 1
+}
 
 $appDirectory = "$home\Desktop"
 
@@ -88,7 +91,8 @@ Remove-Item $rhino7Setup
 Write-Step 'Install compute.geometry service'
 if ($install) {
     Write-Host 'Installing compute.geometry as a service...'
-    Write-Host "TIP: For the username, use '.\$env:UserName'"
+    Write-Host 'Enter the username (with domain) and password of the Windows user to run as'
+    Write-Host "(e.g. to run as the current user, use '.\$env:UserName' as the username)"
     Start-Process "$appDirectory\compute\compute.geometry.exe" -ArgumentList "install" -Wait
 } else {
     Write-Host "No '-install' flag. Skipping..."
