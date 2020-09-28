@@ -50,9 +50,9 @@
   <ItemGroup>
     <Compile Include="ApiKey.cs" />
     <Compile Include="Bootstrapper.cs" />
+    <Compile Include="Config.cs" />
     <Compile Include="DataCache.cs" />
     <Compile Include="Endpoints\GrasshopperEndpoint.cs" />
-    <Compile Include="Environment.cs" />
     <Compile Include="FixedEndpoints.cs" />
     <Compile Include="GeometryEndPoint.cs" />
     <Compile Include="GrasshopperDefinition.cs" />

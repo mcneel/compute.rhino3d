@@ -17,6 +17,9 @@ namespace compute.geometry
 
         static void Main(string[] args)
         {
+            Config.Load();
+            Logging.Init();
+
             RhinoInside.Resolver.Initialize();
 #if DEBUG
             string rhinoSystemDir = @"C:\dev\github\mcneel\rhino\src4\bin\Debug";
@@ -24,7 +27,6 @@ namespace compute.geometry
                 RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
 #endif
 
-            Logging.Init();
             LogVersions();
 
             Topshelf.HostFactory.Run(x =>
@@ -61,40 +63,17 @@ namespace compute.geometry
 
     internal class OwinSelfHost
     {
-        const string _env_port = "COMPUTE_BACKEND_PORT";
-        const string _env_bind = "COMPUTE_BIND_URLS";
-        string[] _bind;
+        readonly string[] _bind;
         IDisposable _host;
 
         public OwinSelfHost()
         {
-            var str = Env.GetEnvironmentString(_env_bind, null);
-
-            if (!string.IsNullOrEmpty(str))
-            {
-                _bind = str.Split(';');
-
-                if (Env.GetEnvironmentInt(_env_port, 0) > 0)
-                    Log.Warning($"Ignoring deprecated {_env_port} environment variable");
-            }
-
-            // fallback to existing behaviour (COMPUTE_BACKEND_PORT)
-            // Debug:   listen on localhost only
-            // Release: attempt to listen on 0.0.0.0 (fall back to localhost)
-            else
-            {
-                var port = Env.GetEnvironmentInt(_env_port, 8081);
-#if DEBUG
-                var url = $"http://localhost:{port}";
-#else
-                var url = $"http://+:{port}";
-#endif
-                _bind = new string[] { url };
-            }
+            _bind = Config.Urls;
         }
 
         public void Start()
         {
+            Log.Debug("Rhino system directory: {Path}", RhinoInside.Resolver.RhinoSystemDirectory);
             Log.Information("Launching RhinoCore library as {User}", Environment.UserName);
             Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
 
@@ -108,12 +87,6 @@ namespace compute.geometry
                 options.Urls.Add(url);
             }
 
-            // disable built-in owin tracing by using a null traceoutput
-            // otherwise we get some of rhino's diagnostic traces showing up
-            options.Settings.Add(
-                typeof(Microsoft.Owin.Hosting.Tracing.ITraceOutputFactory).FullName,
-                typeof(NullTraceOutputFactory).AssemblyQualifiedName);
-
             Log.Information("Starting listener(s): {Urls}", _bind);
 
             // start listener and unpack HttpListenerException if thrown
@@ -122,12 +95,9 @@ namespace compute.geometry
             {
                 _host = WebApp.Start<Startup>(options);
             }
-            catch (TargetInvocationException ex)
+            catch (TargetInvocationException ex) when (ex.InnerException is HttpListenerException hle)
             {
-                if (ex.InnerException is HttpListenerException hle)
-                    throw hle; // TODO: add link to troubleshooting
-
-                throw ex;
+                throw hle;
             }
             catch
             {
@@ -140,14 +110,6 @@ namespace compute.geometry
         public void Stop()
         {
             _host?.Dispose();
-        }
-    }
-
-    internal class NullTraceOutputFactory : Microsoft.Owin.Hosting.Tracing.ITraceOutputFactory
-    {
-        public TextWriter Create(string outputFile)
-        {
-            return StreamWriter.Null;
         }
     }
 

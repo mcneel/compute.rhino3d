@@ -15,14 +15,16 @@ namespace compute.geometry
         protected override void ApplicationStartup(TinyIoCContainer container, IPipelines pipelines)
         {
             // Load GH at startup so it can get initialized on the main thread
+            Log.Debug("(1/2) Loading grasshopper");
             var pluginObject = Rhino.RhinoApp.GetPlugInObject("Grasshopper");
             var runheadless = pluginObject?.GetType().GetMethod("RunHeadless");
             if (runheadless != null)
                 runheadless.Invoke(pluginObject, null);
 
-            var loadComputePlugsin = typeof(Rhino.PlugIns.PlugIn).GetMethod("LoadComputeExtensionPlugins");
-            if (loadComputePlugsin != null)
-                loadComputePlugsin.Invoke(null, null);
+            Log.Debug("(2/2) Loading compute plug-ins");
+            var loadComputePlugins = typeof(Rhino.PlugIns.PlugIn).GetMethod("LoadComputeExtensionPlugins");
+            if (loadComputePlugins != null)
+                loadComputePlugins.Invoke(null, null);
 
             Nancy.StaticConfiguration.DisableErrorTraces = false;
 
@@ -57,7 +59,7 @@ namespace compute.geometry
 
         private static dynamic LogError(NancyContext ctx, Exception ex)
         {
-            string id = ctx.Request.Headers["X-Compute-Id"].FirstOrDefault(); // set by frontend
+            string id = ctx.Request.Headers["X-Compute-Id"].FirstOrDefault(); // set by frontend (ignore)
             var msg = "An exception occured while processing request";
             if (id != null)
                 Log.Error(ex, msg + " \"{RequestId}\"", id);

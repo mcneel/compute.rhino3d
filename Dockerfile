@@ -39,7 +39,7 @@ COPY --from=builder ["/src/bin/Release", "/app"]
 WORKDIR /app
 
 # bind compute.geometry to port 80
-ENV COMPUTE_BIND_URLS="http://+:80"
+ENV RHINO_COMPUTE_URLS="http://+:80"
 EXPOSE 80
 
 # uncomment to build core-hour billing credentials into image (not recommended)
