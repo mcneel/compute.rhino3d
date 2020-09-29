@@ -14,7 +14,8 @@ namespace Rhino.Compute
     {
         public static string WebAddress { get; set; } = "https://compute.rhino3d.com";
         public static string AuthToken { get; set; }
-        public static string Version => "0.11.0";
+        public static string ApiKey { get; set; }
+        public static string Version => "0.11.1";
 
         public static T Post<T>(string function, params object[] postData)
         {
@@ -40,22 +41,7 @@ namespace Rhino.Compute
             string json = converter == null ?
                 JsonConvert.SerializeObject(postData, Formatting.None) :
                 JsonConvert.SerializeObject(postData, Formatting.None, converter);
-            if (!function.StartsWith("/"))
-                function = "/" + function;
-            string uri = (WebAddress + function).ToLower();
-            var request = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(uri);
-            request.ContentType = "application/json";
-            if(!string.IsNullOrEmpty(AuthToken))
-                request.Headers.Add("Authorization", "Bearer " + AuthToken);
-            request.UserAgent = "compute.rhino3d.cs/" + Version;
-            request.Method = "POST";
-            using (var streamWriter = new StreamWriter(request.GetRequestStream()))
-            {
-                streamWriter.Write(json);
-                streamWriter.Flush();
-            }
-
-            var response = request.GetResponse();
+            var response = DoPost(function, json);
             using (var streamReader = new StreamReader(response.GetResponseStream()))
             {
                 var result = streamReader.ReadToEnd();
@@ -67,23 +53,11 @@ namespace Rhino.Compute
 
         public static T0 Post<T0, T1>(string function, out T1 out1, params object[] postData)
         {
-            if (string.IsNullOrWhiteSpace(AuthToken))
-                throw new UnauthorizedAccessException("AuthToken must be set");
-            string json = Newtonsoft.Json.JsonConvert.SerializeObject(postData);
-            if (!function.StartsWith("/"))
-                function = "/" + function;
-            string uri = (WebAddress + function).ToLower();
-            var request = System.Net.WebRequest.Create(uri);
-            request.ContentType = "application/json";
-            request.Headers.Add("Authorization", "Bearer " + AuthToken);
-            request.Method = "POST";
-            using (var streamWriter = new StreamWriter(request.GetRequestStream()))
-            {
-                streamWriter.Write(json);
-                streamWriter.Flush();
-            }
+            if (string.IsNullOrWhiteSpace(AuthToken) && WebAddress.Equals("https://compute.rhino3d.com"))
+                throw new UnauthorizedAccessException("AuthToken must be set for compute.rhino3d.com");
 
-            var response = request.GetResponse();
+            string json = Newtonsoft.Json.JsonConvert.SerializeObject(postData);
+            var response = DoPost(function, json);
             using (var streamReader = new StreamReader(response.GetResponseStream()))
             {
                 var jsonString = streamReader.ReadToEnd();
@@ -96,23 +70,11 @@ namespace Rhino.Compute
 
         public static T0 Post<T0, T1, T2>(string function, out T1 out1, out T2 out2, params object[] postData)
         {
-            if (string.IsNullOrWhiteSpace(AuthToken))
-                throw new UnauthorizedAccessException("AuthToken must be set");
-            string json = Newtonsoft.Json.JsonConvert.SerializeObject(postData);
-            if (!function.StartsWith("/"))
-                function = "/" + function;
-            string uri = (WebAddress + function).ToLower();
-            var request = System.Net.WebRequest.Create(uri);
-            request.ContentType = "application/json";
-            request.Headers.Add("Authorization", "Bearer " + AuthToken);
-            request.Method = "POST";
-            using (var streamWriter = new StreamWriter(request.GetRequestStream()))
-            {
-                streamWriter.Write(json);
-                streamWriter.Flush();
-            }
+            if (string.IsNullOrWhiteSpace(AuthToken) && WebAddress.Equals("https://compute.rhino3d.com"))
+                throw new UnauthorizedAccessException("AuthToken must be set for compute.rhino3d.com");
 
-            var response = request.GetResponse();
+            string json = Newtonsoft.Json.JsonConvert.SerializeObject(postData);
+            var response = DoPost(function, json);
             using (var streamReader = new StreamReader(response.GetResponseStream()))
             {
                 var jsonString = streamReader.ReadToEnd();
@@ -122,6 +84,36 @@ namespace Rhino.Compute
                 out2 = ja[2].ToObject<T2>();
                 return ja[0].ToObject<T0>();
             }
+        }
+
+        // run all requests through here
+        private static System.Net.WebResponse DoPost(string function, string json)
+        {
+
+            if (!function.StartsWith("/")) // add leading /
+                function = "/" + function; // if not present
+
+            string uri = $"{WebAddress}{function}".ToLower();
+            var request = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(uri);
+            request.ContentType = "application/json";
+            request.UserAgent = $"compute.rhino3d.cs/{Version}";
+            request.Method = "POST";
+
+            // try auth token (compute.rhino3d.com only)
+            if (!string.IsNullOrWhiteSpace(AuthToken))
+                request.Headers.Add("Authorization", "Bearer " + AuthToken);
+
+            // try api key (self-hosted compute)
+            if (!string.IsNullOrWhiteSpace(ApiKey))
+                request.Headers.Add("RhinoComputeKey", ApiKey);
+            
+            using (var streamWriter = new StreamWriter(request.GetRequestStream()))
+            {
+                streamWriter.Write(json);
+                streamWriter.Flush();
+            }
+
+            return request.GetResponse();
         }
 
         public static string ApiAddress(Type t, string function)

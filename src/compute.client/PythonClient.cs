@@ -75,6 +75,7 @@ __version__ = '{Version}'
 
 url = 'https://compute.rhino3d.com/'
 authToken = ''
+apiKey = ''
 stopat = 0
 
 
@@ -85,6 +86,7 @@ def ComputeFetch(endpoint, arglist):
                 return o.Encode()
             return json.JSONEncoder.default(self, o)
     global authToken
+    global apiKey
     global url
     global stopat
     posturl = url + endpoint
@@ -93,10 +95,11 @@ def ComputeFetch(endpoint, arglist):
         else: posturl += '?stopat='
         posturl += str(stopat)
     postdata = json.dumps(arglist, cls=__Rhino3dmEncoder)
-    headers = {{
-        'Authorization': 'Bearer ' + authToken,
-        'User-Agent': 'compute.rhino3d.py/' + __version__
-    }}
+    headers = {{ 'User-Agent': 'compute.rhino3d.py/' + __version__ }}
+    if authToken:
+        headers['Authorization'] = 'Bearer ' + authToken
+    if apiKey:
+        headers['RhinoComputeKey'] = apiKey
     r = requests.post(posturl, data=postdata, headers=headers)
     return r.json()
 
@@ -130,7 +133,7 @@ def DecodeToCommonObject(item):
     if item is None:
         return None
     if isinstance(item, list):
-        return [rhino3dm.CommonObject.Decode(x) for x in item]
+        return [DecodeToCommonObject(x) for x in item]
     return rhino3dm.CommonObject.Decode(item)
 
 
