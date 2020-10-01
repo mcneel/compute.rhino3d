@@ -6,6 +6,7 @@ This is a short guide to deploying Compute to a server environment. To run Compu
 2. Prepare Windows Server
 3. Install Rhino and Compute
 4. Verify Compute and license usage
+5. Next steps
 
 ## 1. Set up Core-Hour Billing
 
@@ -57,3 +58,7 @@ At the end of the installation process, Windows will restart to complete the set
 1. Visit https://www.rhino3d.com/licenses
 1. Under **Team Licenses** click your new team.
 1. Verify that Rhino is in use in your core-hour billing team.
+
+## 5. Next steps
+
+Check out the [Rhino Compute AppServer](https://github.com/mcneel/compute.rhino3d.appserver) – a node.js server acting as a bridge between client apps and private Compute servers.
