@@ -12,7 +12,7 @@ using compute.frontend.Authentication;
 
 namespace compute.frontend
 {
-    class Frontend
+    class Program
     {
         static void Main(string[] args)
         {

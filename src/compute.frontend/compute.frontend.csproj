@@ -52,7 +52,7 @@
     <Compile Include="Environment.cs" />
     <Compile Include="Logging.cs" />
     <Compile Include="NancyPipelineExtensions.cs" />
-    <Compile Include="Frontend.cs" />
+    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Proxy.cs" />
     <Compile Include="RequestStashing.cs" />
