@@ -5,6 +5,7 @@ using Nancy.Bootstrapper;
 using Nancy.Conventions;
 using Nancy.Gzip;
 using Nancy.Hosting.Self;
+using Nancy.LeakyBucket;
 using Nancy.TinyIoc;
 using Serilog;
 using Topshelf;
@@ -147,15 +148,25 @@ namespace compute.frontend
             Log.Debug("ApplicationStartup");
 
             pipelines.EnableGzipCompression(new GzipCompressionSettings() { MinimumBytes = 1024 });
+            pipelines.AddHeadersAndLogging();
+            pipelines.AddRequestStashing();
 
+            // rate-limiting - uses remote address by default, but we can extend this to include user-agent and/or
+            // authenticated user if necessary
+            LeakyBucketRateLimiter.Enable(pipelines, new LeakyBucketRateLimiterConfiguration
+            {
+                // 100 requests per minute should be plenty
+                MaxNumberOfRequests = 100, RefreshRate = TimeSpan.FromMinutes(1)
+            });
+
+            // setup auth last so that rate-limited responses include authenticated user
+            // (uses AddItemToStartOfPipeline() to ensure it happens before rate-limiter)
             var auth_method = Env.GetEnvironmentString("COMPUTE_AUTH_METHOD", "");
 
             if (auth_method == "RHINO_ACCOUNT")
                 pipelines.AddAuthRhinoAccount();
             else if (auth_method == "API_KEY")
                 pipelines.AddAuthApiKey();
-            pipelines.AddHeadersAndLogging();
-            pipelines.AddRequestStashing();
 
             base.ApplicationStartup(container, pipelines);
         }

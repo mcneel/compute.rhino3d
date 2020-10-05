@@ -9,7 +9,7 @@ namespace compute.frontend.Authentication
     {
         public static void AddAuthApiKey(this IPipelines pipelines)
         {
-            pipelines.BeforeRequest += VerifyApiKey;
+            pipelines.BeforeRequest.AddItemToStartOfPipeline(VerifyApiKey);
             Log.Information("API Key authentication enabled");
         }
 

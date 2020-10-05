@@ -50,8 +50,10 @@ namespace compute.frontend
 
         private static void AddResponseHeaders(NancyContext context)
         {
-            context.Response.Headers.Add("X-Compute-Id", context.Items["RequestId"] as string);
-            context.Response.Headers.Add("X-Compute-Host", context.Items["Hostname"] as string);
+            if (context.Items.TryGetValue("RequestId", out var requestId))
+                context.Response.Headers.Add("X-Compute-Id", requestId as string);
+            if (context.Items.TryGetValue("RequestId", out var hostname))
+                context.Response.Headers.Add("X-Compute-Host", hostname as string);
         }
 
         internal static void AddCORSSupport(NancyContext context)
@@ -132,10 +134,10 @@ namespace compute.frontend
         {
             var ctx = _context;
 
-            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
-                "RequestId", ctx.Items["RequestId"] as string));
-            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty(
-                "Hostname", ctx.Items["Hostname"] as string));
+            if (ctx.Items.TryGetValue("RequestId", out var requestId))
+                logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("RequestId", requestId as string));
+            if (ctx.Items.TryGetValue("Hostname", out var hostname))
+                logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("Hostname", hostname as string));
 
             object auth_user;
             if (ctx.Items.TryGetValue("auth_user", out auth_user))
