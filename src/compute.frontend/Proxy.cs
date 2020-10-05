@@ -67,7 +67,8 @@ namespace compute.frontend
 
             if (req.Content != null)
             {
-                req.Content.Headers.ContentType.MediaType = ctx.Request.Headers.ContentType;
+                if (!req.Content.Headers.TryAddWithoutValidation("Content-Type", ctx.Request.Headers.ContentType))
+                    Log.Warning($"Couldn't pass content-type '{ctx.Request.Headers.ContentType}' to backend");
                 req.Content.Headers.ContentLength = ctx.Request.Headers.ContentLength;
             }
 
