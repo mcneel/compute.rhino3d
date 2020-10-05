@@ -65,8 +65,11 @@ namespace compute.frontend
                 req.Headers.Add(header.Key, header.Value);
             }
 
-            req.Content.Headers.ContentType.MediaType = ctx.Request.Headers.ContentType;
-            req.Content.Headers.ContentLength = ctx.Request.Headers.ContentLength;
+            if (req.Content != null)
+            {
+                req.Content.Headers.ContentType.MediaType = ctx.Request.Headers.ContentType;
+                req.Content.Headers.ContentLength = ctx.Request.Headers.ContentLength;
+            }
 
             // add compute-specific headers
             req.Headers.Add("X-Compute-Id", Context.Items["RequestId"] as string);
