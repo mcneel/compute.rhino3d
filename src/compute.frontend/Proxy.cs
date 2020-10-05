@@ -19,6 +19,7 @@ namespace compute.frontend
             int backendPort = Env.GetEnvironmentInt("COMPUTE_BACKEND_PORT", 8081);
 
             Get["/_debug"] = _ => "Hello World!"; // test frontend
+            Get["/robots.txt"] = _ => "User-agent: *\nDisallow: / ";
 
             Get["/"] =
             Get["/{uri*}"] = _ =>
