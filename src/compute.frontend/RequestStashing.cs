@@ -22,7 +22,7 @@ namespace compute.frontend
 
         public static void AddRequestStashing(this IPipelines pipelines)
         {
-            var stash_method = Env.GetEnvironmentString("COMPUTE_STASH_METHOD", "TEMPFILE");
+            var stash_method = Env.GetEnvironmentString("COMPUTE_STASH_METHOD", "");
             switch (stash_method)
             {
                 case "TEMPFILE":
