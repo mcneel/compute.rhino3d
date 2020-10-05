@@ -10,10 +10,12 @@ namespace compute.frontend
 {
     public class ProxyModule : Nancy.NancyModule
     {
-        private readonly string[] _skipHeaders = new string[] { "Content-Length", "Content-Type", "Host" };
+        HttpClient _client;
 
         public ProxyModule()
         {
+            _client = CreateProxyClient();
+
             int backendPort = Env.GetEnvironmentInt("COMPUTE_BACKEND_PORT", 8081);
 
             Get["/_debug"] = _ => "Hello World!"; // test frontend
@@ -44,12 +46,34 @@ namespace compute.frontend
             };
         }
 
+        private readonly string[] _skipHeaders = new string[]
+        {
+            "Host",      // causes 400 invalid host
+            "User-Agent" // occasionally throws System.FormatException
+        };
+
         private async Task<Response> DoRequest(NancyContext ctx, HttpRequestMessage req)
         {
-            var client = CreateProxyClient(ctx);
+            // proxy headers
+            foreach (var header in ctx.Request.Headers)
+            {
+                if (_skipHeaders.Contains(header.Key, StringComparer.OrdinalIgnoreCase) ||
+                    header.Key.ToLower().StartsWith("content")) // content headers handled below
+                    continue;
+
+                req.Headers.Add(header.Key, header.Value);
+            }
+
+            req.Content.Headers.ContentType.MediaType = ctx.Request.Headers.ContentType;
+            req.Content.Headers.ContentLength = ctx.Request.Headers.ContentLength;
+
+            // add compute-specific headers
+            req.Headers.Add("X-Compute-Id", Context.Items["RequestId"] as string);
+            req.Headers.Add("X-Compute-Host", Context.Items["Hostname"] as string);
+
             try
             {
-                var backendResponse = await client.SendAsync(req);
+                var backendResponse = await _client.SendAsync(req);
                 return CreateProxyResponse(backendResponse, ctx);
             }
             catch (Exception ex)
@@ -78,21 +102,12 @@ namespace compute.frontend
             return $"http://localhost:{backendPort}/{path}{qs.ToString()}";
         }
 
-        HttpClient CreateProxyClient(Nancy.NancyContext context)
+        HttpClient CreateProxyClient()
         {
             var handler = new HttpClientHandler();
             handler.AllowAutoRedirect = false;
             var client = new HttpClient(handler);
-            foreach (var header in Context.Request.Headers)
-            {
-                //Log.Debug("{key}: {value}", header.Key, header.Value);
-                if (_skipHeaders.Contains(header.Key)) // host header causes 400 invalid host error
-                    continue;
-                client.DefaultRequestHeaders.Add(header.Key, header.Value);
-            }
-            // client.DefaultRequestHeaders.Add("X-Forwarded-For", <UserHostAddress>); // TODO: see RequestLogEnricher.GetUserIPAddress()
-            client.DefaultRequestHeaders.Add("X-Compute-Id", Context.Items["RequestId"] as string);
-            client.DefaultRequestHeaders.Add("X-Compute-Host", Context.Items["Hostname"] as string);
+            client.DefaultRequestHeaders.Add("User-Agent", $"compute.frontend-proxy/1.0.0");
             return client;
         }
 
