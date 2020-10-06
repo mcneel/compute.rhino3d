@@ -4,6 +4,7 @@ using Serilog;
 using System;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 
 namespace compute.frontend
@@ -49,8 +50,9 @@ namespace compute.frontend
 
         private readonly string[] _skipHeaders = new string[]
         {
-            "Host",      // causes 400 invalid host
-            "User-Agent" // occasionally throws System.FormatException
+            "Host",         // causes 400 invalid host
+            "User-Agent",   // occasionally throws System.FormatException
+            "Authorization" // frontend only
         };
 
         private async Task<Response> DoRequest(NancyContext ctx, HttpRequestMessage req)
@@ -62,13 +64,19 @@ namespace compute.frontend
                     header.Key.ToLower().StartsWith("content")) // content headers handled below
                     continue;
 
-                req.Headers.Add(header.Key, header.Value);
+                if (!req.Headers.TryAddWithoutValidation(header.Key, header.Value))
+                    Log.Warning($"Couldn't pass header '{header.Key}: {header.Value}' to backend");
             }
 
             if (req.Content != null)
             {
-                if (!req.Content.Headers.TryAddWithoutValidation("Content-Type", ctx.Request.Headers.ContentType))
-                    Log.Warning($"Couldn't pass content-type '{ctx.Request.Headers.ContentType}' to backend");
+                if (MediaTypeHeaderValue.TryParse(ctx.Request.Headers.ContentType, out var contentType))
+                    req.Content.Headers.ContentType = contentType;
+                else
+                {
+                    Log.Warning($"Couldn't pass invalid Content-Type '{ctx.Request.Headers.ContentType}' to backend");
+                    req.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+                }
                 req.Content.Headers.ContentLength = ctx.Request.Headers.ContentLength;
             }
 
