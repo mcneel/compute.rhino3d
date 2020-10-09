@@ -10,7 +10,7 @@ namespace compute.frontend.Authentication
     {
         public static void AddAuthRhinoAccount(this IPipelines pipelines)
         {
-            pipelines.BeforeRequest += VerifyRhinoAccount;
+            pipelines.BeforeRequest.AddItemToStartOfPipeline(VerifyRhinoAccount);
             Log.Information("RhinoAccounts authentication enabled");
         }
         private static Response VerifyRhinoAccount(NancyContext context)
