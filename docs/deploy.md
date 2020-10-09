@@ -50,7 +50,9 @@ On the virtual machine, copy and paste the command below into a powershell windo
 ```powershell
 iwr -useb https://raw.githubusercontent.com/mcneel/compute.rhino3d/master/script/bootstrap-server.ps1 -outfile bootstrap.ps1; .\bootstrap.ps1 -install
 ```
-At the end of the installation process, Windows will restart to complete the setup. Wait a minute and log back in to check that the compute.geometry service is running. _You may need to start it manually the first time (only)._
+At the end of the installation process, Windows will restart to complete the setup. Wait a minute and log back in to check that the compute.geometry service is running.
+
+☞ _**Note:** After the first restart (only) you may need to start the compute.geometry service manually. Every other time it will start automatically._
 
 ## 4. Verify Compute and license usage
 
