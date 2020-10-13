@@ -102,7 +102,9 @@ namespace compute.geometry
 
             string jsonResponse = JsonConvert.SerializeObject(definition.GetInputsAndOutputs());
 
-            return jsonResponse;
+            Response res = jsonResponse;
+            res.ContentType = "application/json";
+            return res;
         }
 
         public static ResthopperObject GetResthopperPoint(GH_Point goo)
