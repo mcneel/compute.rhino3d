@@ -15,7 +15,7 @@ using GH_IO.Serialization;
 using Resthopper.IO;
 using Newtonsoft.Json;
 using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
+using Serilog;
 
 namespace compute.geometry
 {
@@ -26,7 +26,7 @@ namespace compute.geometry
             GrasshopperDefinition rc = DataCache.GetCachedDefinition(url);
             if (rc != null)
             {
-                Console.WriteLine("Using cached definition");
+                Log.Debug("Using cached definition");
                 return rc;
             }
 
@@ -110,7 +110,7 @@ namespace compute.geometry
 
                 if (inputGroup.AlreadySet(tree))
                 {
-                    Console.WriteLine("Skipping input tree... same input");
+                    Log.Debug("Skipping input tree... same input");
                     continue;
                 }
 
