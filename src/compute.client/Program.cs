@@ -18,7 +18,7 @@ namespace computegen
                 ".AreaMassProperties",
                 ".BezierCurve",
                 ".Brep", ".BrepFace",
-                ".Curve", ".Extrusion", ".Intersection", ".Mesh",
+                ".Curve", ".Extrusion", ".GeometryBase", ".Intersection", ".Mesh",
                 ".NurbsCurve", ".NurbsSurface", ".SubD", ".Surface",
                 ".VolumeMassProperties"
             };

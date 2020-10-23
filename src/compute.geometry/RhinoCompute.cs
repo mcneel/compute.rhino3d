@@ -15,7 +15,7 @@ namespace Rhino.Compute
         public static string WebAddress { get; set; } = "https://compute.rhino3d.com";
         public static string AuthToken { get; set; }
         public static string ApiKey { get; set; }
-        public static string Version => "0.11.1";
+        public static string Version => "0.12.0";
 
         public static T Post<T>(string function, params object[] postData)
         {
@@ -557,13 +557,13 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Makes a brep with one face.
+        /// Makes a Brep with one face from three corner points.
         /// </summary>
         /// <param name="corner1">A first corner.</param>
         /// <param name="corner2">A second corner.</param>
         /// <param name="corner3">A third corner.</param>
         /// <param name="tolerance">
-        /// Minimum edge length without collapsing to a singularity.
+        /// Minimum edge length allowed before collapsing the side into a singularity.
         /// </param>
         /// <returns>A boundary representation, or null on error.</returns>
         public static Brep CreateFromCornerPoints(Point3d corner1, Point3d corner2, Point3d corner3, double tolerance)
@@ -572,7 +572,7 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// make a Brep with one face.
+        /// Makes a Brep with one face from four corner points.
         /// </summary>
         /// <param name="corner1">A first corner.</param>
         /// <param name="corner2">A second corner.</param>
@@ -979,115 +979,251 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Creates a single walled pipe
+        /// Creates a single walled pipe.
         /// </summary>
-        /// <param name="rail">the path curve for the pipe</param>
-        /// <param name="radius">radius of the pipe</param>
+        /// <param name="rail">The rail, or path, curve.</param>
+        /// <param name="radius">The radius of the pipe.</param>
         /// <param name="localBlending">
+        /// The shape blending.
         /// If True, Local (pipe radius stays constant at the ends and changes more rapidly in the middle) is applied.
-        /// If False, Global (radius is linearly blended from one end to the other, creating pipes that taper from one radius to the other) is applied
+        /// If False, Global (radius is linearly blended from one end to the other, creating pipes that taper from one radius to the other) is applied.
         /// </param>
-        /// <param name="cap">end cap mode</param>
+        /// <param name="cap">The end cap mode.</param>
         /// <param name="fitRail">
         /// If the curve is a polycurve of lines and arcs, the curve is fit and a single surface is created;
-        /// otherwise the result is a polysurface with joined surfaces created from the polycurve segments.
+        /// otherwise the result is a Brep with joined surfaces created from the polycurve segments.
         /// </param>
         /// <param name="absoluteTolerance">
-        /// The sweeping and fitting tolerance. If you are unsure what to use, then use the document's absolute tolerance
+        /// The sweeping and fitting tolerance. When in doubt, use the document's absolute tolerance.
         /// </param>
         /// <param name="angleToleranceRadians">
-        /// The angle tolerance. If you are unsure what to use, then either use the document's angle tolerance in radians
+        /// The angle tolerance. When in doubt, use the document's angle tolerance in radians.
         /// </param>
-        /// <returns>Array of created pipes on success</returns>
+        /// <returns>Array of Breps success.</returns>
         public static Brep[] CreatePipe(Curve rail, double radius, bool localBlending, PipeCapMode cap, bool fitRail, double absoluteTolerance, double angleToleranceRadians)
         {
             return ComputeServer.Post<Brep[]>(ApiAddress(), rail, radius, localBlending, cap, fitRail, absoluteTolerance, angleToleranceRadians);
         }
 
         /// <summary>
-        /// Creates a single walled pipe
+        /// Creates a single walled pipe.
         /// </summary>
-        /// <param name="rail">the path curve for the pipe</param>
-        /// <param name="radius">radius of the pipe</param>
+        /// <param name="rail">The rail, or path, curve.</param>
+        /// <param name="radius">The radius of the pipe.</param>
         /// <param name="localBlending">
+        /// The shape blending.
         /// If True, Local (pipe radius stays constant at the ends and changes more rapidly in the middle) is applied.
-        /// If False, Global (radius is linearly blended from one end to the other, creating pipes that taper from one radius to the other) is applied
+        /// If False, Global (radius is linearly blended from one end to the other, creating pipes that taper from one radius to the other) is applied.
         /// </param>
-        /// <param name="cap">end cap mode</param>
+        /// <param name="cap">The end cap mode.</param>
         /// <param name="fitRail">
         /// If the curve is a polycurve of lines and arcs, the curve is fit and a single surface is created;
-        /// otherwise the result is a polysurface with joined surfaces created from the polycurve segments.
+        /// otherwise the result is a Brep with joined surfaces created from the polycurve segments.
         /// </param>
         /// <param name="absoluteTolerance">
-        /// The sweeping and fitting tolerance. If you are unsure what to use, then use the document's absolute tolerance
+        /// The sweeping and fitting tolerance. When in doubt, use the document's absolute tolerance.
         /// </param>
         /// <param name="angleToleranceRadians">
-        /// The angle tolerance. If you are unsure what to use, then either use the document's angle tolerance in radians
+        /// The angle tolerance. When in doubt, use the document's angle tolerance in radians.
         /// </param>
-        /// <returns>Array of created pipes on success</returns>
+        /// <returns>Array of Breps success.</returns>
         public static Brep[] CreatePipe(Remote<Curve> rail, double radius, bool localBlending, PipeCapMode cap, bool fitRail, double absoluteTolerance, double angleToleranceRadians)
         {
             return ComputeServer.Post<Brep[]>(ApiAddress(), rail, radius, localBlending, cap, fitRail, absoluteTolerance, angleToleranceRadians);
         }
 
         /// <summary>
-        /// Creates a single walled pipe
+        /// Creates a single walled pipe.
         /// </summary>
-        /// <param name="rail">the path curve for the pipe</param>
+        /// <param name="rail">The rail, or path, curve.</param>
         /// <param name="railRadiiParameters">
-        /// one or more normalized curve parameters where changes in radius occur.
+        /// One or more normalized curve parameters where changes in radius occur.
         /// Important: curve parameters must be normalized - ranging between 0.0 and 1.0.
+        /// Use Interval.NormalizedParameterAt to calculate these.
         /// </param>
-        /// <param name="radii">An array of radii - one at each normalized curve parameter in railRadiiParameters.</param>
+        /// <param name="radii">One or more radii - one at each normalized curve parameter in railRadiiParameters.</param>
         /// <param name="localBlending">
+        /// The shape blending.
         /// If True, Local (pipe radius stays constant at the ends and changes more rapidly in the middle) is applied.
-        /// If False, Global (radius is linearly blended from one end to the other, creating pipes that taper from one radius to the other) is applied
+        /// If False, Global (radius is linearly blended from one end to the other, creating pipes that taper from one radius to the other) is applied.
         /// </param>
-        /// <param name="cap">end cap mode</param>
+        /// <param name="cap">The end cap mode.</param>
         /// <param name="fitRail">
         /// If the curve is a polycurve of lines and arcs, the curve is fit and a single surface is created;
-        /// otherwise the result is a polysurface with joined surfaces created from the polycurve segments.
+        /// otherwise the result is a Brep with joined surfaces created from the polycurve segments.
         /// </param>
         /// <param name="absoluteTolerance">
-        /// The sweeping and fitting tolerance. If you are unsure what to use, then use the document's absolute tolerance
+        /// The sweeping and fitting tolerance. When in doubt, use the document's absolute tolerance.
         /// </param>
         /// <param name="angleToleranceRadians">
-        /// The angle tolerance. If you are unsure what to use, then either use the document's angle tolerance in radians
+        /// The angle tolerance. When in doubt, use the document's angle tolerance in radians.
         /// </param>
-        /// <returns>Array of created pipes on success</returns>
+        /// <returns>Array of Breps success.</returns>
         public static Brep[] CreatePipe(Curve rail, IEnumerable<double> railRadiiParameters, IEnumerable<double> radii, bool localBlending, PipeCapMode cap, bool fitRail, double absoluteTolerance, double angleToleranceRadians)
         {
             return ComputeServer.Post<Brep[]>(ApiAddress(), rail, railRadiiParameters, radii, localBlending, cap, fitRail, absoluteTolerance, angleToleranceRadians);
         }
 
         /// <summary>
-        /// Creates a single walled pipe
+        /// Creates a single walled pipe.
         /// </summary>
-        /// <param name="rail">the path curve for the pipe</param>
+        /// <param name="rail">The rail, or path, curve.</param>
         /// <param name="railRadiiParameters">
-        /// one or more normalized curve parameters where changes in radius occur.
+        /// One or more normalized curve parameters where changes in radius occur.
         /// Important: curve parameters must be normalized - ranging between 0.0 and 1.0.
+        /// Use Interval.NormalizedParameterAt to calculate these.
         /// </param>
-        /// <param name="radii">An array of radii - one at each normalized curve parameter in railRadiiParameters.</param>
+        /// <param name="radii">One or more radii - one at each normalized curve parameter in railRadiiParameters.</param>
         /// <param name="localBlending">
+        /// The shape blending.
         /// If True, Local (pipe radius stays constant at the ends and changes more rapidly in the middle) is applied.
-        /// If False, Global (radius is linearly blended from one end to the other, creating pipes that taper from one radius to the other) is applied
+        /// If False, Global (radius is linearly blended from one end to the other, creating pipes that taper from one radius to the other) is applied.
         /// </param>
-        /// <param name="cap">end cap mode</param>
+        /// <param name="cap">The end cap mode.</param>
         /// <param name="fitRail">
         /// If the curve is a polycurve of lines and arcs, the curve is fit and a single surface is created;
-        /// otherwise the result is a polysurface with joined surfaces created from the polycurve segments.
+        /// otherwise the result is a Brep with joined surfaces created from the polycurve segments.
         /// </param>
         /// <param name="absoluteTolerance">
-        /// The sweeping and fitting tolerance. If you are unsure what to use, then use the document's absolute tolerance
+        /// The sweeping and fitting tolerance. When in doubt, use the document's absolute tolerance.
         /// </param>
         /// <param name="angleToleranceRadians">
-        /// The angle tolerance. If you are unsure what to use, then either use the document's angle tolerance in radians
+        /// The angle tolerance. When in doubt, use the document's angle tolerance in radians.
         /// </param>
-        /// <returns>Array of created pipes on success</returns>
+        /// <returns>Array of Breps success.</returns>
         public static Brep[] CreatePipe(Remote<Curve> rail, IEnumerable<double> railRadiiParameters, IEnumerable<double> radii, bool localBlending, PipeCapMode cap, bool fitRail, double absoluteTolerance, double angleToleranceRadians)
         {
             return ComputeServer.Post<Brep[]>(ApiAddress(), rail, railRadiiParameters, radii, localBlending, cap, fitRail, absoluteTolerance, angleToleranceRadians);
+        }
+
+        /// <summary>
+        /// Creates a double-walled pipe.
+        /// </summary>
+        /// <param name="rail">The rail, or path, curve.</param>
+        /// <param name="radius0">The first radius of the pipe.</param>
+        /// <param name="radius1">The second radius of the pipe.</param>
+        /// <param name="localBlending">
+        /// The shape blending.
+        /// If True, Local (pipe radius stays constant at the ends and changes more rapidly in the middle) is applied.
+        /// If False, Global (radius is linearly blended from one end to the other, creating pipes that taper from one radius to the other) is applied.
+        /// </param>
+        /// <param name="cap">The end cap mode.</param>
+        /// <param name="fitRail">
+        /// If the curve is a polycurve of lines and arcs, the curve is fit and a single surface is created;
+        /// otherwise the result is a Brep with joined surfaces created from the polycurve segments.
+        /// </param>
+        /// <param name="absoluteTolerance">
+        /// The sweeping and fitting tolerance. When in doubt, use the document's absolute tolerance.
+        /// </param>
+        /// <param name="angleToleranceRadians">
+        /// The angle tolerance. When in doubt, use the document's angle tolerance in radians.
+        /// </param>
+        /// <returns>Array of Breps success.</returns>
+        public static Brep[] CreateThickPipe(Curve rail, double radius0, double radius1, bool localBlending, PipeCapMode cap, bool fitRail, double absoluteTolerance, double angleToleranceRadians)
+        {
+            return ComputeServer.Post<Brep[]>(ApiAddress(), rail, radius0, radius1, localBlending, cap, fitRail, absoluteTolerance, angleToleranceRadians);
+        }
+
+        /// <summary>
+        /// Creates a double-walled pipe.
+        /// </summary>
+        /// <param name="rail">The rail, or path, curve.</param>
+        /// <param name="radius0">The first radius of the pipe.</param>
+        /// <param name="radius1">The second radius of the pipe.</param>
+        /// <param name="localBlending">
+        /// The shape blending.
+        /// If True, Local (pipe radius stays constant at the ends and changes more rapidly in the middle) is applied.
+        /// If False, Global (radius is linearly blended from one end to the other, creating pipes that taper from one radius to the other) is applied.
+        /// </param>
+        /// <param name="cap">The end cap mode.</param>
+        /// <param name="fitRail">
+        /// If the curve is a polycurve of lines and arcs, the curve is fit and a single surface is created;
+        /// otherwise the result is a Brep with joined surfaces created from the polycurve segments.
+        /// </param>
+        /// <param name="absoluteTolerance">
+        /// The sweeping and fitting tolerance. When in doubt, use the document's absolute tolerance.
+        /// </param>
+        /// <param name="angleToleranceRadians">
+        /// The angle tolerance. When in doubt, use the document's angle tolerance in radians.
+        /// </param>
+        /// <returns>Array of Breps success.</returns>
+        public static Brep[] CreateThickPipe(Remote<Curve> rail, double radius0, double radius1, bool localBlending, PipeCapMode cap, bool fitRail, double absoluteTolerance, double angleToleranceRadians)
+        {
+            return ComputeServer.Post<Brep[]>(ApiAddress(), rail, radius0, radius1, localBlending, cap, fitRail, absoluteTolerance, angleToleranceRadians);
+        }
+
+        /// <summary>
+        /// Creates a double-walled pipe.
+        /// </summary>
+        /// <param name="rail">The rail, or path, curve.</param>
+        /// <param name="railRadiiParameters">
+        /// One or more normalized curve parameters where changes in radius occur.
+        /// Important: curve parameters must be normalized - ranging between 0.0 and 1.0.
+        /// Use Interval.NormalizedParameterAt to calculate these.
+        /// </param>
+        /// <param name="radii0">
+        /// One or more radii for the first wall - one at each normalized curve parameter in railRadiiParameters.
+        /// </param>
+        /// <param name="radii1">
+        /// One or more radii for the second wall - one at each normalized curve parameter in railRadiiParameters.
+        /// </param>
+        /// <param name="localBlending">
+        /// The shape blending.
+        /// If True, Local (pipe radius stays constant at the ends and changes more rapidly in the middle) is applied.
+        /// If False, Global (radius is linearly blended from one end to the other, creating pipes that taper from one radius to the other) is applied.
+        /// </param>
+        /// <param name="cap">The end cap mode.</param>
+        /// <param name="fitRail">
+        /// If the curve is a polycurve of lines and arcs, the curve is fit and a single surface is created;
+        /// otherwise the result is a Brep with joined surfaces created from the polycurve segments.
+        /// </param>
+        /// <param name="absoluteTolerance">
+        /// The sweeping and fitting tolerance. When in doubt, use the document's absolute tolerance.
+        /// </param>
+        /// <param name="angleToleranceRadians">
+        /// The angle tolerance. When in doubt, use the document's angle tolerance in radians.
+        /// </param>
+        /// <returns>Array of Breps success.</returns>
+        public static Brep[] CreateThickPipe(Curve rail, IEnumerable<double> railRadiiParameters, IEnumerable<double> radii0, IEnumerable<double> radii1, bool localBlending, PipeCapMode cap, bool fitRail, double absoluteTolerance, double angleToleranceRadians)
+        {
+            return ComputeServer.Post<Brep[]>(ApiAddress(), rail, railRadiiParameters, radii0, radii1, localBlending, cap, fitRail, absoluteTolerance, angleToleranceRadians);
+        }
+
+        /// <summary>
+        /// Creates a double-walled pipe.
+        /// </summary>
+        /// <param name="rail">The rail, or path, curve.</param>
+        /// <param name="railRadiiParameters">
+        /// One or more normalized curve parameters where changes in radius occur.
+        /// Important: curve parameters must be normalized - ranging between 0.0 and 1.0.
+        /// Use Interval.NormalizedParameterAt to calculate these.
+        /// </param>
+        /// <param name="radii0">
+        /// One or more radii for the first wall - one at each normalized curve parameter in railRadiiParameters.
+        /// </param>
+        /// <param name="radii1">
+        /// One or more radii for the second wall - one at each normalized curve parameter in railRadiiParameters.
+        /// </param>
+        /// <param name="localBlending">
+        /// The shape blending.
+        /// If True, Local (pipe radius stays constant at the ends and changes more rapidly in the middle) is applied.
+        /// If False, Global (radius is linearly blended from one end to the other, creating pipes that taper from one radius to the other) is applied.
+        /// </param>
+        /// <param name="cap">The end cap mode.</param>
+        /// <param name="fitRail">
+        /// If the curve is a polycurve of lines and arcs, the curve is fit and a single surface is created;
+        /// otherwise the result is a Brep with joined surfaces created from the polycurve segments.
+        /// </param>
+        /// <param name="absoluteTolerance">
+        /// The sweeping and fitting tolerance. When in doubt, use the document's absolute tolerance.
+        /// </param>
+        /// <param name="angleToleranceRadians">
+        /// The angle tolerance. When in doubt, use the document's angle tolerance in radians.
+        /// </param>
+        /// <returns>Array of Breps success.</returns>
+        public static Brep[] CreateThickPipe(Remote<Curve> rail, IEnumerable<double> railRadiiParameters, IEnumerable<double> radii0, IEnumerable<double> radii1, bool localBlending, PipeCapMode cap, bool fitRail, double absoluteTolerance, double angleToleranceRadians)
+        {
+            return ComputeServer.Post<Brep[]>(ApiAddress(), rail, railRadiiParameters, radii0, radii1, localBlending, cap, fitRail, absoluteTolerance, angleToleranceRadians);
         }
 
         /// <summary>
@@ -1181,11 +1317,11 @@ namespace Rhino.Compute
         /// and one curve that defines a surface edge. The Segmented version breaks the rail at curvature kinks
         /// and sweeps each piece separately, then put the results together into a Brep.
         /// </summary>
-        /// <param name="rail">Rail to sweep shapes along</param>
-        /// <param name="shapes">Shape curves</param>
-        /// <param name="closed">Only matters if shapes are closed</param>
-        /// <param name="tolerance">Tolerance for fitting surface and rails</param>
-        /// <returns>Array of Brep sweep results</returns>
+        /// <param name="rail">Rail to sweep shapes along.</param>
+        /// <param name="shapes">Shape curves.</param>
+        /// <param name="closed">Only matters if shapes are closed.</param>
+        /// <param name="tolerance">Tolerance for fitting surface and rails.</param>
+        /// <returns>Array of Brep sweep results.</returns>
         public static Brep[] CreateFromSweepSegmented(Curve rail, IEnumerable<Curve> shapes, bool closed, double tolerance)
         {
             return ComputeServer.Post<Brep[]>(ApiAddress(), rail, shapes, closed, tolerance);
@@ -1196,11 +1332,11 @@ namespace Rhino.Compute
         /// and one curve that defines a surface edge. The Segmented version breaks the rail at curvature kinks
         /// and sweeps each piece separately, then put the results together into a Brep.
         /// </summary>
-        /// <param name="rail">Rail to sweep shapes along</param>
-        /// <param name="shapes">Shape curves</param>
-        /// <param name="closed">Only matters if shapes are closed</param>
-        /// <param name="tolerance">Tolerance for fitting surface and rails</param>
-        /// <returns>Array of Brep sweep results</returns>
+        /// <param name="rail">Rail to sweep shapes along.</param>
+        /// <param name="shapes">Shape curves.</param>
+        /// <param name="closed">Only matters if shapes are closed.</param>
+        /// <param name="tolerance">Tolerance for fitting surface and rails.</param>
+        /// <returns>Array of Brep sweep results.</returns>
         public static Brep[] CreateFromSweepSegmented(Remote<Curve> rail, Remote<IEnumerable<Curve>> shapes, bool closed, double tolerance)
         {
             return ComputeServer.Post<Brep[]>(ApiAddress(), rail, shapes, closed, tolerance);
@@ -1268,7 +1404,7 @@ namespace Rhino.Compute
 
         /// <summary>
         /// Sweep2 function that fits a surface through profile curves that define the surface cross-sections
-        /// and two curves that defines a surface edge.
+        /// and two curves that defines the surface edges.
         /// </summary>
         /// <param name="rail1">Rail to sweep shapes along</param>
         /// <param name="rail2">Rail to sweep shapes along</param>
@@ -1289,7 +1425,7 @@ namespace Rhino.Compute
 
         /// <summary>
         /// Sweep2 function that fits a surface through profile curves that define the surface cross-sections
-        /// and two curves that defines a surface edge.
+        /// and two curves that defines the surface edges.
         /// </summary>
         /// <param name="rail1">Rail to sweep shapes along</param>
         /// <param name="rail2">Rail to sweep shapes along</param>
@@ -1648,6 +1784,26 @@ namespace Rhino.Compute
         public static Brep[] CreateOffsetBrep(Remote<Brep> brep, double distance, bool solid, bool extend, double tolerance, out Brep[] outBlends, out Brep[] outWalls)
         {
             return ComputeServer.Post<Brep[], Brep[], Brep[]>(ApiAddress(), out outBlends, out outWalls, brep, distance, solid, extend, tolerance);
+        }
+
+        /// <summary>
+        /// Recursively removes any Brep face with a naked edge. This function is only useful for non-manifold Breps.
+        /// </summary>
+        /// <returns>true if successful, false if everything is removed or if the result has any Brep edges with more than two Brep trims.
+        /// </returns>
+        public static bool RemoveFins(this Brep brep, out Brep updatedInstance)
+        {
+            return ComputeServer.Post<bool, Brep>(ApiAddress(), out updatedInstance, brep);
+        }
+
+        /// <summary>
+        /// Recursively removes any Brep face with a naked edge. This function is only useful for non-manifold Breps.
+        /// </summary>
+        /// <returns>true if successful, false if everything is removed or if the result has any Brep edges with more than two Brep trims.
+        /// </returns>
+        public static bool RemoveFins(Remote<Brep> brep, out Brep updatedInstance)
+        {
+            return ComputeServer.Post<bool, Brep>(ApiAddress(), out updatedInstance, brep);
         }
 
         /// <summary>
@@ -3181,14 +3337,26 @@ namespace Rhino.Compute
         }
 
         /// <summary>
-        /// Tests if a parameter space point is on the interior of a trimmed face.
+        /// Tests if a parameter space point is in the active region of a face.
         /// </summary>
-        /// <param name="u">Parameter space point u value.</param>
-        /// <param name="v">Parameter space point v value.</param>
-        /// <returns>A value describing the spatial relationship between the point and the face.</returns>
+        /// <param name="u">Parameter space point U value.</param>
+        /// <param name="v">Parameter space point V value.</param>
+        /// <returns>A value describing the relationship between the point and the face.</returns>
         public static PointFaceRelation IsPointOnFace(this BrepFace brepface, double u, double v)
         {
             return ComputeServer.Post<PointFaceRelation>(ApiAddress(), brepface, u, v);
+        }
+
+        /// <summary>
+        /// Tests if a parameter space point is in the active region of a face.
+        /// </summary>
+        /// <param name="u">Parameter space point U value.</param>
+        /// <param name="v">Parameter space point V value.</param>
+        /// <param name="tolerance">3D tolerance used when checking to see if the point is on a face or inside of a loop.</param>
+        /// <returns>A value describing the relationship between the point and the face.</returns>
+        public static PointFaceRelation IsPointOnFace(this BrepFace brepface, double u, double v, double tolerance)
+        {
+            return ComputeServer.Post<PointFaceRelation>(ApiAddress(), brepface, u, v, tolerance);
         }
 
         /// <summary>
@@ -7095,6 +7263,112 @@ namespace Rhino.Compute
         public static Curve OffsetNormalToSurface(Remote<Curve> curve, Remote<Surface> surface, double height)
         {
             return ComputeServer.Post<Curve>(ApiAddress(), curve, surface, height);
+        }
+    }
+
+    public static class GeometryBaseCompute
+    {
+        static string ApiAddress([CallerMemberName] string caller = null)
+        {
+            return ComputeServer.ApiAddress(typeof(GeometryBase), caller);
+        }
+
+        /// <summary>
+        /// Bounding box solver. Gets the world axis aligned bounding box for the geometry.
+        /// </summary>
+        /// <param name="accurate">If true, a physically accurate bounding box will be computed. 
+        /// If not, a bounding box estimate will be computed. For some geometry types there is no 
+        /// difference between the estimate and the accurate bounding box. Estimated bounding boxes 
+        /// can be computed much (much) faster than accurate (or "tight") bounding boxes. 
+        /// Estimated bounding boxes are always similar to or larger than accurate bounding boxes.</param>
+        /// <returns>
+        /// The bounding box of the geometry in world coordinates or BoundingBox.Empty 
+        /// if not bounding box could be found.
+        /// </returns>
+        /// <example>
+        /// <code source='examples\vbnet\ex_curveboundingbox.vb' lang='vbnet'/>
+        /// <code source='examples\cs\ex_curveboundingbox.cs' lang='cs'/>
+        /// <code source='examples\py\ex_curveboundingbox.py' lang='py'/>
+        /// </example>
+        public static BoundingBox GetBoundingBox(this GeometryBase geometrybase, bool accurate)
+        {
+            return ComputeServer.Post<BoundingBox>(ApiAddress(), geometrybase, accurate);
+        }
+
+        /// <summary>
+        /// Bounding box solver. Gets the world axis aligned bounding box for the geometry.
+        /// </summary>
+        /// <param name="accurate">If true, a physically accurate bounding box will be computed. 
+        /// If not, a bounding box estimate will be computed. For some geometry types there is no 
+        /// difference between the estimate and the accurate bounding box. Estimated bounding boxes 
+        /// can be computed much (much) faster than accurate (or "tight") bounding boxes. 
+        /// Estimated bounding boxes are always similar to or larger than accurate bounding boxes.</param>
+        /// <returns>
+        /// The bounding box of the geometry in world coordinates or BoundingBox.Empty 
+        /// if not bounding box could be found.
+        /// </returns>
+        /// <example>
+        /// <code source='examples\vbnet\ex_curveboundingbox.vb' lang='vbnet'/>
+        /// <code source='examples\cs\ex_curveboundingbox.cs' lang='cs'/>
+        /// <code source='examples\py\ex_curveboundingbox.py' lang='py'/>
+        /// </example>
+        public static BoundingBox GetBoundingBox(Remote<GeometryBase> geometrybase, bool accurate)
+        {
+            return ComputeServer.Post<BoundingBox>(ApiAddress(), geometrybase, accurate);
+        }
+
+        /// <summary>
+        /// Aligned Bounding box solver. Gets the world axis aligned bounding box for the transformed geometry.
+        /// </summary>
+        /// <param name="xform">Transformation to apply to object prior to the BoundingBox computation. 
+        /// The geometry itself is not modified.</param>
+        /// <returns>The accurate bounding box of the transformed geometry in world coordinates 
+        /// or BoundingBox.Empty if not bounding box could be found.</returns>
+        public static BoundingBox GetBoundingBox(this GeometryBase geometrybase, Transform xform)
+        {
+            return ComputeServer.Post<BoundingBox>(ApiAddress(), geometrybase, xform);
+        }
+
+        /// <summary>
+        /// Aligned Bounding box solver. Gets the world axis aligned bounding box for the transformed geometry.
+        /// </summary>
+        /// <param name="xform">Transformation to apply to object prior to the BoundingBox computation. 
+        /// The geometry itself is not modified.</param>
+        /// <returns>The accurate bounding box of the transformed geometry in world coordinates 
+        /// or BoundingBox.Empty if not bounding box could be found.</returns>
+        public static BoundingBox GetBoundingBox(Remote<GeometryBase> geometrybase, Transform xform)
+        {
+            return ComputeServer.Post<BoundingBox>(ApiAddress(), geometrybase, xform);
+        }
+
+        /// <summary>
+        /// Determines if two geometries equal one another, in pure geometrical shape.
+        /// This version only compares the geometry itself and does not include any user
+        /// data comparisons.
+        /// This is a comparison by value: for two identical items it will be true, no matter
+        /// where in memory they may be stored.
+        /// </summary>
+        /// <param name="first">The first geometry</param>
+        /// <param name="second">The second geometry</param>
+        /// <returns>The indication of equality</returns>
+        public static bool GeometryEquals(GeometryBase first, GeometryBase second)
+        {
+            return ComputeServer.Post<bool>(ApiAddress(), first, second);
+        }
+
+        /// <summary>
+        /// Determines if two geometries equal one another, in pure geometrical shape.
+        /// This version only compares the geometry itself and does not include any user
+        /// data comparisons.
+        /// This is a comparison by value: for two identical items it will be true, no matter
+        /// where in memory they may be stored.
+        /// </summary>
+        /// <param name="first">The first geometry</param>
+        /// <param name="second">The second geometry</param>
+        /// <returns>The indication of equality</returns>
+        public static bool GeometryEquals(Remote<GeometryBase> first, Remote<GeometryBase> second)
+        {
+            return ComputeServer.Post<bool>(ApiAddress(), first, second);
         }
     }
 

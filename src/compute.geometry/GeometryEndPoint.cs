@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using System.Runtime.Serialization;
 using Rhino.Geometry;
 using Rhino.Runtime;
+using Newtonsoft.Json.Linq;
 
 namespace compute.geometry
 {
@@ -410,6 +411,14 @@ namespace compute.geometry
             return o;
         }
 
+        static CommonObject CommonObjectFromJToken(JToken jsonElement)
+        {
+            int archive3dm = (int)jsonElement["archive3dm"];
+            int opennurbs = (int)jsonElement["opennurbs"];
+            string data = (string)jsonElement["data"];
+            return CommonObject.FromBase64String(archive3dm, opennurbs, data);
+        }
+
         string HandlePostHelper(Newtonsoft.Json.Linq.JArray ja, Dictionary<string, string> returnModifiers)
         {
             int tokenCount = ja == null ? 0 : ja.Count;
@@ -436,7 +445,16 @@ namespace compute.geometry
                         object[] invokeParameters = new object[methodParameters.Length];
                         int currentJa = 0;
                         if (!method.IsStatic)
-                            invokeObj = ja[currentJa++].ToObject(_classType);
+                        {
+                            if (_classType == typeof(GeometryBase))
+                            {
+                                invokeObj = CommonObjectFromJToken(ja[currentJa++]);
+                            }
+                            else
+                            {
+                                invokeObj = ja[currentJa++].ToObject(_classType);
+                            }
+                        }
 
                         int outParamCount = 0;
                         try
@@ -485,10 +503,7 @@ namespace compute.geometry
                                                 for (int itemIndex = 0; itemIndex < items.Length; itemIndex++)
                                                 {
                                                     var jsonElement = jsonobject[itemIndex];
-                                                    int archive3dm = (int)jsonElement["archive3dm"];
-                                                    int opennurbs = (int)jsonElement["opennurbs"];
-                                                    string data = (string)jsonElement["data"];
-                                                    items[itemIndex] = CommonObject.FromBase64String(archive3dm, opennurbs, data) as GeometryBase;
+                                                    items[itemIndex] = CommonObjectFromJToken(jsonElement) as GeometryBase;
                                                 }
                                                 invokeParameters[i] = items;
                                             }
