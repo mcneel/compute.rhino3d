@@ -407,7 +407,7 @@ namespace compute.geometry
         public Schema Solve()
         {
             Schema outputSchema = new Schema();
-            outputSchema.Algo = Utils.Base64Encode(string.Empty);
+            outputSchema.Algo = "";
 
             foreach(var kvp in _output)
             {
