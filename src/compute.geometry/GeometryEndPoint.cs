@@ -419,6 +419,29 @@ namespace compute.geometry
             return CommonObject.FromBase64String(archive3dm, opennurbs, data);
         }
 
+        static object ToObjectHelper(JToken jsonElement, Type objectType, JsonSerializer serializer)
+        {
+            if (typeof(CommonObject).IsAssignableFrom(objectType))
+            {
+                int archive3dm = (int)jsonElement["archive3dm"];
+                int opennurbs = (int)jsonElement["opennurbs"];
+                string data = (string)jsonElement["data"];
+                CommonObject rc = CommonObject.FromBase64String(archive3dm, opennurbs, data);
+                // Steve: I'm still undecided on if we should 'magically' convert
+                //if(objectType.Equals(typeof(Brep)) && rc is Extrusion)
+                //{
+                //    Extrusion extrusion = rc as Extrusion;
+                //    return extrusion.ToBrep();
+                //}
+                return rc;
+            }
+            if (serializer == null)
+            {
+                return jsonElement.ToObject(objectType);
+            }
+            return jsonElement.ToObject(objectType, serializer);
+        }
+
         string HandlePostHelper(Newtonsoft.Json.Linq.JArray ja, Dictionary<string, string> returnModifiers)
         {
             int tokenCount = ja == null ? 0 : ja.Count;
@@ -446,14 +469,7 @@ namespace compute.geometry
                         int currentJa = 0;
                         if (!method.IsStatic)
                         {
-                            if (_classType == typeof(GeometryBase))
-                            {
-                                invokeObj = CommonObjectFromJToken(ja[currentJa++]);
-                            }
-                            else
-                            {
-                                invokeObj = ja[currentJa++].ToObject(_classType);
-                            }
+                            invokeObj = ToObjectHelper(ja[currentJa++], _classType, null);
                         }
 
                         int outParamCount = 0;
@@ -487,10 +503,11 @@ namespace compute.geometry
                                     {
                                         if (useSerializer)
                                         {
-                                            invokeParameters[i] = jsonobject.ToObject(objectType, serializer);
+                                            invokeParameters[i] = ToObjectHelper(jsonobject, objectType, serializer);
                                         }
                                         else
                                         {
+                                            // TODO: Update ToObjectHelper to handle types that could be CommonObject[]
                                             if (objectType == typeof(GeometryBase[]))
                                             {
                                                 // 6 Sept 2020 S. Baer
@@ -509,7 +526,7 @@ namespace compute.geometry
                                             }
                                             else
                                             {
-                                                invokeParameters[i] = jsonobject.ToObject(objectType);
+                                                invokeParameters[i] = ToObjectHelper(jsonobject, objectType, null);
                                             }
                                         }
                                     }
