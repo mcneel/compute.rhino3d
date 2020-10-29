@@ -162,6 +162,14 @@ def DecodeToLine(item):
     end = DecodeToPoint3d(item['To'])
     return rhino3dm.Line(start,end)
 
+
+def DecodeToBoundingBox(item):
+    if item is None:
+        return None
+    if isinstance(item, list):
+        return [DecodeToBoundingBox(x) for x in item]
+    return rhino3dm.BoundingBox(item['Min']['X'], item['Min']['Y'], item['Min']['Z'], item['Max']['X'], item['Max']['Y'], item['Max']['Z'])
+
 ";
 
         public static int SpacesPerTab { get; set; } = 4;
@@ -213,7 +221,7 @@ def DecodeToLine(item):
             foreach (var node in nodes)
             {
                 var element = node as System.Xml.XmlElement;
-                string elementText = element.InnerText.Trim();
+                string elementText = element?.InnerText.Trim();
                 if (string.IsNullOrWhiteSpace(elementText))
                     continue;
                 string[] lines = elementText.Split(new char[] { '\n' });
@@ -430,7 +438,8 @@ def DecodeToLine(item):
                         }
                         if (baseClass.ClassName == "Point3d" ||
                             baseClass.ClassName == "Vector3d" ||
-                            baseClass.ClassName == "Line")
+                            baseClass.ClassName == "Line" ||
+                            baseClass.ClassName == "BoundingBox")
                         {
                             sb.AppendLine($"{T1}response = Util.DecodeTo{baseClass.ClassName}(response)");
                         }
