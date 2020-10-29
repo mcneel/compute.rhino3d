@@ -438,11 +438,15 @@ def DecodeToBoundingBox(item):
                         }
                         if (baseClass.ClassName == "Point3d" ||
                             baseClass.ClassName == "Vector3d" ||
-                            baseClass.ClassName == "Line" ||
-                            baseClass.ClassName == "BoundingBox")
+                            baseClass.ClassName == "Line")
                         {
                             sb.AppendLine($"{T1}response = Util.DecodeTo{baseClass.ClassName}(response)");
                         }
+                    }
+                    // BoundingBox doesn't contain any RHINO_SDK-only code, so it isn't known to ClassBuilder
+                    if (returnClassName == "BoundingBox")
+                    {
+                        sb.AppendLine($"{T1}response = Util.DecodeTo{returnClassName}(response)");
                     }
                 }
                 sb.AppendLine($"{T1}return response");
