@@ -32,6 +32,11 @@ namespace compute.geometry
         public static string[] GetDeprecationWarnings() => _warnings.ToArray();
 
         /// <summary>
+        /// RHINO_COMPUTE_DEBUG: enables debug logging (defaults to true in DEBUG).
+        /// </summary>
+        public static bool Debug { get; private set; }
+
+        /// <summary>
         /// Loads config from environment variables (or uses defaults).
         /// </summary>
         public static void Load()
@@ -40,6 +45,11 @@ namespace compute.geometry
             ApiKey = GetEnvironmentVariable<string>(RHINO_COMPUTE_KEY, null);
             LogPath = GetEnvironmentVariable(RHINO_COMPUTE_LOG_PATH, Path.Combine(Path.GetTempPath(), "Compute", "Logs"), COMPUTE_LOG_PATH);
             LogRetainDays = GetEnvironmentVariable(RHINO_COMPUTE_LOG_RETAIN_DAYS, 10, COMPUTE_LOG_RETAIN_DAYS);
+
+#if DEBUG
+            Debug = true;
+#endif
+            Debug = GetEnvironmentVariable(RHINO_COMPUTE_DEBUG, Debug);
 
             foreach (var name in _ignored)
             {
@@ -55,6 +65,7 @@ namespace compute.geometry
         const string RHINO_COMPUTE_KEY = "RHINO_COMPUTE_KEY";
         const string RHINO_COMPUTE_LOG_PATH = "RHINO_COMPUTE_LOG_PATH";
         const string RHINO_COMPUTE_LOG_RETAIN_DAYS = "RHINO_COMPUTE_LOG_RETAIN_DAYS";
+        const string RHINO_COMPUTE_DEBUG = "RHINO_COMPUTE_DEBUG";
 
         // deprecated
         const string COMPUTE_BIND_URLS = "COMPUTE_BIND_URLS";
