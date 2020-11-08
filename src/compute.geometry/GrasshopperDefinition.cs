@@ -409,22 +409,15 @@ namespace compute.geometry
             Schema outputSchema = new Schema();
             outputSchema.Algo = "";
 
-            foreach(var kvp in _output)
+            // solve definition
+            Definition.Enabled = true;
+            Definition.NewSolution(true, GH_SolutionMode.CommandLine);
+
+            foreach (var kvp in _output)
             {
                 var param = kvp.Value;
                 if (param == null)
                     continue;
-                try
-                {
-                    param.CollectData();
-                    param.ComputeData();
-                }
-                catch (Exception)
-                {
-                    param.Phase = GH_SolutionPhase.Failed;
-                    // TODO: throw something better
-                    throw;
-                }
 
                 // Get data
                 var outputTree = new DataTree<ResthopperObject>();
