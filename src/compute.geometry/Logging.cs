@@ -27,7 +27,7 @@ namespace compute.geometry
                 .Enrich.FromLogContext()
                 //.Enrich.WithProperty("Source", "geometry")
                 .WriteTo.Console()
-                .WriteTo.File(new JsonFormatter(), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
+                .WriteTo.File(new JsonFormatter(renderMessage: true), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
 
             Log.Logger = logger.CreateLogger();
 
