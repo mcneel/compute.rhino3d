@@ -39,5 +39,19 @@ namespace compute.geometry
 
             _enabled = true;
         }
+
+        internal static void LogExceptionData(System.Exception ex)
+        {
+            //if (!Config.Debug)
+            //    return;
+            if (ex?.Data != null)
+            {
+                // TODO: skip useless keys once we figure out what those are
+                foreach (var key in ex.Data.Keys)
+                {
+                    Log.Debug($"{key} : {{Data}}", ex.Data[key]);
+                }
+            }
+        }
     }
 }

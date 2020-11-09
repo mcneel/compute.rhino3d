@@ -551,18 +551,18 @@ namespace compute.geometry
             {
                 foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Error))
                 {
-                    Log.Error("Error in grasshopper component: \"{NickName}\" ({Id}): {Message}", obj.NickName, obj.InstanceGuid, msg);
+                    Log.Error($"Error in grasshopper component: \"{obj.NickName}\" ({obj.InstanceGuid}): {msg}");
                     HasErrors = true;
                 }
                 if (Config.Debug)
                 {
                     foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Warning))
                     {
-                        Log.Debug("Warning in grasshopper component: \"{NickName}\" ({Id}): {Message}", obj.NickName, obj.InstanceGuid, msg);
+                        Log.Debug($"Warning in grasshopper component: \"{obj.NickName}\" ({obj.InstanceGuid}): {msg}");
                     }
                     foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Remark))
                     {
-                        Log.Debug("Remark in grasshopper component: \"{NickName}\" ({Id}): {Message}", obj.NickName, obj.InstanceGuid, msg);
+                        Log.Debug($"Remark in grasshopper component: \"{obj.NickName}\" ({obj.InstanceGuid}): {msg}");
                     }
                 }
             }

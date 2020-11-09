@@ -81,7 +81,8 @@ namespace compute.geometry
 
             Rhino.Runtime.HostUtils.OnExceptionReport += (source, ex) => {
                 Log.Error(ex, "An exception occured while processing request");
-                LogExceptionData(ex); // debug only
+                if (Config.Debug)
+                    Logging.LogExceptionData(ex);
             };
 
             StartOptions options = new StartOptions();
@@ -108,19 +109,6 @@ namespace compute.geometry
             }
 
             Log.Information("Listening on {Urls}", _bind);
-        }
-
-        private void LogExceptionData(Exception ex)
-        {
-            if (!Config.Debug)
-                return;
-            if (ex?.Data != null)
-            {
-                foreach (var key in ex.Data.Keys)
-                {
-                    Log.Debug("{Key} : {Value}", key, ex.Data[key]);
-                }
-            }
         }
 
         public void Stop()
