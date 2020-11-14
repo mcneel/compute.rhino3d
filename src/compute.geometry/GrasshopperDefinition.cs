@@ -413,7 +413,7 @@ namespace compute.geometry
 
             // solve definition
             Definition.Enabled = true;
-            Definition.NewSolution(true, GH_SolutionMode.CommandLine);
+            Definition.NewSolution(false, GH_SolutionMode.CommandLine);
 
             LogRuntimeMessages(Definition.ActiveObjects());
 
