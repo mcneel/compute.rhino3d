@@ -46,6 +46,8 @@ namespace compute.geometry
 
             if (RhinoCore != null)
                 RhinoCore.Dispose();
+
+            Log.CloseAndFlush();
         }
 
         private static void LogVersions()
@@ -79,6 +81,8 @@ namespace compute.geometry
 
             Rhino.Runtime.HostUtils.OnExceptionReport += (source, ex) => {
                 Log.Error(ex, "An exception occured while processing request");
+                if (Config.Debug)
+                    Logging.LogExceptionData(ex);
             };
 
             StartOptions options = new StartOptions();

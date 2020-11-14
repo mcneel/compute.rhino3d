@@ -96,6 +96,8 @@ namespace compute.geometry
 
         public GH_Document Definition { get; }
         public bool InDataCache { get; set; }
+        public bool HasErrors { get; private set; } // default: false
+
         Dictionary<string, InputGroup> _input = new Dictionary<string, InputGroup>();
         Dictionary<string, IGH_Param> _output = new Dictionary<string, IGH_Param>();
 
@@ -409,22 +411,17 @@ namespace compute.geometry
             Schema outputSchema = new Schema();
             outputSchema.Algo = "";
 
-            foreach(var kvp in _output)
+            // solve definition
+            Definition.Enabled = true;
+            Definition.NewSolution(false, GH_SolutionMode.CommandLine);
+
+            LogRuntimeMessages(Definition.ActiveObjects());
+
+            foreach (var kvp in _output)
             {
                 var param = kvp.Value;
                 if (param == null)
                     continue;
-                try
-                {
-                    param.CollectData();
-                    param.ComputeData();
-                }
-                catch (Exception)
-                {
-                    param.Phase = GH_SolutionPhase.Failed;
-                    // TODO: throw something better
-                    throw;
-                }
 
                 // Get data
                 var outputTree = new DataTree<ResthopperObject>();
@@ -546,6 +543,29 @@ namespace compute.geometry
                 throw new System.Exceptions.PayAttentionException("Looks like you've missed something..."); // TODO
 
             return outputSchema;
+        }
+
+        private void LogRuntimeMessages(IEnumerable<IGH_ActiveObject> objects)
+        {
+            foreach (var obj in objects)
+            {
+                foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Error))
+                {
+                    Log.Error($"Error in grasshopper component: \"{obj.NickName}\" ({obj.InstanceGuid}): {msg}");
+                    HasErrors = true;
+                }
+                if (Config.Debug)
+                {
+                    foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Warning))
+                    {
+                        Log.Debug($"Warning in grasshopper component: \"{obj.NickName}\" ({obj.InstanceGuid}): {msg}");
+                    }
+                    foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Remark))
+                    {
+                        Log.Debug($"Remark in grasshopper component: \"{obj.NickName}\" ({obj.InstanceGuid}): {msg}");
+                    }
+                }
+            }
         }
 
         public IoResponseSchema GetInputsAndOutputs()

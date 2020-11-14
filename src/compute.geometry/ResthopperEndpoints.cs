@@ -82,6 +82,8 @@ namespace compute.geometry
             Response res = returnJson;
             res.ContentType = "application/json";
             res = res.WithHeader("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
+            if (definition.HasErrors)
+                res.StatusCode = Nancy.HttpStatusCode.InternalServerError;
             return res;
         }
 
