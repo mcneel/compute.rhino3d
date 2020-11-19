@@ -24,7 +24,7 @@ function Download {
 }
 
 try {
-    $rhino7DownloadUrl = "https://www.rhino3d.com/download/rhino-for-windows/7/wip/direct?email=$Email"
+    $rhino7DownloadUrl = "https://www.rhino3d.com/download/rhino-for-windows/7/latest/direct?email=$Email"
     $uri = (Invoke-WebRequest-With-Try-Catch -Method 'HEAD' -MaximumRedirection 0 -Uri $rhino7DownloadUrl).headers.Location.AbsoluteUri
     $packageName = [System.IO.Path]::GetFileName($uri)
     $packageVersion = [System.IO.Path]::GetFileNameWithoutExtension($uri).split('_')[-1]
