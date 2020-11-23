@@ -59,6 +59,9 @@ namespace compute.geometry
             if (!archive.ExtractObject(definition, "Definition"))
                 throw new Exception("Unable to extract definition from archive");
 
+            // raise DocumentServer.DocumentAdded event (used by some plug-ins)
+            Grasshopper.Instances.DocumentServer.AddDocument(definition);
+
             GrasshopperDefinition rc = new GrasshopperDefinition(definition);
             foreach( var obj in definition.Objects)
             {
