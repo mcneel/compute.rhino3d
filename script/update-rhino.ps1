@@ -5,15 +5,7 @@ param (
 )
 
 function Write-Step { 
-    Write-Host "== "$args[0] -ForegroundColor Darkgreen
-}
-function Invoke-WebRequest-With-Try-Catch() {
-    try {
-        Invoke-WebRequest @args
-    }
-    catch [Microsoft.PowerShell.Commands.HttpResponseException] {
-        return $_.Exception.Response;
-    }
+    Write-Host "===> "$args[0] -ForegroundColor Darkgreen
 }
 function Download {
     param (
@@ -24,15 +16,21 @@ function Download {
 }
 
 try {
+    Write-Step 'Checking for update'
     $rhino7DownloadUrl = "https://www.rhino3d.com/download/rhino-for-windows/7/latest/direct?email=$Email"
-    $uri = (Invoke-WebRequest-With-Try-Catch -Method 'HEAD' -MaximumRedirection 0 -Uri $rhino7DownloadUrl).headers.Location.AbsoluteUri
+    if ((Get-Host).Version.Major -gt 5) {
+        $uri = (Invoke-WebRequest -Method 'GET' -MaximumRedirection 0 -Uri $rhino7DownloadUrl -ErrorAction Ignore -SkipHttpErrorCheck).Headers.Location
+    } else {
+        $uri = (Invoke-WebRequest -Method 'GET' -MaximumRedirection 0 -Uri $rhino7DownloadUrl -ErrorAction Ignore).Headers.Location
+    }
     $packageName = [System.IO.Path]::GetFileName($uri)
-    $packageVersion = [System.IO.Path]::GetFileNameWithoutExtension($uri).split('_')[-1]
+    $packageVersion = [Version][System.IO.Path]::GetFileNameWithoutExtension($uri).split('_')[-1]
 
     $installedVersion = [Version] (get-itemproperty -Path HKLM:\SOFTWARE\McNeel\Rhinoceros\7.0\Install -name "version").Version
 
-    if([Version]$packageVersion -le $installedVersion){
-        throw "Latest version avaliable $packageVersion seems to be already installed!"
+    if ($installedVersion -ge $packageVersion) {
+        Write-Host "Latest version avaliable is already installed! ($installedVersion >= $packageVersion)" -ForegroundColor Red
+        exit 1
     }
 
     Write-Step 'Creating temp directory'
