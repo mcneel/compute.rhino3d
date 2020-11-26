@@ -61,6 +61,10 @@ namespace computegen
             get
             {
                 return @"from . import Util
+try:
+    from itertools import izip as zip # python 2
+except ImportError:
+    pass # python 3
 
 ";
             }
@@ -409,7 +413,7 @@ def DecodeToBoundingBox(item):
                 if (parameters.Count == 1)
                     sb.AppendLine($"{T1}if multiple: args = [[item] for item in {parameters[0]}]");
                 else
-                    sb.AppendLine($"{T1}if multiple: args = zip({paramList.ToString()})");
+                    sb.AppendLine($"{T1}if multiple: args = list(zip({paramList}))");
 
                 string endpoint = method.Identifier.ToString();
                 sb.AppendLine($"{T1}response = Util.ComputeFetch(url, args)");
