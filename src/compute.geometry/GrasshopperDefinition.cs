@@ -121,7 +121,7 @@ namespace compute.geometry
 
                 inputGroup.CacheTree(tree);
                 inputGroup.Param.VolatileData.Clear();
-                inputGroup.Param.ExpireSolution(true);
+                inputGroup.Param.ExpireSolution(false); // mark param as expired but don't recompute just yet!
 
                 if (inputGroup.Param is Param_Point)
                 {
