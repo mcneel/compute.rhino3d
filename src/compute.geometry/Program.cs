@@ -29,18 +29,13 @@ namespace compute.geometry
 
             LogVersions();
 
-            Topshelf.HostFactory.Run(x =>
+            var rc = Topshelf.HostFactory.Run(x =>
             {
                 x.UseSerilog();
                 x.ApplyCommandLine();
-                x.SetStartTimeout(new TimeSpan(0, 1, 0));
-                x.Service<OwinSelfHost>(s =>
-                  {
-                      s.ConstructUsing(name => new OwinSelfHost());
-                      s.WhenStarted(tc => tc.Start());
-                      s.WhenStopped(tc => tc.Stop());
-                  });
-                x.RunAsPrompt();
+                x.SetStartTimeout(TimeSpan.FromMinutes(1));
+                x.Service<OwinSelfHost>();
+                x.RunAsPrompt(); // prompt for user to run as
                 x.SetDisplayName("compute.geometry");
             });
 
@@ -48,6 +43,9 @@ namespace compute.geometry
                 RhinoCore.Dispose();
 
             Log.CloseAndFlush();
+
+            var exitCode = (int)Convert.ChangeType(rc, rc.GetTypeCode());
+            Environment.ExitCode = exitCode;
         }
 
         private static void LogVersions()
@@ -63,7 +61,7 @@ namespace compute.geometry
         }
     }
 
-    internal class OwinSelfHost
+    internal class OwinSelfHost : ServiceControl
     {
         readonly string[] _bind;
         IDisposable _host;
@@ -73,7 +71,7 @@ namespace compute.geometry
             _bind = Config.Urls;
         }
 
-        public void Start()
+        public bool Start(HostControl hctrl)
         {
             Log.Debug("Rhino system directory: {Path}", RhinoInside.Resolver.RhinoSystemDirectory);
             Log.Information("Launching RhinoCore library as {User}", Environment.UserName);
@@ -109,11 +107,13 @@ namespace compute.geometry
             }
 
             Log.Information("Listening on {Urls}", _bind);
+            return true;
         }
 
-        public void Stop()
+        public bool Stop(HostControl hctrl)
         {
             _host?.Dispose();
+            return true;
         }
     }
 
