@@ -25,9 +25,13 @@ after_build:
       cp -r src\bin\Release dist\src\bin\
       cp -r .codedeploy\* dist\
       7z a -tzip -r compute-deploy-${env:APPVEYOR_BUILD_VERSION}.zip ${env:APPVEYOR_BUILD_FOLDER}\dist\*
+
+test: off
+
 artifacts:
   - path: compute.zip
   - path: compute-deploy-$(APPVEYOR_BUILD_VERSION).zip
+
 deploy:
   - provider: S3
     region: $(AWS_DEFAULT_REGION)
