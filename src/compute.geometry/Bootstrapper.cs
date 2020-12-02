@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Nancy;
 using Nancy.Bootstrapper;
 using Nancy.Conventions;
@@ -36,16 +38,22 @@ namespace compute.geometry
             base.ApplicationStartup(container, pipelines);
         }
 
+        protected override IEnumerable<Func<Assembly, bool>> AutoRegisterIgnoredAssemblies =>
+            base.AutoRegisterIgnoredAssemblies.Union(new Func<Assembly, bool>[]
+            {
+                // ignore these assemblies when autoregistering the "application container"
+                asm => asm.FullName.StartsWith("Rhino", StringComparison.Ordinal),
+                asm => asm.FullName.StartsWith("Eto", StringComparison.Ordinal),
+                asm => asm.FullName.StartsWith("Grasshopper", StringComparison.Ordinal),
+            });
+
         protected override void ConfigureConventions(NancyConventions nancyConventions)
         {
             base.ConfigureConventions(nancyConventions);
             nancyConventions.StaticContentsConventions.Add(StaticContentConventionBuilder.AddDirectory("docs"));
         }
 
-        protected override byte[] FavIcon
-        {
-            get { return _favicon ?? (_favicon = LoadFavIcon()); }
-        }
+        protected override byte[] FavIcon => _favicon ?? (_favicon = LoadFavIcon());
 
         private byte[] LoadFavIcon()
         {
