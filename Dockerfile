@@ -25,14 +25,14 @@ RUN curl -fSLo dotnet-framework-installer.exe https://download.visualstudio.micr
 
 # install rhino (with “-package -quiet” args)
 # NOTE: edit this if you use a different version of rhino!
-# the url below will always redirect to the latest rhino 7 wip (email required)
-# https://www.rhino3d.com/download/rhino-for-windows/7/wip/direct?email=EMAIL
-RUN curl -fSLo rhino_installer.exe http://files.mcneel.com/dujour/exe/20201006/rhino_en-us_7.0.20280.13133.exe `
+# the url below will always redirect to the latest rhino 7 (email required)
+# https://www.rhino3d.com/download/rhino-for-windows/7/latest/direct?email=EMAIL
+RUN curl -fSLo rhino_installer.exe https://files.mcneel.com/dujour/exe/20201208/rhino_en-us_7.1.20343.09491.exe `
     && .\rhino_installer.exe -package -quiet `
     && del .\rhino_installer.exe
 
 # (optional) use the package manager to install plug-ins
-# RUN ""C:\Program Files\Rhino 7 WIP\System\Yak.exe"" install jswan
+# RUN ""C:\Program Files\Rhino 7\System\Yak.exe"" install jswan
 
 # copy compute app to image
 COPY --from=builder ["/src/bin/Release", "/app"]
@@ -43,7 +43,7 @@ ENV RHINO_COMPUTE_URLS="http://+:80"
 EXPOSE 80
 
 # uncomment to build core-hour billing credentials into image (not recommended)
-# see https://github.com/mcneel/compute.rhino3d/blob/master/docs/deploy.md#1-set-up-core-hour-billing
+# see https://developer.rhino3d.com/guides/compute/core-hour-billing/
 # ENV RHINO_TOKEN="TOKEN"
 
 CMD ["compute.geometry.exe"]

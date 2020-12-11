@@ -9,8 +9,10 @@ src/compute.client/python_client/dist/
 *.pyc
 .aws
 venv
+.env
+docker-compose.yml
 
-# docker
+# docker (old)
 *.lic
 rhino_*.exe
 settings-Scheme__Default.xml
