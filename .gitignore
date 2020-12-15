@@ -17,8 +17,3 @@ docker-compose.yml
 rhino_*.exe
 settings-Scheme__Default.xml
 cloudzoo.json
-
-# computegen
-compute.rhino3d.js
-src/compute.client/docs/javascript/*.rst
-RhinoCompute.cs

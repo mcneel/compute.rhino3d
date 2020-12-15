@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <Version>0.12.0</Version>
+    <Description>.NET library for Rhino Compute geometry service</Description>
+    <Authors>Robert McNeel &amp; Associates</Authors>
+    <Copyright>Copyright © 2018-2020 Robert McNeel &amp; Associates</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="newtonsoft.json" Version="12.0.3" />
+    <PackageReference Include="rhino3dm" Version="0.2.0" />
+  </ItemGroup>
+
+</Project>
