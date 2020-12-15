@@ -7,10 +7,18 @@ namespace computegen
     {
         static void Main(string[] args)
         {
-            const string rhinocommonPath = @"C:\dev\github\mcneel\rhino\src4\DotNetSDK\rhinocommon\dotnet";
+            var rootDir = GetRepoRootDirectory();
+            var distDir = Path.Combine(rootDir, "clients"); // destination for generated client code
+
+            var rhinocommonPath = Path.Combine(rootDir, "..", "rhino", "src4", "DotNetSDK", "rhinocommon", "dotnet");
+            if (!Directory.Exists(rhinocommonPath))
+                throw new InvalidOperationException($"RhinoCommon directory not found! ({rhinocommonPath})");
+
             Console.WriteLine("[BEGIN PARSE]");
             Console.ForegroundColor = ConsoleColor.DarkGreen;
+
             ClassBuilder.BuildClassDictionary(rhinocommonPath);
+
             Console.ResetColor();
             Console.WriteLine("[END PARSE]");
 
@@ -23,66 +31,63 @@ namespace computegen
                 ".VolumeMassProperties"
             };
 
-            var di = SharedRepoDirectory();
-
-            Console.ForegroundColor = ConsoleColor.Blue;
             var classes = ClassBuilder.FilteredList(ClassBuilder.AllClasses, filter);
 
-            // Javascript
+            Console.ForegroundColor = ConsoleColor.Blue;
+
+            /* --- JavaScript --- */
+
             Console.WriteLine("Writing javascript client");
+
+            string jsDir = Path.Combine(distDir, "javascript");
+            Console.WriteLine(jsDir);
+            Directory.CreateDirectory(jsDir);
+
             var js = new JavascriptClient();
-            string javascriptPath = "compute.rhino3d.js";
-            if( di!=null)
-            {
-                string dir = Path.Combine(di.FullName, "computeclient_js");
-                if (Directory.Exists(dir))
-                    javascriptPath = Path.Combine(dir, javascriptPath);
-            }
-            js.Write(ClassBuilder.AllClasses, javascriptPath, filter);
-            DirectoryInfo jsdocDirectory = new DirectoryInfo("docs\\javascript");
-            if( di!=null )
-            {
-                string dir = Path.Combine(di.FullName, "computeclient_js", "docs");
-                if (Directory.Exists(dir))
-                    jsdocDirectory = new DirectoryInfo(dir);
-            }
+            js.Write(ClassBuilder.AllClasses, Path.Combine(jsDir, "compute.rhino3d.js"), filter);
+            
             Console.WriteLine("Writing javascript docs");
-            RstClient.WriteJavascriptDocs(classes, jsdocDirectory);
+            RstClient.WriteJavascriptDocs(classes, distDir);
 
-            // Python
+            /* ----- Python ----- */
+
             Console.WriteLine("Writing python client");
-            string basePythonDirectory = "";
-            if(di != null)
-            {
-                string dir = Path.Combine(di.FullName, "computeclient_py");
-                if (Directory.Exists(dir))
-                    basePythonDirectory = dir;
-            }
-            var py = new PythonClient();
-            py.Write(ClassBuilder.AllClasses, basePythonDirectory, filter);
-            Console.WriteLine("Writing python docs");
-            RstClient.WritePythonDocs(basePythonDirectory, classes);
 
-            // C#
+            string pyDir = Path.Combine(distDir, "python");
+            Console.WriteLine(pyDir);
+            Directory.CreateDirectory(pyDir);
+
+            var py = new PythonClient();
+            py.Write(ClassBuilder.AllClasses, pyDir, filter);
+
+            Console.WriteLine("Writing python docs");
+            RstClient.WritePythonDocs(classes, distDir);
+
+            /* ------- C# ------- */
+
             Console.WriteLine("Writing C# client");
+
+            var csDir = Path.Combine(distDir, "dotnet");
+            Console.WriteLine(csDir);
+            Directory.CreateDirectory(csDir);
+
             var cs = new DotNetClient();
-            cs.Write(ClassBuilder.AllClasses, "RhinoCompute.cs", filter);
+            cs.Write(ClassBuilder.AllClasses, Path.Combine(csDir, "RhinoCompute.cs"), filter);
 
 
             Console.ResetColor();
         }
 
-        static DirectoryInfo SharedRepoDirectory()
+        static string GetRepoRootDirectory()
         {
-            string exeDirectory = Path.GetDirectoryName(typeof(Program).Assembly.Location);
-            var di = new DirectoryInfo(exeDirectory);
-            while(di != null)
-            {
-                if (di.Name.Equals("compute.rhino3d"))
-                    return di.Parent;
-                di = di.Parent;
-            }
-            return di;
+            var exeDirectory = Path.GetDirectoryName(typeof(Program).Assembly.Location);
+            var srcbin = string.Format("{0}src{0}", Path.DirectorySeparatorChar);
+            var root = exeDirectory.Split(srcbin)[0];
+
+            if (root == exeDirectory)
+                throw new InvalidOperationException("Couldn't find root of working directory");
+
+            return root;
         }
     }
 }
