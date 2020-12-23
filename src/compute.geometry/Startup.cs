@@ -14,7 +14,8 @@ namespace compute.geometry
         {
             app.UseCors(CorsOptions.AllowAll);
             app.Use<LoggingMiddleware>();
-            app.UseNancy();
+            var options = new Nancy.Owin.NancyOptions { Bootstrapper = new Bootstrapper() };
+            app.UseNancy(options);
         }
     }
 
