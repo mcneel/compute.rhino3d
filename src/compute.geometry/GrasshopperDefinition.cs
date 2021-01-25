@@ -578,16 +578,18 @@ namespace compute.geometry
             // Parse input and output names
             List<string> inputNames = new List<string>();
             List<string> outputNames = new List<string>();
-            var inputs = new List<IoParamSchema>();
+            var inputs = new List<InputParamSchema>();
             var outputs = new List<IoParamSchema>();
 
             foreach (var i in _input)
             {
                 inputNames.Add(i.Key);
-                inputs.Add(new IoParamSchema
+                inputs.Add(new InputParamSchema
                 {
                     Name = i.Key,
-                    ParamType = i.Value.Param.TypeName
+                    ParamType = i.Value.Param.TypeName,
+                    AtLeast = i.Value.GetAtLeast(),
+                    AtMost = i.Value.GetAtMost()
                 });
             }
 
@@ -700,6 +702,18 @@ namespace compute.geometry
                 Param = param;
             }
             public IGH_Param Param { get; }
+
+            public int GetAtLeast()
+            {
+                return 1;
+            }
+
+            public int GetAtMost()
+            {
+                if (Param is GH_NumberSlider)
+                    return 1;
+                return 0;
+            }
             
             public bool AlreadySet(DataTree<ResthopperObject> tree)
             {
