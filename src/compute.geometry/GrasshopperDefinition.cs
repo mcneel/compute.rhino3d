@@ -15,18 +15,20 @@ using GH_IO.Serialization;
 using Resthopper.IO;
 using Newtonsoft.Json;
 using System.Linq;
-using Serilog;
 
 namespace compute.geometry
 {
     class GrasshopperDefinition
     {
+        static void LogDebug(string message) { Serilog.Log.Debug(message); }
+        static void LogError(string messge)  { Serilog.Log.Error(messge); }
+
         public static GrasshopperDefinition FromUrl(string url, bool cache)
         {
             GrasshopperDefinition rc = DataCache.GetCachedDefinition(url);
             if (rc != null)
             {
-                Log.Debug("Using cached definition");
+                LogDebug("Using cached definition");
                 return rc;
             }
 
@@ -115,7 +117,7 @@ namespace compute.geometry
 
                 if (inputGroup.AlreadySet(tree))
                 {
-                    Log.Debug("Skipping input tree... same input");
+                    LogDebug("Skipping input tree... same input");
                     continue;
                 }
 
@@ -554,18 +556,18 @@ namespace compute.geometry
             {
                 foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Error))
                 {
-                    Log.Error($"Error in grasshopper component: \"{obj.NickName}\" ({obj.InstanceGuid}): {msg}");
+                    LogError($"Error in grasshopper component: \"{obj.NickName}\" ({obj.InstanceGuid}): {msg}");
                     HasErrors = true;
                 }
                 if (Config.Debug)
                 {
                     foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Warning))
                     {
-                        Log.Debug($"Warning in grasshopper component: \"{obj.NickName}\" ({obj.InstanceGuid}): {msg}");
+                        LogDebug($"Warning in grasshopper component: \"{obj.NickName}\" ({obj.InstanceGuid}): {msg}");
                     }
                     foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Remark))
                     {
-                        Log.Debug($"Remark in grasshopper component: \"{obj.NickName}\" ({obj.InstanceGuid}): {msg}");
+                        LogDebug($"Remark in grasshopper component: \"{obj.NickName}\" ({obj.InstanceGuid}): {msg}");
                     }
                 }
             }
@@ -574,16 +576,15 @@ namespace compute.geometry
         public IoResponseSchema GetInputsAndOutputs()
         {
             // Parse input and output names
-            List<string> InputNames = new List<string>();
-            List<string> OutputNames = new List<string>();
-            var Inputs = new List<IoParamSchema>();
-            var Outputs = new List<IoParamSchema>();
+            List<string> inputNames = new List<string>();
+            List<string> outputNames = new List<string>();
+            var inputs = new List<IoParamSchema>();
+            var outputs = new List<IoParamSchema>();
 
             foreach (var i in _input)
             {
-                InputNames.Add(i.Key);
-
-                Inputs.Add(new IoParamSchema
+                inputNames.Add(i.Key);
+                inputs.Add(new IoParamSchema
                 {
                     Name = i.Key,
                     ParamType = i.Value.Param.TypeName
@@ -592,8 +593,8 @@ namespace compute.geometry
 
             foreach (var o in _output)
             {
-                OutputNames.Add(o.Key);
-                Outputs.Add(new IoParamSchema
+                outputNames.Add(o.Key);
+                outputs.Add(new IoParamSchema
                 {
                     Name = o.Key,
                     ParamType = o.Value.TypeName
@@ -602,10 +603,11 @@ namespace compute.geometry
 
             return new IoResponseSchema
             {
-                InputNames = InputNames,
-                OutputNames = OutputNames,
-                Inputs = Inputs,
-                Outputs = Outputs
+                Description = Definition.Properties.Description,
+                InputNames = inputNames,
+                OutputNames = outputNames,
+                Inputs = inputs,
+                Outputs = outputs
             };
         }
 
@@ -613,6 +615,15 @@ namespace compute.geometry
         {
             if (string.IsNullOrWhiteSpace(url))
                 return null;
+
+            if (File.Exists(url))
+            {
+                // local file
+                var archive = new GH_Archive();
+                if (archive.ReadFromFile(url))
+                    return archive;
+                return null;
+            }
 
             byte[] byteArray = null;
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
