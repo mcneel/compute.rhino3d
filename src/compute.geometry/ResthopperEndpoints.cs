@@ -21,7 +21,8 @@ namespace compute.geometry
         public ResthopperEndpointsModule(Nancy.Routing.IRouteCacheProvider routeCacheProvider)
         {
             Post["/grasshopper"] = _ => Grasshopper(Context);
-            Post["/io"] = _ => GetIoNames(Context);
+            Post["/io"] = _ => GetIoNames(Context, true);
+            Get["/io"] = _ => GetIoNames(Context, false);
         }
 
         public static GH_Archive ArchiveFromUrl(string url)
@@ -87,18 +88,28 @@ namespace compute.geometry
             return res;
         }
 
-        static Response GetIoNames(NancyContext ctx)
+        Response GetIoNames(NancyContext ctx, bool asPost)
         {
-            string body = ctx.Request.Body.AsString();
-            if (body.StartsWith("[") && body.EndsWith("]"))
-                body = body.Substring(1, body.Length - 2);
+            GrasshopperDefinition definition = null;
+            if (asPost)
+            {
+                string body = ctx.Request.Body.AsString();
+                if (body.StartsWith("[") && body.EndsWith("]"))
+                    body = body.Substring(1, body.Length - 2);
 
-            Schema input = JsonConvert.DeserializeObject<Schema>(body);
+                Schema input = JsonConvert.DeserializeObject<Schema>(body);
 
-            // load grasshopper file
-            GrasshopperDefinition definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
-            if (definition == null)
-                definition = GrasshopperDefinition.FromBase64String(input.Algo);
+                // load grasshopper file
+                definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
+                if (definition == null)
+                    definition = GrasshopperDefinition.FromBase64String(input.Algo);
+            }
+            else
+            {
+                string url = Request.Query["Pointer"].ToString();
+                definition = GrasshopperDefinition.FromUrl(url, true);
+            }
+
             if (definition == null)
                 throw new Exception("Unable to load grasshopper definition");
 
