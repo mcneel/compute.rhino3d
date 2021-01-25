@@ -31,13 +31,19 @@ namespace Resthopper.IO
         public string ParamType { get; set; }
     }
 
+    public class InputParamSchema : IoParamSchema
+    {
+        public int AtLeast { get; set; } = 1;
+        public int AtMost { get; set; } = 0;
+    }
+
     public class IoResponseSchema
     {
         public string Description { get; set; }
         public List<string> InputNames { get; set; }
         public List<string> OutputNames { get; set; }
 
-        public List<IoParamSchema> Inputs { get; set; }
+        public List<InputParamSchema> Inputs { get; set; }
         public List<IoParamSchema> Outputs { get; set; }
     }
 
@@ -56,7 +62,11 @@ namespace Resthopper.IO
 
         public ResthopperObject(object obj)
         {
+#if COMPUTE_CORE
             Data = JsonConvert.SerializeObject(obj, compute.geometry.GeometryResolver.Settings);
+#else
+            Data = JsonConvert.SerializeObject(obj);//, compute.geometry.GeometryResolver.Settings);
+#endif
             Type = obj.GetType().FullName;
         }
 
