@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30611.23
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComputeComponents", "ComputeComponents.csproj", "{82CB7266-A8BC-4D3E-99F6-B91504C7117F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug - McNeel Core|Any CPU = Debug - McNeel Core|Any CPU
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{82CB7266-A8BC-4D3E-99F6-B91504C7117F}.Debug - McNeel Core|Any CPU.ActiveCfg = Debug - McNeel Core|Any CPU
+		{82CB7266-A8BC-4D3E-99F6-B91504C7117F}.Debug - McNeel Core|Any CPU.Build.0 = Debug - McNeel Core|Any CPU
+		{82CB7266-A8BC-4D3E-99F6-B91504C7117F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{82CB7266-A8BC-4D3E-99F6-B91504C7117F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{82CB7266-A8BC-4D3E-99F6-B91504C7117F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{82CB7266-A8BC-4D3E-99F6-B91504C7117F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {07163E0B-6E6B-4BA8-98FC-A43AA48953A2}
+	EndGlobalSection
+EndGlobal
