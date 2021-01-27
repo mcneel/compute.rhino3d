@@ -20,6 +20,7 @@ namespace compute.geometry
             Config.Load();
             Logging.Init();
 
+            string displayName = "rhino.compute";
             RhinoInside.Resolver.Initialize();
 #if DEBUG
             string rhinoSystemDir = @"C:\dev\github\mcneel\rhino\src4\bin\Debug";
@@ -28,15 +29,22 @@ namespace compute.geometry
 #endif
 
             LogVersions();
-
             var rc = Topshelf.HostFactory.Run(x =>
             {
+                x.AddCommandLineDefinition("port", port => {
+                    int p;
+                    if (int.TryParse(port, out p))
+                    {
+                        displayName = $"rhino.compute:{p}";
+                        Config.Urls = new string[] { $"http://localhost:{p}" };
+                    }
+                });
                 x.UseSerilog();
                 x.ApplyCommandLine();
                 x.SetStartTimeout(TimeSpan.FromMinutes(1));
                 x.Service<OwinSelfHost>();
                 x.RunAsPrompt(); // prompt for user to run as
-                x.SetDisplayName("compute.geometry");
+                x.SetDisplayName(displayName);
             });
 
             if (RhinoCore != null)
