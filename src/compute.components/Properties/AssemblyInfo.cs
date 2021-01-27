@@ -5,12 +5,12 @@ using Grasshopper.Kernel;
 using System.Drawing;
 using Compute.Components;
 
-[assembly: AssemblyTitle("Compute Components")]
+[assembly: AssemblyTitle("Hops")]
 [assembly: AssemblyDescription("Out of process solving using Rhino Compute")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Robert McNeel & Associates")]
-[assembly: AssemblyProduct("Compute.Components")]
-[assembly: AssemblyCopyright("Copyright ©  2020")]
+[assembly: AssemblyProduct("Hops")]
+[assembly: AssemblyCopyright("Copyright ©  2021")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: ComVisible(false)]

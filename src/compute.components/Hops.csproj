@@ -8,8 +8,8 @@
     <ProjectGuid>{82CB7266-A8BC-4D3E-99F6-B91504C7117F}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Compute.Components</RootNamespace>
-    <AssemblyName>Compute.Components</AssemblyName>
+    <RootNamespace>Hops</RootNamespace>
+    <AssemblyName>Hops</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <IsWebBootstrapper>false</IsWebBootstrapper>
@@ -80,6 +80,9 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="resources\ComputeLogo_24x24.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="resources\Hops_24x24.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
