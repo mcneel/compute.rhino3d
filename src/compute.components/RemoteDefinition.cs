@@ -13,14 +13,6 @@ namespace Compute.Components
         public RemoteDefinition(string path)
         {
             Path = path;
-            if (PathIsAppServer)
-            {
-                // do nothing at this point
-            }
-            else
-            {
-                _externalDocument = compute.geometry.GrasshopperDefinition.FromUrl(path, false);
-            }
         }
 
         public string Path { get; private set; }
@@ -62,40 +54,38 @@ namespace Compute.Components
 
         void GetRemoteDescription()
         {
-            if (PathIsAppServer)
+            string address = Path;
+            if (!PathIsAppServer)
             {
-                using (var client = new System.Net.WebClient())
-                {
-                    string s = client.DownloadString(Path);
-                    var responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(s);
-                    _description = responseSchema.Description;
-                    _inputParams = new Dictionary<string, Tuple<InputParamSchema, IGH_Param>>();
-                    _outputParams = new Dictionary<string, IGH_Param>();
-                    foreach(var input in responseSchema.Inputs)
-                    {
-                        string inputParamName = input.Name;
-                        if (inputParamName.StartsWith("RH_IN:"))
-                        {
-                            var chunks = inputParamName.Split(new char[] { ':' });
-                            inputParamName = chunks[chunks.Length-1];
-                        }
-                        _inputParams[inputParamName] = Tuple.Create(input, ParamFromIoResponseSchema(input));
-                    }
-                    foreach(var output in responseSchema.Outputs)
-                    {
-                        string outputParamName = output.Name;
-                        if (outputParamName.StartsWith("RH_OUT:"))
-                        {
-                            var chunks = outputParamName.Split(new char[] { ':' });
-                            outputParamName = chunks[chunks.Length - 1];
-                        }
-                        _outputParams[outputParamName] = ParamFromIoResponseSchema(output);
-                    }
-                }
+                address = LocalServer.GetDescriptionUrl(Path);
             }
-            else
+            using (var client = new System.Net.WebClient())
             {
-                //_externalDocument.Definition.GetIOParams(out _inputParams, out _outputParams);
+                string s = client.DownloadString(address);
+                var responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(s);
+                _description = responseSchema.Description;
+                _inputParams = new Dictionary<string, Tuple<InputParamSchema, IGH_Param>>();
+                _outputParams = new Dictionary<string, IGH_Param>();
+                foreach(var input in responseSchema.Inputs)
+                {
+                    string inputParamName = input.Name;
+                    if (inputParamName.StartsWith("RH_IN:"))
+                    {
+                        var chunks = inputParamName.Split(new char[] { ':' });
+                        inputParamName = chunks[chunks.Length-1];
+                    }
+                    _inputParams[inputParamName] = Tuple.Create(input, ParamFromIoResponseSchema(input));
+                }
+                foreach(var output in responseSchema.Outputs)
+                {
+                    string outputParamName = output.Name;
+                    if (outputParamName.StartsWith("RH_OUT:"))
+                    {
+                        var chunks = outputParamName.Split(new char[] { ':' });
+                        outputParamName = chunks[chunks.Length - 1];
+                    }
+                    _outputParams[outputParamName] = ParamFromIoResponseSchema(output);
+                }
             }
         }
 
@@ -119,61 +109,62 @@ namespace Compute.Components
         public void SolveInstance(IGH_DataAccess DA, List<IGH_Param> outputParams, GH_ActiveObject component)
         {
             string inputJson = CreateInputJson(DA);
+            string solveUrl = LocalServer.GetSolveUrl();
             if (PathIsAppServer)
             {
                 int index = Path.LastIndexOf('/');
-                string solveUrl = Path.Substring(0, index + 1) + "solve";
-                var client = HttpClient;
-                var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
-                var result = client.PostAsync(solveUrl, content);
-                var responseMessage = result.Result;
-                if (!responseMessage.IsSuccessStatusCode)
-                {
-                    component.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, $"{responseMessage.StatusCode}: {responseMessage.ReasonPhrase}");
-                    return;
-                }
-                var remoteSolvedData = responseMessage.Content;
-                var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-                var schema = JsonConvert.DeserializeObject<Resthopper.IO.Schema>(stringResult);
-                foreach(var datatree in schema.Values)
-                {
-                    string outputParamName = datatree.ParamName;
-                    if (outputParamName.StartsWith("RH_OUT:"))
-                    {
-                        var chunks = outputParamName.Split(new char[] { ':' });
-                        outputParamName = chunks[chunks.Length - 1];
-                    }
-                    int paramIndex = 0;
-                    for (int i=0; i<outputParams.Count; i++)
-                    {
-                        if (outputParams[i].Name.Equals(outputParamName))
-                        {
-                            paramIndex = i;
-                            break;
-                        }
-                    }
+                solveUrl = Path.Substring(0, index + 1) + "solve";
+            }
 
-                    var structure = new Grasshopper.Kernel.Data.GH_Structure<Grasshopper.Kernel.Types.IGH_Goo>();
-                    foreach(var kv in datatree.InnerTree)
+            var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
+            var result = HttpClient.PostAsync(solveUrl, content);
+            var responseMessage = result.Result;
+            if (!responseMessage.IsSuccessStatusCode)
+            {
+                component.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, $"{responseMessage.StatusCode}: {responseMessage.ReasonPhrase}");
+                return;
+            }
+            var remoteSolvedData = responseMessage.Content;
+            var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
+            var schema = JsonConvert.DeserializeObject<Resthopper.IO.Schema>(stringResult);
+            foreach (var datatree in schema.Values)
+            {
+                string outputParamName = datatree.ParamName;
+                if (outputParamName.StartsWith("RH_OUT:"))
+                {
+                    var chunks = outputParamName.Split(new char[] { ':' });
+                    outputParamName = chunks[chunks.Length - 1];
+                }
+                int paramIndex = 0;
+                for (int i = 0; i < outputParams.Count; i++)
+                {
+                    if (outputParams[i].Name.Equals(outputParamName))
                     {
-                        var tokens = kv.Key.Trim(new char[] { '{', '}' }).Split(';');
-                        List<int> elements = new List<int>();
-                        foreach(var token in tokens)
+                        paramIndex = i;
+                        break;
+                    }
+                }
+
+                var structure = new Grasshopper.Kernel.Data.GH_Structure<Grasshopper.Kernel.Types.IGH_Goo>();
+                foreach (var kv in datatree.InnerTree)
+                {
+                    var tokens = kv.Key.Trim(new char[] { '{', '}' }).Split(';');
+                    List<int> elements = new List<int>();
+                    foreach (var token in tokens)
+                    {
+                        if (!string.IsNullOrWhiteSpace(token))
                         {
-                            if (!string.IsNullOrWhiteSpace(token))
-                            {
-                                elements.Add(int.Parse(token));
-                            }
-                        }
-                        var path = new Grasshopper.Kernel.Data.GH_Path(elements.ToArray());
-                        for (int gooIndex = 0; gooIndex < kv.Value.Count; gooIndex++)
-                        {
-                            var goo = GooFromReshopperObject(kv.Value[gooIndex]);
-                            structure.Insert(goo, path, gooIndex);
+                            elements.Add(int.Parse(token));
                         }
                     }
-                    DA.SetDataTree(paramIndex, structure);
+                    var path = new Grasshopper.Kernel.Data.GH_Path(elements.ToArray());
+                    for (int gooIndex = 0; gooIndex < kv.Value.Count; gooIndex++)
+                    {
+                        var goo = GooFromReshopperObject(kv.Value[gooIndex]);
+                        structure.Insert(goo, path, gooIndex);
+                    }
                 }
+                DA.SetDataTree(paramIndex, structure);
             }
         }
 
@@ -593,8 +584,12 @@ namespace Compute.Components
                 }
             }
 
-            string definition = Path.Substring(Path.LastIndexOf('/')+1);
-            schema.Pointer = definition;
+            schema.Pointer = Path;
+            if (PathIsAppServer)
+            {
+                string definition = Path.Substring(Path.LastIndexOf('/') + 1);
+                schema.Pointer = definition;
+            }
             string json = JsonConvert.SerializeObject(schema);
             return json;
         }
@@ -602,7 +597,5 @@ namespace Compute.Components
         Dictionary<string, Tuple<InputParamSchema, IGH_Param>> _inputParams;
         Dictionary<string, IGH_Param> _outputParams;
         string _description = null;
-        // used when we are solving another document in the same process
-        compute.geometry.GrasshopperDefinition _externalDocument = null;
     }
 }

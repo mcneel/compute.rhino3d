@@ -93,16 +93,25 @@ namespace Compute.Components
 
         class ComponentAttributes : GH_ComponentAttributes
         {
+            GH_Component _component;
             readonly Action _doubleClickAction;
             public ComponentAttributes(GH_Component component, Action doubleClickAction)
               : base(component)
             {
+                _component = component;
                 _doubleClickAction = doubleClickAction;
             }
 
             public override GH_ObjectResponse RespondToMouseDoubleClick(GH_Canvas sender, GH_CanvasMouseEvent e)
             {
-                _doubleClickAction();
+                try
+                {
+                    _doubleClickAction();
+                }
+                catch(Exception ex)
+                {
+                    _component.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, ex.Message);
+                }
                 return base.RespondToMouseDoubleClick(sender, e);
             }
         }

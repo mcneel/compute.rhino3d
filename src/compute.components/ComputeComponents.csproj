@@ -52,6 +52,7 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Drawing" />
@@ -66,6 +67,7 @@
     </Compile>
     <Compile Include="GrasshopperDefinition.cs" />
     <Compile Include="GrasshopperUtilities.cs" />
+    <Compile Include="LocalServer.cs" />
     <Compile Include="RemoteDefinition.cs" />
     <Compile Include="RemoteSolveComponent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
