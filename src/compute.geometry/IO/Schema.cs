@@ -16,6 +16,11 @@ namespace Resthopper.IO
 
         [JsonProperty(PropertyName = "values")]
         public List<DataTree<ResthopperObject>> Values { get; set; } = new List<DataTree<ResthopperObject>>();
+
+        [JsonProperty(PropertyName = "warnings")]
+        public List<string> Warnings { get; set; } = new List<string>();
+        [JsonProperty(PropertyName = "errors")]
+        public List<string> Errors { get; set; } = new List<string>();
     }
 
     public class IoQuerySchema
