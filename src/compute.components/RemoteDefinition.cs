@@ -117,13 +117,13 @@ namespace Compute.Components
             }
 
             var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
-            var result = HttpClient.PostAsync(solveUrl, content);
-            var responseMessage = result.Result;
-            //if (!responseMessage.IsSuccessStatusCode)
-            //{
-            //    component.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, $"{responseMessage.StatusCode}: {responseMessage.ReasonPhrase}");
-            //    return;
-            //}
+            var postTask = HttpClient.PostAsync(solveUrl, content);
+            while( !postTask.Wait(500))
+            {
+                if (GH_Document.IsEscapeKeyDown())
+                    throw new Exception("Escape Key Pressed");
+            }
+            var responseMessage = postTask.Result;
             var remoteSolvedData = responseMessage.Content;
             var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
             var schema = JsonConvert.DeserializeObject<Resthopper.IO.Schema>(stringResult);
