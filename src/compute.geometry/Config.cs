@@ -10,7 +10,7 @@ namespace compute.geometry
         /// <summary>
         /// RHINO_COMPUTE_URLS: the list of URLs that compute will listen on.
         /// </summary>
-        public static string[] Urls { get; private set; }
+        public static string[] Urls { get; set; }
 
         /// <summary>
         /// RHINO_COMPUTE_KEY: the API key required to make POST requests.
