@@ -18,7 +18,7 @@ namespace Compute.Components
         int _minorVersion = 1;
 
         public RemoteSolveComponent()
-          : base("Remote Solve", "Remote", "Solve an external definition using Rhino Compute", "Params", "Util")
+          : base("Hops", "Hops", "Solve an external definition using Rhino Compute", "Params", "Util")
         {
         }
 
@@ -78,7 +78,7 @@ namespace Compute.Components
         {
             get
             {
-                var stream = GetType().Assembly.GetManifestResourceStream("Compute.Components.resources.ComputeLogo_24x24.png");
+                var stream = GetType().Assembly.GetManifestResourceStream("Hops.resources.Hops_24x24.png");
                 return new System.Drawing.Bitmap(stream);
             }
         }
