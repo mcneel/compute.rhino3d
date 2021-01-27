@@ -119,14 +119,15 @@ namespace Compute.Components
             var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
             var result = HttpClient.PostAsync(solveUrl, content);
             var responseMessage = result.Result;
-            if (!responseMessage.IsSuccessStatusCode)
-            {
-                component.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, $"{responseMessage.StatusCode}: {responseMessage.ReasonPhrase}");
-                return;
-            }
+            //if (!responseMessage.IsSuccessStatusCode)
+            //{
+            //    component.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, $"{responseMessage.StatusCode}: {responseMessage.ReasonPhrase}");
+            //    return;
+            //}
             var remoteSolvedData = responseMessage.Content;
             var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
             var schema = JsonConvert.DeserializeObject<Resthopper.IO.Schema>(stringResult);
+            
             foreach (var datatree in schema.Values)
             {
                 string outputParamName = datatree.ParamName;
@@ -165,6 +166,15 @@ namespace Compute.Components
                     }
                 }
                 DA.SetDataTree(paramIndex, structure);
+            }
+
+            foreach (var error in schema.Errors)
+            {
+                component.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
+            }
+            foreach (var warning in schema.Warnings)
+            {
+                component.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
             }
         }
 

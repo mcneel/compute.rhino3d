@@ -413,6 +413,7 @@ namespace compute.geometry
 
         public Schema Solve()
         {
+            HasErrors = false;
             Schema outputSchema = new Schema();
             outputSchema.Algo = "";
 
@@ -420,7 +421,7 @@ namespace compute.geometry
             Definition.Enabled = true;
             Definition.NewSolution(false, GH_SolutionMode.CommandLine);
 
-            LogRuntimeMessages(Definition.ActiveObjects());
+            LogRuntimeMessages(Definition.ActiveObjects(), outputSchema);
 
             foreach (var kvp in _output)
             {
@@ -550,20 +551,24 @@ namespace compute.geometry
             return outputSchema;
         }
 
-        private void LogRuntimeMessages(IEnumerable<IGH_ActiveObject> objects)
+        private void LogRuntimeMessages(IEnumerable<IGH_ActiveObject> objects, Schema schema)
         {
             foreach (var obj in objects)
             {
                 foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Error))
                 {
-                    LogError($"Error in grasshopper component: \"{obj.NickName}\" ({obj.InstanceGuid}): {msg}");
+                    string errorMsg = $"{msg}: component \"{obj.NickName}\" ({obj.InstanceGuid})";
+                    LogError(errorMsg);
+                    schema.Errors.Add(errorMsg);
                     HasErrors = true;
                 }
                 if (Config.Debug)
                 {
                     foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Warning))
                     {
-                        LogDebug($"Warning in grasshopper component: \"{obj.NickName}\" ({obj.InstanceGuid}): {msg}");
+                        string warningMsg = $"{msg}: component \"{obj.NickName}\" ({obj.InstanceGuid})";
+                        LogDebug(warningMsg);
+                        schema.Warnings.Add(warningMsg);
                     }
                     foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Remark))
                     {
