@@ -328,6 +328,9 @@ namespace Compute.Components
                         case Grasshopper.Kernel.Parameters.Param_StructurePath _:
                             mgr.AddPathParameter(name, name, name, access);
                             break;
+                        case Grasshopper.Kernel.Parameters.Param_SubD _:
+                            mgr.AddSubDParameter(name, name, name, access);
+                            break;
                         case Grasshopper.Kernel.Parameters.Param_Surface _:
                             mgr.AddSurfaceParameter(name, name, name, access);
                             break;
@@ -441,6 +444,9 @@ namespace Compute.Components
                             break;
                         case Grasshopper.Kernel.Parameters.Param_StructurePath _:
                             mgr.AddPathParameter(name, name, name, GH_ParamAccess.item);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_SubD _:
+                            mgr.AddSubDParameter(name, name, name, GH_ParamAccess.item);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Surface _:
                             mgr.AddSurfaceParameter(name, name, name, GH_ParamAccess.item);

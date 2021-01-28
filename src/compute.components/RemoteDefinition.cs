@@ -108,7 +108,15 @@ namespace Compute.Components
 
         public void SolveInstance(IGH_DataAccess DA, List<IGH_Param> outputParams, GH_ActiveObject component)
         {
-            string inputJson = CreateInputJson(DA);
+            List<string> warnings = new List<string>();
+            string inputJson = CreateInputJson(DA, warnings);
+            if (warnings.Count > 0)
+            {
+                foreach (var warning in warnings)
+                    component.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
+                return;
+            }
+
             string solveUrl = LocalServer.GetSolveUrl();
             if (PathIsAppServer)
             {
@@ -185,12 +193,29 @@ namespace Compute.Components
             {
                 case "System.String":
                     return new Grasshopper.Kernel.Types.GH_String(data);
+                case "System.Int32":
+                    return new Grasshopper.Kernel.Types.GH_Integer(int.Parse(data));
+                case "Rhino.Geometry.Brep":
+                case "Rhino.Geometry.Curve":
+                case "Rhino.Geometry.Extrusion":
                 case "Rhino.Geometry.Mesh":
+                case "Rhino.Geometry.SubD":
                     {
-                        Dictionary<string, string> dict = JsonConvert.DeserializeObject<Dictionary<string,string>>(data);
-                        var mesh = Rhino.Runtime.CommonObject.FromJSON(dict) as Mesh;
-                        return new Grasshopper.Kernel.Types.GH_Mesh(mesh);
+                        Dictionary<string, string> dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(data);
+                        var geometry = Rhino.Runtime.CommonObject.FromJSON(dict);
+                        Extrusion extrusion = geometry as Extrusion;
+                        if (extrusion != null)
+                            geometry = extrusion.ToBrep();
+                        if (geometry is Brep)
+                            return new Grasshopper.Kernel.Types.GH_Brep(geometry as Brep);
+                        if (geometry is Curve)
+                            return new Grasshopper.Kernel.Types.GH_Curve(geometry as Curve);
+                        if (geometry is Mesh)
+                            return new Grasshopper.Kernel.Types.GH_Mesh(geometry as Mesh);
+                        if (geometry is SubD)
+                            return new Grasshopper.Kernel.Types.GH_SubD(geometry as SubD);
                     }
+                    break;
             }
             throw new Exception("unable to convert resthopper data");
         }
@@ -248,7 +273,33 @@ namespace Compute.Components
             return null;
         }
 
-        string CreateInputJson(IGH_DataAccess DA)
+        static void CollectDataHelper<T>(IGH_DataAccess DA, string inputName, bool itemAccess, ref int inputCount, DataTree<ResthopperObject> dataTree)
+        {
+            if (itemAccess)
+            {
+                T t = default(T);
+                if (DA.GetData(inputName, ref t))
+                {
+                    inputCount = 1;
+                    dataTree.Append(new ResthopperObject(t), "0");
+                }
+            }
+            else
+            {
+                List<T> list = new List<T>();
+                if (DA.GetDataList(inputName, list))
+                {
+                    inputCount = list.Count;
+                    foreach (var item in list)
+                    {
+                        dataTree.Append(new ResthopperObject(item), "0");
+                    }
+                }
+
+            }
+        }
+
+        string CreateInputJson(IGH_DataAccess DA, List<string> warnings)
         {
             var schema = new Resthopper.IO.Schema();
             var inputs = GetInputParams();
@@ -262,335 +313,119 @@ namespace Compute.Components
                 var dataTree = new DataTree<Resthopper.IO.ResthopperObject>();
                 dataTree.ParamName = computeName;
                 schema.Values.Add(dataTree);
+                int inputListCount = 0;
                 switch (param)
                 {
                     case Grasshopper.Kernel.Parameters.Param_Arc _:
-                        {
-                            Arc a = new Arc();
-                            if (DA.GetData(inputName, ref a))
-                            {
-                                dataTree.Append(new ResthopperObject(a), "0");
-                            }
-                        }
+                        CollectDataHelper<Arc>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Boolean _:
-                        {
-                            if (itemAccess)
-                            {
-                                bool b = false;
-                                if (DA.GetData(inputName, ref b))
-                                {
-                                    dataTree.Append(new ResthopperObject(b), "0");
-                                }
-                            }
-                            else
-                            {
-                                List<bool> bools = new List<bool>();
-                                if (DA.GetDataList(inputName, bools))
-                                {
-                                    foreach(var b in bools)
-                                    {
-                                        dataTree.Append(new ResthopperObject(b), "0");
-                                    }
-                                }
-                            }
-                        }
+                        CollectDataHelper<bool>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Box _:
-                        {
-                            Box b = Box.Empty;
-                            if (DA.GetData(inputName, ref b))
-                            {
-                                dataTree.Append(new ResthopperObject(b), "0");
-                            }
-                        }
+                        CollectDataHelper<Box>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Brep _:
-                        {
-                            Brep b = null;
-                            if (DA.GetData(inputName, ref b))
-                            {
-                                dataTree.Append(new ResthopperObject(b), "0");
-                            }
-                        }
+                        CollectDataHelper<Brep>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Circle _:
-                        {
-                            Circle c = Circle.Unset;
-                            if (DA.GetData(inputName, ref c))
-                            {
-                                dataTree.Append(new ResthopperObject(c), "0");
-                            }
-                        }
+                        CollectDataHelper<Circle>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Colour _:
-                        {
-                            System.Drawing.Color c = System.Drawing.Color.Empty;
-                            if (DA.GetData(inputName, ref c))
-                            {
-                                dataTree.Append(new ResthopperObject(c), "0");
-                            }
-                        }
+                        CollectDataHelper<System.Drawing.Color>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Complex _:
-                        {
-                            Grasshopper.Kernel.Types.Complex c = Grasshopper.Kernel.Types.Complex.NaN;
-                            if (DA.GetData(inputName, ref c))
-                            {
-                                dataTree.Append(new ResthopperObject(c), "0");
-                            }
-                        }
+                        CollectDataHelper<Grasshopper.Kernel.Types.Complex>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Culture _:
-                        {
-                            System.Globalization.CultureInfo c = null;
-                            if (DA.GetData(inputName, ref c))
-                            {
-                                dataTree.Append(new ResthopperObject(c), "0");
-                            }
-                        }
+                        CollectDataHelper<System.Globalization.CultureInfo>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Curve _:
-                        {
-                            Curve c = null;
-                            if (DA.GetData(inputName, ref c))
-                            {
-                                dataTree.Append(new ResthopperObject(c), "0");
-                            }
-                        }
+                        CollectDataHelper<Curve>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Field _:
-                        {
-                            Grasshopper.Kernel.Types.GH_Field field = null;
-                            if (DA.GetData(inputName, ref field))
-                            {
-                                dataTree.Append(new ResthopperObject(field), "0");
-                            }
-                        }
+                        CollectDataHelper<Grasshopper.Kernel.Types.GH_Field>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_FilePath _:
-                        {
-                            string s = string.Empty;
-                            if (DA.GetData(inputName, ref s))
-                            {
-                                dataTree.Append(new ResthopperObject(s), "0");
-                            }
-                        }
+                        CollectDataHelper<string>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_GenericObject _:
                         throw new Exception("generic param not supported");
                     case Grasshopper.Kernel.Parameters.Param_Geometry _:
-                        {
-                            GeometryBase g = null;
-                            if( DA.GetData(inputName, ref g))
-                            {
-                                dataTree.Append(new ResthopperObject(g), "0");
-                            }
-                        }
+                        CollectDataHelper<GeometryBase>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Group _:
                         throw new Exception("group param not supported");
                     case Grasshopper.Kernel.Parameters.Param_Guid _:
                         throw new Exception("guid param not supported");
                     case Grasshopper.Kernel.Parameters.Param_Integer _:
-                        {
-                            if (itemAccess)
-                            {
-                                int i = 0;
-                                if (DA.GetData(inputName, ref i))
-                                {
-                                    dataTree.Append(new ResthopperObject(i), "0");
-                                }
-                            }
-                            else
-                            {
-                                List<int> ints = new List<int>();
-                                if (DA.GetDataList(inputName, ints))
-                                {
-                                    foreach(var item in ints)
-                                    {
-                                        dataTree.Append(new ResthopperObject(item), "0");
-                                    }
-                                }
-                            }
-                        }
+                        CollectDataHelper<int>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Interval _:
-                        {
-                            Grasshopper.Kernel.Types.GH_Interval i = null;
-                            if (DA.GetData(inputName, ref i))
-                            {
-                                dataTree.Append(new ResthopperObject(i), "0");
-                            }
-                        }
+                        CollectDataHelper<Grasshopper.Kernel.Types.GH_Interval>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Interval2D _:
-                        {
-                            Grasshopper.Kernel.Types.GH_Interval2D i = null;
-                            if (DA.GetData(inputName, ref i))
-                            {
-                                dataTree.Append(new ResthopperObject(i), "0");
-                            }
-                        }
+                        CollectDataHelper<Grasshopper.Kernel.Types.GH_Interval2D>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_LatLonLocation _:
                         throw new Exception("latlonlocation param not supported");
                     case Grasshopper.Kernel.Parameters.Param_Line _:
-                        {
-                            Line l = Line.Unset;
-                            if (DA.GetData(inputName, ref l))
-                            {
-                                dataTree.Append(new ResthopperObject(l), "0");
-                            }
-                        }
+                        CollectDataHelper<Line>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Matrix _:
-                        {
-                            Matrix m = null;
-                            if( DA.GetData(inputName, ref m))
-                            {
-                                dataTree.Append(new ResthopperObject(m), "0");
-                            }
-                        }
+                        CollectDataHelper<Matrix>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Mesh _:
-                        {
-                            Mesh m = null;
-                            if(DA.GetData(inputName, ref m))
-                            {
-                                dataTree.Append(new ResthopperObject(m), "0");
-                            }
-                        }
+                        CollectDataHelper<Mesh>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_MeshFace _:
-                        {
-                            MeshFace m = new MeshFace();
-                            if (DA.GetData(inputName, ref m))
-                            {
-                                dataTree.Append(new ResthopperObject(m), "0");
-                            }
-                        }
+                        CollectDataHelper<MeshFace>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_MeshParameters _:
-                        throw new Exception("meshparameters paran not supported");
+                        throw new Exception("meshparameters param not supported");
                     case Grasshopper.Kernel.Parameters.Param_Number _:
-                        {
-                            if (itemAccess)
-                            {
-                                double d = 0;
-                                if (DA.GetData(inputName, ref d))
-                                {
-                                    dataTree.Append(new ResthopperObject(d), "0");
-                                }
-                            }
-                            else
-                            {
-                                List<double> list = new List<double>();
-                                if (DA.GetDataList(inputName, list))
-                                {
-                                    foreach (var d in list)
-                                    {
-                                        dataTree.Append(new ResthopperObject(d), "0");
-                                    }
-                                }
-                            }
-                        }
+                        CollectDataHelper<double>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     //case Grasshopper.Kernel.Parameters.Param_OGLShader:
                     case Grasshopper.Kernel.Parameters.Param_Plane _:
-                        {
-                            Plane p = Plane.Unset;
-                            if( DA.GetData(inputName, ref p))
-                            {
-                                dataTree.Append(new ResthopperObject(p), "0");
-                            }
-                        }
+                        CollectDataHelper<Plane>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Point _:
-                        {
-                            List<Point3d> points = new List<Point3d>();
-                            if (DA.GetDataList(inputName, points))
-                            {
-                                foreach (var pt in points)
-                                {
-                                    dataTree.Append(new ResthopperObject(pt), "0");
-                                }
-                            }
-                        }
+                        CollectDataHelper<Point3d>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Rectangle _:
-                        {
-                            Rectangle3d r = Rectangle3d.Unset;
-                            if(DA.GetData(inputName, ref r))
-                            {
-                                dataTree.Append(new ResthopperObject(r), "0");
-                            }
-                        }
+                        CollectDataHelper<Rectangle3d>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     //case Grasshopper.Kernel.Parameters.Param_ScriptVariable _:
                     case Grasshopper.Kernel.Parameters.Param_String _:
-                        {
-                            string s = string.Empty;
-                            if(DA.GetData(inputName, ref s))
-                            {
-                                dataTree.Append(new ResthopperObject(s), "0");
-                            }
-                        }
+                        CollectDataHelper<string>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_StructurePath _:
-                        {
-                            Grasshopper.Kernel.Types.GH_StructurePath p = null;
-                            if(DA.GetData(inputName, ref p))
-                            {
-                                dataTree.Append(new ResthopperObject(p), "0");
-                            }
-                        }
+                        CollectDataHelper<Grasshopper.Kernel.Types.GH_StructurePath>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Surface _:
-                        {
-                            Surface s = null;
-                            if(DA.GetData(inputName, ref s))
-                            {
-                                dataTree.Append(new ResthopperObject(s), "0");
-                            }
-                        }
+                        CollectDataHelper<Surface>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Time _:
-                        {
-                            DateTime d = DateTime.Now;
-                            if(DA.GetData(inputName, ref d))
-                            {
-                                dataTree.Append(new ResthopperObject(d), "0");
-                            }
-                        }
+                        CollectDataHelper<DateTime>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Transform _:
-                        {
-                            Transform t = Transform.Identity;
-                            if(DA.GetData(inputName, ref t))
-                            {
-                                dataTree.Append(new ResthopperObject(t), "0");
-                            }
-                        }
+                        CollectDataHelper<Transform>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Vector _:
-                        {
-                            Vector3d v = Vector3d.Unset;
-                            if(DA.GetData(inputName, ref v))
-                            {
-                                dataTree.Append(new ResthopperObject(v), "0");
-                            }
-                        }
+                        CollectDataHelper<Vector3d>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
                     case Grasshopper.Kernel.Special.GH_NumberSlider _:
-                        {
-                            double d = 0;
-                            if(DA.GetData(inputName, ref d))
-                            {
-                                dataTree.Append(new ResthopperObject(d), "0");
-                            }
-                        }
+                        CollectDataHelper<double>(DA, inputName, itemAccess, ref inputListCount, dataTree);
                         break;
+                }
+
+                if (!itemAccess)
+                {
+                    if (inputListCount < input.AtLeast)
+                        warnings.Add($"{input.Name} requires at least {input.AtLeast} items");
+                    if (inputListCount > input.AtMost)
+                        warnings.Add($"{input.Name} requires at most {input.AtMost} items");
                 }
             }
 
