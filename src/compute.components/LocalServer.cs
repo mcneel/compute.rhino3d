@@ -4,21 +4,35 @@ using System.Diagnostics;
 
 namespace Compute.Components
 {
+    /// <summary>
+    /// Utility for managing local compute server instances. When Hops
+    /// components are referencing paths to files (instead of http URLs),
+    /// the definitions are processed by compute server instances running
+    /// on the same machine. Hops ships with a copy of compute.geometry.exe
+    /// that it can launch when a compute server is needed.
+    /// </summary>
     class LocalServer
     {
         public static string GetDescriptionUrl(string definitionPath)
         {
-            int port = GetComputeServerPort();
-            return $"http://localhost:{port}/io?pointer={System.Web.HttpUtility.UrlEncode(definitionPath)}";
+            string baseUrl = GetComputeServerBaseUrl();
+            return $"{baseUrl}/io?pointer={System.Web.HttpUtility.UrlEncode(definitionPath)}";
         }
 
         public static string GetSolveUrl()
         {
-            int port = GetComputeServerPort();
-            return $"http://localhost:{port}/grasshopper";
+            string baseUrl = GetComputeServerBaseUrl();
+            return baseUrl + "/grasshopper";
         }
 
-        static int GetComputeServerPort()
+        /// <summary>
+        /// Get base url for a compute server. This function may return a
+        /// different string each time it is called as it attempts to provide
+        /// basic round robin scheduling when multiple compute servers are
+        /// found to be available.
+        /// </summary>
+        /// <returns></returns>
+        static string GetComputeServerBaseUrl()
         {
             // Simple round robin scheduler using a queue of compute.geometry processes
             int activePort = 0;
@@ -58,7 +72,8 @@ namespace Compute.Components
 
             if (0 == activePort)
                 throw new Exception("No compute server found");
-            return activePort;
+
+            return $"http://localhost:{activePort}";
         }
 
         static Queue<Tuple<Process, int>> _computeProcesses = new Queue<Tuple<Process, int>>();

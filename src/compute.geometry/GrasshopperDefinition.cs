@@ -137,7 +137,7 @@ namespace compute.geometry
                 IGH_ContextualParameter contextualParameter = inputGroup.Param as IGH_ContextualParameter;
                 if (contextualParameter != null)
                 {
-                    switch (inputGroup.Param.TypeName)
+                    switch (ParamTypeName(inputGroup.Param))
                     {
                         case "Number":
                             {
@@ -180,6 +180,52 @@ namespace compute.geometry
                                         points[i] = JsonConvert.DeserializeObject<Rhino.Geometry.Point3d>(restobj.Data);
                                     }
                                     contextualParameter.AssignContextualData(points);
+                                    break;
+                                }
+                            }
+                            break;
+                        case "Line":
+                            {
+                                foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
+                                {
+                                    Line[] lines = new Line[entree.Value.Count];
+                                    for (int i = 0; i < entree.Value.Count; i++)
+                                    {
+                                        ResthopperObject restobj = entree.Value[i];
+                                        lines[i] = JsonConvert.DeserializeObject<Rhino.Geometry.Line>(restobj.Data);
+                                    }
+                                    contextualParameter.AssignContextualData(lines);
+                                    break;
+                                }
+                            }
+                            break;
+                        case "Text":
+                            {
+                                foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
+                                {
+                                    string[] strings = new string[entree.Value.Count];
+                                    for (int i = 0; i < entree.Value.Count; i++)
+                                    {
+                                        ResthopperObject restobj = entree.Value[i];
+                                        strings[i] = restobj.Data.Trim(new char[] { '"' });
+                                    }
+                                    contextualParameter.AssignContextualData(strings);
+                                    break;
+                                }
+                            }
+                            break;
+                        case "Geometry":
+                            {
+                                foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
+                                {
+                                    GeometryBase[] geometries = new GeometryBase[entree.Value.Count];
+                                    for (int i = 0; i < entree.Value.Count; i++)
+                                    {
+                                        ResthopperObject restobj = entree.Value[i];
+                                        var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(restobj.Data);
+                                        geometries[i] = Rhino.Runtime.CommonObject.FromJSON(dict) as GeometryBase;
+                                    }
+                                    contextualParameter.AssignContextualData(geometries);
                                     break;
                                 }
                             }
@@ -650,6 +696,17 @@ namespace compute.geometry
             }
         }
 
+        static string ParamTypeName(IGH_Param param)
+        {
+            Type t = param.GetType();
+            // TODO: Figure out why the GetGeometryParameter throws exceptions when calling TypeName
+            if (t.Name.Equals("GetGeometryParameter"))
+            {
+                return "Geometry";
+            }
+            return param.TypeName;
+        }
+
         public IoResponseSchema GetInputsAndOutputs()
         {
             // Parse input and output names
@@ -661,15 +718,10 @@ namespace compute.geometry
             foreach (var i in _input)
             {
                 inputNames.Add(i.Key);
-
-                Type t = i.Value.Param.GetType();
-                string typename = t.Name;
-                if (!t.Name.Equals("GetGeometryParameter"))
-                    typename = i.Value.Param.TypeName;
                 inputs.Add(new InputParamSchema
                 {
                     Name = i.Key,
-                    ParamType = typename,
+                    ParamType = ParamTypeName(i.Value.Param),
                     AtLeast = i.Value.GetAtLeast(),
                     AtMost = i.Value.GetAtMost()
                 });
