@@ -189,16 +189,48 @@ namespace Compute.Components
         static Grasshopper.Kernel.Types.IGH_Goo GooFromReshopperObject(ResthopperObject obj)
         {
             string data = obj.Data.Trim('"');
+
+            if (obj.Type.StartsWith("Rhino.Geometry"))
+            {
+                var pt = new Rhino.Geometry.Point3d();
+                string s = pt.GetType().AssemblyQualifiedName;
+                int index = s.IndexOf(",");
+                string sType = $"{obj.Type}{s.Substring(index)}";
+
+                System.Type type = System.Type.GetType(sType);
+                if (type != null && typeof(GeometryBase).IsAssignableFrom(type))
+                {
+                    Dictionary<string, string> dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(data);
+                    var geometry = Rhino.Runtime.CommonObject.FromJSON(dict);
+                    Extrusion extrusion = geometry as Extrusion;
+                    if (extrusion != null)
+                        geometry = extrusion.ToBrep();
+                    if (geometry is Brep)
+                        return new Grasshopper.Kernel.Types.GH_Brep(geometry as Brep);
+                    if (geometry is Curve)
+                        return new Grasshopper.Kernel.Types.GH_Curve(geometry as Curve);
+                    if (geometry is Mesh)
+                        return new Grasshopper.Kernel.Types.GH_Mesh(geometry as Mesh);
+                    if (geometry is SubD)
+                        return new Grasshopper.Kernel.Types.GH_SubD(geometry as SubD);
+                }
+            }
+
             switch (obj.Type)
             {
                 case "System.String":
                     return new Grasshopper.Kernel.Types.GH_String(data);
                 case "System.Int32":
                     return new Grasshopper.Kernel.Types.GH_Integer(int.Parse(data));
+                case "Rhino.Geometry.Line":
+                    return new Grasshopper.Kernel.Types.GH_Line(JsonConvert.DeserializeObject<Line>(data));
                 case "Rhino.Geometry.Brep":
                 case "Rhino.Geometry.Curve":
                 case "Rhino.Geometry.Extrusion":
                 case "Rhino.Geometry.Mesh":
+                case "Rhino.Geometry.PolyCurve":
+                case "Rhino.Geometry.NurbsCurve":
+                case "Rhino.Geometry.PolylineCurve":
                 case "Rhino.Geometry.SubD":
                     {
                         Dictionary<string, string> dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(data);
