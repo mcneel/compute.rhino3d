@@ -67,6 +67,17 @@ namespace compute.geometry
             GrasshopperDefinition rc = new GrasshopperDefinition(definition);
             foreach( var obj in definition.Objects)
             {
+                IGH_ContextualParameter contextualParam = obj as IGH_ContextualParameter;
+                if (contextualParam != null)
+                {
+                    IGH_Param param = obj as IGH_Param;
+                    if (param != null)
+                    {
+                        rc._input[param.NickName] = new InputGroup(param);
+                    }
+                    continue;
+                }
+
                 var group = obj as GH_Group;
                 if (group == null)
                     continue;
@@ -122,6 +133,61 @@ namespace compute.geometry
                 }
 
                 inputGroup.CacheTree(tree);
+
+                IGH_ContextualParameter contextualParameter = inputGroup.Param as IGH_ContextualParameter;
+                if (contextualParameter != null)
+                {
+                    switch (inputGroup.Param.TypeName)
+                    {
+                        case "Number":
+                            {
+                                foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
+                                {
+                                    double[] doubles = new double[entree.Value.Count];
+                                    for (int i = 0; i < doubles.Length; i++)
+                                    {
+                                        ResthopperObject restobj = entree.Value[i];
+                                        doubles[i] = JsonConvert.DeserializeObject<double>(restobj.Data);
+                                    }
+                                    contextualParameter.AssignContextualData(doubles);
+                                    break;
+                                }
+                            }
+                            break;
+                        case "Integer":
+                            {
+                                foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
+                                {
+                                    int[] integers = new int[entree.Value.Count];
+                                    for (int i = 0; i < integers.Length; i++)
+                                    {
+                                        ResthopperObject restobj = entree.Value[i];
+                                        integers[i] = JsonConvert.DeserializeObject<int>(restobj.Data);
+                                    }
+                                    contextualParameter.AssignContextualData(integers);
+                                    break;
+                                }
+                            }
+                            break;
+                        case "Point":
+                            {
+                                foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
+                                {
+                                    Point3d[] points = new Point3d[entree.Value.Count];
+                                    for (int i = 0; i < entree.Value.Count; i++)
+                                    {
+                                        ResthopperObject restobj = entree.Value[i];
+                                        points[i] = JsonConvert.DeserializeObject<Rhino.Geometry.Point3d>(restobj.Data);
+                                    }
+                                    contextualParameter.AssignContextualData(points);
+                                    break;
+                                }
+                            }
+                            break;
+                    }
+                    continue;
+                }
+
                 inputGroup.Param.VolatileData.Clear();
                 inputGroup.Param.ExpireSolution(false); // mark param as expired but don't recompute just yet!
 
@@ -480,6 +546,12 @@ namespace compute.geometry
                                     resthopperObjectList.Add(GetResthopperObject<string>(rhValue));
                                 }
                                 break;
+                            case GH_SubD ghValue:
+                                {
+                                    SubD rhValue = ghValue.Value;
+                                    resthopperObjectList.Add(GetResthopperObject<SubD>(rhValue));
+                                }
+                                break;
                             case GH_Line ghValue:
                                 {
                                     Line rhValue = ghValue.Value;
@@ -589,10 +661,15 @@ namespace compute.geometry
             foreach (var i in _input)
             {
                 inputNames.Add(i.Key);
+
+                Type t = i.Value.Param.GetType();
+                string typename = t.Name;
+                if (!t.Name.Equals("GetGeometryParameter"))
+                    typename = i.Value.Param.TypeName;
                 inputs.Add(new InputParamSchema
                 {
                     Name = i.Key,
-                    ParamType = i.Value.Param.TypeName,
+                    ParamType = typename,
                     AtLeast = i.Value.GetAtLeast(),
                     AtMost = i.Value.GetAtMost()
                 });
@@ -710,14 +787,24 @@ namespace compute.geometry
 
             public int GetAtLeast()
             {
+                IGH_ContextualParameter contextualParameter = Param as IGH_ContextualParameter;
+                if(contextualParameter!=null)
+                {
+                    return contextualParameter.AtLeast;
+                }
                 return 1;
             }
 
             public int GetAtMost()
             {
+                IGH_ContextualParameter contextualParameter = Param as IGH_ContextualParameter;
+                if (contextualParameter != null)
+                {
+                    return contextualParameter.AtMost;
+                }
                 if (Param is GH_NumberSlider)
                     return 1;
-                return 0;
+                return int.MaxValue;
             }
             
             public bool AlreadySet(DataTree<ResthopperObject> tree)
