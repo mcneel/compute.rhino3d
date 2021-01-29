@@ -106,36 +106,30 @@ namespace Compute.Components
             }
         }
 
-        public void SolveInstance(IGH_DataAccess DA, List<IGH_Param> outputParams, GH_ActiveObject component)
+        public Schema PostToServer(string inputJson)
         {
-            List<string> warnings = new List<string>();
-            string inputJson = CreateInputJson(DA, warnings);
-            if (warnings.Count > 0)
-            {
-                foreach (var warning in warnings)
-                    component.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
-                return;
-            }
-
-            string solveUrl = LocalServer.GetSolveUrl();
+            string solveUrl = "";
             if (PathIsAppServer)
             {
                 int index = Path.LastIndexOf('/');
                 solveUrl = Path.Substring(0, index + 1) + "solve";
             }
+            else
+            {
+                solveUrl = LocalServer.GetSolveUrl();
+            }
 
             var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
             var postTask = HttpClient.PostAsync(solveUrl, content);
-            while( !postTask.Wait(500))
-            {
-                if (GH_Document.IsEscapeKeyDown())
-                    throw new Exception("Escape Key Pressed");
-            }
             var responseMessage = postTask.Result;
             var remoteSolvedData = responseMessage.Content;
             var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
             var schema = JsonConvert.DeserializeObject<Resthopper.IO.Schema>(stringResult);
-            
+            return schema;
+        }
+
+        public void SetComponentOutputs(Schema schema, IGH_DataAccess DA, List<IGH_Param> outputParams, GH_ActiveObject component)
+        {
             foreach (var datatree in schema.Values)
             {
                 string outputParamName = datatree.ParamName;
@@ -331,8 +325,9 @@ namespace Compute.Components
             }
         }
 
-        string CreateInputJson(IGH_DataAccess DA, List<string> warnings)
+        public string CreateInputJson(IGH_DataAccess DA, out List<string> warnings)
         {
+            warnings = new List<string>();
             var schema = new Resthopper.IO.Schema();
             var inputs = GetInputParams();
             foreach (var kv in inputs)
