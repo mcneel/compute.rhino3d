@@ -46,6 +46,7 @@ namespace Resthopper.IO
 
     public class InputParamSchema : IoParamSchema
     {
+        public string Description { get; set; }
         public int AtLeast { get; set; } = 1;
         public int AtMost { get; set; } = 0;
     }

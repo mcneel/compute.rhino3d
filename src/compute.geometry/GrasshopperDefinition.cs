@@ -722,6 +722,7 @@ namespace compute.geometry
                 {
                     Name = i.Key,
                     ParamType = ParamTypeName(i.Value.Param),
+                    Description = i.Value.GetDescription(),
                     AtLeast = i.Value.GetAtLeast(),
                     AtMost = i.Value.GetAtMost()
                 });
@@ -836,6 +837,16 @@ namespace compute.geometry
                 Param = param;
             }
             public IGH_Param Param { get; }
+
+            public string GetDescription()
+            {
+                IGH_ContextualParameter contextualParameter = Param as IGH_ContextualParameter;
+                if (contextualParameter != null)
+                {
+                    return contextualParameter.Prompt;
+                }
+                return null;
+            }
 
             public int GetAtLeast()
             {
