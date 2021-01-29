@@ -65,6 +65,18 @@ namespace compute.geometry
                 body = body.Substring(1, body.Length - 2);
             Schema input = JsonConvert.DeserializeObject<Schema>(body);
 
+            if (input.CacheSolve)
+            {
+                // look in the cache to see if this has already been solved
+                string cachedReturnJson = DataCache.GetCachedSolveResults(body);
+                if (!string.IsNullOrWhiteSpace(cachedReturnJson))
+                {
+                    Response cachedResponse = cachedReturnJson;
+                    cachedResponse.ContentType = "application/json";
+                    return cachedResponse;
+                }
+            }
+
             // load grasshopper file
             GrasshopperDefinition definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
             if (definition == null)
@@ -85,6 +97,13 @@ namespace compute.geometry
             res = res.WithHeader("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
             if (definition.HasErrors)
                 res.StatusCode = Nancy.HttpStatusCode.InternalServerError;
+            else
+            {
+                if(input.CacheSolve)
+                {
+                    DataCache.SetCachedSolveResults(body, returnJson);
+                }
+            }
             return res;
         }
 

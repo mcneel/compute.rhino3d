@@ -34,6 +34,20 @@ namespace compute.geometry
             return archive;
         }
 
+        public static string GetCachedSolveResults(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                return null;
+            string jsonResults = System.Runtime.Caching.MemoryCache.Default.Get(key) as string;
+            return jsonResults;
+        }
+
+        public static void SetCachedSolveResults(string key, string jsonResults)
+        {
+            if (!string.IsNullOrWhiteSpace(key))
+                System.Runtime.Caching.MemoryCache.Default.Add(key, jsonResults, CachePolicy);
+        }
+
         public static object GetCachedItem(JToken token, Type objectType, JsonSerializer serializer)
         {
             string jsonString = token.ToString();

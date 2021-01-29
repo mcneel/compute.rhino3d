@@ -14,8 +14,12 @@ namespace Compute.Components
     [Guid("C69BB52C-88BA-4640-B69F-188D111029E8")]
     public class RemoteSolveComponent : GH_TaskCapableComponent<Schema>, IGH_VariableParameterComponent
     {
+        #region Fields
         int _majorVersion = 0;
         int _minorVersion = 1;
+        RemoteDefinition _remoteDefinition = null;
+        bool _cacheSolveResults = true;
+        #endregion
 
         public RemoteSolveComponent()
           : base("Hops", "Hops", "Solve an external definition using Rhino Compute", "Params", "Util")
@@ -44,7 +48,7 @@ namespace Compute.Components
             if(InPreSolve)
             {
                 List<string> warnings;
-                string inputJson = _remoteDefinition.CreateInputJson(DA, out warnings);
+                string inputJson = _remoteDefinition.CreateInputJson(DA, _cacheSolveResults, out warnings);
                 if (warnings != null && warnings.Count > 0)
                 {
                     foreach (var warning in warnings)
@@ -61,7 +65,7 @@ namespace Compute.Components
             if (!GetSolveResults(DA, out var schema))
             {
                 List<string> warnings;
-                string inputJson = _remoteDefinition.CreateInputJson(DA, out warnings);
+                string inputJson = _remoteDefinition.CreateInputJson(DA, _cacheSolveResults, out warnings);
                 if (warnings != null && warnings.Count > 0)
                 {
                     foreach (var warning in warnings)
@@ -78,6 +82,8 @@ namespace Compute.Components
 
         const string TagVersion = "RemoteSolveVersion";
         const string TagPath = "RemoteDefinitionLocation";
+        const string TagCacheResults = "CacheSolveResults";
+
         public override bool Write(GH_IWriter writer)
         {
             bool rc = base.Write(writer);
@@ -85,6 +91,7 @@ namespace Compute.Components
             {
                 writer.SetVersion(TagVersion, _majorVersion, _minorVersion, 0);
                 writer.SetString(TagPath, RemoteDefinitionLocation);
+                writer.SetBoolean(TagCacheResults, _cacheSolveResults);
             }
             return rc;
         }
@@ -97,6 +104,10 @@ namespace Compute.Components
                 _majorVersion = version.major;
                 _minorVersion = version.minor;
                 RemoteDefinitionLocation = reader.GetString(TagPath);
+
+                bool cacheResults = _cacheSolveResults;
+                if (reader.TryGetBoolean(TagCacheResults, ref cacheResults))
+                    _cacheSolveResults = cacheResults;
             }
             return rc;
         }
@@ -121,6 +132,9 @@ namespace Compute.Components
             base.AppendAdditionalMenuItems(menu);
             var tsi = new ToolStripMenuItem("&Path...", null, (sender, e) => { ShowSetDefinitionUi(); });
             tsi.Font = new System.Drawing.Font(tsi.Font, System.Drawing.FontStyle.Bold);
+            menu.Items.Add(tsi);
+            tsi = new ToolStripMenuItem("Cache On Server", null, (s, e) => { _cacheSolveResults = !_cacheSolveResults; });
+            tsi.Checked = _cacheSolveResults;
             menu.Items.Add(tsi);
         }
 
@@ -164,7 +178,6 @@ namespace Compute.Components
             }
         }
 
-        RemoteDefinition _remoteDefinition = null;
         string RemoteDefinitionLocation
         {
             get

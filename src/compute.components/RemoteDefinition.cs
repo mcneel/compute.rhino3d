@@ -325,10 +325,12 @@ namespace Compute.Components
             }
         }
 
-        public string CreateInputJson(IGH_DataAccess DA, out List<string> warnings)
+        public string CreateInputJson(IGH_DataAccess DA, bool cacheSolveOnServer, out List<string> warnings)
         {
             warnings = new List<string>();
             var schema = new Resthopper.IO.Schema();
+
+            schema.CacheSolve = cacheSolveOnServer;
             var inputs = GetInputParams();
             foreach (var kv in inputs)
             {
