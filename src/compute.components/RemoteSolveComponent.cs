@@ -12,7 +12,7 @@ using Resthopper.IO;
 namespace Compute.Components
 {
     [Guid("C69BB52C-88BA-4640-B69F-188D111029E8")]
-    public class RemoteSolveComponent : GH_Component, IGH_VariableParameterComponent
+    public class RemoteSolveComponent : GH_TaskCapableComponent<Schema>, IGH_VariableParameterComponent
     {
         int _majorVersion = 0;
         int _minorVersion = 1;
@@ -40,7 +40,40 @@ namespace Compute.Components
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "No URL or path defined for definition");
                 return;
             }
-            _remoteDefinition.SolveInstance(DA, Params.Output, this);
+
+            if(InPreSolve)
+            {
+                List<string> warnings;
+                string inputJson = _remoteDefinition.CreateInputJson(DA, out warnings);
+                if (warnings != null && warnings.Count > 0)
+                {
+                    foreach (var warning in warnings)
+                    {
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
+                    }
+                    return;
+                }
+                var task = System.Threading.Tasks.Task.Run(() => _remoteDefinition.PostToServer(inputJson));
+                TaskList.Add(task);
+                return;
+            }
+
+            if (!GetSolveResults(DA, out var schema))
+            {
+                List<string> warnings;
+                string inputJson = _remoteDefinition.CreateInputJson(DA, out warnings);
+                if (warnings != null && warnings.Count > 0)
+                {
+                    foreach (var warning in warnings)
+                    {
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
+                    }
+                    return;
+                }
+                schema = _remoteDefinition.PostToServer(inputJson);
+            }
+
+            _remoteDefinition.SetComponentOutputs(schema, DA, Params.Output, this);
         }
 
         const string TagVersion = "RemoteSolveVersion";
