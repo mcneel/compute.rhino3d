@@ -14,11 +14,19 @@ namespace Resthopper.IO
         [JsonProperty(PropertyName = "pointer")]
         public string Pointer { get; set; }
 
+        // If true on input, the solve results are cached based on this schema.
+        // When true the cache is searched for already computed results and used
+        [JsonProperty(PropertyName = "cachesolve")]
+        public bool CacheSolve { get; set; } = false;
+
         [JsonProperty(PropertyName = "values")]
         public List<DataTree<ResthopperObject>> Values { get; set; } = new List<DataTree<ResthopperObject>>();
 
+        // Return warnings from GH
         [JsonProperty(PropertyName = "warnings")]
         public List<string> Warnings { get; set; } = new List<string>();
+
+        // Return errors from GH
         [JsonProperty(PropertyName = "errors")]
         public List<string> Errors { get; set; } = new List<string>();
     }
