@@ -47,7 +47,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json.Rhino">
-      <HintPath>C:\Program Files\Rhino 7\System\Newtonsoft.Json.Rhino.dll</HintPath>
+      <HintPath>refs\Newtonsoft.Json.Rhino.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
