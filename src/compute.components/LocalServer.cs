@@ -112,14 +112,34 @@ namespace Compute.Components
             if (!System.IO.File.Exists(pathToCompute))
                 return;
 
+            var queueAsList = processQueue.ToArray();
+
             var existingProcesses = Process.GetProcessesByName("compute.geometry");
             var existingPorts = new HashSet<int>();
-            foreach (var existinProcess in existingProcesses)
+            foreach (var existingProcess in existingProcesses)
             {
-                var chunks = existinProcess.MainWindowTitle.Split(new char[] { ':' });
-                if (chunks.Length > 1)
+                bool checkTitle = true;
+                // see if this process is already in the queue
+                foreach(var item in processQueue)
                 {
-                    existingPorts.Add(int.Parse(chunks[1]));
+                    if (existingProcess.Id == item.Item1.Id)
+                    {
+                        existingPorts.Add(item.Item2);
+                        checkTitle = false;
+                        break;
+                    }
+                }
+
+                if (checkTitle)
+                {
+                    var chunks = existingProcess.MainWindowTitle.Split(new char[] { ':' });
+                    if (chunks.Length > 1)
+                    {
+                        if (int.TryParse(chunks[chunks.Length - 1], out int lookForPort))
+                        {
+                            existingPorts.Add(lookForPort);
+                        }
+                    }
                 }
             }
             int port = 0;
@@ -128,10 +148,16 @@ namespace Compute.Components
                 // start at port 6000. Feel free to change this if there is a reason
                 // to use a different port
                 port = 6000 + i;
-                if (existingPorts.Contains(i))
+                if (existingPorts.Contains(port))
                     continue;
+
                 if (i == 255)
                     return;
+
+                bool isOpen = IsPortOpen("localhost", port, new TimeSpan(0, 0, 0, 0, 100));
+                if (isOpen)
+                    continue;
+
                 break;
             }
 
@@ -188,7 +214,7 @@ namespace Compute.Components
             else
             {
                 // no matter what, give compute a little time to start
-                System.Threading.Thread.Sleep(200);
+                System.Threading.Thread.Sleep(100);
             }
 
             if (process != null)
