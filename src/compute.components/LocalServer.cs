@@ -13,6 +13,15 @@ namespace Compute.Components
     /// </summary>
     class LocalServer
     {
+        public static int ActiveComputeCount
+        {
+            get
+            {
+                var processes = Process.GetProcessesByName("compute.geometry");
+                return processes.Length;
+            }
+        }
+
         public static string GetDescriptionUrl(string definitionPath)
         {
             string baseUrl = GetComputeServerBaseUrl();
@@ -69,7 +78,7 @@ namespace Compute.Components
 
                     if (_computeProcesses.Count == 0)
                     {
-                        LaunchCompute(_computeProcesses);
+                        LaunchCompute(_computeProcesses, true);
                     }
 
                     if (_computeProcesses.Count > 0)
@@ -87,7 +96,15 @@ namespace Compute.Components
             return $"http://localhost:{activePort}";
         }
 
-        static void LaunchCompute(Queue<Tuple<Process, int>> processQueue)
+        public static void LaunchCompute(bool waitUntilServing)
+        {
+            lock (_lockObject)
+            {
+                LaunchCompute(_computeProcesses, waitUntilServing);
+            }
+        }
+
+        static void LaunchCompute(Queue<Tuple<Process, int>> processQueue, bool waitUntilServing)
         {
             string pathToGha = typeof(LocalServer).Assembly.Location;
             string dir = System.IO.Path.GetDirectoryName(pathToGha);
@@ -153,17 +170,25 @@ namespace Compute.Components
             }
             */
 
-            while (true)
+            if (waitUntilServing)
             {
-                bool isOpen = IsPortOpen("localhost", port, new TimeSpan(0, 0, 1));
-                if (isOpen)
-                    break;
-                var span = DateTime.Now - start;
-                if (span.TotalSeconds > 20)
+                while (true)
                 {
-                    process.Kill();
-                    throw new Exception("Unable to start a local compute server");
+                    bool isOpen = IsPortOpen("localhost", port, new TimeSpan(0, 0, 1));
+                    if (isOpen)
+                        break;
+                    var span = DateTime.Now - start;
+                    if (span.TotalSeconds > 20)
+                    {
+                        process.Kill();
+                        throw new Exception("Unable to start a local compute server");
+                    }
                 }
+            }
+            else
+            {
+                // no matter what, give compute a little time to start
+                System.Threading.Thread.Sleep(200);
             }
 
             if (process != null)

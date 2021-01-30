@@ -12,7 +12,7 @@ using Resthopper.IO;
 namespace Compute.Components
 {
     [Guid("C69BB52C-88BA-4640-B69F-188D111029E8")]
-    public class RemoteSolveComponent : GH_TaskCapableComponent<Schema>, IGH_VariableParameterComponent
+    public class HopsComponent : GH_TaskCapableComponent<Schema>, IGH_VariableParameterComponent
     {
         #region Fields
         int _majorVersion = 0;
@@ -21,7 +21,7 @@ namespace Compute.Components
         bool _cacheSolveResults = true;
         #endregion
 
-        public RemoteSolveComponent()
+        public HopsComponent()
           : base("Hops", "Hops", "Solve an external definition using Rhino Compute", "Params", "Util")
         {
         }
@@ -133,27 +133,43 @@ namespace Compute.Components
             var tsi = new ToolStripMenuItem("&Path...", null, (sender, e) => { ShowSetDefinitionUi(); });
             tsi.Font = new System.Drawing.Font(tsi.Font, System.Drawing.FontStyle.Bold);
             menu.Items.Add(tsi);
+
+            tsi = new ToolStripMenuItem($"Local Computes ({LocalServer.ActiveComputeCount})");
+            var tsi_sub = new ToolStripMenuItem("1 More...", null, (s, e) => {
+                LocalServer.LaunchCompute(false);
+            });
+            tsi_sub.ToolTipText = "Launch a local compute instance";
+            tsi.DropDown.Items.Add(tsi_sub);
+            tsi_sub = new ToolStripMenuItem("6 Pack...", null, (s, e) => {
+                for(int i=0; i<6; i++)
+                    LocalServer.LaunchCompute(false);
+            });
+            tsi_sub.ToolTipText = "Get drunk with power and launch 6 compute instances";
+            tsi.DropDown.Items.Add(tsi_sub);
+            menu.Items.Add(tsi);
+
             tsi = new ToolStripMenuItem("Cache On Server", null, (s, e) => { _cacheSolveResults = !_cacheSolveResults; });
+            tsi.ToolTipText = "Tell the compute server to cache results for reuse in the future";
             tsi.Checked = _cacheSolveResults;
             menu.Items.Add(tsi);
         }
 
+        /// <summary>
+        /// Used for supporting double click on the component. 
+        /// </summary>
         class ComponentAttributes : GH_ComponentAttributes
         {
-            GH_Component _component;
-            readonly Action _doubleClickAction;
-            public ComponentAttributes(GH_Component component, Action doubleClickAction)
-              : base(component)
+            HopsComponent _component;
+            public ComponentAttributes(HopsComponent parentComponent) : base(parentComponent)
             {
-                _component = component;
-                _doubleClickAction = doubleClickAction;
+                _component = parentComponent;
             }
 
             public override GH_ObjectResponse RespondToMouseDoubleClick(GH_Canvas sender, GH_CanvasMouseEvent e)
             {
                 try
                 {
-                    _doubleClickAction();
+                    _component.ShowSetDefinitionUi();
                 }
                 catch(Exception ex)
                 {
@@ -165,7 +181,7 @@ namespace Compute.Components
 
         public override void CreateAttributes()
         {
-            Attributes = new ComponentAttributes(this, ShowSetDefinitionUi);
+            Attributes = new ComponentAttributes(this);
         }
 
         void ShowSetDefinitionUi()
@@ -532,69 +548,5 @@ namespace Compute.Components
             var mgr = constructors[0].Invoke(new object[] { this }) as GH_OutputParamManager;
             return mgr;
         }
-
-        class SetDefinitionForm : Eto.Forms.Dialog<bool>
-        {
-            public SetDefinitionForm(string currentPath)
-            {
-                Path = currentPath;
-
-                Title = "Set Definition";
-                
-                bool windows = Rhino.Runtime.HostUtils.RunningOnWindows;
-                DefaultButton = new Eto.Forms.Button { Text = windows ? "OK" : "Apply" };
-                DefaultButton.Click += (sender, e) => Close(true);
-                AbortButton = new Eto.Forms.Button { Text = "C&ancel" };
-                AbortButton.Click += (sender, e) => Close(false);
-                var buttons = new Eto.Forms.TableLayout();
-                if (windows)
-                {
-                    buttons.Spacing = new Eto.Drawing.Size(5, 5);
-                    buttons.Rows.Add(new Eto.Forms.TableRow(null, DefaultButton, AbortButton));
-                }
-                else
-                    buttons.Rows.Add(new Eto.Forms.TableRow(null, AbortButton, DefaultButton));
-                var textbox = new Eto.Forms.TextBox();
-                textbox.Size = new Eto.Drawing.Size(250, -1);
-                textbox.PlaceholderText = "URL or Path";
-                if( !string.IsNullOrWhiteSpace(Path))
-                {
-                    textbox.Text = Path;
-                }
-                var filePickButton = new Rhino.UI.Controls.ImageButton();
-                filePickButton.Image = Rhino.Resources.Assets.Rhino.Eto.Bitmaps.TryGet(Rhino.Resources.ResourceIds.FolderopenPng, new Eto.Drawing.Size(24, 24));
-                filePickButton.Click += (sender, e) =>
-                {
-                    var dlg = new Eto.Forms.OpenFileDialog();
-                    dlg.Filters.Add(new Eto.Forms.FileFilter("Grasshopper Document", ".gh", ".ghx"));
-                    if(dlg.ShowDialog(this) == Eto.Forms.DialogResult.Ok)
-                    {
-                        textbox.Text = dlg.FileName;
-                    }
-                };
-                var locationRow = new Eto.Forms.StackLayout {
-                    Orientation = Eto.Forms.Orientation.Horizontal,
-                    Spacing = buttons.Spacing.Width,
-                    Items = { textbox, filePickButton }
-                };
-                Content = new Eto.Forms.TableLayout
-                {
-                    Padding = new Eto.Drawing.Padding(10),
-                    Spacing = new Eto.Drawing.Size(5, 5),
-                    Rows = {
-                        new Eto.Forms.TableRow { ScaleHeight = true, Cells = { locationRow } },
-                        buttons
-                    }
-                };
-                Closed += (s, e) => { Path = textbox.Text; };
-            }
-
-            public string Path
-            {
-                get;
-                set;
-            }
-        }
-
     }
 }
