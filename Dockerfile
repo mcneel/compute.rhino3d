@@ -35,7 +35,7 @@ RUN curl -fSLo rhino_installer.exe https://files.mcneel.com/dujour/exe/20210121/
 # RUN ""C:\Program Files\Rhino 7\System\Yak.exe"" install jswan
 
 # copy compute app to image
-COPY --from=builder ["/src/bin/Release", "/app"]
+COPY --from=builder ["/src/bin/Release/compute", "/app"]
 WORKDIR /app
 
 # bind compute.geometry to port 80
