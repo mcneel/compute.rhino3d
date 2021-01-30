@@ -15,7 +15,7 @@ before_build:
   - ps: (get-content .\src\compute.geometry\FixedEndpoints.cs).replace('git_sha = null', 'git_sha = "' + ${env:APPVEYOR_REPO_COMMIT}.Substring(0, 8) + '"') | set-content .\src\compute.geometry\FixedEndpoints.cs
 build_script:
   - msbuild src\compute.sln -restore -p:Configuration=Release -v:minimal -logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
-  - 7z a -tzip -r compute.zip %APPVEYOR_BUILD_FOLDER%\src\bin\Release\*
+  - 7z a -tzip -r compute.zip %APPVEYOR_BUILD_FOLDER%\src\compute.geometry\bin\Release\*
   - msbuild src\compute.frontend -restore -p:Configuration=Release -v:minimal -logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
 # package artifacts and create codedeploy app revision

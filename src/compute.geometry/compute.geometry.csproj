@@ -6,13 +6,15 @@
     <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
     <Copyright>Copyright © 2017-2021 Robert McNeel " Associates. All Rights Reserved.</Copyright>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <OutputPath>..\bin\$(Configuration)</OutputPath>
+    <Platforms>x64</Platforms>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DefineConstants>TRACE;DEBUG;COMPUTE_CORE</DefineConstants>
+    <OutputPath>..\bin\Debug\compute\</OutputPath>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <DefineConstants>TRACE;COMPUTE_CORE</DefineConstants>
+    <OutputPath>..\bin\Release\compute\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="favicon.ico" />
