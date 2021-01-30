@@ -20,31 +20,32 @@ namespace compute.geometry
             Config.Load();
             Logging.Init();
 
-            string displayName = "rhino.compute";
             RhinoInside.Resolver.Initialize();
 #if DEBUG
+            // Uncomment the following to debug with core Rhino source. This
+            // tells compute to use a different RhinoCore than what RhinoInside thinks
+            // should use.
+            // (for McNeel devs only and only those devs who use the same path as Steve)
+            /*
             string rhinoSystemDir = @"C:\dev\github\mcneel\rhino\src4\bin\Debug";
             if (File.Exists(rhinoSystemDir + "\\Rhino.exe"))
                 RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
+            */
 #endif
 
             LogVersions();
             var rc = Topshelf.HostFactory.Run(x =>
             {
                 x.AddCommandLineDefinition("port", port => {
-                    int p;
-                    if (int.TryParse(port, out p))
-                    {
-                        displayName = $"rhino.compute:{p}";
-                        Config.Urls = new string[] { $"http://localhost:{p}" };
-                    }
+                    int p = int.Parse(port);
+                    Config.Urls = new string[] { $"http://localhost:{p}" };
                 });
                 x.UseSerilog();
                 x.ApplyCommandLine();
                 x.SetStartTimeout(TimeSpan.FromMinutes(1));
                 x.Service<OwinSelfHost>();
                 x.RunAsPrompt(); // prompt for user to run as
-                x.SetDisplayName(displayName);
+                x.SetDisplayName("rhino.compute");
             });
 
             if (RhinoCore != null)
@@ -115,6 +116,9 @@ namespace compute.geometry
             }
 
             Log.Information("Listening on {Urls}", _bind);
+
+            var chunks = _bind[0].Split(new char[] { ':' });
+            Console.Title = $"rhino.compute:{chunks[chunks.Length-1]}";
             return true;
         }
 

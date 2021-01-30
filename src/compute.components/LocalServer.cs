@@ -52,6 +52,8 @@ namespace Compute.Components
                 if (activePort == 0)
                 {
                     _computeProcesses = new Queue<Tuple<Process, int>>();
+
+                    // see if any compute.geometry process are already open
                     var processes = Process.GetProcessesByName("compute.geometry");
                     foreach (var process in processes)
                     {
@@ -63,6 +65,11 @@ namespace Compute.Components
                         }
                         var item = Tuple.Create(process, port);
                         _computeProcesses.Enqueue(item);
+                    }
+
+                    if (_computeProcesses.Count == 0)
+                    {
+                        LaunchCompute(_computeProcesses);
                     }
 
                     if (_computeProcesses.Count > 0)
@@ -80,6 +87,109 @@ namespace Compute.Components
             return $"http://localhost:{activePort}";
         }
 
+        static void LaunchCompute(Queue<Tuple<Process, int>> processQueue)
+        {
+            string pathToGha = typeof(LocalServer).Assembly.Location;
+            string dir = System.IO.Path.GetDirectoryName(pathToGha);
+            string pathToCompute = System.IO.Path.Combine(dir, "compute", "compute.geometry.exe");
+            if (!System.IO.File.Exists(pathToCompute))
+                return;
+
+            var existingProcesses = Process.GetProcessesByName("compute.geometry");
+            var existingPorts = new HashSet<int>();
+            foreach (var existinProcess in existingProcesses)
+            {
+                var chunks = existinProcess.MainWindowTitle.Split(new char[] { ':' });
+                if (chunks.Length > 1)
+                {
+                    existingPorts.Add(int.Parse(chunks[1]));
+                }
+            }
+            int port = 0;
+            for(int i=0;i<256; i++)
+            {
+                // start at port 6000. Feel free to change this if there is a reason
+                // to use a different port
+                port = 6000 + i;
+                if (existingPorts.Contains(i))
+                    continue;
+                if (i == 255)
+                    return;
+                break;
+            }
+
+            var startInfo = new ProcessStartInfo(pathToCompute);
+            startInfo.Arguments = $"-port:{port}";
+            //startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            //startInfo.CreateNoWindow = true;
+            var process = Process.Start(startInfo);
+            var start = DateTime.Now;
+
+            /*
+            while (true)
+            {
+                System.Threading.Thread.Sleep(500);
+                // It looks like .NET caches the window title for a Process instance.
+                // The following hack is to work around the fact that we are changing
+                // the title to relay information about the port used
+                var temp = Process.GetProcessById(process.Id);
+                string title = temp.MainWindowTitle;
+                var chunks = title.Split(new char[] { ':' });
+                if (chunks.Length > 1)
+                {
+                    string sPort = chunks[chunks.Length - 1];
+                    if(int.TryParse(sPort, out int computePort))
+                    {
+                        if (computePort == port)
+                            break;
+                    }
+                }
+                var span = DateTime.Now - start;
+                if (span.TotalSeconds > 20)
+                {
+                    process.Kill();
+                    throw new Exception("Unable to start a local compute server");
+                }
+            }
+            */
+
+            while (true)
+            {
+                bool isOpen = IsPortOpen("localhost", port, new TimeSpan(0, 0, 1));
+                if (isOpen)
+                    break;
+                var span = DateTime.Now - start;
+                if (span.TotalSeconds > 20)
+                {
+                    process.Kill();
+                    throw new Exception("Unable to start a local compute server");
+                }
+            }
+
+            if (process != null)
+            {
+                processQueue.Enqueue(Tuple.Create(process, port));
+            }
+        }
+
+
+        static bool IsPortOpen(string host, int port, TimeSpan timeout)
+        {
+            try
+            {
+                using (var client = new System.Net.Sockets.TcpClient())
+                {
+                    var result = client.BeginConnect(host, port, null, null);
+                    var success = result.AsyncWaitHandle.WaitOne(timeout);
+                    client.EndConnect(result);
+                    return success;
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
         static object _lockObject = new Object();
         static Queue<Tuple<Process, int>> _computeProcesses = new Queue<Tuple<Process, int>>();
     }
