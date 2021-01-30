@@ -68,11 +68,11 @@
       <Link>Schema.cs</Link>
     </Compile>
     <Compile Include="GrasshopperDefinition.cs" />
-    <Compile Include="GrasshopperUtilities.cs" />
     <Compile Include="LocalServer.cs" />
     <Compile Include="RemoteDefinition.cs" />
-    <Compile Include="RemoteSolveComponent.cs" />
+    <Compile Include="HopsComponent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SetDefinitionForm.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Grasshopper">
