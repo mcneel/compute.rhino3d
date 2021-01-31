@@ -3,7 +3,6 @@ using Nancy;
 using Nancy.Routing;
 using Serilog;
 using System;
-using System.IO;
 using System.Net;
 using System.Reflection;
 using System.Text;
@@ -39,6 +38,11 @@ namespace compute.geometry
                 x.AddCommandLineDefinition("port", port => {
                     int p = int.Parse(port);
                     Config.Urls = new string[] { $"http://localhost:{p}" };
+                });
+                x.AddCommandLineDefinition("childof", parentProcessHandle =>
+                {
+                    int processId = int.Parse(parentProcessHandle);
+                    Shutdown.RegisterParentProcess(processId);
                 });
                 x.UseSerilog();
                 x.ApplyCommandLine();
@@ -119,6 +123,8 @@ namespace compute.geometry
 
             var chunks = _bind[0].Split(new char[] { ':' });
             Console.Title = $"rhino.compute:{chunks[chunks.Length-1]}";
+            Shutdown.StartTimer(hctrl);
+
             return true;
         }
 
