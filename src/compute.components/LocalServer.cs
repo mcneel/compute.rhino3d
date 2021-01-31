@@ -162,7 +162,7 @@ namespace Compute.Components
             }
 
             var startInfo = new ProcessStartInfo(pathToCompute);
-            startInfo.Arguments = $"-port:{port}";
+            startInfo.Arguments = $"-port:{port} -childof:{Process.GetCurrentProcess().Id}";
             //startInfo.WindowStyle = ProcessWindowStyle.Hidden;
             //startInfo.CreateNoWindow = true;
             var process = Process.Start(startInfo);
