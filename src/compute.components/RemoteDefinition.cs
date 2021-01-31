@@ -149,6 +149,8 @@ namespace Compute.Components
                 }
 
                 var structure = new Grasshopper.Kernel.Data.GH_Structure<Grasshopper.Kernel.Types.IGH_Goo>();
+                Grasshopper.Kernel.Types.IGH_Goo singleGoo = null;
+                bool setSingleItem = datatree.InnerTree.Count == 1;
                 foreach (var kv in datatree.InnerTree)
                 {
                     var tokens = kv.Key.Trim(new char[] { '{', '}' }).Split(';');
@@ -160,14 +162,21 @@ namespace Compute.Components
                             elements.Add(int.Parse(token));
                         }
                     }
+                    if (setSingleItem && (elements.Count != 1 || elements[0] != 0))
+                        setSingleItem = false;
+
                     var path = new Grasshopper.Kernel.Data.GH_Path(elements.ToArray());
                     for (int gooIndex = 0; gooIndex < kv.Value.Count; gooIndex++)
                     {
                         var goo = GooFromReshopperObject(kv.Value[gooIndex]);
+                        singleGoo = goo;
                         structure.Insert(goo, path, gooIndex);
                     }
                 }
-                DA.SetDataTree(paramIndex, structure);
+                if (setSingleItem && singleGoo!=null)
+                    DA.SetData(paramIndex, singleGoo);
+                else
+                    DA.SetDataTree(paramIndex, structure);
             }
 
             foreach (var error in schema.Errors)
@@ -212,6 +221,8 @@ namespace Compute.Components
 
             switch (obj.Type)
             {
+                case "System.Double":
+                    return new Grasshopper.Kernel.Types.GH_Number(double.Parse(data));
                 case "System.String":
                     return new Grasshopper.Kernel.Types.GH_String(data);
                 case "System.Int32":
