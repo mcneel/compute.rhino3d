@@ -57,6 +57,8 @@ namespace Compute.Components
             string address = Path;
             if (!PathIsAppServer)
             {
+                if (!System.IO.File.Exists(address))
+                    return; // file no longer there...
                 address = LocalServer.GetDescriptionUrl(Path);
             }
             using (var client = new System.Net.WebClient())
@@ -343,6 +345,11 @@ namespace Compute.Components
 
             schema.CacheSolve = cacheSolveOnServer;
             var inputs = GetInputParams();
+            if (inputs == null)
+            {
+                if (!PathIsAppServer && !System.IO.File.Exists(Path))
+                    return null;
+            }
             foreach (var kv in inputs)
             {
                 var (input, param) = kv.Value;
