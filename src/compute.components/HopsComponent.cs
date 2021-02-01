@@ -57,8 +57,11 @@ namespace Compute.Components
                     }
                     return;
                 }
-                var task = System.Threading.Tasks.Task.Run(() => _remoteDefinition.PostToServer(inputJson));
-                TaskList.Add(task);
+                if (inputJson != null)
+                {
+                    var task = System.Threading.Tasks.Task.Run(() => _remoteDefinition.PostToServer(inputJson));
+                    TaskList.Add(task);
+                }
                 return;
             }
 
@@ -74,10 +77,23 @@ namespace Compute.Components
                     }
                     return;
                 }
-                schema = _remoteDefinition.PostToServer(inputJson);
+                if (inputJson != null)
+                    schema = _remoteDefinition.PostToServer(inputJson);
+                else
+                    schema = null;
             }
 
-            _remoteDefinition.SetComponentOutputs(schema, DA, Params.Output, this);
+            if (schema != null)
+            {
+                _remoteDefinition.SetComponentOutputs(schema, DA, Params.Output, this);
+            }
+            else
+            {
+                if (!_remoteDefinition.PathIsAppServer && !System.IO.File.Exists(_remoteDefinition.Path))
+                {
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, $"No definition at {_remoteDefinition.Path}");
+                }
+            }
         }
 
         const string TagVersion = "RemoteSolveVersion";
@@ -247,10 +263,10 @@ namespace Compute.Components
             var inputs = _remoteDefinition.GetInputParams();
             var outputs = _remoteDefinition.GetOutputParams();
 
-            bool buildInputs = true;
-            bool buildOutputs = true;
+            bool buildInputs = inputs != null;
+            bool buildOutputs = outputs != null;
             // check to see if the existing params match
-            if (Params.Input.Count == inputs.Count)
+            if (buildInputs && Params.Input.Count == inputs.Count)
             {
                 buildInputs = false;
                 foreach (var param in Params.Input.ToArray())
@@ -262,7 +278,7 @@ namespace Compute.Components
                     }
                 }
             }
-            if (Params.Output.Count == outputs.Count)
+            if (buildOutputs && Params.Output.Count == outputs.Count)
             {
                 buildOutputs = false;
                 foreach (var param in Params.Output.ToArray())
