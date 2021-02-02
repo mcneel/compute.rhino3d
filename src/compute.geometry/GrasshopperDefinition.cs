@@ -75,6 +75,7 @@ namespace compute.geometry
             Grasshopper.Instances.DocumentServer.AddDocument(definition);
 
             GrasshopperDefinition rc = new GrasshopperDefinition(definition);
+            rc._singularComponent = component;
             foreach(var input in component.Params.Input)
             {
                 rc._input[input.NickName] = new InputGroup(input);
@@ -145,6 +146,7 @@ namespace compute.geometry
         public bool InDataCache { get; set; }
         public bool HasErrors { get; private set; } // default: false
 
+        GH_Component _singularComponent;
         Dictionary<string, InputGroup> _input = new Dictionary<string, InputGroup>();
         Dictionary<string, IGH_Param> _output = new Dictionary<string, IGH_Param>();
 
@@ -749,14 +751,23 @@ namespace compute.geometry
             foreach (var i in _input)
             {
                 inputNames.Add(i.Key);
-                inputs.Add(new InputParamSchema
+                var inputSchema = new InputParamSchema
                 {
                     Name = i.Key,
                     ParamType = ParamTypeName(i.Value.Param),
                     Description = i.Value.GetDescription(),
                     AtLeast = i.Value.GetAtLeast(),
                     AtMost = i.Value.GetAtMost()
-                });
+                };
+                if (_singularComponent != null)
+                {
+                    inputSchema.Description = i.Value.Param.Description;
+                    if (i.Value.Param.Access == GH_ParamAccess.item)
+                    {
+                        inputSchema.AtMost = inputSchema.AtLeast;
+                    }
+                }
+                inputs.Add(inputSchema);
             }
 
             foreach (var o in _output)
@@ -769,9 +780,13 @@ namespace compute.geometry
                 });
             }
 
+            string description = _singularComponent == null ?
+                Definition.Properties.Description :
+                _singularComponent.Description;
+
             return new IoResponseSchema
             {
-                Description = Definition.Properties.Description,
+                Description = description,
                 InputNames = inputNames,
                 OutputNames = outputNames,
                 Inputs = inputs,
