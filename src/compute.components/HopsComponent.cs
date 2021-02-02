@@ -215,7 +215,11 @@ namespace Compute.Components
             var form = new SetDefinitionForm(RemoteDefinitionLocation);
             if(form.ShowModal(parent))
             {
-                RemoteDefinitionLocation = form.Path;
+                var comp = Grasshopper.Instances.ComponentServer.FindObjectByName(form.Path, true, true);
+                if (comp != null)
+                    RemoteDefinitionLocation = comp.Guid.ToString();
+                else
+                    RemoteDefinitionLocation = form.Path;
             }
         }
 
