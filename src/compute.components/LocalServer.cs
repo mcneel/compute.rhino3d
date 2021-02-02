@@ -28,6 +28,14 @@ namespace Compute.Components
             return $"{baseUrl}/io?pointer={System.Web.HttpUtility.UrlEncode(definitionPath)}";
         }
 
+        public static string GetDescriptionUrl(Guid componentId)
+        {
+            if (componentId == Guid.Empty)
+                return null;
+            string baseUrl = GetComputeServerBaseUrl();
+            return $"{baseUrl}/io?pointer={System.Web.HttpUtility.UrlEncode(componentId.ToString())}";
+        }
+
         public static string GetSolveUrl()
         {
             string baseUrl = GetComputeServerBaseUrl();

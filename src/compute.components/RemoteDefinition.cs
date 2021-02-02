@@ -10,9 +10,12 @@ namespace Compute.Components
 {
     class RemoteDefinition : IDisposable
     {
+        Guid _pathAsComponentGuid;
+
         public RemoteDefinition(string path)
         {
             Path = path;
+            Guid.TryParse(path, out _pathAsComponentGuid);
         }
 
         public string Path { get; private set; }
@@ -57,9 +60,17 @@ namespace Compute.Components
             string address = Path;
             if (!PathIsAppServer)
             {
-                if (!System.IO.File.Exists(address))
-                    return; // file no longer there...
-                address = LocalServer.GetDescriptionUrl(Path);
+                if (_pathAsComponentGuid != Guid.Empty)
+                {
+                    // path provided is a guid to a component
+                    address = LocalServer.GetDescriptionUrl(_pathAsComponentGuid);
+                }
+                else
+                {
+                    if (!System.IO.File.Exists(address))
+                        return; // file no longer there...
+                    address = LocalServer.GetDescriptionUrl(Path);
+                }
             }
             using (var client = new System.Net.WebClient())
             {
@@ -231,6 +242,10 @@ namespace Compute.Components
                     return new Grasshopper.Kernel.Types.GH_Integer(int.Parse(data));
                 case "Rhino.Geometry.Line":
                     return new Grasshopper.Kernel.Types.GH_Line(JsonConvert.DeserializeObject<Line>(data));
+                case "Rhino.Geometry.Point3d":
+                    return new Grasshopper.Kernel.Types.GH_Point(JsonConvert.DeserializeObject<Point3d>(data));
+                case "Rhino.Geometry.Vector3d":
+                    return new Grasshopper.Kernel.Types.GH_Vector(JsonConvert.DeserializeObject<Vector3d>(data));
                 case "Rhino.Geometry.Brep":
                 case "Rhino.Geometry.Curve":
                 case "Rhino.Geometry.Extrusion":
