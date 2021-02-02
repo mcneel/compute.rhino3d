@@ -32,11 +32,18 @@ namespace compute.geometry
                 return rc;
             }
 
-            var archive = ArchiveFromUrl(url);
-            if (archive == null)
-                return null;
+            if (Guid.TryParse(url, out Guid componentId))
+            {
+                rc = Construct(componentId);
+            }
+            else
+            {
+                var archive = ArchiveFromUrl(url);
+                if (archive == null)
+                    return null;
 
-            rc = Construct(archive);
+                rc = Construct(archive);
+            }
             if (cache)
             {
                 DataCache.SetCachedDefinition(url, rc);
@@ -52,6 +59,30 @@ namespace compute.geometry
                 return null;
 
             var rc = Construct(archive);
+            return rc;
+        }
+
+        private static GrasshopperDefinition Construct(Guid componentId)
+        {
+            var component = Grasshopper.Instances.ComponentServer.EmitObject(componentId) as GH_Component;
+            if (component==null)
+                return null;
+
+            var definition = new GH_Document();
+            definition.AddObject(component, false);
+
+            // raise DocumentServer.DocumentAdded event (used by some plug-ins)
+            Grasshopper.Instances.DocumentServer.AddDocument(definition);
+
+            GrasshopperDefinition rc = new GrasshopperDefinition(definition);
+            foreach(var input in component.Params.Input)
+            {
+                rc._input[input.NickName] = new InputGroup(input);
+            }
+            foreach(var output in component.Params.Output)
+            {
+                rc._output[output.NickName] = output;
+            }
             return rc;
         }
 
