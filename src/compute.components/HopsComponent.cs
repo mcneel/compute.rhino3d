@@ -119,7 +119,16 @@ namespace Compute.Components
                 var version = reader.GetVersion(TagVersion);
                 _majorVersion = version.major;
                 _minorVersion = version.minor;
-                RemoteDefinitionLocation = reader.GetString(TagPath);
+                string path = reader.GetString(TagPath);
+                try
+                {
+                    RemoteDefinitionLocation = path;
+                }
+                catch (System.Net.WebException)
+                {
+                    // this can happen if a server is not responding and is acceptable in this
+                    // case as we want to read without throwing exceptions
+                }
 
                 bool cacheResults = _cacheSolveResults;
                 if (reader.TryGetBoolean(TagCacheResults, ref cacheResults))
