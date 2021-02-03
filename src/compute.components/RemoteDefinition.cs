@@ -240,6 +240,8 @@ namespace Compute.Components
                     return new Grasshopper.Kernel.Types.GH_String(data);
                 case "System.Int32":
                     return new Grasshopper.Kernel.Types.GH_Integer(int.Parse(data));
+                case "Rhino.Geometry.Circle":
+                    return new Grasshopper.Kernel.Types.GH_Circle(JsonConvert.DeserializeObject<Circle>(data));
                 case "Rhino.Geometry.Line":
                     return new Grasshopper.Kernel.Types.GH_Line(JsonConvert.DeserializeObject<Line>(data));
                 case "Rhino.Geometry.Point3d":

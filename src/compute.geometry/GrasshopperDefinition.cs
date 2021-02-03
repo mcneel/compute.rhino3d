@@ -757,7 +757,8 @@ namespace compute.geometry
                     ParamType = ParamTypeName(i.Value.Param),
                     Description = i.Value.GetDescription(),
                     AtLeast = i.Value.GetAtLeast(),
-                    AtMost = i.Value.GetAtMost()
+                    AtMost = i.Value.GetAtMost(),
+                    Default = i.Value.GetDefault()
                 };
                 if (_singularComponent != null)
                 {
@@ -875,13 +876,99 @@ namespace compute.geometry
             return rhObj;
         }
 
-
         class InputGroup
         {
+            object _default = null;
             public InputGroup(IGH_Param param)
             {
                 Param = param;
+                switch (param)
+                {
+                    case Grasshopper.Kernel.Parameters.Param_Arc _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Boolean paramBool:
+                        if (paramBool.PersistentDataCount == 1)
+                            _default = paramBool.PersistentData[0][0].Value;
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Box _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Brep _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Circle _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Colour _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Complex _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Culture _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Curve _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Field _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_FilePath _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_GenericObject _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Geometry _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Group _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Guid _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Integer paramInt:
+                        if (paramInt.PersistentDataCount == 1)
+                            _default = paramInt.PersistentData[0][0].Value;
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Interval _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Interval2D _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_LatLonLocation _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Line _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Matrix _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Mesh _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_MeshFace _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_MeshParameters _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Number paramNumber:
+                        if (paramNumber.PersistentDataCount == 1)
+                            _default = paramNumber.PersistentData[0][0].Value;
+                        break;
+                    //case Grasshopper.Kernel.Parameters.Param_OGLShader:
+                    case Grasshopper.Kernel.Parameters.Param_Plane paramPlane:
+                        if (paramPlane.PersistentDataCount == 1)
+                            _default = paramPlane.PersistentData[0][0].Value;
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Point _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Rectangle _:
+                        break;
+                    //case Grasshopper.Kernel.Parameters.Param_ScriptVariable _:
+                    case Grasshopper.Kernel.Parameters.Param_String _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_StructurePath _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_SubD _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Surface _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Time _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Transform _:
+                        break;
+                    case Grasshopper.Kernel.Parameters.Param_Vector _:
+                        break;
+                    case Grasshopper.Kernel.Special.GH_NumberSlider _:
+                        break;
+                }
             }
+
             public IGH_Param Param { get; }
 
             public string GetDescription()
@@ -916,6 +1003,11 @@ namespace compute.geometry
                 return int.MaxValue;
             }
             
+            public object GetDefault()
+            {
+                return _default;
+            }
+
             public bool AlreadySet(DataTree<ResthopperObject> tree)
             {
                 if (_tree == null)
