@@ -8,44 +8,80 @@ namespace compute.geometry
 {
     static class DataCache
     {
+        class CachedDefinition
+        {
+            public GrasshopperDefinition Definition{ get; set;}
+            public uint WatchedFileRuntimeSerialNumber { get; set; }
+        }
+
+        class CachedResults
+        {
+            public GrasshopperDefinition Definition { get; set; }
+            public uint WatchedFileRuntimeSerialNumber { get; set; }
+            public string Json { get; set; }
+        }
+
         public static GrasshopperDefinition GetCachedDefinition(string key)
         {
             if (string.IsNullOrWhiteSpace(key))
                 return null;
-            return System.Runtime.Caching.MemoryCache.Default.Get(key) as GrasshopperDefinition;
+            var def = System.Runtime.Caching.MemoryCache.Default.Get(key) as CachedDefinition;
+            if (def == null)
+                return null;
+            if (def.Definition.IsLocalFileDefinition)
+            {
+                if(def.WatchedFileRuntimeSerialNumber != GrasshopperDefinition.WatchedFileRuntimeSerialNumber)
+                {
+                    System.Runtime.Caching.MemoryCache.Default.Remove(key);
+                    return null;
+                }
+            }
+            return def.Definition;
         }
 
         public static void SetCachedDefinition(string key, GrasshopperDefinition definition)
         {
-            System.Runtime.Caching.MemoryCache.Default.Set(key, definition, CachePolicy);
-        }
-
-        public static GH_Archive GetCachedArchive(string key)
-        {
-            if (string.IsNullOrWhiteSpace(key))
-                return null;
-            GH_Archive archive = System.Runtime.Caching.MemoryCache.Default.Get(key) as GH_Archive;
-            if( archive == null )
+            CachedDefinition cachedef = new CachedDefinition
             {
-                archive = ResthopperEndpointsModule.ArchiveFromUrl(key);
-                if( archive != null)
-                    System.Runtime.Caching.MemoryCache.Default.Add(key, archive, CachePolicy);
-            }
-            return archive;
+                Definition = definition,
+                WatchedFileRuntimeSerialNumber = GrasshopperDefinition.WatchedFileRuntimeSerialNumber
+            };
+            System.Runtime.Caching.MemoryCache.Default.Set(key, cachedef, CachePolicy);
         }
 
         public static string GetCachedSolveResults(string key)
         {
             if (string.IsNullOrWhiteSpace(key))
                 return null;
-            string jsonResults = System.Runtime.Caching.MemoryCache.Default.Get(key) as string;
-            return jsonResults;
+            var cache = System.Runtime.Caching.MemoryCache.Default.Get(key) as CachedResults;
+            if (cache == null)
+                return null;
+
+            if (cache.Definition.IsLocalFileDefinition)
+            {
+                if (cache.WatchedFileRuntimeSerialNumber != GrasshopperDefinition.WatchedFileRuntimeSerialNumber)
+                {
+                    System.Runtime.Caching.MemoryCache.Default.Remove(key);
+                    return null;
+                }
+            }
+
+            return cache.Json;
         }
 
-        public static void SetCachedSolveResults(string key, string jsonResults)
+        public static void SetCachedSolveResults(string key, string jsonResults, GrasshopperDefinition definition)
         {
-            if (!string.IsNullOrWhiteSpace(key))
-                System.Runtime.Caching.MemoryCache.Default.Add(key, jsonResults, CachePolicy);
+            if (string.IsNullOrWhiteSpace(key))
+                return;
+
+            var cache = new CachedResults
+            {
+                Definition = definition,
+                WatchedFileRuntimeSerialNumber = GrasshopperDefinition.WatchedFileRuntimeSerialNumber,
+                Json = jsonResults
+            };
+
+            System.Runtime.Caching.MemoryCache.Default.Add(key, cache, CachePolicy);
         }
 
         public static object GetCachedItem(JToken token, Type objectType, JsonSerializer serializer)

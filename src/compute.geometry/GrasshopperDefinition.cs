@@ -20,12 +20,58 @@ namespace compute.geometry
 {
     class GrasshopperDefinition
     {
+        static Dictionary<string, FileSystemWatcher> _filewatchers;
+        static HashSet<string> _watchedFiles = new HashSet<string>();
+        static uint _watchedFileRuntimeSerialNumber = 1;
+        public static uint WatchedFileRuntimeSerialNumber
+        {
+            get { return _watchedFileRuntimeSerialNumber; }
+        }
+        static void RegisterFileWatcher(string path)
+        {
+            if (_filewatchers == null)
+            {
+                _filewatchers = new Dictionary<string, FileSystemWatcher>();
+            }
+            if (!File.Exists(path))
+                return;
+
+            path = Path.GetFullPath(path);
+            if (_watchedFiles.Contains(path.ToLowerInvariant()))
+                return;
+
+            _watchedFiles.Add(path.ToLowerInvariant());
+            string directory = Path.GetDirectoryName(path);
+            if (_filewatchers.ContainsKey(directory) || !Directory.Exists(directory))
+                return;
+
+            var fsw = new FileSystemWatcher(directory);
+            fsw.NotifyFilter = NotifyFilters.Attributes |
+                NotifyFilters.CreationTime |
+                NotifyFilters.FileName |
+                NotifyFilters.LastAccess |
+                NotifyFilters.LastWrite |
+                NotifyFilters.Size |
+                NotifyFilters.Security;
+            fsw.Changed += Fsw_Changed;
+            fsw.EnableRaisingEvents = true;
+            _filewatchers[directory] = fsw;
+        }
+
+        private static void Fsw_Changed(object sender, FileSystemEventArgs e)
+        {
+            string path = e.FullPath.ToLowerInvariant();
+            if (_watchedFiles.Contains(path))
+                _watchedFileRuntimeSerialNumber++;
+        }
+
         static void LogDebug(string message) { Serilog.Log.Debug(message); }
         static void LogError(string messge)  { Serilog.Log.Error(messge); }
 
         public static GrasshopperDefinition FromUrl(string url, bool cache)
         {
             GrasshopperDefinition rc = DataCache.GetCachedDefinition(url);
+
             if (rc != null)
             {
                 LogDebug("Using cached definition");
@@ -43,6 +89,7 @@ namespace compute.geometry
                     return null;
 
                 rc = Construct(archive);
+                rc.IsLocalFileDefinition = !url.StartsWith("http", StringComparison.OrdinalIgnoreCase) && File.Exists(url);
             }
             if (cache)
             {
@@ -140,11 +187,14 @@ namespace compute.geometry
         private GrasshopperDefinition(GH_Document definition)
         {
             Definition = definition;
+            FileRuntimeCacheSerialNumber = _watchedFileRuntimeSerialNumber;
         }
 
         public GH_Document Definition { get; }
         public bool InDataCache { get; set; }
         public bool HasErrors { get; private set; } // default: false
+        public bool IsLocalFileDefinition { get; set; } // default: false
+        public uint FileRuntimeCacheSerialNumber { get; private set; }
 
         GH_Component _singularComponent;
         Dictionary<string, InputGroup> _input = new Dictionary<string, InputGroup>();
@@ -805,7 +855,10 @@ namespace compute.geometry
                 // local file
                 var archive = new GH_Archive();
                 if (archive.ReadFromFile(url))
+                {
+                    RegisterFileWatcher(url);
                     return archive;
+                }
                 return null;
             }
 
