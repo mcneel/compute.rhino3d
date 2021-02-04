@@ -101,7 +101,7 @@ namespace compute.geometry
             {
                 if(input.CacheSolve)
                 {
-                    DataCache.SetCachedSolveResults(body, returnJson);
+                    DataCache.SetCachedSolveResults(body, returnJson, definition);
                 }
             }
             return res;
