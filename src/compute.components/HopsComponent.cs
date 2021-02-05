@@ -21,11 +21,13 @@ namespace Compute.Components
         int _minorVersion = 1;
         RemoteDefinition _remoteDefinition = null;
         bool _cacheSolveResults = true;
+        static bool _isHeadless = false;
         #endregion
 
         public HopsComponent()
           : base("Hops", "Hops", "Solve an external definition using Rhino Compute", "Params", "Util")
         {
+            _isHeadless = Rhino.RhinoApp.IsRunningHeadless;
         }
 
         public override Guid ComponentGuid => GetType().GUID;
@@ -44,6 +46,15 @@ namespace Compute.Components
             if( string.IsNullOrWhiteSpace(RemoteDefinitionLocation))
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "No URL or path defined for definition");
+                return;
+            }
+
+            // Don't allow hops components to run on compute for now.
+            if (_isHeadless)
+            {
+                AddRuntimeMessage(
+                    GH_RuntimeMessageLevel.Error,
+                    "Hops components are not allowed to run in external definitions. Please help us understand why you need this by emailing steve@mcneel.com");
                 return;
             }
 
