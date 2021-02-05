@@ -941,13 +941,27 @@ namespace compute.geometry
             public InputGroup(IGH_Param param)
             {
                 Param = param;
+                _default = GetDefaultValueHelper(param, 0);
+            }
+
+            object GetDefaultValueHelper(IGH_Param param, int depth)
+            {
                 switch (param)
                 {
+                    case Grasshopper.Kernel.IGH_ContextualParameter _:
+                        {
+                            if (0 == depth && param.Sources.Count == 1)
+                            {
+                                var sourceParam = param.Sources[0];
+                                return GetDefaultValueHelper(sourceParam, depth + 1);
+                            }
+                        }
+                        break;
                     case Grasshopper.Kernel.Parameters.Param_Arc _:
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Boolean paramBool:
                         if (paramBool.PersistentDataCount == 1)
-                            _default = paramBool.PersistentData[0][0].Value;
+                            return paramBool.PersistentData[0][0].Value;
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Box _:
                         break;
@@ -977,7 +991,7 @@ namespace compute.geometry
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Integer paramInt:
                         if (paramInt.PersistentDataCount == 1)
-                            _default = paramInt.PersistentData[0][0].Value;
+                            return paramInt.PersistentData[0][0].Value;
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Interval _:
                         break;
@@ -997,12 +1011,12 @@ namespace compute.geometry
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Number paramNumber:
                         if (paramNumber.PersistentDataCount == 1)
-                            _default = paramNumber.PersistentData[0][0].Value;
+                            return paramNumber.PersistentData[0][0].Value;
                         break;
                     //case Grasshopper.Kernel.Parameters.Param_OGLShader:
                     case Grasshopper.Kernel.Parameters.Param_Plane paramPlane:
                         if (paramPlane.PersistentDataCount == 1)
-                            _default = paramPlane.PersistentData[0][0].Value;
+                            return paramPlane.PersistentData[0][0].Value;
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Point _:
                         break;
@@ -1024,9 +1038,9 @@ namespace compute.geometry
                     case Grasshopper.Kernel.Parameters.Param_Vector _:
                         break;
                     case Grasshopper.Kernel.Special.GH_NumberSlider paramSlider:
-                        _default = paramSlider.Slider.Value;
-                        break;
+                        return paramSlider.CurrentValue;
                 }
+                return null;
             }
 
             public IGH_Param Param { get; }
@@ -1070,15 +1084,28 @@ namespace compute.geometry
 
             public object GetMinimum()
             {
-                if (Param is GH_NumberSlider paramSlider)
+                var p = Param;
+                if (p is IGH_ContextualParameter && p.Sources.Count == 1)
+                {
+                    p = p.Sources[0];
+                }
+
+                if (p is GH_NumberSlider paramSlider)
                     return paramSlider.Slider.Minimum;
                 return 0;
             }
 
             public object GetMaximum()
             {
-                if (Param is GH_NumberSlider slider)
-                    return slider.Slider.Maximum;
+                var p = Param;
+                if (p is IGH_ContextualParameter && p.Sources.Count == 1)
+                {
+                    p = p.Sources[0];
+                }
+
+                if (p is GH_NumberSlider paramSlider)
+                    return paramSlider.Slider.Maximum;
+
                 return int.MaxValue;
             }
 
