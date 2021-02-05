@@ -57,6 +57,7 @@ namespace compute.geometry
             return null;
         }
 
+        static object _ghsolvelock = new object();
         static Response Grasshopper(NancyContext ctx)
         {
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -77,34 +78,44 @@ namespace compute.geometry
                 }
             }
 
-            // load grasshopper file
-            GrasshopperDefinition definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
-            if (definition == null)
-                definition = GrasshopperDefinition.FromBase64String(input.Algo);
-            if (definition == null)
-                throw new Exception("Unable to load grasshopper definition");
-
-            definition.SetInputs(input.Values);
-            long decodeTime = stopwatch.ElapsedMilliseconds;
-            stopwatch.Restart();
-            var output = definition.Solve();
-            long solveTime = stopwatch.ElapsedMilliseconds;
-            stopwatch.Restart();
-            string returnJson = JsonConvert.SerializeObject(output, GeometryResolver.Settings);
-            long encodeTime = stopwatch.ElapsedMilliseconds;
-            Response res = returnJson;
-            res.ContentType = "application/json";
-            res = res.WithHeader("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
-            if (definition.HasErrors)
-                res.StatusCode = Nancy.HttpStatusCode.InternalServerError;
-            else
+            // 5 Feb 2021 S. Baer
+            // Throw a lock around the entire solve process for now. I can easily
+            // repeat multi-threaded issues by creating a catenary component with Hops
+            // that has one point for A and multiple points for B.
+            // We can narrow down this lock over time. As it stands, launching many
+            // compute instances on one computer is going to be a better solution anyway
+            // to deal with solving many times simultaniously.
+            lock (_ghsolvelock)
             {
-                if(input.CacheSolve)
+                // load grasshopper file
+                GrasshopperDefinition definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
+                if (definition == null)
+                    definition = GrasshopperDefinition.FromBase64String(input.Algo);
+                if (definition == null)
+                    throw new Exception("Unable to load grasshopper definition");
+
+                definition.SetInputs(input.Values);
+                long decodeTime = stopwatch.ElapsedMilliseconds;
+                stopwatch.Restart();
+                var output = definition.Solve();
+                long solveTime = stopwatch.ElapsedMilliseconds;
+                stopwatch.Restart();
+                string returnJson = JsonConvert.SerializeObject(output, GeometryResolver.Settings);
+                long encodeTime = stopwatch.ElapsedMilliseconds;
+                Response res = returnJson;
+                res.ContentType = "application/json";
+                res = res.WithHeader("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
+                if (definition.HasErrors)
+                    res.StatusCode = Nancy.HttpStatusCode.InternalServerError;
+                else
                 {
-                    DataCache.SetCachedSolveResults(body, returnJson, definition);
+                    if (input.CacheSolve)
+                    {
+                        DataCache.SetCachedSolveResults(body, returnJson, definition);
+                    }
                 }
+                return res;
             }
-            return res;
         }
 
         Response GetIoNames(NancyContext ctx, bool asPost)
