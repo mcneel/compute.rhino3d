@@ -787,6 +787,10 @@ namespace compute.geometry
             {
                 return "Geometry";
             }
+            if (param is GH_NumberSlider)
+            {
+                return "Slider"; // differentiate from "Number"
+            }
             return param.TypeName;
         }
 
@@ -808,7 +812,9 @@ namespace compute.geometry
                     Description = i.Value.GetDescription(),
                     AtLeast = i.Value.GetAtLeast(),
                     AtMost = i.Value.GetAtMost(),
-                    Default = i.Value.GetDefault()
+                    Default = i.Value.GetDefault(),
+                    Minimum = i.Value.GetMinimum(),
+                    Maximum = i.Value.GetMaximum(),
                 };
                 if (_singularComponent != null)
                 {
@@ -1017,7 +1023,8 @@ namespace compute.geometry
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Vector _:
                         break;
-                    case Grasshopper.Kernel.Special.GH_NumberSlider _:
+                    case Grasshopper.Kernel.Special.GH_NumberSlider paramSlider:
+                        _default = paramSlider.Slider.Value;
                         break;
                 }
             }
@@ -1059,6 +1066,20 @@ namespace compute.geometry
             public object GetDefault()
             {
                 return _default;
+            }
+
+            public object GetMinimum()
+            {
+                if (Param is GH_NumberSlider paramSlider)
+                    return paramSlider.Slider.Minimum;
+                return 0;
+            }
+
+            public object GetMaximum()
+            {
+                if (Param is GH_NumberSlider slider)
+                    return slider.Slider.Maximum;
+                return int.MaxValue;
             }
 
             public bool AlreadySet(DataTree<ResthopperObject> tree)

@@ -50,6 +50,8 @@ namespace Resthopper.IO
         public int AtLeast { get; set; } = 1;
         public int AtMost { get; set; } = 0;
         public object Default { get; set; } = null;
+        public object Minimum { get; set; } = null;
+        public object Maximum { get; set; } = null;
     }
 
     public class IoResponseSchema
