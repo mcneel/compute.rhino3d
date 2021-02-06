@@ -121,9 +121,14 @@ namespace compute.geometry
 
             Log.Information("Listening on {Urls}", _bind);
 
-            var chunks = _bind[0].Split(new char[] { ':' });
-            Console.Title = $"rhino.compute:{chunks[chunks.Length-1]}";
-            Shutdown.StartTimer(hctrl);
+            // when running in a console (not as a service), i.e. when launched as a child process of hops
+            // update console title to differentiate windows (ports) and start parent process shutdown timer
+            if (hctrl is Topshelf.Hosts.ConsoleRunHost)
+            {
+                var chunks = _bind[0].Split(new char[] { ':' });
+                Console.Title = $"rhino.compute:{chunks[chunks.Length - 1]}";
+                Shutdown.StartTimer(hctrl);
+            }
 
             return true;
         }
