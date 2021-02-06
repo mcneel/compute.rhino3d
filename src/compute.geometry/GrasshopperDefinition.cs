@@ -1092,7 +1092,7 @@ namespace compute.geometry
 
                 if (p is GH_NumberSlider paramSlider)
                     return paramSlider.Slider.Minimum;
-                return 0;
+                return null;
             }
 
             public object GetMaximum()
@@ -1106,7 +1106,7 @@ namespace compute.geometry
                 if (p is GH_NumberSlider paramSlider)
                     return paramSlider.Slider.Maximum;
 
-                return int.MaxValue;
+                return null;
             }
 
             public bool AlreadySet(DataTree<ResthopperObject> tree)
