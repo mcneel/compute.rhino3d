@@ -359,7 +359,7 @@ namespace Compute.Components
                             if (input.Default == null)
                                 mgr.AddBooleanParameter(name, name, inputDescription, access);
                             else
-                                mgr.AddBooleanParameter(name, name, inputDescription, access, (bool)input.Default);
+                                mgr.AddBooleanParameter(name, name, inputDescription, access, Convert.ToBoolean(input.Default));
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Box _:
                             mgr.AddBoxParameter(name, name, inputDescription, access);
@@ -435,7 +435,7 @@ namespace Compute.Components
                             if (input.Default == null)
                                 mgr.AddNumberParameter(name, name, inputDescription, access);
                             else
-                                mgr.AddNumberParameter(name, name, inputDescription, access, (double)input.Default);
+                                mgr.AddNumberParameter(name, name, inputDescription, access, Convert.ToDouble(input.Default));
                             break;
                         //case Grasshopper.Kernel.Parameters.Param_OGLShader:
                         case Grasshopper.Kernel.Parameters.Param_Plane _:
