@@ -787,10 +787,6 @@ namespace compute.geometry
             {
                 return "Geometry";
             }
-            if (param is GH_NumberSlider)
-            {
-                return "Slider"; // differentiate from "Number"
-            }
             return param.TypeName;
         }
 
