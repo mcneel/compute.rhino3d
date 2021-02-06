@@ -2,16 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace Compute.Components
+namespace compute.rhino3d
 {
-    /// <summary>
-    /// Utility for managing local compute server instances. When Hops
-    /// components are referencing paths to files (instead of http URLs),
-    /// the definitions are processed by compute server instances running
-    /// on the same machine. Hops ships with a copy of compute.geometry.exe
-    /// that it can launch when a compute server is needed.
-    /// </summary>
-    class LocalServer
+    static class ComputeChildren
     {
         public static int ActiveComputeCount
         {
@@ -22,26 +15,6 @@ namespace Compute.Components
             }
         }
 
-        public static string GetDescriptionUrl(string definitionPath)
-        {
-            string baseUrl = GetComputeServerBaseUrl();
-            return $"{baseUrl}/io?pointer={System.Web.HttpUtility.UrlEncode(definitionPath)}";
-        }
-
-        public static string GetDescriptionUrl(Guid componentId)
-        {
-            if (componentId == Guid.Empty)
-                return null;
-            string baseUrl = GetComputeServerBaseUrl();
-            return $"{baseUrl}/io?pointer={System.Web.HttpUtility.UrlEncode(componentId.ToString())}";
-        }
-
-        public static string GetSolveUrl()
-        {
-            string baseUrl = GetComputeServerBaseUrl();
-            return baseUrl + "/grasshopper";
-        }
-
         /// <summary>
         /// Get base url for a compute server. This function may return a
         /// different string each time it is called as it attempts to provide
@@ -49,7 +22,7 @@ namespace Compute.Components
         /// found to be available.
         /// </summary>
         /// <returns></returns>
-        static string GetComputeServerBaseUrl()
+        public static string GetComputeServerBaseUrl()
         {
             // Simple round robin scheduler using a queue of compute.geometry processes
             int activePort = 0;
@@ -114,9 +87,9 @@ namespace Compute.Components
 
         static void LaunchCompute(Queue<Tuple<Process, int>> processQueue, bool waitUntilServing)
         {
-            string pathToGha = typeof(LocalServer).Assembly.Location;
-            string dir = System.IO.Path.GetDirectoryName(pathToGha);
-            string pathToCompute = System.IO.Path.Combine(dir, "compute", "compute.geometry.exe");
+            var file = new System.IO.FileInfo(typeof(ComputeChildren).Assembly.Location);
+            var parentDirectory = file.Directory.Parent;
+            string pathToCompute = System.IO.Path.Combine(parentDirectory.FullName, "compute", "compute.geometry.exe");
             if (!System.IO.File.Exists(pathToCompute))
                 return;
 
@@ -126,7 +99,7 @@ namespace Compute.Components
             {
                 bool checkTitle = true;
                 // see if this process is already in the queue
-                foreach(var item in processQueue)
+                foreach (var item in processQueue)
                 {
                     if (existingProcess.Id == item.Item1.Id)
                     {
@@ -149,7 +122,7 @@ namespace Compute.Components
                 }
             }
             int port = 0;
-            for(int i=0;i<256; i++)
+            for (int i = 0; i < 256; i++)
             {
                 // start at port 6000. Feel free to change this if there is a reason
                 // to use a different port
@@ -169,38 +142,8 @@ namespace Compute.Components
 
             var startInfo = new ProcessStartInfo(pathToCompute);
             startInfo.Arguments = $"-port:{port} -childof:{Process.GetCurrentProcess().Id}";
-            //startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            //startInfo.CreateNoWindow = true;
             var process = Process.Start(startInfo);
             var start = DateTime.Now;
-
-            /*
-            while (true)
-            {
-                System.Threading.Thread.Sleep(500);
-                // It looks like .NET caches the window title for a Process instance.
-                // The following hack is to work around the fact that we are changing
-                // the title to relay information about the port used
-                var temp = Process.GetProcessById(process.Id);
-                string title = temp.MainWindowTitle;
-                var chunks = title.Split(new char[] { ':' });
-                if (chunks.Length > 1)
-                {
-                    string sPort = chunks[chunks.Length - 1];
-                    if(int.TryParse(sPort, out int computePort))
-                    {
-                        if (computePort == port)
-                            break;
-                    }
-                }
-                var span = DateTime.Now - start;
-                if (span.TotalSeconds > 20)
-                {
-                    process.Kill();
-                    throw new Exception("Unable to start a local compute server");
-                }
-            }
-            */
 
             if (waitUntilServing)
             {
