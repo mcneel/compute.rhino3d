@@ -51,6 +51,12 @@ namespace Compute.Components
         /// <returns></returns>
         static string GetComputeServerBaseUrl()
         {
+            // uncomment for testing new compute.rhino3d server
+            //var processesRhino3d = Process.GetProcessesByName("compute.rhino3d");
+            //if (processesRhino3d.Length > 0)
+            //    return "http://localhost:5000";
+
+
             // Simple round robin scheduler using a queue of compute.geometry processes
             int activePort = 0;
 

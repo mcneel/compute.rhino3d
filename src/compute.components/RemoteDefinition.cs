@@ -121,7 +121,7 @@ namespace Compute.Components
 
         public Schema PostToServer(string inputJson)
         {
-            string solveUrl = "";
+            string solveUrl;
             if (PathIsAppServer)
             {
                 int index = Path.LastIndexOf('/');
@@ -132,13 +132,15 @@ namespace Compute.Components
                 solveUrl = LocalServer.GetSolveUrl();
             }
 
-            var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
-            var postTask = HttpClient.PostAsync(solveUrl, content);
-            var responseMessage = postTask.Result;
-            var remoteSolvedData = responseMessage.Content;
-            var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-            var schema = JsonConvert.DeserializeObject<Resthopper.IO.Schema>(stringResult);
-            return schema;
+            using (var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json"))
+            {
+                var postTask = HttpClient.PostAsync(solveUrl, content);
+                var responseMessage = postTask.Result;
+                var remoteSolvedData = responseMessage.Content;
+                var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
+                var schema = JsonConvert.DeserializeObject<Resthopper.IO.Schema>(stringResult);
+                return schema;
+            }
         }
 
         public void SetComponentOutputs(Schema schema, IGH_DataAccess DA, List<IGH_Param> outputParams, GH_ActiveObject component)
