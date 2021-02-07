@@ -1014,7 +1014,9 @@ namespace compute.geometry
                         if (paramPlane.PersistentDataCount == 1)
                             return paramPlane.PersistentData[0][0].Value;
                         break;
-                    case Grasshopper.Kernel.Parameters.Param_Point _:
+                    case Grasshopper.Kernel.Parameters.Param_Point paramPoint:
+                        if (paramPoint.PersistentDataCount == 1)
+                            return paramPoint.PersistentData[0][0].Value;
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Rectangle _:
                         break;
@@ -1031,7 +1033,9 @@ namespace compute.geometry
                         break;
                     case Grasshopper.Kernel.Parameters.Param_Transform _:
                         break;
-                    case Grasshopper.Kernel.Parameters.Param_Vector _:
+                    case Grasshopper.Kernel.Parameters.Param_Vector paramVector:
+                        if (paramVector.PersistentDataCount == 1)
+                            return paramVector.PersistentData[0][0].Value;
                         break;
                     case Grasshopper.Kernel.Special.GH_NumberSlider paramSlider:
                         return paramSlider.CurrentValue;
