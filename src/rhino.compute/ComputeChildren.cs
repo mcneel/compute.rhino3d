@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace compute.rhino3d
+namespace rhino.compute
 {
     static class ComputeChildren
     {

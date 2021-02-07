@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 
-namespace compute.rhino3d
+namespace rhino.compute
 {
     public class ReverseProxyModule : Carter.CarterModule
     {

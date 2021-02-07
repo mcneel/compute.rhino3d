@@ -52,7 +52,7 @@ namespace Compute.Components
         static string GetComputeServerBaseUrl()
         {
             // uncomment for testing new compute.rhino3d server
-            //var processesRhino3d = Process.GetProcessesByName("compute.rhino3d");
+            //var processesRhino3d = Process.GetProcessesByName("rhino.compute");
             //if (processesRhino3d.Length > 0)
             //    return "http://localhost:5000";
 

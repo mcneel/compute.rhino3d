@@ -1,4 +1,4 @@
-namespace compute.rhino3d
+namespace rhino.compute
 {
     using Carter;
     using Microsoft.AspNetCore.Builder;

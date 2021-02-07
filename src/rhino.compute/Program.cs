@@ -1,4 +1,4 @@
-namespace compute.rhino3d
+namespace rhino.compute
 {
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.Extensions.Hosting;
