@@ -6,6 +6,40 @@ namespace rhino.compute
 {
     static class ComputeChildren
     {
+        /// <summary>
+        /// Number of child compute.geometry processes to launch
+        /// </summary>
+        public static int SpawnCount { get; set; } = 1;
+
+        static DateTime _lastCall = DateTime.MinValue;
+        public static void UpdateLastCall()
+        {
+            _lastCall = DateTime.Now;
+        }
+
+        public static TimeSpan ChildIdleSpan { get; set; } = TimeSpan.Zero;
+        public static int ParentPort { get; set; } = 0;
+
+        /// <summary>
+        /// Length of time (in seconds) since rhino.compute last made a call
+        /// to a child process. The child processes use this information to
+        /// figure out if they should exit.
+        /// </summary>
+        /// <returns>
+        /// -1 if a child process has never been called; otherwise
+        /// span in seconds since the last call to a child process
+        /// </returns>
+        public static int IdleSpan()
+        {
+            if (_lastCall == DateTime.MinValue)
+                return -1;
+            var span = DateTime.Now - _lastCall;
+            return (int)span.TotalSeconds;
+        }
+
+        /// <summary>
+        /// Total number of compute.geometry processes being run
+        /// </summary>
         public static int ActiveComputeCount
         {
             get
@@ -74,6 +108,15 @@ namespace rhino.compute
             if (0 == activePort)
                 throw new Exception("No compute server found");
 
+            if (_computeProcesses.Count < SpawnCount)
+            {
+                // Bring up other child computes to SpawnCount level
+                for(int i=_computeProcesses.Count; i<SpawnCount; i++)
+                {
+                    LaunchCompute(false);
+                }
+            }
+
             return $"http://localhost:{activePort}";
         }
 
@@ -87,8 +130,15 @@ namespace rhino.compute
 
         static void LaunchCompute(Queue<Tuple<Process, int>> processQueue, bool waitUntilServing)
         {
-            var file = new System.IO.FileInfo(typeof(ComputeChildren).Assembly.Location);
-            var parentDirectory = file.Directory.Parent;
+            var pathToThisAssembly = new System.IO.FileInfo(typeof(ComputeChildren).Assembly.Location);
+
+#if RHINO_COMPUTE
+            // compute.geometry is in a sibling directory called compute when running rhino.compute.exe
+            var parentDirectory = pathToThisAssembly.Directory.Parent;
+#else
+            // compute.geometry is in a child directory called compute when running in hops
+            var parentDirectory = pathToThisAssembly.Directory;
+#endif
             string pathToCompute = System.IO.Path.Combine(parentDirectory.FullName, "compute", "compute.geometry.exe");
             if (!System.IO.File.Exists(pathToCompute))
                 return;
@@ -124,9 +174,9 @@ namespace rhino.compute
             int port = 0;
             for (int i = 0; i < 256; i++)
             {
-                // start at port 6000. Feel free to change this if there is a reason
+                // start at port 6001. Feel free to change this if there is a reason
                 // to use a different port
-                port = 6000 + i;
+                port = 6001 + i;
                 if (existingPorts.Contains(port))
                     continue;
 
@@ -141,7 +191,13 @@ namespace rhino.compute
             }
 
             var startInfo = new ProcessStartInfo(pathToCompute);
-            startInfo.Arguments = $"-port:{port} -childof:{Process.GetCurrentProcess().Id}";
+            string commandLineArgs = $"-port:{port} -childof:{Process.GetCurrentProcess().Id}";
+            if (ParentPort > 0 && ChildIdleSpan.TotalSeconds > 1.0)
+            {
+                int seconds = (int)ChildIdleSpan.TotalSeconds;
+                commandLineArgs += $" -parentport:{ParentPort} -idlespan:{seconds}";
+            }
+            startInfo.Arguments = commandLineArgs;
             var process = Process.Start(startInfo);
             var start = DateTime.Now;
 
@@ -190,7 +246,7 @@ namespace rhino.compute
                 return false;
             }
         }
-        static object _lockObject = new Object();
+        static object _lockObject = new object();
         static Queue<Tuple<Process, int>> _computeProcesses = new Queue<Tuple<Process, int>>();
     }
 }
