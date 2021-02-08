@@ -44,6 +44,16 @@ namespace compute.geometry
                     int processId = int.Parse(parentProcessHandle);
                     Shutdown.RegisterParentProcess(processId);
                 });
+                x.AddCommandLineDefinition("parentport", port =>
+                {
+                    int parentPort = int.Parse(port);
+                    Shutdown.RegisterParentPort(parentPort);
+                });
+                x.AddCommandLineDefinition("idlespan", span =>
+                {
+                    int spanSeconds = int.Parse(span);
+                    Shutdown.RegisterIdleSpan(spanSeconds);
+                });
                 x.UseSerilog();
                 x.ApplyCommandLine();
                 x.SetStartTimeout(TimeSpan.FromMinutes(1));
