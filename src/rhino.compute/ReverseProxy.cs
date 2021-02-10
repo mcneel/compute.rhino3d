@@ -41,16 +41,10 @@ namespace rhino.compute
             Get("/idlespan", async (req, res) => await res.WriteAsync($"{ComputeChildren.IdleSpan()}"));
             Get("/", async (req, res) => await res.WriteAsync("compute.rhino3d"));
 
-            // I would like to catch all other GET endpoints and just pass them on. Currently,
-            // to lazy to figure out the nice way to do this
-            Get("/{a}", ReverseProxyGet);
-            Get("/{a}/{b}", ReverseProxyGet);
-            Get("/{a}/{b}/{c}", ReverseProxyGet);
-            Get("/{a}/{b}/{c}/{d}", ReverseProxyGet);
-            Get("/{a}/{b}/{c}/{d}/{e}", ReverseProxyGet);
-
+            // routes that are proxied to compute.geometry
+            Get("/{*uri}", ReverseProxyGet);
             Post("/grasshopper", ReverseProxyGrasshopper);
-            Post("/{uri}", ReverseProxyPost);
+            Post("/{*uri}", ReverseProxyPost);
 
             Initialize();
         }
