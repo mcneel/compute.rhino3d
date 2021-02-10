@@ -198,9 +198,7 @@ namespace compute.geometry
 
                 foreach (var overload in overloads)
                 {
-                    var parameters = overload.GetParameters();
-                    if (parameters == null || parameters.Length < 1)
-                        continue;
+                    // generate explicit endpoints for all overloads, even if there are no parameters (see #142)
                     endpoints.Add(new GeometryEndPoint(t, overload));
                 }
 

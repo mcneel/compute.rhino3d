@@ -3,7 +3,6 @@ using Nancy;
 using Nancy.Routing;
 using Serilog;
 using System;
-using System.IO;
 using System.Net;
 using System.Reflection;
 using System.Text;
@@ -22,21 +21,45 @@ namespace compute.geometry
 
             RhinoInside.Resolver.Initialize();
 #if DEBUG
+            // Uncomment the following to debug with core Rhino source. This
+            // tells compute to use a different RhinoCore than what RhinoInside thinks
+            // should use.
+            // (for McNeel devs only and only those devs who use the same path as Steve)
+            /*
             string rhinoSystemDir = @"C:\dev\github\mcneel\rhino\src4\bin\Debug";
             if (File.Exists(rhinoSystemDir + "\\Rhino.exe"))
                 RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
+            */
 #endif
 
             LogVersions();
-
             var rc = Topshelf.HostFactory.Run(x =>
             {
+                x.AddCommandLineDefinition("port", port => {
+                    int p = int.Parse(port);
+                    Config.Urls = new string[] { $"http://localhost:{p}" };
+                });
+                x.AddCommandLineDefinition("childof", parentProcessHandle =>
+                {
+                    int processId = int.Parse(parentProcessHandle);
+                    Shutdown.RegisterParentProcess(processId);
+                });
+                x.AddCommandLineDefinition("parentport", port =>
+                {
+                    int parentPort = int.Parse(port);
+                    Shutdown.RegisterParentPort(parentPort);
+                });
+                x.AddCommandLineDefinition("idlespan", span =>
+                {
+                    int spanSeconds = int.Parse(span);
+                    Shutdown.RegisterIdleSpan(spanSeconds);
+                });
                 x.UseSerilog();
                 x.ApplyCommandLine();
                 x.SetStartTimeout(TimeSpan.FromMinutes(1));
                 x.Service<OwinSelfHost>();
                 x.RunAsPrompt(); // prompt for user to run as
-                x.SetDisplayName("compute.geometry");
+                x.SetDisplayName("rhino.compute");
             });
 
             if (RhinoCore != null)
@@ -107,6 +130,16 @@ namespace compute.geometry
             }
 
             Log.Information("Listening on {Urls}", _bind);
+
+            // when running in a console (not as a service), i.e. when launched as a child process of hops
+            // update console title to differentiate windows (ports) and start parent process shutdown timer
+            if (hctrl is Topshelf.Hosts.ConsoleRunHost)
+            {
+                var chunks = _bind[0].Split(new char[] { ':' });
+                Console.Title = $"rhino.compute:{chunks[chunks.Length - 1]}";
+                Shutdown.StartTimer(hctrl);
+            }
+
             return true;
         }
 

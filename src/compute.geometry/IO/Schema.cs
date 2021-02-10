@@ -14,8 +14,21 @@ namespace Resthopper.IO
         [JsonProperty(PropertyName = "pointer")]
         public string Pointer { get; set; }
 
+        // If true on input, the solve results are cached based on this schema.
+        // When true the cache is searched for already computed results and used
+        [JsonProperty(PropertyName = "cachesolve")]
+        public bool CacheSolve { get; set; } = false;
+
         [JsonProperty(PropertyName = "values")]
         public List<DataTree<ResthopperObject>> Values { get; set; } = new List<DataTree<ResthopperObject>>();
+
+        // Return warnings from GH
+        [JsonProperty(PropertyName = "warnings")]
+        public List<string> Warnings { get; set; } = new List<string>();
+
+        // Return errors from GH
+        [JsonProperty(PropertyName = "errors")]
+        public List<string> Errors { get; set; } = new List<string>();
     }
 
     public class IoQuerySchema
@@ -31,12 +44,23 @@ namespace Resthopper.IO
         public string ParamType { get; set; }
     }
 
+    public class InputParamSchema : IoParamSchema
+    {
+        public string Description { get; set; }
+        public int AtLeast { get; set; } = 1;
+        public int AtMost { get; set; } = 0;
+        public object Default { get; set; } = null;
+        public object Minimum { get; set; } = null;
+        public object Maximum { get; set; } = null;
+    }
+
     public class IoResponseSchema
     {
+        public string Description { get; set; }
         public List<string> InputNames { get; set; }
         public List<string> OutputNames { get; set; }
 
-        public List<IoParamSchema> Inputs { get; set; }
+        public List<InputParamSchema> Inputs { get; set; }
         public List<IoParamSchema> Outputs { get; set; }
     }
 
@@ -55,7 +79,11 @@ namespace Resthopper.IO
 
         public ResthopperObject(object obj)
         {
+#if COMPUTE_CORE
             Data = JsonConvert.SerializeObject(obj, compute.geometry.GeometryResolver.Settings);
+#else
+            Data = JsonConvert.SerializeObject(obj);//, compute.geometry.GeometryResolver.Settings);
+#endif
             Type = obj.GetType().FullName;
         }
 

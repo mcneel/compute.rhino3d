@@ -37,6 +37,7 @@ if ((Test-Path "$computeExe") -eq $false) {
 
 Write-Step 'Stop compute.geometry service'
 Start-Process "$computeExe" -ArgumentList 'stop' -Wait
+Start-Sleep -s 5 # wait for process to release files
 
 Write-Step 'Create backup'
 $backupDir = "$appDirectory\.compute-backup"

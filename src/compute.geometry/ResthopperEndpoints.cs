@@ -21,7 +21,8 @@ namespace compute.geometry
         public ResthopperEndpointsModule(Nancy.Routing.IRouteCacheProvider routeCacheProvider)
         {
             Post["/grasshopper"] = _ => Grasshopper(Context);
-            Post["/io"] = _ => GetIoNames(Context);
+            Post["/io"] = _ => GetIoNames(Context, true);
+            Get["/io"] = _ => GetIoNames(Context, false);
         }
 
         public static GH_Archive ArchiveFromUrl(string url)
@@ -56,6 +57,7 @@ namespace compute.geometry
             return null;
         }
 
+        static object _ghsolvelock = new object();
         static Response Grasshopper(NancyContext ctx)
         {
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -64,41 +66,80 @@ namespace compute.geometry
                 body = body.Substring(1, body.Length - 2);
             Schema input = JsonConvert.DeserializeObject<Schema>(body);
 
-            // load grasshopper file
-            GrasshopperDefinition definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
-            if (definition == null)
-                definition = GrasshopperDefinition.FromBase64String(input.Algo);
-            if (definition == null)
-                throw new Exception("Unable to load grasshopper definition");
+            if (input.CacheSolve)
+            {
+                // look in the cache to see if this has already been solved
+                string cachedReturnJson = DataCache.GetCachedSolveResults(body);
+                if (!string.IsNullOrWhiteSpace(cachedReturnJson))
+                {
+                    Response cachedResponse = cachedReturnJson;
+                    cachedResponse.ContentType = "application/json";
+                    return cachedResponse;
+                }
+            }
 
-            definition.SetInputs(input.Values);
-            long decodeTime = stopwatch.ElapsedMilliseconds;
-            stopwatch.Restart();
-            var output = definition.Solve();
-            long solveTime = stopwatch.ElapsedMilliseconds;
-            stopwatch.Restart();
-            string returnJson = JsonConvert.SerializeObject(output, GeometryResolver.Settings);
-            long encodeTime = stopwatch.ElapsedMilliseconds;
-            Response res = returnJson;
-            res.ContentType = "application/json";
-            res = res.WithHeader("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
-            if (definition.HasErrors)
-                res.StatusCode = Nancy.HttpStatusCode.InternalServerError;
-            return res;
+            // 5 Feb 2021 S. Baer
+            // Throw a lock around the entire solve process for now. I can easily
+            // repeat multi-threaded issues by creating a catenary component with Hops
+            // that has one point for A and multiple points for B.
+            // We can narrow down this lock over time. As it stands, launching many
+            // compute instances on one computer is going to be a better solution anyway
+            // to deal with solving many times simultaniously.
+            lock (_ghsolvelock)
+            {
+                // load grasshopper file
+                GrasshopperDefinition definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
+                if (definition == null)
+                    definition = GrasshopperDefinition.FromBase64String(input.Algo);
+                if (definition == null)
+                    throw new Exception("Unable to load grasshopper definition");
+
+                definition.SetInputs(input.Values);
+                long decodeTime = stopwatch.ElapsedMilliseconds;
+                stopwatch.Restart();
+                var output = definition.Solve();
+                long solveTime = stopwatch.ElapsedMilliseconds;
+                stopwatch.Restart();
+                string returnJson = JsonConvert.SerializeObject(output, GeometryResolver.Settings);
+                long encodeTime = stopwatch.ElapsedMilliseconds;
+                Response res = returnJson;
+                res.ContentType = "application/json";
+                res = res.WithHeader("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
+                if (definition.HasErrors)
+                    res.StatusCode = Nancy.HttpStatusCode.InternalServerError;
+                else
+                {
+                    if (input.CacheSolve)
+                    {
+                        DataCache.SetCachedSolveResults(body, returnJson, definition);
+                    }
+                }
+                return res;
+            }
         }
 
-        static Response GetIoNames(NancyContext ctx)
+        Response GetIoNames(NancyContext ctx, bool asPost)
         {
-            string body = ctx.Request.Body.AsString();
-            if (body.StartsWith("[") && body.EndsWith("]"))
-                body = body.Substring(1, body.Length - 2);
+            GrasshopperDefinition definition = null;
+            if (asPost)
+            {
+                string body = ctx.Request.Body.AsString();
+                if (body.StartsWith("[") && body.EndsWith("]"))
+                    body = body.Substring(1, body.Length - 2);
 
-            Schema input = JsonConvert.DeserializeObject<Schema>(body);
+                Schema input = JsonConvert.DeserializeObject<Schema>(body);
 
-            // load grasshopper file
-            GrasshopperDefinition definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
-            if (definition == null)
-                definition = GrasshopperDefinition.FromBase64String(input.Algo);
+                // load grasshopper file
+                definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
+                if (definition == null)
+                    definition = GrasshopperDefinition.FromBase64String(input.Algo);
+            }
+            else
+            {
+                string url = Request.Query["Pointer"].ToString();
+                definition = GrasshopperDefinition.FromUrl(url, true);
+            }
+
             if (definition == null)
                 throw new Exception("Unable to load grasshopper definition");
 
