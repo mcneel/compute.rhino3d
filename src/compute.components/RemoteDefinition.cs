@@ -165,7 +165,6 @@ namespace Compute.Components
 
                 var structure = new Grasshopper.Kernel.Data.GH_Structure<Grasshopper.Kernel.Types.IGH_Goo>();
                 Grasshopper.Kernel.Types.IGH_Goo singleGoo = null;
-                bool setSingleItem = datatree.InnerTree.Count == 1;
                 foreach (var kv in datatree.InnerTree)
                 {
                     var tokens = kv.Key.Trim(new char[] { '{', '}' }).Split(';');
@@ -177,8 +176,6 @@ namespace Compute.Components
                             elements.Add(int.Parse(token));
                         }
                     }
-                    if (setSingleItem && (elements.Count != 1 || elements[0] != 0))
-                        setSingleItem = false;
 
                     var path = new Grasshopper.Kernel.Data.GH_Path(elements.ToArray());
                     for (int gooIndex = 0; gooIndex < kv.Value.Count; gooIndex++)
@@ -188,7 +185,7 @@ namespace Compute.Components
                         structure.Insert(goo, path, gooIndex);
                     }
                 }
-                if (setSingleItem && singleGoo!=null)
+                if (structure.DataCount == 1)
                     DA.SetData(paramIndex, singleGoo);
                 else
                     DA.SetDataTree(paramIndex, structure);
