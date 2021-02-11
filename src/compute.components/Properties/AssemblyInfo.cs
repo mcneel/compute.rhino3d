@@ -22,7 +22,7 @@ namespace Compute.Components
 {
     public class GhaAssemblyInfo : GH_AssemblyInfo
     {
-        public const string AppVersion = "7.0.0.0";
+        public const string AppVersion = "0.1.0.0";
 
         public override Bitmap Icon
         {
