@@ -73,6 +73,7 @@ except ImportError:
         readonly string UtilModuleContents =
 $@"import rhino3dm
 import json
+import os
 import requests
 
 __version__ = '{Version}'
@@ -93,7 +94,7 @@ def ComputeFetch(endpoint, arglist):
     global apiKey
     global url
     global stopat
-    posturl = url + endpoint
+    posturl = os.path.join(url, endpoint)
     if(stopat>0):
         if(posturl.find('?')>0): posturl += '&stopat='
         else: posturl += '?stopat='
