@@ -17,7 +17,11 @@
     <OutputPath>..\bin\Release\compute\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="RhinoCompute.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <EmbeddedResource Include="favicon.ico" />
+    <EmbeddedResource Include="RhinoCompute.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Owin.Cors" Version="4.0.1" />
