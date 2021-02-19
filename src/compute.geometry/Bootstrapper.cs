@@ -16,14 +16,37 @@ namespace compute.geometry
 
         protected override void ApplicationStartup(TinyIoCContainer container, IPipelines pipelines)
         {
+            // 7.5 will have direct sending of RhionApp.Write to the console. Until we
+            // have stabilized on 7.5, look for the property using reflection
+            var sendToConsole = typeof(Rhino.RhinoApp).GetProperty("SendWriteToConsole");
+
+            if (sendToConsole != null)
+                sendToConsole.SetValue(null, true);
+            else
+                Rhino.RhinoApp.CommandWindowCaptureEnabled = true;
             // Load GH at startup so it can get initialized on the main thread
-            Log.Debug("(1/2) Loading grasshopper");
+            Log.Information("(1/2) Loading grasshopper");
             var pluginObject = Rhino.RhinoApp.GetPlugInObject("Grasshopper");
             var runheadless = pluginObject?.GetType().GetMethod("RunHeadless");
             if (runheadless != null)
                 runheadless.Invoke(pluginObject, null);
 
-            Log.Debug("(2/2) Loading compute plug-ins");
+
+            if (sendToConsole != null)
+                sendToConsole.SetValue(null, false);
+            else
+            {
+                var lines = Rhino.RhinoApp.CapturedCommandWindowStrings(true);
+                if (lines != null && lines.Length > 0)
+                {
+                    foreach (var line in lines)
+                    {
+                        Log.Information(line.Trim());
+                    }
+                }
+                Rhino.RhinoApp.CommandWindowCaptureEnabled = false;
+            }
+            Log.Information("(2/2) Loading compute plug-ins");
             var loadComputePlugins = typeof(Rhino.PlugIns.PlugIn).GetMethod("LoadComputeExtensionPlugins");
             if (loadComputePlugins != null)
                 loadComputePlugins.Invoke(null, null);

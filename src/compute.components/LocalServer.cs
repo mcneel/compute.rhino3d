@@ -120,8 +120,16 @@ namespace Compute.Components
 
         static void LaunchCompute(Queue<Tuple<Process, int>> processQueue, bool waitUntilServing)
         {
-            string pathToGha = typeof(LocalServer).Assembly.Location;
-            string dir = System.IO.Path.GetDirectoryName(pathToGha);
+            string dir = null;
+            if (GhaAssemblyInfo.TheAssemblyInfo != null)
+            {
+                dir = System.IO.Path.GetDirectoryName(GhaAssemblyInfo.TheAssemblyInfo.Location);
+            }
+            if (dir == null)
+            {
+                string pathToGha = typeof(LocalServer).Assembly.Location;
+                dir = System.IO.Path.GetDirectoryName(pathToGha);
+            }
             string pathToCompute = System.IO.Path.Combine(dir, "compute", "compute.geometry.exe");
             if (!System.IO.File.Exists(pathToCompute))
                 return;

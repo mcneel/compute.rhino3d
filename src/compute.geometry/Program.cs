@@ -27,7 +27,7 @@ namespace compute.geometry
             // (for McNeel devs only and only those devs who use the same path as Steve)
             /*
             string rhinoSystemDir = @"C:\dev\github\mcneel\rhino\src4\bin\Debug";
-            if (File.Exists(rhinoSystemDir + "\\Rhino.exe"))
+            if (System.IO.File.Exists(rhinoSystemDir + "\\Rhino.exe"))
                 RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
             */
 #endif
