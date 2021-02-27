@@ -35,6 +35,10 @@ namespace compute.geometry
             LogVersions();
             var rc = Topshelf.HostFactory.Run(x =>
             {
+                x.AddCommandLineDefinition("address", address =>
+                {
+                    Config.Urls = new string[] { address };
+                });
                 x.AddCommandLineDefinition("port", port => {
                     int p = int.Parse(port);
                     Config.Urls = new string[] { $"http://localhost:{p}" };
@@ -122,11 +126,13 @@ namespace compute.geometry
             }
             catch (TargetInvocationException ex) when (ex.InnerException is HttpListenerException hle)
             {
+                Log.Error("Exception: " + hle.Message);
                 throw hle;
             }
-            catch
+            catch (Exception ex)
             {
-                throw;
+                Log.Error("Exception: " + ex.Message);
+                throw ex;
             }
 
             Log.Information("Listening on {Urls}", _bind);
