@@ -63,13 +63,13 @@ namespace Compute.Components
                 if (_pathAsComponentGuid != Guid.Empty)
                 {
                     // path provided is a guid to a component
-                    address = LocalServer.GetDescriptionUrl(_pathAsComponentGuid);
+                    address = Servers.GetDescriptionUrl(_pathAsComponentGuid);
                 }
                 else
                 {
                     if (!System.IO.File.Exists(address))
                         return; // file no longer there...
-                    address = LocalServer.GetDescriptionUrl(Path);
+                    address = Servers.GetDescriptionUrl(Path);
                 }
             }
             using (var client = new System.Net.WebClient())
@@ -129,7 +129,7 @@ namespace Compute.Components
             }
             else
             {
-                solveUrl = LocalServer.GetSolveUrl();
+                solveUrl = Servers.GetSolveUrl();
             }
 
             using (var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json"))
