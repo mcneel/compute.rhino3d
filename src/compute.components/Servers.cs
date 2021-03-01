@@ -5,15 +5,21 @@ using System.Diagnostics;
 namespace Compute.Components
 {
     /// <summary>
-    /// Utility for managing local compute server instances. When Hops
-    /// components are referencing paths to files (instead of http URLs),
-    /// the definitions are processed by compute server instances running
-    /// on the same machine. Hops ships with a copy of compute.geometry.exe
-    /// that it can launch when a compute server is needed.
+    /// Utility for managing compute server instances. When Hops components are
+    /// referencing paths to files (instead of http URLs), the definitions are
+    /// processed by compute server instances running local or remote. Hops
+    /// ships with a copy of compute.geometry.exe that it can launch when a
+    /// compute server is needed.
     /// </summary>
-    class LocalServer
+    class Servers
     {
-        public static int ActiveComputeCount
+        public static void SettingsChanged()
+        {
+            _settingsNeedReading = true;
+        }
+
+        /// <summary>Number of local compute.geometry processes running</summary>
+        public static int ActiveLocalComputeCount
         {
             get
             {
@@ -43,38 +49,50 @@ namespace Compute.Components
         }
 
         /// <summary>
-        /// Get base url for a compute server. This function may return a
-        /// different string each time it is called as it attempts to provide
-        /// basic round robin scheduling when multiple compute servers are
-        /// found to be available.
+        /// Get base url for a compute server. May return a different string
+        /// each time it is called as it provides basic round robin scheduling
+        /// when multiple compute servers are found to be available.
         /// </summary>
         /// <returns></returns>
         static string GetComputeServerBaseUrl()
         {
-            // uncomment for testing new compute.rhino3d server
-            //var processesRhino3d = Process.GetProcessesByName("rhino.compute");
-            //if (processesRhino3d.Length > 0)
-            //    return "http://localhost:5000";
-
-
             // Simple round robin scheduler using a queue of compute.geometry processes
-            int activePort = 0;
+            string url = null;
 
             lock (_lockObject)
             {
-                if (_computeProcesses.Count > 0)
+                // Check application level settings to see if there are remote
+                // compute servers defined.
+                if (_settingsNeedReading)
                 {
-                    Tuple<Process, int> current = _computeProcesses.Dequeue();
-                    if (!current.Item1.HasExited)
+                    _settingsNeedReading = false;
+                    string[] servers = Hops.HopsAppSettings.Servers;
+                    var serverArray = _computeServerQueue.ToArray();
+                    _computeServerQueue.Clear();
+                    foreach (var server in servers)
                     {
-                        _computeProcesses.Enqueue(current);
-                        activePort = current.Item2;
+                        _computeServerQueue.Enqueue(new ComputeServer(server));
+                    }
+                    foreach(var item in serverArray)
+                    {
+                        if (item.IsLocalProcess)
+                            _computeServerQueue.Enqueue(item);
                     }
                 }
 
-                if (activePort == 0)
+                if (_computeServerQueue.Count > 0)
                 {
-                    _computeProcesses = new Queue<Tuple<Process, int>>();
+                    var current = _computeServerQueue.Dequeue();
+                    url = current.GetUrl();
+                    if( !string.IsNullOrEmpty(url))
+                    {
+                        _computeServerQueue.Enqueue(current);
+                    }
+                }
+
+                if (string.IsNullOrEmpty(url) && Rhino.Runtime.HostUtils.RunningOnWindows)
+                {
+                    _computeServerQueue = new Queue<ComputeServer>();
 
                     // see if any compute.geometry process are already open
                     var processes = Process.GetProcessesByName("compute.geometry");
@@ -86,39 +104,43 @@ namespace Compute.Components
                         {
                             port = int.Parse(chunks[1]);
                         }
-                        var item = Tuple.Create(process, port);
-                        _computeProcesses.Enqueue(item);
+                        _computeServerQueue.Enqueue(new ComputeServer(process, port));
                     }
 
-                    if (_computeProcesses.Count == 0)
+                    if (_computeServerQueue.Count == 0)
                     {
-                        LaunchCompute(_computeProcesses, true);
+                        LaunchLocalCompute(_computeServerQueue, true);
                     }
 
-                    if (_computeProcesses.Count > 0)
+                    if (_computeServerQueue.Count > 0)
                     {
-                        Tuple<Process, int> current = _computeProcesses.Dequeue();
-                        _computeProcesses.Enqueue(current);
-                        activePort = current.Item2;
+                        var current = _computeServerQueue.Dequeue();
+                        _computeServerQueue.Enqueue(current);
+                        url = current.GetUrl();
                     }
                 }
             }
 
-            if (0 == activePort)
-                throw new Exception("No compute server found");
+            if (string.IsNullOrEmpty(url))
+            {
+                string message = "No compute server found";
+                if (Rhino.Runtime.HostUtils.RunningOnOSX)
+                    message += ": Mac Rhino only supports external compute servers";
+                throw new Exception(message);
+            }
 
-            return $"http://localhost:{activePort}";
+            return url;
         }
 
-        public static void LaunchCompute(bool waitUntilServing)
+        public static void LaunchLocalCompute(bool waitUntilServing)
         {
             lock (_lockObject)
             {
-                LaunchCompute(_computeProcesses, waitUntilServing);
+                LaunchLocalCompute(_computeServerQueue, waitUntilServing);
             }
         }
 
-        static void LaunchCompute(Queue<Tuple<Process, int>> processQueue, bool waitUntilServing)
+        static void LaunchLocalCompute(Queue<ComputeServer> serverQueue, bool waitUntilServing)
         {
             string dir = null;
             if (GhaAssemblyInfo.TheAssemblyInfo != null)
@@ -127,7 +149,7 @@ namespace Compute.Components
             }
             if (dir == null)
             {
-                string pathToGha = typeof(LocalServer).Assembly.Location;
+                string pathToGha = typeof(Servers).Assembly.Location;
                 dir = System.IO.Path.GetDirectoryName(pathToGha);
             }
             string pathToCompute = System.IO.Path.Combine(dir, "compute", "compute.geometry.exe");
@@ -140,11 +162,11 @@ namespace Compute.Components
             {
                 bool checkTitle = true;
                 // see if this process is already in the queue
-                foreach(var item in processQueue)
+                foreach(var item in serverQueue)
                 {
-                    if (existingProcess.Id == item.Item1.Id)
+                    if (item.IsProcess(existingProcess))
                     {
-                        existingPorts.Add(item.Item2);
+                        existingPorts.Add(item.LocalProcessPort());
                         checkTitle = false;
                         break;
                     }
@@ -239,7 +261,7 @@ namespace Compute.Components
 
             if (process != null)
             {
-                processQueue.Enqueue(Tuple.Create(process, port));
+                serverQueue.Enqueue(new ComputeServer(process, port));
             }
         }
 
@@ -261,7 +283,57 @@ namespace Compute.Components
                 return false;
             }
         }
+
         static object _lockObject = new Object();
-        static Queue<Tuple<Process, int>> _computeProcesses = new Queue<Tuple<Process, int>>();
+        static Queue<ComputeServer> _computeServerQueue = new Queue<ComputeServer>();
+        static bool _settingsNeedReading = true;
+
+
+        class ComputeServer
+        {
+            readonly Process _process;
+            readonly int _port;
+            readonly string _url;
+            public ComputeServer(Process proc, int port)
+            {
+                _process = proc;
+                _port = port;
+                _url = null;
+            }
+            public ComputeServer(string url)
+            {
+                _process = null;
+                _port = 0;
+                _url = url.Trim(new char[] { '/' });
+            }
+
+            public bool IsLocalProcess
+            {
+                get { return _process != null; }
+            }
+
+            public bool IsProcess(Process proc)
+            {
+                if (_process == null)
+                    return false;
+
+                return _process.Id == proc.Id;
+            }
+            public int LocalProcessPort()
+            {
+                return _port;
+            }
+
+            public string GetUrl()
+            {
+                if(_process != null)
+                {
+                    if (_process.HasExited)
+                        return null;
+                    return $"http://localhost:{_port}";
+                }
+                return _url;
+            }
+        }
     }
 }

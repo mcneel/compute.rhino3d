@@ -172,15 +172,15 @@ namespace Compute.Components
             tsi.Font = new System.Drawing.Font(tsi.Font, System.Drawing.FontStyle.Bold);
             menu.Items.Add(tsi);
 
-            tsi = new ToolStripMenuItem($"Local Computes ({LocalServer.ActiveComputeCount})");
+            tsi = new ToolStripMenuItem($"Local Computes ({Servers.ActiveLocalComputeCount})");
             var tsi_sub = new ToolStripMenuItem("1 More", null, (s, e) => {
-                LocalServer.LaunchCompute(false);
+                Servers.LaunchLocalCompute(false);
             });
             tsi_sub.ToolTipText = "Launch a local compute instance";
             tsi.DropDown.Items.Add(tsi_sub);
             tsi_sub = new ToolStripMenuItem("6 Pack", null, (s, e) => {
                 for(int i=0; i<6; i++)
-                    LocalServer.LaunchCompute(false);
+                    Servers.LaunchLocalCompute(false);
             });
             tsi_sub.ToolTipText = "Get drunk with power and launch 6 compute instances";
             tsi.DropDown.Items.Add(tsi_sub);
