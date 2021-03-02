@@ -11,14 +11,20 @@ namespace Compute.Components
     class RemoteDefinition : IDisposable
     {
         Guid _pathAsComponentGuid;
+        Dictionary<string, Tuple<InputParamSchema, IGH_Param>> _inputParams;
+        Dictionary<string, IGH_Param> _outputParams;
+        string _description = null;
+        string _path = null;
+        string _hash = null;
 
         public RemoteDefinition(string path)
         {
-            Path = path;
+            _path = path;
             Guid.TryParse(path, out _pathAsComponentGuid);
         }
 
-        public string Path { get; private set; }
+        public string Path { get { return _path; } }
+
         public bool PathIsAppServer
         {
             get
@@ -57,6 +63,7 @@ namespace Compute.Components
 
         void GetRemoteDescription()
         {
+            bool performPost = false;
             string address = Path;
             if (!PathIsAppServer)
             {
@@ -69,27 +76,53 @@ namespace Compute.Components
                 {
                     if (!System.IO.File.Exists(address))
                         return; // file no longer there...
-                    address = Servers.GetDescriptionUrl(Path);
+                    performPost = true;
                 }
             }
-            using (var client = new System.Net.WebClient())
+
+            IoResponseSchema responseSchema = null;
+            if (performPost)
             {
-                string s = client.DownloadString(address);
-                var responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(s);
+                string postUrl = Servers.GetDescriptionPostUrl();
+                var bytes = System.IO.File.ReadAllBytes(address);
+                var schema = new Schema();
+                schema.Algo = Convert.ToBase64String(bytes);
+                string inputJson = JsonConvert.SerializeObject(schema);
+                using (var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json"))
+                {
+                    var postTask = HttpClient.PostAsync(postUrl, content);
+                    var responseMessage = postTask.Result;
+                    var remoteSolvedData = responseMessage.Content;
+                    var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
+                    responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(stringResult);
+                    _hash = responseSchema.Hash;
+                }
+            }
+            else
+            {
+                using (var client = new System.Net.WebClient())
+                {
+                    string s = client.DownloadString(address);
+                    responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(s);
+                }
+            }
+
+            if (responseSchema != null)
+            { 
                 _description = responseSchema.Description;
                 _inputParams = new Dictionary<string, Tuple<InputParamSchema, IGH_Param>>();
                 _outputParams = new Dictionary<string, IGH_Param>();
-                foreach(var input in responseSchema.Inputs)
+                foreach (var input in responseSchema.Inputs)
                 {
                     string inputParamName = input.Name;
                     if (inputParamName.StartsWith("RH_IN:"))
                     {
                         var chunks = inputParamName.Split(new char[] { ':' });
-                        inputParamName = chunks[chunks.Length-1];
+                        inputParamName = chunks[chunks.Length - 1];
                     }
                     _inputParams[inputParamName] = Tuple.Create(input, ParamFromIoResponseSchema(input));
                 }
-                foreach(var output in responseSchema.Outputs)
+                foreach (var output in responseSchema.Outputs)
                 {
                     string outputParamName = output.Name;
                     if (outputParamName.StartsWith("RH_OUT:"))
@@ -119,7 +152,7 @@ namespace Compute.Components
             }
         }
 
-        public Schema PostToServer(string inputJson)
+        public Schema Solve(Schema inputSchema)
         {
             string solveUrl;
             if (PathIsAppServer)
@@ -130,15 +163,35 @@ namespace Compute.Components
             else
             {
                 solveUrl = Servers.GetSolveUrl();
+                if (!string.IsNullOrEmpty(_hash))
+                    inputSchema.Pointer = _hash;
             }
+
+            string inputJson = JsonConvert.SerializeObject(inputSchema);
 
             using (var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json"))
             {
                 var postTask = HttpClient.PostAsync(solveUrl, content);
                 var responseMessage = postTask.Result;
+                if (responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                {
+                    if (!PathIsAppServer && string.IsNullOrEmpty(inputSchema.Algo))
+                    {
+                        var bytes = System.IO.File.ReadAllBytes(Path);
+                        string base64 = Convert.ToBase64String(bytes);
+                        inputSchema.Algo = base64;
+                        inputJson = JsonConvert.SerializeObject(inputSchema);
+                        var content2 = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
+                        postTask = HttpClient.PostAsync(solveUrl, content2);
+                        responseMessage = postTask.Result;
+                        if (responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                            throw new Exception("Unable to solve on compute");
+                    }
+                }
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
                 var schema = JsonConvert.DeserializeObject<Resthopper.IO.Schema>(stringResult);
+                _hash = schema.Pointer;
                 return schema;
             }
         }
@@ -354,7 +407,7 @@ namespace Compute.Components
             }
         }
 
-        public string CreateInputJson(IGH_DataAccess DA, bool cacheSolveOnServer, out List<string> warnings)
+        public Schema CreateSolveInput(IGH_DataAccess DA, bool cacheSolveOnServer, out List<string> warnings)
         {
             warnings = new List<string>();
             var schema = new Resthopper.IO.Schema();
@@ -498,12 +551,7 @@ namespace Compute.Components
                 string definition = Path.Substring(Path.LastIndexOf('/') + 1);
                 schema.Pointer = definition;
             }
-            string json = JsonConvert.SerializeObject(schema);
-            return json;
+            return schema;
         }
-
-        Dictionary<string, Tuple<InputParamSchema, IGH_Param>> _inputParams;
-        Dictionary<string, IGH_Param> _outputParams;
-        string _description = null;
     }
 }

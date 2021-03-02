@@ -61,7 +61,7 @@ namespace Compute.Components
             if(InPreSolve)
             {
                 List<string> warnings;
-                string inputJson = _remoteDefinition.CreateInputJson(DA, _cacheSolveResults, out warnings);
+                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheSolveResults, out warnings);
                 if (warnings != null && warnings.Count > 0)
                 {
                     foreach (var warning in warnings)
@@ -70,9 +70,9 @@ namespace Compute.Components
                     }
                     return;
                 }
-                if (inputJson != null)
+                if (inputSchema != null)
                 {
-                    var task = System.Threading.Tasks.Task.Run(() => _remoteDefinition.PostToServer(inputJson));
+                    var task = System.Threading.Tasks.Task.Run(() => _remoteDefinition.Solve(inputSchema));
                     TaskList.Add(task);
                 }
                 return;
@@ -81,7 +81,7 @@ namespace Compute.Components
             if (!GetSolveResults(DA, out var schema))
             {
                 List<string> warnings;
-                string inputJson = _remoteDefinition.CreateInputJson(DA, _cacheSolveResults, out warnings);
+                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheSolveResults, out warnings);
                 if (warnings != null && warnings.Count > 0)
                 {
                     foreach (var warning in warnings)
@@ -90,8 +90,8 @@ namespace Compute.Components
                     }
                     return;
                 }
-                if (inputJson != null)
-                    schema = _remoteDefinition.PostToServer(inputJson);
+                if (inputSchema != null)
+                    schema = _remoteDefinition.Solve(inputSchema);
                 else
                     schema = null;
             }

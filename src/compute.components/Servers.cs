@@ -34,6 +34,12 @@ namespace Compute.Components
             return $"{baseUrl}/io?pointer={System.Web.HttpUtility.UrlEncode(definitionPath)}";
         }
 
+        public static string GetDescriptionPostUrl()
+        {
+            string baseUrl = GetComputeServerBaseUrl();
+            return $"{baseUrl}/io";
+        }
+
         public static string GetDescriptionUrl(Guid componentId)
         {
             if (componentId == Guid.Empty)
