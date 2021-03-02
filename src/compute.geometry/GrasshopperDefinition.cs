@@ -89,6 +89,7 @@ namespace compute.geometry
                     return null;
 
                 rc = Construct(archive);
+                rc.CacheKey = url;
                 rc.IsLocalFileDefinition = !url.StartsWith("http", StringComparison.OrdinalIgnoreCase) && File.Exists(url);
             }
             if (cache)
@@ -106,7 +107,29 @@ namespace compute.geometry
                 return null;
 
             var rc = Construct(archive);
+            if (rc!=null)
+            {
+                rc.CacheKey = CreateMD5(data);
+            }
             return rc;
+        }
+
+        static string CreateMD5(string input)
+        {
+            // Use input string to calculate MD5 hash
+            using (System.Security.Cryptography.MD5 md5 = System.Security.Cryptography.MD5.Create())
+            {
+                byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(input);
+                byte[] hashBytes = md5.ComputeHash(inputBytes);
+
+                // Convert the byte array to hexadecimal string
+                var sb = new System.Text.StringBuilder();
+                for (int i = 0; i < hashBytes.Length; i++)
+                {
+                    sb.Append(hashBytes[i].ToString("X2"));
+                }
+                return sb.ToString();
+            }
         }
 
         private static GrasshopperDefinition Construct(Guid componentId)
@@ -195,7 +218,7 @@ namespace compute.geometry
         public bool HasErrors { get; private set; } // default: false
         public bool IsLocalFileDefinition { get; set; } // default: false
         public uint FileRuntimeCacheSerialNumber { get; private set; }
-
+        public string CacheKey { get; set; }
         GH_Component _singularComponent;
         Dictionary<string, InputGroup> _input = new Dictionary<string, InputGroup>();
         Dictionary<string, IGH_Param> _output = new Dictionary<string, IGH_Param>();
@@ -864,30 +887,32 @@ namespace compute.geometry
                 return null;
             }
 
-            byte[] byteArray = null;
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-            request.AutomaticDecompression = DecompressionMethods.GZip;
-            using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
-            using (var stream = response.GetResponseStream())
-            using (var memStream = new MemoryStream())
+            if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
             {
-                stream.CopyTo(memStream);
-                byteArray = memStream.ToArray();
+                byte[] byteArray = null;
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+                request.AutomaticDecompression = DecompressionMethods.GZip;
+                using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+                using (var stream = response.GetResponseStream())
+                using (var memStream = new MemoryStream())
+                {
+                    stream.CopyTo(memStream);
+                    byteArray = memStream.ToArray();
+                }
+
+                try
+                {
+                    var byteArchive = new GH_Archive();
+                    if (byteArchive.Deserialize_Binary(byteArray))
+                        return byteArchive;
+                }
+                catch (Exception) { }
+
+                var grasshopperXml = StripBom(System.Text.Encoding.UTF8.GetString(byteArray));
+                var xmlArchive = new GH_Archive();
+                if (xmlArchive.Deserialize_Xml(grasshopperXml))
+                    return xmlArchive;
             }
-
-            try
-            {
-                var byteArchive = new GH_Archive();
-                if (byteArchive.Deserialize_Binary(byteArray))
-                    return byteArchive;
-            }
-            catch (Exception) { }
-
-            var grasshopperXml = StripBom(System.Text.Encoding.UTF8.GetString(byteArray));
-            var xmlArchive = new GH_Archive();
-            if (xmlArchive.Deserialize_Xml(grasshopperXml))
-                return xmlArchive;
-
             return null;
         }
 

@@ -57,6 +57,7 @@ namespace Resthopper.IO
     public class IoResponseSchema
     {
         public string Description { get; set; }
+        public string Hash { get; set; }
         public List<string> InputNames { get; set; }
         public List<string> OutputNames { get; set; }
 
