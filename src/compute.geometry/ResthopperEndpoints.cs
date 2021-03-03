@@ -91,9 +91,7 @@ namespace compute.geometry
                 GrasshopperDefinition definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
                 if (definition == null)
                 {
-                    definition = GrasshopperDefinition.FromBase64String(input.Algo);
-                    if (definition != null)
-                        DataCache.SetCachedDefinition(definition.CacheKey, definition);
+                    definition = GrasshopperDefinition.FromBase64String(input.Algo, true);
                 }
                 if (definition == null)
                     throw new Exception("Unable to load grasshopper definition");
@@ -125,8 +123,7 @@ namespace compute.geometry
 
         Response GetIoNames(NancyContext ctx, bool asPost)
         {
-            GrasshopperDefinition definition = null;
-            string hash = null;
+            GrasshopperDefinition definition;
             if (asPost)
             {
                 string body = ctx.Request.Body.AsString();
@@ -137,17 +134,9 @@ namespace compute.geometry
 
                 // load grasshopper file
                 definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
-                if (definition != null)
+                if (definition == null)
                 {
-                    hash = input.Pointer;
-                }
-                else
-                {
-                    definition = GrasshopperDefinition.FromBase64String(input.Algo);
-                    if (definition!=null)
-                    {
-                        DataCache.SetCachedDefinition(definition.CacheKey, definition);
-                    }
+                    definition = GrasshopperDefinition.FromBase64String(input.Algo, true);
                 }
             }
             else
@@ -160,7 +149,7 @@ namespace compute.geometry
                 throw new Exception("Unable to load grasshopper definition");
 
             var responseSchema = definition.GetInputsAndOutputs();
-            responseSchema.Hash = hash;
+            responseSchema.CacheKey = definition.CacheKey;
             string jsonResponse = JsonConvert.SerializeObject(responseSchema);
 
             Response res = jsonResponse;
