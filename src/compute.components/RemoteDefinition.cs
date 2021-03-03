@@ -18,6 +18,7 @@ namespace Compute.Components
         string _description = null;
         string _path = null;
         string _cacheKey = null;
+        bool? _pathIsAppServer;
 
         public static RemoteDefinition Create(string path, HopsComponent parentComponent)
         {
@@ -45,8 +46,27 @@ namespace Compute.Components
         {
             get
             {
-                string p = Path.ToLowerInvariant();
-                return p.StartsWith("http:") || p.StartsWith("https:");
+                if (!_pathIsAppServer.HasValue)
+                {
+                    _pathIsAppServer = false;
+                    string p = Path.ToLowerInvariant();
+                    if (p.StartsWith("http:") || p.StartsWith("https:"))
+                    {
+                        try
+                        {
+                            var getTask = HttpClient.GetAsync(_path);
+                            var response = getTask.Result;
+                            string mediaType = response.Content.Headers.ContentType.MediaType.ToLowerInvariant();
+                            _pathIsAppServer = mediaType.Contains("json");
+                        }
+                        catch(Exception)
+                        {
+                            _pathIsAppServer = false;
+                        }
+
+                    }
+                }
+                return _pathIsAppServer.Value;
             }
         }
 
@@ -98,13 +118,22 @@ namespace Compute.Components
                 }
                 else
                 {
-                    if (!System.IO.File.Exists(address))
-                        return; // file no longer there...
-                    performPost = true;
+                    if (address.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                    {
+                        address = Servers.GetDescriptionUrl(Path);
+                    }
+                    else
+                    {
+                        if (!System.IO.File.Exists(address))
+                            return; // file no longer there...
+                        performPost = true;
+                    }
                 }
             }
 
             IoResponseSchema responseSchema = null;
+            System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage> responseTask = null;
+            IDisposable contentToDispose = null;
             if (performPost)
             {
                 string postUrl = Servers.GetDescriptionPostUrl();
@@ -112,24 +141,26 @@ namespace Compute.Components
                 var schema = new Schema();
                 schema.Algo = Convert.ToBase64String(bytes);
                 string inputJson = JsonConvert.SerializeObject(schema);
-                using (var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json"))
-                {
-                    var postTask = HttpClient.PostAsync(postUrl, content);
-                    var responseMessage = postTask.Result;
-                    var remoteSolvedData = responseMessage.Content;
-                    var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-                    responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(stringResult);
-                    _cacheKey = responseSchema.CacheKey;
-                }
+                var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
+                responseTask = HttpClient.PostAsync(postUrl, content);
+                contentToDispose = content;
             }
             else
             {
-                using (var client = new System.Net.WebClient())
-                {
-                    string s = client.DownloadString(address);
-                    responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(s);
-                }
+                responseTask = HttpClient.GetAsync(address);
             }
+
+            if (responseTask != null)
+            {
+                var responseMessage = responseTask.Result;
+                var remoteSolvedData = responseMessage.Content;
+                var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
+                responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(stringResult);
+                _cacheKey = responseSchema.CacheKey;
+            }
+
+            if (contentToDispose != null)
+                contentToDispose.Dispose();
 
             if (responseSchema != null)
             { 
