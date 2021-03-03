@@ -21,6 +21,7 @@ namespace Compute.Components
         int _minorVersion = 1;
         RemoteDefinition _remoteDefinition = null;
         bool _cacheSolveResults = true;
+        bool _remoteDefinitionRequiresRebuild = false;
         static bool _isHeadless = false;
         #endregion
 
@@ -257,7 +258,7 @@ namespace Compute.Components
                     }
                     if (!string.IsNullOrWhiteSpace(value))
                     {
-                        _remoteDefinition = new RemoteDefinition(value);
+                        _remoteDefinition = RemoteDefinition.Create(value, this);
                         DefineInputsAndOutputs();
                         this.Message = DefinitionName;
                     }
@@ -626,6 +627,39 @@ namespace Compute.Components
             var constructors = typeof(GH_OutputParamManager).GetConstructors(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
             var mgr = constructors[0].Invoke(new object[] { this }) as GH_OutputParamManager;
             return mgr;
+        }
+
+        public void OnRemoteDefinitionChanged()
+        {
+            if (_remoteDefinitionRequiresRebuild)
+                return;
+
+            // this is typically called on a different thread than the main UI thread
+            _remoteDefinitionRequiresRebuild = true;
+            Rhino.RhinoApp.Idle += RhinoApp_Idle;
+        }
+
+        private void RhinoApp_Idle(object sender, EventArgs e)
+        {
+            if (!_remoteDefinitionRequiresRebuild)
+            {
+                // not sure how this could happen, but in case it does just
+                // remove the idle event and bail
+                Rhino.RhinoApp.Idle -= RhinoApp_Idle;
+                return;
+            }
+
+            var ghdoc = OnPingDocument();
+            if (ghdoc != null && ghdoc.SolutionState == GH_ProcessStep.Process)
+            {
+                // Processing a solution. Wait until the next idle event to do something
+                return;
+            }
+
+            // stop the idle event watcher
+            Rhino.RhinoApp.Idle -= RhinoApp_Idle;
+            _remoteDefinitionRequiresRebuild = false;
+            DefineInputsAndOutputs();
         }
     }
 }

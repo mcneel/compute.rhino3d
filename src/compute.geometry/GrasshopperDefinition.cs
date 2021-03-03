@@ -100,7 +100,7 @@ namespace compute.geometry
             return rc;
         }
 
-        public static GrasshopperDefinition FromBase64String(string data)
+        public static GrasshopperDefinition FromBase64String(string data, bool cache)
         {
             var archive = ArchiveFromBase64String(data);
             if (archive == null)
@@ -110,6 +110,11 @@ namespace compute.geometry
             if (rc!=null)
             {
                 rc.CacheKey = CreateMD5(data);
+                if (cache)
+                {
+                    DataCache.SetCachedDefinition(rc.CacheKey, rc);
+                    rc.InDataCache = true;
+                }
             }
             return rc;
         }

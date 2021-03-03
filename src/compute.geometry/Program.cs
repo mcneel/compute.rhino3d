@@ -105,7 +105,7 @@ namespace compute.geometry
             Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
 
             Rhino.Runtime.HostUtils.OnExceptionReport += (source, ex) => {
-                Log.Error(ex, "An exception occured while processing request");
+                Log.Error(ex, "An exception occurred while processing request");
                 if (Config.Debug)
                     Logging.LogExceptionData(ex);
             };

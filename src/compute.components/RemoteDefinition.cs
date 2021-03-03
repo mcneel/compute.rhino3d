@@ -5,22 +5,38 @@ using Grasshopper.Kernel;
 using Rhino.Geometry;
 using Newtonsoft.Json;
 using Resthopper.IO;
+using System.IO;
 
 namespace Compute.Components
 {
     class RemoteDefinition : IDisposable
     {
+        HopsComponent _parentComponent;
         Guid _pathAsComponentGuid;
         Dictionary<string, Tuple<InputParamSchema, IGH_Param>> _inputParams;
         Dictionary<string, IGH_Param> _outputParams;
         string _description = null;
         string _path = null;
-        string _hash = null;
+        string _cacheKey = null;
 
-        public RemoteDefinition(string path)
+        public static RemoteDefinition Create(string path, HopsComponent parentComponent)
         {
+            var rc = new RemoteDefinition(path, parentComponent);
+            RemoteDefinitionCache.Add(rc);
+            return rc;
+        }
+
+        private RemoteDefinition(string path, HopsComponent parentComponent)
+        {
+            _parentComponent = parentComponent;
             _path = path;
             Guid.TryParse(path, out _pathAsComponentGuid);
+        }
+
+        public void Dispose()
+        {
+            _parentComponent = null;
+            RemoteDefinitionCache.Remove(this);
         }
 
         public string Path { get { return _path; } }
@@ -32,6 +48,14 @@ namespace Compute.Components
                 string p = Path.ToLowerInvariant();
                 return p.StartsWith("http:") || p.StartsWith("https:");
             }
+        }
+
+        public void OnWatchedFileChanged()
+        {
+            _cacheKey = null;
+            _description = null;
+            if (_parentComponent != null)
+                _parentComponent.OnRemoteDefinitionChanged();
         }
 
         public Dictionary<string, Tuple<InputParamSchema, IGH_Param>> GetInputParams()
@@ -95,7 +119,7 @@ namespace Compute.Components
                     var remoteSolvedData = responseMessage.Content;
                     var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
                     responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(stringResult);
-                    _hash = responseSchema.Hash;
+                    _cacheKey = responseSchema.CacheKey;
                 }
             }
             else
@@ -135,10 +159,6 @@ namespace Compute.Components
             }
         }
 
-        public void Dispose()
-        {
-        }
-
         static System.Net.Http.HttpClient _httpClient = null;
         static System.Net.Http.HttpClient HttpClient
         {
@@ -163,8 +183,8 @@ namespace Compute.Components
             else
             {
                 solveUrl = Servers.GetSolveUrl();
-                if (!string.IsNullOrEmpty(_hash))
-                    inputSchema.Pointer = _hash;
+                if (!string.IsNullOrEmpty(_cacheKey))
+                    inputSchema.Pointer = _cacheKey;
             }
 
             string inputJson = JsonConvert.SerializeObject(inputSchema);
@@ -191,7 +211,7 @@ namespace Compute.Components
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
                 var schema = JsonConvert.DeserializeObject<Resthopper.IO.Schema>(stringResult);
-                _hash = schema.Pointer;
+                _cacheKey = schema.Pointer;
                 return schema;
             }
         }
@@ -553,5 +573,81 @@ namespace Compute.Components
             }
             return schema;
         }
+    }
+
+
+    static class RemoteDefinitionCache
+    {
+        static List<RemoteDefinition> _definitions = new List<RemoteDefinition>();
+        static Dictionary<string, FileSystemWatcher> _filewatchers;
+        static HashSet<string> _watchedFiles = new HashSet<string>();
+
+        public static void Add(RemoteDefinition definition)
+        {
+            if (definition.PathIsAppServer)
+                return;
+            if (!File.Exists(definition.Path))
+                return;
+            if (_definitions.Contains(definition))
+                return;
+            _definitions.Add(definition);
+            RegisterFileWatcher(definition.Path);
+        }
+
+        public static void Remove(RemoteDefinition definition)
+        {
+            _definitions.Remove(definition);
+        }
+
+        static void RegisterFileWatcher(string path)
+        {
+            if (!File.Exists(path))
+                return;
+
+            if (_filewatchers == null)
+            {
+                _filewatchers = new Dictionary<string, FileSystemWatcher>();
+            }
+
+            path = Path.GetFullPath(path);
+            if (_watchedFiles.Contains(path.ToLowerInvariant()))
+                return;
+
+            _watchedFiles.Add(path.ToLowerInvariant());
+            string directory = Path.GetDirectoryName(path);
+            if (_filewatchers.ContainsKey(directory) || !Directory.Exists(directory))
+                return;
+
+            var fsw = new FileSystemWatcher(directory);
+            fsw.NotifyFilter = NotifyFilters.Attributes |
+                NotifyFilters.CreationTime |
+                NotifyFilters.FileName |
+                NotifyFilters.LastAccess |
+                NotifyFilters.LastWrite |
+                NotifyFilters.Size |
+                NotifyFilters.Security;
+            fsw.Changed += Fsw_Changed;
+            fsw.EnableRaisingEvents = true;
+            _filewatchers[directory] = fsw;
+        }
+
+        private static void Fsw_Changed(object sender, FileSystemEventArgs e)
+        {
+            string path = e.FullPath.ToLowerInvariant();
+            if (_watchedFiles.Contains(path))
+            {
+                foreach(var definition in _definitions)
+                {
+                    string definitionPath = Path.GetFullPath(definition.Path);
+                    if( path.Equals(definitionPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        definition.OnWatchedFileChanged();
+                    }
+                }
+
+            }
+        }
+
+
     }
 }
