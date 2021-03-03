@@ -596,7 +596,31 @@ namespace Compute.Components
 
         public static void Remove(RemoteDefinition definition)
         {
-            _definitions.Remove(definition);
+            if (_definitions.Remove(definition))
+            {
+                string path = Path.GetFullPath(definition.Path);
+                string directory = Path.GetDirectoryName(path);
+                bool removeFileWatcher = true;
+                foreach(var existingDefinition in _definitions)
+                {
+                    string existingDefPath = Path.GetFullPath(existingDefinition.Path);
+                    string existingDefDirectory = Path.GetDirectoryName(existingDefPath);
+                    if (directory.Equals(existingDefDirectory, StringComparison.OrdinalIgnoreCase))
+                    {
+                        removeFileWatcher = false;
+                        break;
+                    }    
+                }
+                if (removeFileWatcher)
+                {
+                    if (_filewatchers.TryGetValue(directory, out FileSystemWatcher watcher))
+                    {
+                        watcher.EnableRaisingEvents = false;
+                        watcher.Dispose();
+                        _filewatchers.Remove(directory);
+                    }
+                }
+            }
         }
 
         static void RegisterFileWatcher(string path)
