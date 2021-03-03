@@ -252,7 +252,11 @@ namespace Compute.Components
                     if (isOpen)
                         break;
                     var span = DateTime.Now - start;
-                    if (span.TotalSeconds > 20)
+                    // If compute takes more than 60 seconds to launch, assume something
+                    // is wrong and kill the process. I realize there are installs out
+                    // there that take longer to load, but I don't have a better solution
+                    // right now.
+                    if (span.TotalSeconds > 60)
                     {
                         process.Kill();
                         throw new Exception("Unable to start a local compute server");
