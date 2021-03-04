@@ -1,6 +1,7 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from enum import Enum
 import json
+import rhino3dm
 
 
 class ParamAccess(Enum):
@@ -19,14 +20,32 @@ class ParamManager(object):
     def parameter_name(self, i: int):
         return self._items[i]['Name']
 
-    def add_number_parameter(self, name: str, nickname: str, description: str,
-        access: ParamAccess):
-        param = {'Name': name, 'Description': description, 'AtLeast': 1}
+    def _create_param(self, nickname: str, description: str,
+                      access: ParamAccess, paramtype: str,
+                      resulttype: str):
+        param = {
+            'Name': nickname,
+            'Description': description,
+            'AtLeast': 1,
+            'ParamType': paramtype,
+            'ResultType': resulttype
+            }
         if access == ParamAccess.ITEM:
             param['AtMost'] = 1
-        param['ParamType'] = 'Number'
         self._items.append(param)
         return len(self._items) - 1
+
+    def add_number_parameter(self, name: str, nickname: str, description: str,
+                             access: ParamAccess):
+        return self._create_param(nickname, description, access, 'Number', 'System.Double')
+
+    def add_curve_parameter(self, name: str, nickname: str, description: str,
+                            access: ParamAccess):
+        return self._create_param(nickname, description, access, 'Curve', 'Rhino.Geometry.Curve')
+
+    def add_point_parameter(self, name: str, nickname: str, description: str,
+                            access: ParamAccess):
+        return self._create_param(nickname, description, access, 'Point', 'Rhino.Geometry.Point3d')
 
 
 class InputParamManager(ParamManager):
@@ -38,12 +57,40 @@ class OutputParamManager(ParamManager):
     def __init__(self):
         super().__init__()
 
+    def create_result(self, i, data):
+        class __Rhino3dmEncoder(json.JSONEncoder):
+            def default(self, o):
+                if hasattr(o, "Encode"):
+                    return o.Encode()
+                return json.JSONEncoder.default(self, o)
+
+        param = None
+        if isinstance(i, int):
+            param = self._items[i]
+        else:
+            for item in self._items:
+                if item['Name'] == i:
+                    param = item
+                    break
+
+        result = {
+            'ParamName': param['Name'],
+            'InnerTree': {
+                '0': [{
+                    'type': param['ResultType'],
+                    'data': json.dumps(data, cls=__Rhino3dmEncoder)
+                }]
+            }
+        }
+        return result
+
 
 def _coerce_input(item):
-    data = item['data']
+    data = json.loads(item['data'])
     itemtype = item['type']
     coercers = {
-        'System.Double': lambda x: float(x)
+        'System.Double': lambda x: float(x),
+        'Rhino.Geometry.NurbsCurve': lambda x: rhino3dm.CommonObject.Decode(x)
     }
     rc = coercers[itemtype](data)
     return rc
@@ -53,7 +100,7 @@ class DataAccess(object):
     def __init__(self, component, inputs):
         self._inputs = inputs
         self._component = component
-        self._results = {}
+        self._results = []
 
     def getdata(self, i):
         name = i
@@ -64,25 +111,11 @@ class DataAccess(object):
         return (True, data)
 
     def setdata(self, i, data):
-        name = i
-        if isinstance(i, int):
-            name = self._component._outputs.parameter_name(i)
-        self._results[name] = data
+        result = self._component._outputs.create_result(i, data)
+        self._results.append(result)
 
     def output_list(self):
-        rc = []
-        for key, value in self._results.items():
-            entry = {
-                'ParamName': key,
-                'InnerTree': {
-                    '0': [{
-                        'type': 'System.Double',
-                        'data': value
-                    }]
-                }
-            }
-            rc.append(entry)
-        return rc
+        return self._results
 
 
 class Component(object):
