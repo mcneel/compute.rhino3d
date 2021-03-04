@@ -25,3 +25,4 @@ RhinoCompute.cs
 
 # OS artifacts
 .DS_Store
+/src/tests/.vscode
