@@ -47,6 +47,10 @@ class ParamManager(object):
                             access: ParamAccess):
         return self._create_param(nickname, description, access, 'Point', 'Rhino.Geometry.Point3d')
 
+    def add_surface_parameter(self, name: str, nickname: str, description: str,
+                              access: ParamAccess):
+        return self._create_param(nickname, description, access, 'Surface', 'Rhino.Geometry.Brep')
+
 
 class InputParamManager(ParamManager):
     def __init__(self):
@@ -73,6 +77,9 @@ class OutputParamManager(ParamManager):
                     param = item
                     break
 
+        if isinstance(data, rhino3dm.Surface):
+            data = rhino3dm.Brep.CreateFromSurface(data)
+
         result = {
             'ParamName': param['Name'],
             'InnerTree': {
@@ -90,10 +97,17 @@ def _coerce_input(item):
     itemtype = item['type']
     coercers = {
         'System.Double': lambda x: float(x),
-        'Rhino.Geometry.NurbsCurve': lambda x: rhino3dm.CommonObject.Decode(x)
+        'Rhino.Geometry.Point2d': lambda x: rhino3dm.Point2d(x['X'], x['Y']),
+        'Rhino.Geometry.Point3d': lambda x: rhino3dm.Point3d(x['X'], x['Y'], x['Z']),
+        'Rhino.Geometry.Vector3d': lambda x: rhino3dm.Vector3d(x['X'], x['Y'], x['Z'])
     }
-    rc = coercers[itemtype](data)
-    return rc
+    if itemtype in coercers:
+        rc = coercers[itemtype](data)
+        return rc
+    if itemtype.startswith('Rhino.Geometry.'):
+        rc = rhino3dm.CommonObject.Decode(data)
+        return rc
+    return data
 
 
 class DataAccess(object):
@@ -137,6 +151,9 @@ class Component(object):
     def name(self):
         return self._name
 
+    def nickname(self):
+        return self._nickname
+
     def meta(self):
         if self._meta is None:
             meta = {'Description': self._description}
@@ -159,8 +176,8 @@ class ComponentCollection(object):
     components = None
 
     @staticmethod
-    def component_names():
-        names = [c.name() for c in ComponentCollection.components]
+    def component_nicknames():
+        names = [c.nickname() for c in ComponentCollection.components]
         return names
 
     @staticmethod
@@ -168,6 +185,9 @@ class ComponentCollection(object):
         name = name.lower()
         for component in ComponentCollection.components:
             if name == component.name().lower():
+                return component
+        for component in ComponentCollection.components:
+            if name == component.nickname().lower():
                 return component
         return None
 
@@ -196,7 +216,7 @@ class __HopsServer(BaseHTTPRequestHandler):
         path = tokens[0]
         if (path == '/'):
             self._set_headers()
-            output = ComponentCollection.component_names()
+            output = ComponentCollection.component_nicknames()
             s = json.dumps(output)
             self.wfile.write(s.encode(encoding='utf_8'))
             return

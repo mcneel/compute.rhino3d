@@ -321,9 +321,9 @@ namespace Compute.Components
                 {
                     Dictionary<string, string> dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(data);
                     var geometry = Rhino.Runtime.CommonObject.FromJSON(dict);
-                    Extrusion extrusion = geometry as Extrusion;
-                    if (extrusion != null)
-                        geometry = extrusion.ToBrep();
+                    Surface surface = geometry as Surface;
+                    if (surface != null)
+                        geometry = surface.ToBrep();
                     if (geometry is Brep)
                         return new Grasshopper.Kernel.Types.GH_Brep(geometry as Brep);
                     if (geometry is Curve)
@@ -362,9 +362,9 @@ namespace Compute.Components
                     {
                         Dictionary<string, string> dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(data);
                         var geometry = Rhino.Runtime.CommonObject.FromJSON(dict);
-                        Extrusion extrusion = geometry as Extrusion;
-                        if (extrusion != null)
-                            geometry = extrusion.ToBrep();
+                        Surface surface = geometry as Surface;
+                        if (surface != null)
+                            geometry = surface.ToBrep();
                         if (geometry is Brep)
                             return new Grasshopper.Kernel.Types.GH_Brep(geometry as Brep);
                         if (geometry is Curve)
