@@ -225,9 +225,8 @@ namespace Compute.Components
 
         void ShowSetDefinitionUi()
         {
-            var parent = Rhino.UI.Runtime.PlatformServiceProvider.Service.GetEtoWindow(Grasshopper.Instances.DocumentEditor.Handle);
             var form = new SetDefinitionForm(RemoteDefinitionLocation);
-            if(form.ShowModal(parent))
+            if(form.ShowModal(Grasshopper.Instances.EtoDocumentEditor))
             {
                 var comp = Grasshopper.Instances.ComponentServer.FindObjectByName(form.Path, true, true);
                 if (comp != null)
