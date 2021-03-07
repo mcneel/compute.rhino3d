@@ -2,6 +2,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from enum import Enum
 import json
 import rhino3dm
+import base64
 
 
 class ParamAccess(Enum):
@@ -141,6 +142,13 @@ class Component(object):
         self._category = category
         self._subcategory = subcategory
         self._meta = None
+        self._icon = None
+
+    def set_icon(self, path):
+        image = open(path, 'rb')
+        base64_bytes = base64.b64encode(image.read())
+        base64_string = base64_bytes.decode('ascii')
+        self._icon = base64_string
 
     def build_params(self):
         self._inputs = InputParamManager()
@@ -159,6 +167,8 @@ class Component(object):
             meta = {'Description': self._description}
             meta['Inputs'] = self._inputs.to_meta_list()
             meta['Outputs'] = self._outputs.to_meta_list()
+            if (self._icon):
+                meta['Icon'] = self._icon
             self._meta = meta
         return self._meta
 

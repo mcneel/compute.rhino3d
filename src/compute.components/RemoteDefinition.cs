@@ -157,8 +157,11 @@ namespace Compute.Components
                 var responseMessage = responseTask.Result;
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-                responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(stringResult);
-                _cacheKey = responseSchema.CacheKey;
+                if (!string.IsNullOrEmpty(stringResult))
+                {
+                    responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(stringResult);
+                    _cacheKey = responseSchema.CacheKey;
+                }
             }
 
             if (contentToDispose != null)
