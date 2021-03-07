@@ -281,7 +281,7 @@ namespace Compute.Components
         void DefineInputsAndOutputs()
         {
             ClearRuntimeMessages();
-            string description = _remoteDefinition.GetDescription();
+            string description = _remoteDefinition.GetDescription(out System.Drawing.Bitmap customIcon);
             if (!string.IsNullOrWhiteSpace(description) && !Description.Equals(description))
             {
                 Description = description;
@@ -605,6 +605,18 @@ namespace Compute.Components
                 }
             }
 
+            if (customIcon != null)
+            {
+                if(Guid.TryParse(RemoteDefinitionLocation, out Guid g))
+                {
+                    using(var graphics = System.Drawing.Graphics.FromImage(customIcon))
+                    {
+                        var rect = new System.Drawing.Rectangle(10, 9, 16, 16);
+                        graphics.DrawImage(Icon_24x24, rect);
+                    }
+                }
+                SetIconOverride(customIcon);
+            }
             if (buildInputs || buildOutputs)
             {
                 Params.OnParametersChanged();

@@ -60,7 +60,7 @@ namespace Resthopper.IO
         public string CacheKey { get; set; }
         public List<string> InputNames { get; set; }
         public List<string> OutputNames { get; set; }
-
+        public string Icon { get; set; }
         public List<InputParamSchema> Inputs { get; set; }
         public List<IoParamSchema> Outputs { get; set; }
     }

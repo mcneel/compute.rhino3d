@@ -16,6 +16,7 @@ namespace Compute.Components
         Dictionary<string, Tuple<InputParamSchema, IGH_Param>> _inputParams;
         Dictionary<string, IGH_Param> _outputParams;
         string _description = null;
+        System.Drawing.Bitmap _customIcon = null;
         string _path = null;
         string _cacheKey = null;
         bool? _pathIsAppServer;
@@ -96,12 +97,13 @@ namespace Compute.Components
             return _outputParams;
         }
 
-        public string GetDescription()
+        public string GetDescription(out System.Drawing.Bitmap customIcon)
         {
             if (_description == null)
             {
                 GetRemoteDescription();
             }
+            customIcon = _customIcon;
             return _description;
         }
 
@@ -165,6 +167,21 @@ namespace Compute.Components
             if (responseSchema != null)
             { 
                 _description = responseSchema.Description;
+                _customIcon = null;
+                if (!string.IsNullOrWhiteSpace(responseSchema.Icon))
+                {
+                    try
+                    {
+                        byte[] bytes = Convert.FromBase64String(responseSchema.Icon);
+                        using (var ms = new MemoryStream(bytes))
+                        {
+                            _customIcon = new System.Drawing.Bitmap(ms);
+                        }
+                    }
+                    catch(Exception)
+                    {
+                    }
+                }
                 _inputParams = new Dictionary<string, Tuple<InputParamSchema, IGH_Param>>();
                 _outputParams = new Dictionary<string, IGH_Param>();
                 foreach (var input in responseSchema.Inputs)

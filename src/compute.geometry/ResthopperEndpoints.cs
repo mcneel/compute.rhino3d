@@ -150,6 +150,7 @@ namespace compute.geometry
 
             var responseSchema = definition.GetInputsAndOutputs();
             responseSchema.CacheKey = definition.CacheKey;
+            responseSchema.Icon = definition.GetIconAsString();
             string jsonResponse = JsonConvert.SerializeObject(responseSchema);
 
             Response res = jsonResponse;
