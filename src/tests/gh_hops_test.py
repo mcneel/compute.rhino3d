@@ -27,6 +27,7 @@ class AdditionComponent(Hops.Component):
 class PointAtComponent(Hops.Component):
     def __init__(self):
         super().__init__("PointAt", "PtAt", "Get point along curve", "Curve", "Analysis")
+        self.set_icon('pointat.png')
 
     def register_input_params(self, inputs):
         inputs.add_curve_parameter("Curve", "C", "Curve to evaluate", Hops.ParamAccess.ITEM)
