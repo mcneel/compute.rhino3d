@@ -820,6 +820,27 @@ namespace compute.geometry
             return param.TypeName;
         }
 
+        public string GetIconAsString()
+        {
+            System.Drawing.Bitmap bmp = null;
+            if (_singularComponent!=null)
+            {
+                bmp = _singularComponent.Icon_24x24;
+            }
+
+            if (bmp!=null)
+            {
+                using (var ms = new MemoryStream())
+                {
+                    bmp.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+                    byte[] bytes = ms.ToArray();
+                    string rc = Convert.ToBase64String(bytes);
+                    return rc;
+                }
+            }
+            return null;
+        }
+
         public IoResponseSchema GetInputsAndOutputs()
         {
             // Parse input and output names
