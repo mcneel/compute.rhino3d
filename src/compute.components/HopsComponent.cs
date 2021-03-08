@@ -621,15 +621,28 @@ namespace Compute.Components
 
             if (customIcon != null)
             {
-                if(Guid.TryParse(RemoteDefinitionLocation, out Guid g))
+                // Draw hops icon overlay on custom icon. We can add an option
+                // to the data returned from a server to skip this overlay in
+                // the future.
+                // Create a slightly large image so we can cram the hops overlay
+                // deeper into the lower right corner
+                var bmp = new System.Drawing.Bitmap(28, 28);
+                using(var graphics = System.Drawing.Graphics.FromImage(bmp))
                 {
-                    using(var graphics = System.Drawing.Graphics.FromImage(customIcon))
-                    {
-                        var rect = new System.Drawing.Rectangle(10, 9, 16, 16);
-                        graphics.DrawImage(Icon_24x24, rect);
-                    }
+                    // use fill to debug
+                    //graphics.FillRectangle(System.Drawing.Brushes.PowderBlue, 0, 0, 28, 28);
+                    var rect = new System.Drawing.Rectangle(2, 2, 24, 24);
+                    graphics.DrawImage(customIcon, rect);
+                    rect = new System.Drawing.Rectangle(16, 14, 14, 14);
+                    graphics.DrawImage(Icon_24x24, rect);
+
                 }
-                SetIconOverride(customIcon);
+                //using (var graphics = System.Drawing.Graphics.FromImage(customIcon))
+                //{
+                //    var rect = new System.Drawing.Rectangle(13, 11, 14, 14);
+                //    graphics.DrawImage(Icon_24x24, rect);
+                //}
+                SetIconOverride(bmp);
             }
             if (buildInputs || buildOutputs)
             {
