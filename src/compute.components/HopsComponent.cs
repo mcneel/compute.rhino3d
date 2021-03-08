@@ -273,22 +273,8 @@ namespace Compute.Components
                     {
                         _remoteDefinition = RemoteDefinition.Create(value, this);
                         DefineInputsAndOutputs();
-                        this.Message = DefinitionName;
                     }
                 }
-            }
-        }
-
-        string DefinitionName
-        {
-            get
-            {
-                if(!string.IsNullOrWhiteSpace(RemoteDefinitionLocation))
-                {
-                    string[] pieces = RemoteDefinitionLocation.Split(new char[] { '/', '\\' });
-                    return pieces[pieces.Length - 1];
-                }
-                return "";
             }
         }
 
