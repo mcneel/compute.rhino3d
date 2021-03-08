@@ -25,6 +25,20 @@ namespace Compute.Components
         static bool _isHeadless = false;
         #endregion
 
+        static HopsComponent()
+        {
+            if (!Rhino.Runtime.HostUtils.RunningOnWindows)
+                return;
+            if (Rhino.RhinoApp.IsRunningHeadless)
+                return;
+            if (Hops.HopsAppSettings.Servers.Length > 0)
+                return;
+            if (Hops.HopsAppSettings.LaunchWorkerAtStart)
+            {
+                Servers.StartServerOnLaunch();
+            }
+        }
+
         public HopsComponent()
           : base("Hops", "Hops", "Solve an external definition using Rhino Compute", "Params", "Util")
         {

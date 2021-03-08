@@ -7,19 +7,25 @@ namespace Hops
 {
     static class HopsAppSettings
     {
-        const string ServersSetting = "Hops:Servers";
+        const string HOPS_SERVERS = "Hops:Servers";
+        const string HIDE_WORKER_WINDOWS = "Hops:HideWorkerWindows";
+        const string LAUNCH_WORKER_AT_START = "Hops:LaunchWorkerAtStart";
+
         public static string[] Servers
         {
             get
             {
-                var servers = Grasshopper.Instances.Settings.GetValue(ServersSetting, "").Split(new char[] { '\n' });
+                string serversSetting = Grasshopper.Instances.Settings.GetValue(HOPS_SERVERS, "");
+                if (string.IsNullOrWhiteSpace(serversSetting))
+                    return new string[0];
+                var servers = serversSetting.Split(new char[] { '\n' });
                 return servers;
             }
             set
             {
                 if (value == null)
                 {
-                    Grasshopper.Instances.Settings.SetValue(ServersSetting, "");
+                    Grasshopper.Instances.Settings.SetValue(HOPS_SERVERS, "");
                 }
                 else
                 {
@@ -33,12 +39,37 @@ namespace Hops
                             sb.Append('\n');
                         sb.Append(s);
                     }
-                    Grasshopper.Instances.Settings.SetValue(ServersSetting, sb.ToString());
+                    Grasshopper.Instances.Settings.SetValue(HOPS_SERVERS, sb.ToString());
                 }
                 Compute.Components.Servers.SettingsChanged();
             }
         }
 
+        public static bool HideWorkerWindows
+        {
+            get
+            {
+                bool show = Grasshopper.Instances.Settings.GetValue(HIDE_WORKER_WINDOWS, true);
+                return show;
+            }
+            set
+            {
+                Grasshopper.Instances.Settings.SetValue(HIDE_WORKER_WINDOWS, value);
+            }
+        }
+
+        public static bool LaunchWorkerAtStart
+        {
+            get
+            {
+                bool show = Grasshopper.Instances.Settings.GetValue(LAUNCH_WORKER_AT_START, true);
+                return show;
+            }
+            set
+            {
+                Grasshopper.Instances.Settings.SetValue(LAUNCH_WORKER_AT_START, value);
+            }
+        }
     }
     /*
     public class HopsAddSettingsCategory : IGH_SettingCategory
@@ -64,7 +95,7 @@ namespace Hops
     {
         public string Category => "Solver";
 
-        public string Name => "URLs (Hops Compute Servers)";
+        public string Name => "Hops - Compute server URLs";
 
         public IEnumerable<string> Keywords => new string[] { "Hops" };
 

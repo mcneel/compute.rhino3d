@@ -13,6 +13,16 @@ namespace Compute.Components
     /// </summary>
     class Servers
     {
+        static System.Threading.Tasks.Task<bool> _initServerTask;
+        public static void StartServerOnLaunch()
+        {
+            _initServerTask = System.Threading.Tasks.Task.Run(() =>
+            {
+                LaunchLocalCompute(true);
+                return true;
+            });
+        }
+
         public static void SettingsChanged()
         {
             _settingsNeedReading = true;
@@ -62,6 +72,11 @@ namespace Compute.Components
         /// <returns></returns>
         static string GetComputeServerBaseUrl()
         {
+            if (_initServerTask != null)
+            {
+                _initServerTask.Wait();
+                _initServerTask = null;
+            }
             // Simple round robin scheduler using a queue of compute.geometry processes
             string url = null;
 
@@ -77,6 +92,8 @@ namespace Compute.Components
                     _computeServerQueue.Clear();
                     foreach (var server in servers)
                     {
+                        if (string.IsNullOrWhiteSpace(server))
+                            continue;
                         _computeServerQueue.Enqueue(new ComputeServer(server));
                     }
                     foreach(var item in serverArray)
@@ -212,7 +229,8 @@ namespace Compute.Components
             var startInfo = new ProcessStartInfo(pathToCompute);
             startInfo.Arguments = $"-port:{port} -childof:{Process.GetCurrentProcess().Id}";
             //startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            //startInfo.CreateNoWindow = true;
+            startInfo.UseShellExecute = false;
+            startInfo.CreateNoWindow = Hops.HopsAppSettings.HideWorkerWindows;
             var process = Process.Start(startInfo);
             var start = DateTime.Now;
 
