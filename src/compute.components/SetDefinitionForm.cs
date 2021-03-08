@@ -10,13 +10,13 @@ namespace Compute.Components
 
             Title = "Set Definition";
 
-            bool windows = Rhino.Runtime.HostUtils.RunningOnWindows;
-            DefaultButton = new Eto.Forms.Button { Text = windows ? "OK" : "Apply" };
+            bool onWindows = Rhino.Runtime.HostUtils.RunningOnWindows;
+            DefaultButton = new Eto.Forms.Button { Text = onWindows ? "OK" : "Apply" };
             DefaultButton.Click += (sender, e) => Close(true);
             AbortButton = new Eto.Forms.Button { Text = "C&ancel" };
             AbortButton.Click += (sender, e) => Close(false);
             var buttons = new Eto.Forms.TableLayout();
-            if (windows)
+            if (onWindows)
             {
                 buttons.Spacing = new Eto.Drawing.Size(5, 5);
                 buttons.Rows.Add(new Eto.Forms.TableRow(null, DefaultButton, AbortButton));
@@ -36,7 +36,9 @@ namespace Compute.Components
             {
                 var dlg = new Eto.Forms.OpenFileDialog();
                 dlg.Filters.Add(new Eto.Forms.FileFilter("Grasshopper Document", ".gh", ".ghx"));
-                if (dlg.ShowDialog(this) == Eto.Forms.DialogResult.Ok)
+                // work around an issue with the parent window on Mac
+                Eto.Forms.Window parent = onWindows ? this : null;
+                if (dlg.ShowDialog(parent) == Eto.Forms.DialogResult.Ok)
                 {
                     textbox.Text = dlg.FileName;
                 }
