@@ -28,7 +28,7 @@ namespace Compute.Components
             TheAssemblyInfo = this;
         }
 
-        public const string AppVersion = "0.3.4.0";
+        public const string AppVersion = "0.4.0.0";
         
         public override Bitmap Icon
         {
