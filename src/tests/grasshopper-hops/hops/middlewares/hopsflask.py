@@ -16,10 +16,24 @@ class HopsFlask(base.HopsBase):
         flask_app.wsgi_app = self
 
     def __call__(self, environ, start_response):
-        if comp_uri := environ.get("REQUEST_URI", None):
-            if comp := self.components.get(comp_uri, None):
-                outputs = self.solve(comp, *self.prepare_inputs(environ, comp))
+        method = environ.get("REQUEST_METHOD", "GET")
+        comp_uri = environ.get("REQUEST_URI", "/")
+        if method == "GET":
+            res, results = self.query(uri=comp_uri)
+            if res:
                 res = Response("Success", mimetype="application/json", status=200)
-                res.data = self.prepare_outputs(outputs)
-                return res(environ, start_response)
+                res.data = results
+            else:
+                res = Response("Unknown URI", mimetype="application/json", status=404)
+            return res(environ, start_response)
+        elif method == "POST":
+            # TODO: grab data and execute
+            pass
+            # res, results = self.solve(uri=comp_uri, payload=data)
+            # if res:
+            #     res = Response("Success", mimetype="application/json", status=200)
+            #     res.data = results
+            # else:
+            #     res = Response("Unknown URI", mimetype="application/json", status=404)
+            #     res.data = results
         return self.wsgi_app(environ, start_response)
