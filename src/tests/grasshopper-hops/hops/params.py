@@ -1,3 +1,4 @@
+"""Hops Component Parameter wrappers"""
 import json
 from enum import Enum
 
@@ -5,8 +6,18 @@ import rhino3dm
 
 from hops.base import _HopsEncoder
 
+__all__ = [
+    "HopsParamAccess",
+    "HopsNumber",
+    "HopsCurve",
+    "HopsPoint",
+    "HopsSurface",
+]
+
 
 class HopsParamAccess(Enum):
+    """GH Item Access"""
+
     ITEM = 0
     LIST = 1
     TREE = 2
@@ -37,6 +48,7 @@ class _GHParam:
         return param_data
 
     def encode(self):
+        """Parameter serializer"""
         param_def = {
             "Name": self.name,
             "Description": self.description,
@@ -49,13 +61,15 @@ class _GHParam:
         return param_def
 
     def from_input(self, input_data):
-        param_name = input_data["ParamName"]
+        """Extract parameter data from serialized input"""
+        # param_name = input_data["ParamName"]
         param_value_item = input_data["InnerTree"]["0"][0]
         param_type = param_value_item["type"]
         param_value = param_value_item["data"]
         return self._coerce_value(param_type, param_value)
 
     def from_result(self, value):
+        """Serialize parameter with given value for output"""
         output = {
             "ParamName": self.name,
             "InnerTree": {
@@ -71,6 +85,8 @@ class _GHParam:
 
 
 class HopsNumber(_GHParam):
+    """Wrapper for GH Number"""
+
     param_type = "Number"
     result_type = "System.Double"
 
@@ -90,6 +106,8 @@ class HopsNumber(_GHParam):
 
 
 class HopsCurve(_GHParam):
+    """Wrapper for GH Curve"""
+
     param_type = "Curve"
     result_type = "Rhino.Geometry.Curve"
 
@@ -105,6 +123,8 @@ class HopsCurve(_GHParam):
 
 
 class HopsPoint(_GHParam):
+    """Wrapper for GH Point"""
+
     param_type = "Point"
     result_type = "Rhino.Geometry.Point3d"
 
@@ -126,6 +146,8 @@ class HopsPoint(_GHParam):
 
 
 class HopsSurface(_GHParam):
+    """Wrapper for GH Surface"""
+
     param_type = "Surface"
     result_type = "Rhino.Geometry.Brep"
 
