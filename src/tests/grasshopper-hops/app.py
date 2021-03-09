@@ -16,7 +16,7 @@ def help():
 # hops middleware is used to handle rhinocommon calls
 @hops.component(
     "/binsum",
-    name="Binrary Sum",
+    name="Binary Sum",
     nickname="BSum",
     inputs=[HopsNumber("A"), HopsNumber("B", access=HopsParamAccess.LIST)],
     outputs=[HopsNumber("Sum")],
