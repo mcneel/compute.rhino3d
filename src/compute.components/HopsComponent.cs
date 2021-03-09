@@ -115,13 +115,6 @@ namespace Compute.Components
             {
                 _remoteDefinition.SetComponentOutputs(schema, DA, Params.Output, this);
             }
-            else
-            {
-                if (!_remoteDefinition.PathIsAppServer && !System.IO.File.Exists(_remoteDefinition.Path))
-                {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, $"No definition at {_remoteDefinition.Path}");
-                }
-            }
         }
 
         const string TagVersion = "RemoteSolveVersion";
@@ -175,9 +168,19 @@ namespace Compute.Components
         {
             get
             {
-                var stream = GetType().Assembly.GetManifestResourceStream("Hops.resources.Hops_24x24.png");
-                return new System.Drawing.Bitmap(stream);
+                return Hops24Icon();
             }
+        }
+
+        static System.Drawing.Bitmap _hops24Icon;
+        static System.Drawing.Bitmap Hops24Icon()
+        {
+            if (_hops24Icon == null)
+            {
+                var stream = typeof(HopsComponent).Assembly.GetManifestResourceStream("Hops.resources.Hops_24x24.png");
+                _hops24Icon = new System.Drawing.Bitmap(stream);
+            }
+            return _hops24Icon;
         }
 
         public override void AppendAdditionalMenuItems(ToolStripDropDown menu)
@@ -620,14 +623,9 @@ namespace Compute.Components
                     var rect = new System.Drawing.Rectangle(2, 2, 24, 24);
                     graphics.DrawImage(customIcon, rect);
                     rect = new System.Drawing.Rectangle(16, 14, 14, 14);
-                    graphics.DrawImage(Icon_24x24, rect);
+                    graphics.DrawImage(Hops24Icon(), rect);
 
                 }
-                //using (var graphics = System.Drawing.Graphics.FromImage(customIcon))
-                //{
-                //    var rect = new System.Drawing.Rectangle(13, 11, 14, 14);
-                //    graphics.DrawImage(Icon_24x24, rect);
-                //}
                 SetIconOverride(bmp);
             }
             if (buildInputs || buildOutputs)

@@ -11,15 +11,22 @@ namespace Compute.Components
 {
     class RemoteDefinition : IDisposable
     {
+        enum PathType
+        {
+            GrasshopperDefinition,
+            ComponentGuid,
+            Server,
+            NonresponsiveUrl
+        }
+
         HopsComponent _parentComponent;
-        Guid _pathAsComponentGuid;
         Dictionary<string, Tuple<InputParamSchema, IGH_Param>> _inputParams;
         Dictionary<string, IGH_Param> _outputParams;
         string _description = null;
         System.Drawing.Bitmap _customIcon = null;
         string _path = null;
         string _cacheKey = null;
-        bool? _pathIsAppServer;
+        PathType? _pathType;
 
         public static RemoteDefinition Create(string path, HopsComponent parentComponent)
         {
@@ -32,7 +39,6 @@ namespace Compute.Components
         {
             _parentComponent = parentComponent;
             _path = path;
-            Guid.TryParse(path, out _pathAsComponentGuid);
         }
 
         public void Dispose()
@@ -41,35 +47,38 @@ namespace Compute.Components
             RemoteDefinitionCache.Remove(this);
         }
 
-        public string Path { get { return _path; } }
-
-        public bool PathIsAppServer
+        PathType GetPathType()
         {
-            get
+            if (!_pathType.HasValue)
             {
-                if (!_pathIsAppServer.HasValue)
+                if (Guid.TryParse(_path, out Guid id))
                 {
-                    _pathIsAppServer = false;
-                    string p = Path.ToLowerInvariant();
-                    if (p.StartsWith("http:") || p.StartsWith("https:"))
+                    _pathType = PathType.ComponentGuid;
+                }
+                else
+                {
+                    _pathType = PathType.GrasshopperDefinition;
+                    if (_path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
                     {
                         try
                         {
                             var getTask = HttpClient.GetAsync(_path);
                             var response = getTask.Result;
                             string mediaType = response.Content.Headers.ContentType.MediaType.ToLowerInvariant();
-                            _pathIsAppServer = mediaType.Contains("json");
+                            if (mediaType.Contains("json"))
+                                _pathType = PathType.Server;
                         }
-                        catch(Exception)
+                        catch (Exception)
                         {
-                            _pathIsAppServer = false;
+                            _pathType = PathType.NonresponsiveUrl;
                         }
-
                     }
                 }
-                return _pathIsAppServer.Value;
             }
+            return _pathType.Value;
         }
+
+        public string Path { get { return _path; } }
 
         public void OnWatchedFileChanged()
         {
@@ -110,28 +119,32 @@ namespace Compute.Components
         void GetRemoteDescription()
         {
             bool performPost = false;
-            string address = Path;
-            if (!PathIsAppServer)
+
+            string address = null;
+            var pathType = GetPathType();
+            switch (pathType)
             {
-                if (_pathAsComponentGuid != Guid.Empty)
-                {
-                    // path provided is a guid to a component
-                    address = Servers.GetDescriptionUrl(_pathAsComponentGuid);
-                }
-                else
-                {
-                    if (address.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                case PathType.GrasshopperDefinition:
                     {
-                        address = Servers.GetDescriptionUrl(Path);
+                        if (Path.StartsWith("http", StringComparison.OrdinalIgnoreCase) ||
+                            File.Exists(Path))
+                        {
+                            address = Path;
+                            performPost = true;
+                        }
                     }
-                    else
-                    {
-                        if (!System.IO.File.Exists(address))
-                            return; // file no longer there...
-                        performPost = true;
-                    }
-                }
+                    break;
+                case PathType.ComponentGuid:
+                    address = Servers.GetDescriptionUrl(Guid.Parse(Path));
+                    break;
+                case PathType.Server:
+                    address = Path;
+                    break;
+                case PathType.NonresponsiveUrl:
+                    break;
             }
+            if (address == null)
+                return;
 
             IoResponseSchema responseSchema = null;
             System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage> responseTask = null;
@@ -226,16 +239,20 @@ namespace Compute.Components
         public Schema Solve(Schema inputSchema)
         {
             string solveUrl;
-            if (PathIsAppServer)
-            {
-                int index = Path.LastIndexOf('/');
-                solveUrl = Path.Substring(0, index + 1) + "solve";
-            }
-            else
+            var pathType = GetPathType();
+            if (pathType == PathType.NonresponsiveUrl)
+                return null;
+
+            if (pathType == PathType.GrasshopperDefinition || pathType == PathType.ComponentGuid)
             {
                 solveUrl = Servers.GetSolveUrl();
                 if (!string.IsNullOrEmpty(_cacheKey))
                     inputSchema.Pointer = _cacheKey;
+            }
+            else
+            {
+                int index = Path.LastIndexOf('/');
+                solveUrl = Path.Substring(0, index + 1) + "solve";
             }
 
             string inputJson = JsonConvert.SerializeObject(inputSchema);
@@ -246,7 +263,7 @@ namespace Compute.Components
                 var responseMessage = postTask.Result;
                 if (responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
                 {
-                    if (!PathIsAppServer && string.IsNullOrEmpty(inputSchema.Algo))
+                    if (File.Exists(Path) && string.IsNullOrEmpty(inputSchema.Algo))
                     {
                         var bytes = System.IO.File.ReadAllBytes(Path);
                         string base64 = Convert.ToBase64String(bytes);
@@ -485,11 +502,6 @@ namespace Compute.Components
 
             schema.CacheSolve = cacheSolveOnServer;
             var inputs = GetInputParams();
-            if (inputs == null)
-            {
-                if (!PathIsAppServer && !System.IO.File.Exists(Path))
-                    return null;
-            }
             foreach (var kv in inputs)
             {
                 var (input, param) = kv.Value;
@@ -617,7 +629,9 @@ namespace Compute.Components
             }
 
             schema.Pointer = Path;
-            if (PathIsAppServer)
+
+            var pathType = GetPathType();
+            if (pathType == PathType.Server)
             {
                 string definition = Path.Substring(Path.LastIndexOf('/') + 1);
                 schema.Pointer = definition;
@@ -635,7 +649,10 @@ namespace Compute.Components
 
         public static void Add(RemoteDefinition definition)
         {
-            if (definition.PathIsAppServer)
+            // we are only interested in caching definitions which reference
+            // gh/ghx files so we can use file watchers to make sure everything
+            // is in sync
+            if (definition.Path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
                 return;
             if (!File.Exists(definition.Path))
                 return;
