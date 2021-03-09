@@ -10,7 +10,7 @@ hops: mw.HopsDefault = Hops(None)
 
 @hops.component(
     "/binsum",
-    name="Binrary Sum",
+    name="Binary Sum",
     nickname="BSum",
     inputs=[HopsNumber("A"), HopsNumber("B", access=HopsParamAccess.LIST)],
     outputs=[HopsNumber("Sum")],
