@@ -1,3 +1,4 @@
+"""Grasshopper Hops, Duh!"""
 import flask
 
 import hops.base as base

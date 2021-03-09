@@ -1,13 +1,17 @@
-import hops.base as base
-
+"""Hops builtin HTTP server"""
 from http.server import HTTPServer, BaseHTTPRequestHandler
+
+import hops.base as base
 
 
 class HopsDefault(base.HopsBase):
+    """Hops builtin HTTP server implementation"""
+
     def __init__(self):
         super(HopsDefault, self).__init__(None)
 
     def start(self, address="localhost", port=5000):
+        """Start hops builtin http server on given address:port"""
         _HopsHTTPHandler.hops = self
         httpd = HTTPServer((address, port), _HopsHTTPHandler)
         print(f"Starting hops python server on {address}:{port}")
@@ -25,7 +29,7 @@ class _HopsHTTPHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", "application/json")
         self.end_headers()
 
-    def do_GET(self):
+    def do_GET(self):  # pylint: disable=invalid-name,missing-function-docstring
         # grab the path before url params
         comp_uri = self._get_comp_uri()
         res, results = self.hops.query(uri=comp_uri)
@@ -35,10 +39,10 @@ class _HopsHTTPHandler(BaseHTTPRequestHandler):
         else:
             self.send_response(404)
 
-    def do_HEAD(self):
+    def do_HEAD(self):  # pylint: disable=invalid-name,missing-function-docstring
         self._set_headers()
 
-    def do_POST(self):
+    def do_POST(self):  # pylint: disable=invalid-name,missing-function-docstring
         # read the message and convert it into a python dictionary
         comp_uri = self._get_comp_uri()
         length = int(self.headers.get("Content-Length"))

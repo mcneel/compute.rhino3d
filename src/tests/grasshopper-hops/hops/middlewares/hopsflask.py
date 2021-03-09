@@ -1,6 +1,7 @@
-import hops.base as base
-
+"""Hops flask middleware implementation"""
 from werkzeug.wrappers import Request, Response, ResponseStream
+
+import hops.base as base
 
 
 class HopsFlask(base.HopsBase):

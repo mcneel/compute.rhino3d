@@ -1,8 +1,6 @@
+"""Base types for Hops middleware"""
 import json
 import base64
-from collections import namedtuple
-
-from flask import Flask
 
 
 DEFAULT_CATEGORY = "Hops"
@@ -19,6 +17,8 @@ class _HopsEncoder(json.JSONEncoder):
 
 
 class HopsComponent:
+    """Hops Component"""
+
     def __init__(
         self, uri, name, nickname, desc, cat, subcat, icon, inputs, outputs, handler
     ):
@@ -36,6 +36,7 @@ class HopsComponent:
         self.handler = handler
 
     def encode(self):
+        """Serializer"""
         metadata = {
             "Description": self.description,
             "Inputs": self.inputs,
@@ -47,6 +48,8 @@ class HopsComponent:
 
 
 class HopsBase:
+    """Base class for all Hops middleware implementations"""
+
     def __init__(self, app):
         self.app = app
         # components dict store each components two times under
@@ -55,6 +58,7 @@ class HopsBase:
         self._components: dict[str, HopsComponent] = {}
 
     def query(self, uri) -> tuple[bool, str]:
+        """Get information on given uri"""
         if uri == "/":
             return True, self._get_comps_data()
         elif comp := self._components.get(uri, None):
@@ -62,6 +66,7 @@ class HopsBase:
         return False, "Unknown uri"
 
     def solve(self, uri, payload) -> tuple[bool, str]:
+        """Perform Solve on given uri"""
         if uri == "/":
             return False, ""
 
@@ -110,8 +115,8 @@ class HopsBase:
         # grab input param data and value items
         # FIXME: this works on a single branch only? ["0"][0]
         param_values = {}
-        for d in data["values"]:
-            param_values[d["ParamName"]] = d
+        for item in data["values"]:
+            param_values[item["ParamName"]] = item
 
         inputs = []
         for in_param in comp.inputs:
@@ -145,27 +150,29 @@ class HopsBase:
         category=None,
         subcategory=None,
         icon=None,
-        inputs=[],
-        outputs=[],
+        inputs=None,
+        outputs=None,
     ):
-        def __func_wrapper__(f):
+        """Decorator for Hops middleware"""
+
+        def __func_wrapper__(comp_func):
             # register inputs and outputs
-            comp_name = name or f.__qualname__
+            comp_name = name or comp_func.__qualname__
             uri = rule or f"/{comp_name}"
             comp = HopsComponent(
                 uri=uri,
                 name=comp_name,
                 nickname=nickname,
-                desc=description or f.__doc__,
+                desc=description or comp_func.__doc__,
                 cat=category or DEFAULT_CATEGORY,
                 subcat=subcategory or DEFAULT_SUBCATEGORY,
                 icon=self._prepare_icon(icon) if icon is not None else None,
-                inputs=inputs,
-                outputs=outputs,
-                handler=f,
+                inputs=inputs or [],
+                outputs=outputs or [],
+                handler=comp_func,
             )
             self._components[uri] = comp
             self._components[comp.solve_uri] = comp
-            return f
+            return comp_func
 
         return __func_wrapper__
