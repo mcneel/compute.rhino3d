@@ -25,18 +25,6 @@ class _HopsHTTPHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", "application/json")
         self.end_headers()
 
-    def _parse_payload(self, data) -> base.HopsComponent:
-        pass
-        # comp_name = data["pointer"]
-        # values = {}
-        # for d in data["values"]:
-        #     paramname = d["ParamName"]
-        #     values[paramname] = d["InnerTree"]
-
-        #     outputs = self.solve(comp, *self.prepare_inputs(environ, comp))
-        #     res = Response("Success", mimetype="application/json", status=200)
-        #     res.data = self.prepare_outputs(outputs)
-
     def do_GET(self):
         # grab the path before url params
         comp_uri = self._get_comp_uri()

@@ -67,7 +67,7 @@ def pointat(curve, t):
 
 
 @hops.component(
-    "/ruledsurface",
+    "/srf4pt",
     name="4Point Surface",
     nickname="Srf4Pt",
     description="Create ruled surface from four points",

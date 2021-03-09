@@ -18,5 +18,5 @@ python_version = "3.9"
 allow_prereleases = true
 
 [scripts]
-hops_flask = "python3 -m flask run"
-hops_http = "python3 app_http.py"
+hops_flask = "python -m flask run"
+hops_http = "python app_http.py"

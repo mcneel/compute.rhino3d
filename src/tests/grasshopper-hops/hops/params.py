@@ -17,21 +17,22 @@ class HopsParamAccess(Enum):
 # cast methods
 class _GHParam:
     coercers = []
+    param_type = None
+    result_type = None
 
     def __init__(self, name, nickname, desc, access: HopsParamAccess):
         self.name = name
         self.nickname = nickname
         self.description = desc
         self.access: HopsParamAccess = access or HopsParamAccess.ITEM
-        self.param_type: type = self.__class__.__name__
-        self.result_type: type = self.__class__.__name__
 
     def _coerce_value(self, param_type, param_data):
+        data = json.loads(param_data)
         if isinstance(self.coercers, dict):
             if coercer := self.coercers.get(param_type, None):
-                return coercer(param_data)
-            elif param_type.startswith("Rhino.Geometry."):
-                return rhino3dm.CommonObject.Decode(param_data)
+                return coercer(data)
+        elif param_type.startswith("Rhino.Geometry."):
+            return rhino3dm.CommonObject.Decode(data)
         return param_data
 
     def encode(self):
@@ -69,6 +70,9 @@ class _GHParam:
 
 
 class HopsNumber(_GHParam):
+    param_type = "Number"
+    result_type = "System.Double"
+
     coercers = {
         "System.Double": lambda d: float(d),
     }
@@ -78,11 +82,17 @@ class HopsNumber(_GHParam):
 
 
 class HopsCurve(_GHParam):
+    param_type = "Curve"
+    result_type = "Rhino.Geometry.Curve"
+
     def __init__(self, name, nickname=None, desc=None, access: HopsParamAccess = None):
         super(HopsCurve, self).__init__(name, nickname, desc, access)
 
 
 class HopsPoint(_GHParam):
+    param_type = "Point"
+    result_type = "Rhino.Geometry.Point3d"
+
     coercers = {
         "Rhino.Geometry.Point2d": lambda d: rhino3dm.Point2d(d["X"], d["Y"]),
         "Rhino.Geometry.Point3d": lambda d: rhino3dm.Point3d(d["X"], d["Y"], d["Z"]),
@@ -94,5 +104,8 @@ class HopsPoint(_GHParam):
 
 
 class HopsSurface(_GHParam):
+    param_type = "Surface"
+    result_type = "Rhino.Geometry.Brep"
+
     def __init__(self, name, nickname=None, desc=None, access: HopsParamAccess = None):
         super(HopsSurface, self).__init__(name, nickname, desc, access)

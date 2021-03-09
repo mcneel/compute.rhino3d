@@ -19,38 +19,55 @@ class ParamManager(object):
         return self._items
 
     def parameter_name(self, i: int):
-        return self._items[i]['Name']
+        return self._items[i]["Name"]
 
-    def _create_param(self, nickname: str, description: str,
-                      access: ParamAccess, paramtype: str,
-                      resulttype: str):
+    def _create_param(
+        self,
+        nickname: str,
+        description: str,
+        access: ParamAccess,
+        paramtype: str,
+        resulttype: str,
+    ):
         param = {
-            'Name': nickname,
-            'Description': description,
-            'AtLeast': 1,
-            'ParamType': paramtype,
-            'ResultType': resulttype
-            }
+            "Name": nickname,
+            "Description": description,
+            "AtLeast": 1,
+            "ParamType": paramtype,
+            "ResultType": resulttype,
+        }
         if access == ParamAccess.ITEM:
-            param['AtMost'] = 1
+            param["AtMost"] = 1
         self._items.append(param)
         return len(self._items) - 1
 
-    def add_number_parameter(self, name: str, nickname: str, description: str,
-                             access: ParamAccess):
-        return self._create_param(nickname, description, access, 'Number', 'System.Double')
+    def add_number_parameter(
+        self, name: str, nickname: str, description: str, access: ParamAccess
+    ):
+        return self._create_param(
+            nickname, description, access, "Number", "System.Double"
+        )
 
-    def add_curve_parameter(self, name: str, nickname: str, description: str,
-                            access: ParamAccess):
-        return self._create_param(nickname, description, access, 'Curve', 'Rhino.Geometry.Curve')
+    def add_curve_parameter(
+        self, name: str, nickname: str, description: str, access: ParamAccess
+    ):
+        return self._create_param(
+            nickname, description, access, "Curve", "Rhino.Geometry.Curve"
+        )
 
-    def add_point_parameter(self, name: str, nickname: str, description: str,
-                            access: ParamAccess):
-        return self._create_param(nickname, description, access, 'Point', 'Rhino.Geometry.Point3d')
+    def add_point_parameter(
+        self, name: str, nickname: str, description: str, access: ParamAccess
+    ):
+        return self._create_param(
+            nickname, description, access, "Point", "Rhino.Geometry.Point3d"
+        )
 
-    def add_surface_parameter(self, name: str, nickname: str, description: str,
-                              access: ParamAccess):
-        return self._create_param(nickname, description, access, 'Surface', 'Rhino.Geometry.Brep')
+    def add_surface_parameter(
+        self, name: str, nickname: str, description: str, access: ParamAccess
+    ):
+        return self._create_param(
+            nickname, description, access, "Surface", "Rhino.Geometry.Brep"
+        )
 
 
 class InputParamManager(ParamManager):
@@ -74,7 +91,7 @@ class OutputParamManager(ParamManager):
             param = self._items[i]
         else:
             for item in self._items:
-                if item['Name'] == i:
+                if item["Name"] == i:
                     param = item
                     break
 
@@ -82,30 +99,32 @@ class OutputParamManager(ParamManager):
             data = rhino3dm.Brep.CreateFromSurface(data)
 
         result = {
-            'ParamName': param['Name'],
-            'InnerTree': {
-                '0': [{
-                    'type': param['ResultType'],
-                    'data': json.dumps(data, cls=__Rhino3dmEncoder)
-                }]
-            }
+            "ParamName": param["Name"],
+            "InnerTree": {
+                "0": [
+                    {
+                        "type": param["ResultType"],
+                        "data": json.dumps(data, cls=__Rhino3dmEncoder),
+                    }
+                ]
+            },
         }
         return result
 
 
 def _coerce_input(item):
-    data = json.loads(item['data'])
-    itemtype = item['type']
+    data = json.loads(item["data"])
+    itemtype = item["type"]
     coercers = {
-        'System.Double': lambda x: float(x),
-        'Rhino.Geometry.Point2d': lambda x: rhino3dm.Point2d(x['X'], x['Y']),
-        'Rhino.Geometry.Point3d': lambda x: rhino3dm.Point3d(x['X'], x['Y'], x['Z']),
-        'Rhino.Geometry.Vector3d': lambda x: rhino3dm.Vector3d(x['X'], x['Y'], x['Z'])
+        "System.Double": lambda x: float(x),
+        "Rhino.Geometry.Point2d": lambda x: rhino3dm.Point2d(x["X"], x["Y"]),
+        "Rhino.Geometry.Point3d": lambda x: rhino3dm.Point3d(x["X"], x["Y"], x["Z"]),
+        "Rhino.Geometry.Vector3d": lambda x: rhino3dm.Vector3d(x["X"], x["Y"], x["Z"]),
     }
     if itemtype in coercers:
         rc = coercers[itemtype](data)
         return rc
-    if itemtype.startswith('Rhino.Geometry.'):
+    if itemtype.startswith("Rhino.Geometry."):
         rc = rhino3dm.CommonObject.Decode(data)
         return rc
     return data
@@ -121,7 +140,7 @@ class DataAccess(object):
         name = i
         if isinstance(i, int):
             name = self._component._inputs.parameter_name(i)
-        data = self._inputs[name]['0'][0]
+        data = self._inputs[name]["0"][0]
         data = _coerce_input(data)
         return (True, data)
 
@@ -134,8 +153,14 @@ class DataAccess(object):
 
 
 class Component(object):
-    def __init__(self, name: str, nickname: str, description: str,
-                 category: str, subcategory: str):
+    def __init__(
+        self,
+        name: str,
+        nickname: str,
+        description: str,
+        category: str,
+        subcategory: str,
+    ):
         self._name = name
         self._nickname = nickname
         self._description = description
@@ -145,9 +170,9 @@ class Component(object):
         self._icon = None
 
     def set_icon(self, path):
-        image = open(path, 'rb')
+        image = open(path, "rb")
         base64_bytes = base64.b64encode(image.read())
-        base64_string = base64_bytes.decode('ascii')
+        base64_string = base64_bytes.decode("ascii")
         self._icon = base64_string
 
     def build_params(self):
@@ -164,11 +189,11 @@ class Component(object):
 
     def meta(self):
         if self._meta is None:
-            meta = {'Description': self._description}
-            meta['Inputs'] = self._inputs.to_meta_list()
-            meta['Outputs'] = self._outputs.to_meta_list()
-            if (self._icon):
-                meta['Icon'] = self._icon
+            meta = {"Description": self._description}
+            meta["Inputs"] = self._inputs.to_meta_list()
+            meta["Outputs"] = self._outputs.to_meta_list()
+            if self._icon:
+                meta["Icon"] = self._icon
             self._meta = meta
         return self._meta
 
@@ -222,41 +247,40 @@ class __HopsServer(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        tokens = self.path.split('?')
+        tokens = self.path.split("?")
         path = tokens[0]
-        if (path == '/'):
+        if path == "/":
             self._set_headers()
             output = ComponentCollection.component_nicknames()
             s = json.dumps(output)
-            self.wfile.write(s.encode(encoding='utf_8'))
+            self.wfile.write(s.encode(encoding="utf_8"))
             return
         self._set_headers()
         component_name = tokens[0][1:]
         output = ComponentCollection.component_description(component_name)
         s = json.dumps(output)
-        self.wfile.write(s.encode(encoding='utf_8'))
+        self.wfile.write(s.encode(encoding="utf_8"))
 
     def do_HEAD(self):
         self._set_headers()
 
     def do_POST(self):
         # read the message and convert it into a python dictionary
-        length = int(self.headers.get('Content-Length'))
+        length = int(self.headers.get("Content-Length"))
         jsoninput = self.rfile.read(length)
         data = json.loads(jsoninput)
-        comp_name = data['pointer']
+        comp_name = data["pointer"]
         values = {}
-        for d in data['values']:
-            paramname = d['ParamName']
-            values[paramname] = d['InnerTree']
+        for d in data["values"]:
+            paramname = d["ParamName"]
+            values[paramname] = d["InnerTree"]
         da = ComponentCollection.solve_component(comp_name, values)
         output = da.output_list()
-        output = {
-            'values': output
-        }
+        output = {"values": output}
         self._set_headers()
         s = json.dumps(output)
-        self.wfile.write(s.encode(encoding='utf_8'))
+        print(output)
+        self.wfile.write(s.encode(encoding="utf_8"))
 
 
 def start_server(components: list, port: int):
@@ -264,7 +288,7 @@ def start_server(components: list, port: int):
         component.build_params()
     ComponentCollection.components = components
 
-    location = ('localhost', port)
+    location = ("localhost", port)
     httpd = HTTPServer(location, __HopsServer)
     print(f"Starting hops python server on {location[0]}:{location[1]}")
     httpd.serve_forever()

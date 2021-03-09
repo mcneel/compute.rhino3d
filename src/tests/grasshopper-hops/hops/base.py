@@ -36,8 +36,13 @@ class HopsComponent:
         self.handler = handler
 
     def encode(self):
-        metadata = self.__dict__.copy()
-        metadata.pop("handler")
+        metadata = {
+            "Description": self.description,
+            "Inputs": self.inputs,
+            "Outputs": self.outputs,
+        }
+        if self.icon:
+            metadata["Icon"] = self.icon
         return metadata
 
 
@@ -60,31 +65,43 @@ class HopsBase:
         if uri == "/":
             return False, ""
 
-        elif comp := self._components.get(uri, None):
-            # parse payload for inputs
-            res, inputs = self._prepare_inputs(comp, payload)
-            if not res:
-                return res, "Bad inputs"
+        # FIXME: remove support for legacy solve behaviour
+        elif uri == "/solve":
+            data = json.loads(payload)
+            comp_name = data["pointer"]
+            for comp in self._components.values():
+                if comp_name == comp.uri.replace("/", ""):
+                    return self._process_solve_request(comp, payload)
 
-            # run
-            try:
-                solve_returned = self._solve(comp, inputs)
-                res, outputs = self._prepare_outputs(comp, solve_returned)
-                return res, outputs if res else "Bad outputs"
-            except Exception as solve_ex:  # pylint: disable=broad-except
-                return False, str(solve_ex)
+        # FIXME: test this new api
+        elif comp := self._components.get(uri, None):
+            return self._process_solve_request(comp, payload)
         return False, "Unknown uri"
 
     def _get_comps_data(self):
         return json.dumps(list(self._components.values()), cls=_HopsEncoder)
 
     def _get_comp_data(self, comp):
-        return json.dumps(comp)
+        return json.dumps(comp, cls=_HopsEncoder)
 
     def _prepare_icon(self, icon_file_path):
         with open(icon_file_path, "rb") as image_file:
             base64_bytes = base64.b64encode(image_file.read())
             return base64_bytes.decode("ascii")
+
+    def _process_solve_request(self, comp, payload) -> tuple[bool, str]:
+        # parse payload for inputs
+        res, inputs = self._prepare_inputs(comp, payload)
+        if not res:
+            return res, "Bad inputs"
+
+        # run
+        try:
+            solve_returned = self._solve(comp, inputs)
+            res, outputs = self._prepare_outputs(comp, solve_returned)
+            return res, outputs if res else "Bad outputs"
+        except Exception as solve_ex:  # pylint: disable=broad-except
+            return False, str(solve_ex)
 
     def _prepare_inputs(self, comp, payload) -> tuple[bool, list]:
         # parse input payload
@@ -97,7 +114,6 @@ class HopsBase:
             param_values[d["ParamName"]] = d
 
         inputs = []
-        registered_input_names = [x.name for x in comp.inputs]
         for in_param in comp.inputs:
             if in_param.name not in param_values and not in_param.optional:
                 return False, f"Missing value for required input {in_param.name}"
@@ -117,7 +133,8 @@ class HopsBase:
         for out_param, out_result in zip(comp.outputs, returns):
             output_data = out_param.from_result(out_result)
             outputs.append(output_data)
-        return True, json.dumps(outputs)
+        payload = {"values": outputs}
+        return True, json.dumps(payload, cls=_HopsEncoder)
 
     def component(
         self,
