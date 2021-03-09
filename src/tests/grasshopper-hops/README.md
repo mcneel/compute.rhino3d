@@ -3,6 +3,7 @@
 - Run `pipenv install`
 - Test http server: `pipenv run hops_http`
 - Test flask server: `pipenv run hops_flask`
+- Open Rhino/GH and open updated `hops_pythonserver_test.gh`
 
 ## Notes:
 - `grasshopper-hops` module supports builtin http or flask as server backend
