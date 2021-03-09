@@ -16,24 +16,33 @@ class HopsFlask(base.HopsBase):
         flask_app.wsgi_app = self
 
     def __call__(self, environ, start_response):
-        method = environ.get("REQUEST_METHOD", "GET")
-        comp_uri = environ.get("REQUEST_URI", "/")
+        request = Request(environ)
+
+        method = request.method
+        comp_uri = request.path
+
         if method == "GET":
             res, results = self.query(uri=comp_uri)
             if res:
-                res = Response("Success", mimetype="application/json", status=200)
-                res.data = results
+                response = Response("Success", mimetype="application/json", status=200)
+                response.data = results
             else:
-                res = Response("Unknown URI", mimetype="application/json", status=404)
-            return res(environ, start_response)
+                response = Response(
+                    "Unknown URI", mimetype="application/json", status=404
+                )
+            return response(environ, start_response)
+
         elif method == "POST":
-            # TODO: grab data and execute
-            pass
-            # res, results = self.solve(uri=comp_uri, payload=data)
-            # if res:
-            #     res = Response("Success", mimetype="application/json", status=200)
-            #     res.data = results
-            # else:
-            #     res = Response("Unknown URI", mimetype="application/json", status=404)
-            #     res.data = results
+            data = request.data
+            res, results = self.solve(uri=comp_uri, payload=data)
+            if res:
+                response = Response("Success", mimetype="application/json", status=200)
+                response.data = results.encode(encoding="utf_8")
+            else:
+                response = Response(
+                    "Execution Error", mimetype="application/json", status=500
+                )
+                response.data = results.encode(encoding="utf_8")
+            return response(environ, start_response)
+
         return self.wsgi_app(environ, start_response)

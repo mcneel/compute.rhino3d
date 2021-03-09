@@ -49,5 +49,5 @@ class _HopsHTTPHandler(BaseHTTPRequestHandler):
             self.wfile.write(results.encode(encoding="utf_8"))
         else:
             # TODO: write proper errors
-            self.send_response(404)
+            self.send_response(500, "Execution Error")
             self.wfile.write(results.encode(encoding="utf_8"))
