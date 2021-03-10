@@ -173,6 +173,7 @@ namespace Compute.Components
         }
 
         static System.Drawing.Bitmap _hops24Icon;
+        static System.Drawing.Bitmap _hops48Icon;
         static System.Drawing.Bitmap Hops24Icon()
         {
             if (_hops24Icon == null)
@@ -181,6 +182,15 @@ namespace Compute.Components
                 _hops24Icon = new System.Drawing.Bitmap(stream);
             }
             return _hops24Icon;
+        }
+        public static System.Drawing.Bitmap Hops48Icon()
+        {
+            if (_hops48Icon == null)
+            {
+                var stream = typeof(HopsComponent).Assembly.GetManifestResourceStream("Hops.resources.Hops_48x48.png");
+                _hops48Icon = new System.Drawing.Bitmap(stream);
+            }
+            return _hops48Icon;
         }
 
         public override void AppendAdditionalMenuItems(ToolStripDropDown menu)
@@ -219,6 +229,25 @@ namespace Compute.Components
             public ComponentAttributes(HopsComponent parentComponent) : base(parentComponent)
             {
                 _component = parentComponent;
+            }
+
+            protected override void Render(GH_Canvas canvas, System.Drawing.Graphics graphics, GH_CanvasChannel channel)
+            {
+                base.Render(canvas, graphics, channel);
+                if (channel == GH_CanvasChannel.Objects &&
+                    GH_Canvas.ZoomFadeMedium > 0 &&
+                    !string.IsNullOrWhiteSpace(_component.RemoteDefinitionLocation)
+                    )
+                {
+                    RenderHop(graphics, GH_Canvas.ZoomFadeMedium, new System.Drawing.PointF(Bounds.Right, Bounds.Bottom));
+                }
+            }
+
+            void RenderHop(System.Drawing.Graphics graphics, int alpha, System.Drawing.PointF anchor)
+            {
+                var boxHops = new System.Drawing.RectangleF(anchor.X - 14, anchor.Y - 8, 16, 16);
+                var bmp = HopsComponent.Hops48Icon();
+                graphics.DrawImage(bmp, boxHops);
             }
 
             public override GH_ObjectResponse RespondToMouseDoubleClick(GH_Canvas sender, GH_CanvasMouseEvent e)
@@ -615,18 +644,18 @@ namespace Compute.Components
                 // the future.
                 // Create a slightly large image so we can cram the hops overlay
                 // deeper into the lower right corner
-                var bmp = new System.Drawing.Bitmap(28, 28);
-                using(var graphics = System.Drawing.Graphics.FromImage(bmp))
-                {
-                    // use fill to debug
-                    //graphics.FillRectangle(System.Drawing.Brushes.PowderBlue, 0, 0, 28, 28);
-                    var rect = new System.Drawing.Rectangle(2, 2, 24, 24);
-                    graphics.DrawImage(customIcon, rect);
-                    rect = new System.Drawing.Rectangle(16, 14, 14, 14);
-                    graphics.DrawImage(Hops24Icon(), rect);
+                //var bmp = new System.Drawing.Bitmap(28, 28);
+                //using(var graphics = System.Drawing.Graphics.FromImage(bmp))
+                //{
+                //    // use fill to debug
+                //    //graphics.FillRectangle(System.Drawing.Brushes.PowderBlue, 0, 0, 28, 28);
+                //    var rect = new System.Drawing.Rectangle(2, 2, 24, 24);
+                //    graphics.DrawImage(customIcon, rect);
+                //    rect = new System.Drawing.Rectangle(16, 14, 14, 14);
+                //    graphics.DrawImage(Hops24Icon(), rect);
 
-                }
-                SetIconOverride(bmp);
+                //}
+                SetIconOverride(customIcon);
             }
             if (buildInputs || buildOutputs)
             {
