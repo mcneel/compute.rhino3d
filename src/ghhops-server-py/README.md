@@ -23,3 +23,7 @@
 - `params.py` wrappers for supported params
 - `middleware/` supported server backends:
   - handle http GET and POST in each framework
+
+## Build for PyPi
+
+`pipenv run build`
