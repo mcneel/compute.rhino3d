@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30611.23
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hops", ".\compute.components\Hops.csproj", "{82CB7266-A8BC-4D3E-99F6-B91504C7117F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hops", ".\hops\Hops.csproj", "{82CB7266-A8BC-4D3E-99F6-B91504C7117F}"
 	ProjectSection(ProjectDependencies) = postProject
 		{3E0229A6-3417-48C1-8297-6F7622F80037} = {3E0229A6-3417-48C1-8297-6F7622F80037}
 	EndProjectSection
