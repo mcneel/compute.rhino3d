@@ -80,9 +80,10 @@ namespace computegen
 
         static string GetRepoRootDirectory()
         {
+            // finds the root of this repo, assuming this assembly is somewhere under tools/
             var exeDirectory = Path.GetDirectoryName(typeof(Program).Assembly.Location);
-            var srcbin = string.Format("{0}src{0}", Path.DirectorySeparatorChar);
-            var root = exeDirectory.Split(srcbin)[0];
+            var toolsSep = string.Format("{0}tools{0}", Path.DirectorySeparatorChar);
+            var root = exeDirectory.Split(toolsSep)[0];
 
             if (root == exeDirectory)
                 throw new InvalidOperationException("Couldn't find root of working directory");
