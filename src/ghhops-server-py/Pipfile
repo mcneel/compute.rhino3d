@@ -7,9 +7,11 @@ name = "pypi"
 flask = "*"
 rhino3dm = "*"
 pylint = "*"
+flit = "*"
 
 [dev-packages]
 black = "*"
+flake8 = "*"
 
 [requires]
 python_version = "3.9"
@@ -20,3 +22,4 @@ allow_prereleases = true
 [scripts]
 hops_flask = "python -m flask run"
 hops_http = "python app_http.py"
+build = "python -m flit build"
