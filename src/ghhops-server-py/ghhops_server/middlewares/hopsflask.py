@@ -1,7 +1,7 @@
 """Hops flask middleware implementation"""
-from werkzeug.wrappers import Request, Response, ResponseStream
+import ghhops_server.base as base
 
-import hops.base as base
+from werkzeug.wrappers import Request, Response
 
 
 class HopsFlask(base.HopsBase):
@@ -25,7 +25,9 @@ class HopsFlask(base.HopsBase):
         if method == "GET":
             res, results = self.query(uri=comp_uri)
             if res:
-                response = Response("Success", mimetype="application/json", status=200)
+                response = Response(
+                    "Success", mimetype="application/json", status=200
+                )
                 response.data = results
             else:
                 response = Response(
@@ -37,7 +39,9 @@ class HopsFlask(base.HopsBase):
             data = request.data
             res, results = self.solve(uri=comp_uri, payload=data)
             if res:
-                response = Response("Success", mimetype="application/json", status=200)
+                response = Response(
+                    "Success", mimetype="application/json", status=200
+                )
                 response.data = results.encode(encoding="utf_8")
             else:
                 response = Response(

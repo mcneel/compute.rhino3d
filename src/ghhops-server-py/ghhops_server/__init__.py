@@ -1,11 +1,12 @@
-"""Grasshopper Hops, Duh!"""
-import flask
+"""Grasshopper Hops Server"""
+import ghhops_server.base as base
+import ghhops_server.middlewares as hmw
 
-import hops.base as base
-import hops.middlewares as hmw
+import flask
 
 
 __all__ = ["Hops"]
+__version__ = "1.0.0"
 
 
 class Hops(base.HopsBase):

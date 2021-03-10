@@ -2,17 +2,9 @@
 import json
 from enum import Enum
 
+from ghhops_server.base import _HopsEncoder
+
 import rhino3dm
-
-from hops.base import _HopsEncoder
-
-__all__ = [
-    "HopsParamAccess",
-    "HopsNumber",
-    "HopsCurve",
-    "HopsPoint",
-    "HopsSurface",
-]
 
 
 class HopsParamAccess(Enum):
@@ -31,7 +23,9 @@ class _GHParam:
     param_type = None
     result_type = None
 
-    def __init__(self, name, nickname, desc, access: HopsParamAccess, optional=False):
+    def __init__(
+        self, name, nickname, desc, access: HopsParamAccess, optional=False
+    ):
         self.name = name
         self.nickname = nickname
         self.description = desc
@@ -94,32 +88,12 @@ class HopsNumber(_GHParam):
         "System.Double": lambda d: float(d),
     }
 
-    def __init__(
-        self,
-        name,
-        nickname=None,
-        desc=None,
-        access: HopsParamAccess = None,
-        optional=False,
-    ):
-        super(HopsNumber, self).__init__(name, nickname, desc, access, optional)
-
 
 class HopsCurve(_GHParam):
     """Wrapper for GH Curve"""
 
     param_type = "Curve"
     result_type = "Rhino.Geometry.Curve"
-
-    def __init__(
-        self,
-        name,
-        nickname=None,
-        desc=None,
-        access: HopsParamAccess = None,
-        optional=False,
-    ):
-        super(HopsCurve, self).__init__(name, nickname, desc, access, optional)
 
 
 class HopsPoint(_GHParam):
@@ -130,19 +104,13 @@ class HopsPoint(_GHParam):
 
     coercers = {
         "Rhino.Geometry.Point2d": lambda d: rhino3dm.Point2d(d["X"], d["Y"]),
-        "Rhino.Geometry.Point3d": lambda d: rhino3dm.Point3d(d["X"], d["Y"], d["Z"]),
-        "Rhino.Geometry.Vector3d": lambda d: rhino3dm.Vector3d(d["X"], d["Y"], d["Z"]),
+        "Rhino.Geometry.Point3d": lambda d: rhino3dm.Point3d(
+            d["X"], d["Y"], d["Z"]
+        ),
+        "Rhino.Geometry.Vector3d": lambda d: rhino3dm.Vector3d(
+            d["X"], d["Y"], d["Z"]
+        ),
     }
-
-    def __init__(
-        self,
-        name,
-        nickname=None,
-        desc=None,
-        access: HopsParamAccess = None,
-        optional=False,
-    ):
-        super(HopsPoint, self).__init__(name, nickname, desc, access, optional)
 
 
 class HopsSurface(_GHParam):
@@ -150,13 +118,3 @@ class HopsSurface(_GHParam):
 
     param_type = "Surface"
     result_type = "Rhino.Geometry.Brep"
-
-    def __init__(
-        self,
-        name,
-        nickname=None,
-        desc=None,
-        access: HopsParamAccess = None,
-        optional=False,
-    ):
-        super(HopsSurface, self).__init__(name, nickname, desc, access, optional)

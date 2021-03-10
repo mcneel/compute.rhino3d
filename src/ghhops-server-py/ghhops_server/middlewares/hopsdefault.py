@@ -1,7 +1,7 @@
 """Hops builtin HTTP server"""
-from http.server import HTTPServer, BaseHTTPRequestHandler
+import ghhops_server.base as base
 
-import hops.base as base
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 
 class HopsDefault(base.HopsBase):
@@ -29,7 +29,7 @@ class _HopsHTTPHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", "application/json")
         self.end_headers()
 
-    def do_GET(self):  # pylint: disable=invalid-name,missing-function-docstring
+    def do_GET(self):
         # grab the path before url params
         comp_uri = self._get_comp_uri()
         res, results = self.hops.query(uri=comp_uri)
@@ -39,10 +39,10 @@ class _HopsHTTPHandler(BaseHTTPRequestHandler):
         else:
             self.send_response(404)
 
-    def do_HEAD(self):  # pylint: disable=invalid-name,missing-function-docstring
+    def do_HEAD(self):
         self._set_headers()
 
-    def do_POST(self):  # pylint: disable=invalid-name,missing-function-docstring
+    def do_POST(self):
         # read the message and convert it into a python dictionary
         comp_uri = self._get_comp_uri()
         length = int(self.headers.get("Content-Length"))

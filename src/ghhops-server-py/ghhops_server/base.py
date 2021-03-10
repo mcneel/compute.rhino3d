@@ -20,7 +20,17 @@ class HopsComponent:
     """Hops Component"""
 
     def __init__(
-        self, uri, name, nickname, desc, cat, subcat, icon, inputs, outputs, handler
+        self,
+        uri,
+        name,
+        nickname,
+        desc,
+        cat,
+        subcat,
+        icon,
+        inputs,
+        outputs,
+        handler,
     ):
         self.uri = uri
         # TODO: customize solve uri?
@@ -105,7 +115,7 @@ class HopsBase:
             solve_returned = self._solve(comp, inputs)
             res, outputs = self._prepare_outputs(comp, solve_returned)
             return res, outputs if res else "Bad outputs"
-        except Exception as solve_ex:  # pylint: disable=broad-except
+        except Exception as solve_ex:
             return False, str(solve_ex)
 
     def _prepare_inputs(self, comp, payload) -> tuple[bool, list]:
@@ -121,7 +131,10 @@ class HopsBase:
         inputs = []
         for in_param in comp.inputs:
             if in_param.name not in param_values and not in_param.optional:
-                return False, f"Missing value for required input {in_param.name}"
+                return (
+                    False,
+                    f"Missing value for required input {in_param.name}",
+                )
             in_param_data = param_values[in_param.name]
             value = in_param.from_input(in_param_data)
             inputs.append(value)
