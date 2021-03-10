@@ -1,19 +1,20 @@
-from hops import Hops
-from hops import middlewares as mw
-from hops.params import *
+import ghhops_server as ghhs
 
 import rhino3dm
 
 
-hops: mw.HopsDefault = Hops(None)
+hops = ghhs.Hops(None)
 
 
 @hops.component(
     "/binsum",
     name="Binary Sum",
     nickname="BSum",
-    inputs=[HopsNumber("A"), HopsNumber("B", access=HopsParamAccess.LIST)],
-    outputs=[HopsNumber("Sum")],
+    inputs=[
+        ghhs.HopsNumber("A"),
+        ghhs.HopsNumber("B", access=ghhs.HopsParamAccess.LIST),
+    ],
+    outputs=[ghhs.HopsNumber("Sum")],
 )
 def BinarySum(a, b_list):
     b_sum = 0
@@ -24,8 +25,8 @@ def BinarySum(a, b_list):
 
 @hops.component(
     "/binmult",
-    inputs=[HopsNumber("A"), HopsNumber("B")],
-    outputs=[HopsNumber("Multiply")],
+    inputs=[ghhs.HopsNumber("A"), ghhs.HopsNumber("B")],
+    outputs=[ghhs.HopsNumber("Multiply")],
 )
 def BinaryMultiply(a, b):
     return a * b
@@ -39,10 +40,10 @@ def BinaryMultiply(a, b):
     category="Maths",
     subcategory="CPython",
     inputs=[
-        HopsNumber("A", "A", "First number", HopsParamAccess.ITEM),
-        HopsNumber("B", "B", "Second number", HopsParamAccess.ITEM),
+        ghhs.HopsNumber("A", "A", "First number", ghhs.HopsParamAccess.ITEM),
+        ghhs.HopsNumber("B", "B", "Second number", ghhs.HopsParamAccess.ITEM),
     ],
-    outputs=[HopsNumber("Sum", "S", "A + B", HopsParamAccess.ITEM)],
+    outputs=[ghhs.HopsNumber("Sum", "S", "A + B", ghhs.HopsParamAccess.ITEM)],
 )
 def add(a, b):
     return a + b
@@ -57,10 +58,21 @@ def add(a, b):
     subcategory="Analysis",
     icon="pointat.png",
     inputs=[
-        HopsCurve("Curve", "C", "Curve to evaluate", HopsParamAccess.ITEM),
-        HopsNumber("t", "t", "Parameter on Curve to evaluate", HopsParamAccess.ITEM),
+        ghhs.HopsCurve(
+            "Curve", "C", "Curve to evaluate", ghhs.HopsParamAccess.ITEM
+        ),
+        ghhs.HopsNumber(
+            "t",
+            "t",
+            "Parameter on Curve to evaluate",
+            ghhs.HopsParamAccess.ITEM,
+        ),
     ],
-    outputs=[HopsPoint("P", "P", "Point on curve at t", HopsParamAccess.ITEM)],
+    outputs=[
+        ghhs.HopsPoint(
+            "P", "P", "Point on curve at t", ghhs.HopsParamAccess.ITEM
+        )
+    ],
 )
 def pointat(curve, t):
     return curve.PointAt(t)
@@ -79,7 +91,9 @@ def pointat(curve, t):
         HopsPoint("Corner C", "C", "Third corner", HopsParamAccess.ITEM),
         HopsPoint("Corner D", "D", "Fourth corner", HopsParamAccess.ITEM),
     ],
-    outputs=[HopsSurface("Surface", "S", "Resulting surface", HopsParamAccess.ITEM)],
+    outputs=[
+        HopsSurface("Surface", "S", "Resulting surface", HopsParamAccess.ITEM)
+    ],
 )
 def ruled_surface(a, b, c, d):
     edge1 = rhino3dm.LineCurve(a, b)
@@ -87,4 +101,4 @@ def ruled_surface(a, b, c, d):
     return rhino3dm.NurbsSurface.CreateRuledSurface(edge1, edge2)
 
 
-hops.start()  # pylint: disable=no-member
+hops.start()
