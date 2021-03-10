@@ -8,6 +8,7 @@ namespace rhino.compute
     {
         static bool _initCalled = false;
         static HttpClient _client;
+        private const string _apiKeyHeader = "RhinoComputeKey";
         static void Initialize()
         {
             if (_initCalled)
@@ -59,6 +60,11 @@ namespace rhino.compute
 
             if (method == HttpMethod.Post)
             {
+                // include RhinoComputeKey header in request to compute child process
+                var req = new HttpRequestMessage(HttpMethod.Post, proxyUrl);
+                if (initialRequest.Headers.TryGetValue(_apiKeyHeader, out var keyHeader))
+                    req.Headers.Add(_apiKeyHeader, keyHeader.ToString());
+
                 using (var stream = initialRequest.BodyReader.AsStream(false))
                 {
                     using (var sw = new System.IO.StreamReader(initialRequest.BodyReader.AsStream()))
@@ -66,7 +72,8 @@ namespace rhino.compute
                         string body = sw.ReadToEnd();
                         using (var stringContent = new StringContent(body, System.Text.Encoding.UTF8, "applicaton/json"))
                         {
-                            return await _client.PostAsync(proxyUrl, stringContent);
+                            req.Content = stringContent;
+                            return await _client.SendAsync(req);
                         }
                     }
                 }
@@ -92,6 +99,7 @@ namespace rhino.compute
         {
             var proxyResponse = await SendProxyRequest(req, HttpMethod.Post);
             ComputeChildren.UpdateLastCall();
+            res.StatusCode = (int)proxyResponse.StatusCode;
             var s = await proxyResponse.Content.ReadAsStringAsync();
             await res.WriteAsync(s);
         }
@@ -100,6 +108,7 @@ namespace rhino.compute
         {
             var proxyResponse = await SendProxyRequest(req, HttpMethod.Post);
             ComputeChildren.UpdateLastCall();
+            res.StatusCode = (int)proxyResponse.StatusCode;
             var s = await proxyResponse.Content.ReadAsStringAsync();
             await res.WriteAsync(s);
         }

@@ -6,6 +6,7 @@ namespace compute.geometry
     static class ApiKey
     {
         static string _apiKey;
+        const string _apiKeyName = "RhinoComputeKey";
         public static void Initialize(Nancy.Bootstrapper.IPipelines pipelines)
         {
             _apiKey = Config.ApiKey;
@@ -22,7 +23,7 @@ namespace compute.geometry
             if (context.Request.Method == "GET" || context.Request.Method == "OPTIONS")
                 return null; // GET and OPTIONS requests are free
 
-            var requestIds = new List<string>(context.Request.Headers["RhinoComputeKey"]);
+            var requestIds = new List<string>(context.Request.Headers[_apiKeyName]);
             if (requestIds.Count != 1)
                 return NoKeyResponse();
             var key_in_header = requestIds[0];
@@ -34,7 +35,7 @@ namespace compute.geometry
 
         private static Nancy.Response NoKeyResponse()
         {
-            var response = (Nancy.Response)"Requires rhino_compute_key header";
+            var response = (Nancy.Response)$"Requires {_apiKeyName} header";
             response.StatusCode = Nancy.HttpStatusCode.Unauthorized;
             return response;
         }
