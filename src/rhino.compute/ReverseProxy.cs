@@ -99,6 +99,7 @@ namespace rhino.compute
         {
             var proxyResponse = await SendProxyRequest(req, HttpMethod.Post);
             ComputeChildren.UpdateLastCall();
+            res.StatusCode = (int)proxyResponse.StatusCode;
             var s = await proxyResponse.Content.ReadAsStringAsync();
             await res.WriteAsync(s);
         }
@@ -107,6 +108,7 @@ namespace rhino.compute
         {
             var proxyResponse = await SendProxyRequest(req, HttpMethod.Post);
             ComputeChildren.UpdateLastCall();
+            res.StatusCode = (int)proxyResponse.StatusCode;
             var s = await proxyResponse.Content.ReadAsStringAsync();
             await res.WriteAsync(s);
         }
