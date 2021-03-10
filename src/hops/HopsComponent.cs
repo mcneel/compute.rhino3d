@@ -21,8 +21,23 @@ namespace Compute.Components
         int _minorVersion = 1;
         RemoteDefinition _remoteDefinition = null;
         bool _cacheSolveResults = true;
+        bool _remoteDefinitionRequiresRebuild = false;
         static bool _isHeadless = false;
         #endregion
+
+        static HopsComponent()
+        {
+            if (!Rhino.Runtime.HostUtils.RunningOnWindows)
+                return;
+            if (Rhino.RhinoApp.IsRunningHeadless)
+                return;
+            if (Hops.HopsAppSettings.Servers.Length > 0)
+                return;
+            if (Hops.HopsAppSettings.LaunchWorkerAtStart)
+            {
+                Servers.StartServerOnLaunch();
+            }
+        }
 
         public HopsComponent()
           : base("Hops", "Hops", "Solve an external definition using Rhino Compute", "Params", "Util")
@@ -61,7 +76,7 @@ namespace Compute.Components
             if(InPreSolve)
             {
                 List<string> warnings;
-                string inputJson = _remoteDefinition.CreateInputJson(DA, _cacheSolveResults, out warnings);
+                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheSolveResults, out warnings);
                 if (warnings != null && warnings.Count > 0)
                 {
                     foreach (var warning in warnings)
@@ -70,9 +85,9 @@ namespace Compute.Components
                     }
                     return;
                 }
-                if (inputJson != null)
+                if (inputSchema != null)
                 {
-                    var task = System.Threading.Tasks.Task.Run(() => _remoteDefinition.PostToServer(inputJson));
+                    var task = System.Threading.Tasks.Task.Run(() => _remoteDefinition.Solve(inputSchema));
                     TaskList.Add(task);
                 }
                 return;
@@ -81,7 +96,7 @@ namespace Compute.Components
             if (!GetSolveResults(DA, out var schema))
             {
                 List<string> warnings;
-                string inputJson = _remoteDefinition.CreateInputJson(DA, _cacheSolveResults, out warnings);
+                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheSolveResults, out warnings);
                 if (warnings != null && warnings.Count > 0)
                 {
                     foreach (var warning in warnings)
@@ -90,8 +105,8 @@ namespace Compute.Components
                     }
                     return;
                 }
-                if (inputJson != null)
-                    schema = _remoteDefinition.PostToServer(inputJson);
+                if (inputSchema != null)
+                    schema = _remoteDefinition.Solve(inputSchema);
                 else
                     schema = null;
             }
@@ -99,13 +114,6 @@ namespace Compute.Components
             if (schema != null)
             {
                 _remoteDefinition.SetComponentOutputs(schema, DA, Params.Output, this);
-            }
-            else
-            {
-                if (!_remoteDefinition.PathIsAppServer && !System.IO.File.Exists(_remoteDefinition.Path))
-                {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, $"No definition at {_remoteDefinition.Path}");
-                }
             }
         }
 
@@ -160,9 +168,29 @@ namespace Compute.Components
         {
             get
             {
-                var stream = GetType().Assembly.GetManifestResourceStream("Hops.resources.Hops_24x24.png");
-                return new System.Drawing.Bitmap(stream);
+                return Hops24Icon();
             }
+        }
+
+        static System.Drawing.Bitmap _hops24Icon;
+        static System.Drawing.Bitmap _hops48Icon;
+        static System.Drawing.Bitmap Hops24Icon()
+        {
+            if (_hops24Icon == null)
+            {
+                var stream = typeof(HopsComponent).Assembly.GetManifestResourceStream("Hops.resources.Hops_24x24.png");
+                _hops24Icon = new System.Drawing.Bitmap(stream);
+            }
+            return _hops24Icon;
+        }
+        public static System.Drawing.Bitmap Hops48Icon()
+        {
+            if (_hops48Icon == null)
+            {
+                var stream = typeof(HopsComponent).Assembly.GetManifestResourceStream("Hops.resources.Hops_48x48.png");
+                _hops48Icon = new System.Drawing.Bitmap(stream);
+            }
+            return _hops48Icon;
         }
 
         public override void AppendAdditionalMenuItems(ToolStripDropDown menu)
@@ -172,15 +200,15 @@ namespace Compute.Components
             tsi.Font = new System.Drawing.Font(tsi.Font, System.Drawing.FontStyle.Bold);
             menu.Items.Add(tsi);
 
-            tsi = new ToolStripMenuItem($"Local Computes ({LocalServer.ActiveComputeCount})");
+            tsi = new ToolStripMenuItem($"Local Computes ({Servers.ActiveLocalComputeCount})");
             var tsi_sub = new ToolStripMenuItem("1 More", null, (s, e) => {
-                LocalServer.LaunchCompute(false);
+                Servers.LaunchLocalCompute(false);
             });
             tsi_sub.ToolTipText = "Launch a local compute instance";
             tsi.DropDown.Items.Add(tsi_sub);
             tsi_sub = new ToolStripMenuItem("6 Pack", null, (s, e) => {
                 for(int i=0; i<6; i++)
-                    LocalServer.LaunchCompute(false);
+                    Servers.LaunchLocalCompute(false);
             });
             tsi_sub.ToolTipText = "Get drunk with power and launch 6 compute instances";
             tsi.DropDown.Items.Add(tsi_sub);
@@ -201,6 +229,25 @@ namespace Compute.Components
             public ComponentAttributes(HopsComponent parentComponent) : base(parentComponent)
             {
                 _component = parentComponent;
+            }
+
+            protected override void Render(GH_Canvas canvas, System.Drawing.Graphics graphics, GH_CanvasChannel channel)
+            {
+                base.Render(canvas, graphics, channel);
+                if (channel == GH_CanvasChannel.Objects &&
+                    GH_Canvas.ZoomFadeMedium > 0 &&
+                    !string.IsNullOrWhiteSpace(_component.RemoteDefinitionLocation)
+                    )
+                {
+                    RenderHop(graphics, GH_Canvas.ZoomFadeMedium, new System.Drawing.PointF(Bounds.Right, Bounds.Bottom));
+                }
+            }
+
+            void RenderHop(System.Drawing.Graphics graphics, int alpha, System.Drawing.PointF anchor)
+            {
+                var boxHops = new System.Drawing.RectangleF(anchor.X - 14, anchor.Y - 8, 16, 16);
+                var bmp = HopsComponent.Hops48Icon();
+                graphics.DrawImage(bmp, boxHops);
             }
 
             public override GH_ObjectResponse RespondToMouseDoubleClick(GH_Canvas sender, GH_CanvasMouseEvent e)
@@ -224,9 +271,8 @@ namespace Compute.Components
 
         void ShowSetDefinitionUi()
         {
-            var parent = Rhino.UI.Runtime.PlatformServiceProvider.Service.GetEtoWindow(Grasshopper.Instances.DocumentEditor.Handle);
             var form = new SetDefinitionForm(RemoteDefinitionLocation);
-            if(form.ShowModal(parent))
+            if(form.ShowModal(Grasshopper.Instances.EtoDocumentEditor))
             {
                 var comp = Grasshopper.Instances.ComponentServer.FindObjectByName(form.Path, true, true);
                 if (comp != null)
@@ -257,31 +303,17 @@ namespace Compute.Components
                     }
                     if (!string.IsNullOrWhiteSpace(value))
                     {
-                        _remoteDefinition = new RemoteDefinition(value);
+                        _remoteDefinition = RemoteDefinition.Create(value, this);
                         DefineInputsAndOutputs();
-                        this.Message = DefinitionName;
                     }
                 }
-            }
-        }
-
-        string DefinitionName
-        {
-            get
-            {
-                if(!string.IsNullOrWhiteSpace(RemoteDefinitionLocation))
-                {
-                    string[] pieces = RemoteDefinitionLocation.Split(new char[] { '/', '\\' });
-                    return pieces[pieces.Length - 1];
-                }
-                return "";
             }
         }
 
         void DefineInputsAndOutputs()
         {
             ClearRuntimeMessages();
-            string description = _remoteDefinition.GetDescription();
+            string description = _remoteDefinition.GetDescription(out System.Drawing.Bitmap customIcon);
             if (!string.IsNullOrWhiteSpace(description) && !Description.Equals(description))
             {
                 Description = description;
@@ -605,6 +637,26 @@ namespace Compute.Components
                 }
             }
 
+            if (customIcon != null)
+            {
+                // Draw hops icon overlay on custom icon. We can add an option
+                // to the data returned from a server to skip this overlay in
+                // the future.
+                // Create a slightly large image so we can cram the hops overlay
+                // deeper into the lower right corner
+                //var bmp = new System.Drawing.Bitmap(28, 28);
+                //using(var graphics = System.Drawing.Graphics.FromImage(bmp))
+                //{
+                //    // use fill to debug
+                //    //graphics.FillRectangle(System.Drawing.Brushes.PowderBlue, 0, 0, 28, 28);
+                //    var rect = new System.Drawing.Rectangle(2, 2, 24, 24);
+                //    graphics.DrawImage(customIcon, rect);
+                //    rect = new System.Drawing.Rectangle(16, 14, 14, 14);
+                //    graphics.DrawImage(Hops24Icon(), rect);
+
+                //}
+                SetIconOverride(customIcon);
+            }
             if (buildInputs || buildOutputs)
             {
                 Params.OnParametersChanged();
@@ -626,6 +678,39 @@ namespace Compute.Components
             var constructors = typeof(GH_OutputParamManager).GetConstructors(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
             var mgr = constructors[0].Invoke(new object[] { this }) as GH_OutputParamManager;
             return mgr;
+        }
+
+        public void OnRemoteDefinitionChanged()
+        {
+            if (_remoteDefinitionRequiresRebuild)
+                return;
+
+            // this is typically called on a different thread than the main UI thread
+            _remoteDefinitionRequiresRebuild = true;
+            Rhino.RhinoApp.Idle += RhinoApp_Idle;
+        }
+
+        private void RhinoApp_Idle(object sender, EventArgs e)
+        {
+            if (!_remoteDefinitionRequiresRebuild)
+            {
+                // not sure how this could happen, but in case it does just
+                // remove the idle event and bail
+                Rhino.RhinoApp.Idle -= RhinoApp_Idle;
+                return;
+            }
+
+            var ghdoc = OnPingDocument();
+            if (ghdoc != null && ghdoc.SolutionState == GH_ProcessStep.Process)
+            {
+                // Processing a solution. Wait until the next idle event to do something
+                return;
+            }
+
+            // stop the idle event watcher
+            Rhino.RhinoApp.Idle -= RhinoApp_Idle;
+            _remoteDefinitionRequiresRebuild = false;
+            DefineInputsAndOutputs();
         }
     }
 }

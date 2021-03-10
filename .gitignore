@@ -20,3 +20,4 @@ cloudzoo.json
 
 # OS artifacts
 .DS_Store
+/src/tests/.vscode

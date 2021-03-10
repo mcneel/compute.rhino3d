@@ -68,7 +68,14 @@
       <Link>Schema.cs</Link>
     </Compile>
     <Compile Include="GrasshopperDefinition.cs" />
-    <Compile Include="LocalServer.cs" />
+    <Compile Include="HopsAppSettings.cs" />
+    <Compile Include="HopsAppSettingsUserControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="HopsAppSettingsUserControl.Designer.cs">
+      <DependentUpon>HopsAppSettingsUserControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Servers.cs" />
     <Compile Include="RemoteDefinition.cs" />
     <Compile Include="HopsComponent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -81,10 +88,16 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="HopsAppSettingsUserControl.resx">
+      <DependentUpon>HopsAppSettingsUserControl.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="resources\ComputeLogo_24x24.png" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="resources\Hops_24x24.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="resources\Hops_48x48.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

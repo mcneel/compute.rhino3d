@@ -27,7 +27,7 @@ namespace compute.geometry
             // (for McNeel devs only and only those devs who use the same path as Steve)
             /*
             string rhinoSystemDir = @"C:\dev\github\mcneel\rhino\src4\bin\Debug";
-            if (File.Exists(rhinoSystemDir + "\\Rhino.exe"))
+            if (System.IO.File.Exists(rhinoSystemDir + "\\Rhino.exe"))
                 RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
             */
 #endif
@@ -35,6 +35,10 @@ namespace compute.geometry
             LogVersions();
             var rc = Topshelf.HostFactory.Run(x =>
             {
+                x.AddCommandLineDefinition("address", address =>
+                {
+                    Config.Urls = new string[] { address };
+                });
                 x.AddCommandLineDefinition("port", port => {
                     int p = int.Parse(port);
                     Config.Urls = new string[] { $"http://localhost:{p}" };
@@ -101,7 +105,7 @@ namespace compute.geometry
             Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
 
             Rhino.Runtime.HostUtils.OnExceptionReport += (source, ex) => {
-                Log.Error(ex, "An exception occured while processing request");
+                Log.Error(ex, "An exception occurred while processing request");
                 if (Config.Debug)
                     Logging.LogExceptionData(ex);
             };
@@ -122,11 +126,13 @@ namespace compute.geometry
             }
             catch (TargetInvocationException ex) when (ex.InnerException is HttpListenerException hle)
             {
+                Log.Error("Exception: " + hle.Message);
                 throw hle;
             }
-            catch
+            catch (Exception ex)
             {
-                throw;
+                Log.Error("Exception: " + ex.Message);
+                throw ex;
             }
 
             Log.Information("Listening on {Urls}", _bind);

@@ -90,7 +90,9 @@ namespace compute.geometry
                 // load grasshopper file
                 GrasshopperDefinition definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
                 if (definition == null)
-                    definition = GrasshopperDefinition.FromBase64String(input.Algo);
+                {
+                    definition = GrasshopperDefinition.FromBase64String(input.Algo, true);
+                }
                 if (definition == null)
                     throw new Exception("Unable to load grasshopper definition");
 
@@ -98,6 +100,7 @@ namespace compute.geometry
                 long decodeTime = stopwatch.ElapsedMilliseconds;
                 stopwatch.Restart();
                 var output = definition.Solve();
+                output.Pointer = definition.CacheKey;
                 long solveTime = stopwatch.ElapsedMilliseconds;
                 stopwatch.Restart();
                 string returnJson = JsonConvert.SerializeObject(output, GeometryResolver.Settings);
@@ -120,7 +123,7 @@ namespace compute.geometry
 
         Response GetIoNames(NancyContext ctx, bool asPost)
         {
-            GrasshopperDefinition definition = null;
+            GrasshopperDefinition definition;
             if (asPost)
             {
                 string body = ctx.Request.Body.AsString();
@@ -132,7 +135,9 @@ namespace compute.geometry
                 // load grasshopper file
                 definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
                 if (definition == null)
-                    definition = GrasshopperDefinition.FromBase64String(input.Algo);
+                {
+                    definition = GrasshopperDefinition.FromBase64String(input.Algo, true);
+                }
             }
             else
             {
@@ -143,7 +148,10 @@ namespace compute.geometry
             if (definition == null)
                 throw new Exception("Unable to load grasshopper definition");
 
-            string jsonResponse = JsonConvert.SerializeObject(definition.GetInputsAndOutputs());
+            var responseSchema = definition.GetInputsAndOutputs();
+            responseSchema.CacheKey = definition.CacheKey;
+            responseSchema.Icon = definition.GetIconAsString();
+            string jsonResponse = JsonConvert.SerializeObject(responseSchema);
 
             Response res = jsonResponse;
             res.ContentType = "application/json";

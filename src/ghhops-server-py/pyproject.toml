@@ -1,0 +1,11 @@
+[build-system]
+requires = ["flit"]
+build-backend = "flit.buildapi"
+
+[tool.flit.metadata]
+module = "grasshopper-hops"
+author = "Robert McNeel & Associates"
+author-email = "??"
+home-page = "https://github.com/mcneel/compute.rhino3d"
+classifiers = ["License :: OSI Approved :: MIT License"]
+requires = ['flask']

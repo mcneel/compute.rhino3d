@@ -22,14 +22,20 @@ namespace Compute.Components
 {
     public class GhaAssemblyInfo : GH_AssemblyInfo
     {
-        public const string AppVersion = "7.0.0.0";
+        public static GhaAssemblyInfo TheAssemblyInfo { get; private set; }
+        public GhaAssemblyInfo()
+        {
+            TheAssemblyInfo = this;
+        }
 
+        public const string AppVersion = "0.4.1.0";
+        
         public override Bitmap Icon
         {
             get
             {
-                //Return a 24x24 pixel bitmap to represent this GHA library.
-                return null;
+                var stream = GetType().Assembly.GetManifestResourceStream("Hops.resources.Hops_24x24.png");
+                return new System.Drawing.Bitmap(stream);
             }
         }
 

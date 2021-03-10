@@ -5,27 +5,87 @@ using Grasshopper.Kernel;
 using Rhino.Geometry;
 using Newtonsoft.Json;
 using Resthopper.IO;
+using System.IO;
 
 namespace Compute.Components
 {
     class RemoteDefinition : IDisposable
     {
-        Guid _pathAsComponentGuid;
-
-        public RemoteDefinition(string path)
+        enum PathType
         {
-            Path = path;
-            Guid.TryParse(path, out _pathAsComponentGuid);
+            GrasshopperDefinition,
+            ComponentGuid,
+            Server,
+            NonresponsiveUrl
         }
 
-        public string Path { get; private set; }
-        public bool PathIsAppServer
+        HopsComponent _parentComponent;
+        Dictionary<string, Tuple<InputParamSchema, IGH_Param>> _inputParams;
+        Dictionary<string, IGH_Param> _outputParams;
+        string _description = null;
+        System.Drawing.Bitmap _customIcon = null;
+        string _path = null;
+        string _cacheKey = null;
+        PathType? _pathType;
+
+        public static RemoteDefinition Create(string path, HopsComponent parentComponent)
         {
-            get
+            var rc = new RemoteDefinition(path, parentComponent);
+            RemoteDefinitionCache.Add(rc);
+            return rc;
+        }
+
+        private RemoteDefinition(string path, HopsComponent parentComponent)
+        {
+            _parentComponent = parentComponent;
+            _path = path;
+        }
+
+        public void Dispose()
+        {
+            _parentComponent = null;
+            RemoteDefinitionCache.Remove(this);
+        }
+
+        PathType GetPathType()
+        {
+            if (!_pathType.HasValue)
             {
-                string p = Path.ToLowerInvariant();
-                return p.StartsWith("http:") || p.StartsWith("https:");
+                if (Guid.TryParse(_path, out Guid id))
+                {
+                    _pathType = PathType.ComponentGuid;
+                }
+                else
+                {
+                    _pathType = PathType.GrasshopperDefinition;
+                    if (_path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                    {
+                        try
+                        {
+                            var getTask = HttpClient.GetAsync(_path);
+                            var response = getTask.Result;
+                            string mediaType = response.Content.Headers.ContentType.MediaType.ToLowerInvariant();
+                            if (mediaType.Contains("json"))
+                                _pathType = PathType.Server;
+                        }
+                        catch (Exception)
+                        {
+                            _pathType = PathType.NonresponsiveUrl;
+                        }
+                    }
+                }
             }
+            return _pathType.Value;
+        }
+
+        public string Path { get { return _path; } }
+
+        public void OnWatchedFileChanged()
+        {
+            _cacheKey = null;
+            _description = null;
+            if (_parentComponent != null)
+                _parentComponent.OnRemoteDefinitionChanged();
         }
 
         public Dictionary<string, Tuple<InputParamSchema, IGH_Param>> GetInputParams()
@@ -46,50 +106,111 @@ namespace Compute.Components
             return _outputParams;
         }
 
-        public string GetDescription()
+        public string GetDescription(out System.Drawing.Bitmap customIcon)
         {
             if (_description == null)
             {
                 GetRemoteDescription();
             }
+            customIcon = _customIcon;
             return _description;
         }
 
         void GetRemoteDescription()
         {
-            string address = Path;
-            if (!PathIsAppServer)
+            bool performPost = false;
+
+            string address = null;
+            var pathType = GetPathType();
+            switch (pathType)
             {
-                if (_pathAsComponentGuid != Guid.Empty)
+                case PathType.GrasshopperDefinition:
+                    {
+                        if (Path.StartsWith("http", StringComparison.OrdinalIgnoreCase) ||
+                            File.Exists(Path))
+                        {
+                            address = Path;
+                            performPost = true;
+                        }
+                    }
+                    break;
+                case PathType.ComponentGuid:
+                    address = Servers.GetDescriptionUrl(Guid.Parse(Path));
+                    break;
+                case PathType.Server:
+                    address = Path;
+                    break;
+                case PathType.NonresponsiveUrl:
+                    break;
+            }
+            if (address == null)
+                return;
+
+            IoResponseSchema responseSchema = null;
+            System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage> responseTask = null;
+            IDisposable contentToDispose = null;
+            if (performPost)
+            {
+                string postUrl = Servers.GetDescriptionPostUrl();
+                var bytes = System.IO.File.ReadAllBytes(address);
+                var schema = new Schema();
+                schema.Algo = Convert.ToBase64String(bytes);
+                string inputJson = JsonConvert.SerializeObject(schema);
+                var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
+                responseTask = HttpClient.PostAsync(postUrl, content);
+                contentToDispose = content;
+            }
+            else
+            {
+                responseTask = HttpClient.GetAsync(address);
+            }
+
+            if (responseTask != null)
+            {
+                var responseMessage = responseTask.Result;
+                var remoteSolvedData = responseMessage.Content;
+                var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
+                if (!string.IsNullOrEmpty(stringResult))
                 {
-                    // path provided is a guid to a component
-                    address = LocalServer.GetDescriptionUrl(_pathAsComponentGuid);
-                }
-                else
-                {
-                    if (!System.IO.File.Exists(address))
-                        return; // file no longer there...
-                    address = LocalServer.GetDescriptionUrl(Path);
+                    responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(stringResult);
+                    _cacheKey = responseSchema.CacheKey;
                 }
             }
-            using (var client = new System.Net.WebClient())
-            {
-                string s = client.DownloadString(address);
-                var responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(s);
+
+            if (contentToDispose != null)
+                contentToDispose.Dispose();
+
+            if (responseSchema != null)
+            { 
                 _description = responseSchema.Description;
+                _customIcon = null;
+                if (!string.IsNullOrWhiteSpace(responseSchema.Icon))
+                {
+                    try
+                    {
+                        byte[] bytes = Convert.FromBase64String(responseSchema.Icon);
+                        using (var ms = new MemoryStream(bytes))
+                        {
+                            _customIcon = new System.Drawing.Bitmap(ms);
+                        }
+                    }
+                    catch(Exception)
+                    {
+                    }
+                }
                 _inputParams = new Dictionary<string, Tuple<InputParamSchema, IGH_Param>>();
                 _outputParams = new Dictionary<string, IGH_Param>();
-                foreach(var input in responseSchema.Inputs)
+                foreach (var input in responseSchema.Inputs)
                 {
                     string inputParamName = input.Name;
                     if (inputParamName.StartsWith("RH_IN:"))
                     {
                         var chunks = inputParamName.Split(new char[] { ':' });
-                        inputParamName = chunks[chunks.Length-1];
+                        inputParamName = chunks[chunks.Length - 1];
                     }
                     _inputParams[inputParamName] = Tuple.Create(input, ParamFromIoResponseSchema(input));
                 }
-                foreach(var output in responseSchema.Outputs)
+                foreach (var output in responseSchema.Outputs)
                 {
                     string outputParamName = output.Name;
                     if (outputParamName.StartsWith("RH_OUT:"))
@@ -100,10 +221,6 @@ namespace Compute.Components
                     _outputParams[outputParamName] = ParamFromIoResponseSchema(output);
                 }
             }
-        }
-
-        public void Dispose()
-        {
         }
 
         static System.Net.Http.HttpClient _httpClient = null;
@@ -119,26 +236,50 @@ namespace Compute.Components
             }
         }
 
-        public Schema PostToServer(string inputJson)
+        public Schema Solve(Schema inputSchema)
         {
             string solveUrl;
-            if (PathIsAppServer)
+            var pathType = GetPathType();
+            if (pathType == PathType.NonresponsiveUrl)
+                return null;
+
+            if (pathType == PathType.GrasshopperDefinition || pathType == PathType.ComponentGuid)
+            {
+                solveUrl = Servers.GetSolveUrl();
+                if (!string.IsNullOrEmpty(_cacheKey))
+                    inputSchema.Pointer = _cacheKey;
+            }
+            else
             {
                 int index = Path.LastIndexOf('/');
                 solveUrl = Path.Substring(0, index + 1) + "solve";
             }
-            else
-            {
-                solveUrl = LocalServer.GetSolveUrl();
-            }
+
+            string inputJson = JsonConvert.SerializeObject(inputSchema);
 
             using (var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json"))
             {
                 var postTask = HttpClient.PostAsync(solveUrl, content);
                 var responseMessage = postTask.Result;
+                if (responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                {
+                    if (File.Exists(Path) && string.IsNullOrEmpty(inputSchema.Algo))
+                    {
+                        var bytes = System.IO.File.ReadAllBytes(Path);
+                        string base64 = Convert.ToBase64String(bytes);
+                        inputSchema.Algo = base64;
+                        inputJson = JsonConvert.SerializeObject(inputSchema);
+                        var content2 = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
+                        postTask = HttpClient.PostAsync(solveUrl, content2);
+                        responseMessage = postTask.Result;
+                        if (responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                            throw new Exception("Unable to solve on compute");
+                    }
+                }
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
                 var schema = JsonConvert.DeserializeObject<Resthopper.IO.Schema>(stringResult);
+                _cacheKey = schema.Pointer;
                 return schema;
             }
         }
@@ -217,9 +358,9 @@ namespace Compute.Components
                 {
                     Dictionary<string, string> dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(data);
                     var geometry = Rhino.Runtime.CommonObject.FromJSON(dict);
-                    Extrusion extrusion = geometry as Extrusion;
-                    if (extrusion != null)
-                        geometry = extrusion.ToBrep();
+                    Surface surface = geometry as Surface;
+                    if (surface != null)
+                        geometry = surface.ToBrep();
                     if (geometry is Brep)
                         return new Grasshopper.Kernel.Types.GH_Brep(geometry as Brep);
                     if (geometry is Curve)
@@ -258,9 +399,9 @@ namespace Compute.Components
                     {
                         Dictionary<string, string> dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(data);
                         var geometry = Rhino.Runtime.CommonObject.FromJSON(dict);
-                        Extrusion extrusion = geometry as Extrusion;
-                        if (extrusion != null)
-                            geometry = extrusion.ToBrep();
+                        Surface surface = geometry as Surface;
+                        if (surface != null)
+                            geometry = surface.ToBrep();
                         if (geometry is Brep)
                             return new Grasshopper.Kernel.Types.GH_Brep(geometry as Brep);
                         if (geometry is Curve)
@@ -354,18 +495,13 @@ namespace Compute.Components
             }
         }
 
-        public string CreateInputJson(IGH_DataAccess DA, bool cacheSolveOnServer, out List<string> warnings)
+        public Schema CreateSolveInput(IGH_DataAccess DA, bool cacheSolveOnServer, out List<string> warnings)
         {
             warnings = new List<string>();
             var schema = new Resthopper.IO.Schema();
 
             schema.CacheSolve = cacheSolveOnServer;
             var inputs = GetInputParams();
-            if (inputs == null)
-            {
-                if (!PathIsAppServer && !System.IO.File.Exists(Path))
-                    return null;
-            }
             foreach (var kv in inputs)
             {
                 var (input, param) = kv.Value;
@@ -493,17 +629,117 @@ namespace Compute.Components
             }
 
             schema.Pointer = Path;
-            if (PathIsAppServer)
+
+            var pathType = GetPathType();
+            if (pathType == PathType.Server)
             {
                 string definition = Path.Substring(Path.LastIndexOf('/') + 1);
                 schema.Pointer = definition;
             }
-            string json = JsonConvert.SerializeObject(schema);
-            return json;
+            return schema;
+        }
+    }
+
+
+    static class RemoteDefinitionCache
+    {
+        static List<RemoteDefinition> _definitions = new List<RemoteDefinition>();
+        static Dictionary<string, FileSystemWatcher> _filewatchers;
+        static HashSet<string> _watchedFiles = new HashSet<string>();
+
+        public static void Add(RemoteDefinition definition)
+        {
+            // we are only interested in caching definitions which reference
+            // gh/ghx files so we can use file watchers to make sure everything
+            // is in sync
+            if (definition.Path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                return;
+            if (!File.Exists(definition.Path))
+                return;
+            if (_definitions.Contains(definition))
+                return;
+            _definitions.Add(definition);
+            RegisterFileWatcher(definition.Path);
         }
 
-        Dictionary<string, Tuple<InputParamSchema, IGH_Param>> _inputParams;
-        Dictionary<string, IGH_Param> _outputParams;
-        string _description = null;
+        public static void Remove(RemoteDefinition definition)
+        {
+            if (_definitions.Remove(definition))
+            {
+                string path = Path.GetFullPath(definition.Path);
+                string directory = Path.GetDirectoryName(path);
+                bool removeFileWatcher = true;
+                foreach(var existingDefinition in _definitions)
+                {
+                    string existingDefPath = Path.GetFullPath(existingDefinition.Path);
+                    string existingDefDirectory = Path.GetDirectoryName(existingDefPath);
+                    if (directory.Equals(existingDefDirectory, StringComparison.OrdinalIgnoreCase))
+                    {
+                        removeFileWatcher = false;
+                        break;
+                    }    
+                }
+                if (removeFileWatcher)
+                {
+                    if (_filewatchers.TryGetValue(directory, out FileSystemWatcher watcher))
+                    {
+                        watcher.EnableRaisingEvents = false;
+                        watcher.Dispose();
+                        _filewatchers.Remove(directory);
+                    }
+                }
+            }
+        }
+
+        static void RegisterFileWatcher(string path)
+        {
+            if (!File.Exists(path))
+                return;
+
+            if (_filewatchers == null)
+            {
+                _filewatchers = new Dictionary<string, FileSystemWatcher>();
+            }
+
+            path = Path.GetFullPath(path);
+            if (_watchedFiles.Contains(path.ToLowerInvariant()))
+                return;
+
+            _watchedFiles.Add(path.ToLowerInvariant());
+            string directory = Path.GetDirectoryName(path);
+            if (_filewatchers.ContainsKey(directory) || !Directory.Exists(directory))
+                return;
+
+            var fsw = new FileSystemWatcher(directory);
+            fsw.NotifyFilter = NotifyFilters.Attributes |
+                NotifyFilters.CreationTime |
+                NotifyFilters.FileName |
+                NotifyFilters.LastAccess |
+                NotifyFilters.LastWrite |
+                NotifyFilters.Size |
+                NotifyFilters.Security;
+            fsw.Changed += Fsw_Changed;
+            fsw.EnableRaisingEvents = true;
+            _filewatchers[directory] = fsw;
+        }
+
+        private static void Fsw_Changed(object sender, FileSystemEventArgs e)
+        {
+            string path = e.FullPath.ToLowerInvariant();
+            if (_watchedFiles.Contains(path))
+            {
+                foreach(var definition in _definitions)
+                {
+                    string definitionPath = Path.GetFullPath(definition.Path);
+                    if( path.Equals(definitionPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        definition.OnWatchedFileChanged();
+                    }
+                }
+
+            }
+        }
+
+
     }
 }
