@@ -282,7 +282,8 @@ namespace Compute.Components
             }
         }
 
-        string RemoteDefinitionLocation
+        // keep public in case external C# code wants to set this
+        public string RemoteDefinitionLocation
         {
             get
             {
