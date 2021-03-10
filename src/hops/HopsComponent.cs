@@ -532,106 +532,106 @@ namespace Compute.Components
                     switch (param)
                     {
                         case Grasshopper.Kernel.Parameters.Param_Arc _:
-                            mgr.AddArcParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddArcParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Boolean _:
-                            mgr.AddBooleanParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddBooleanParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Box _:
-                            mgr.AddBoxParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddBoxParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Brep _:
-                            mgr.AddBrepParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddBrepParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Circle _:
-                            mgr.AddCircleParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddCircleParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Colour _:
-                            mgr.AddColourParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddColourParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Complex _:
-                            mgr.AddComplexNumberParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddComplexNumberParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Culture _:
-                            mgr.AddCultureParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddCultureParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Curve _:
-                            mgr.AddCurveParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddCurveParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Field _:
-                            mgr.AddFieldParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddFieldParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_FilePath _:
-                            mgr.AddTextParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddTextParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_GenericObject _:
                             throw new Exception("generic param not supported");
                         case Grasshopper.Kernel.Parameters.Param_Geometry _:
-                            mgr.AddGeometryParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddGeometryParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Group _:
                             throw new Exception("group param not supported");
                         case Grasshopper.Kernel.Parameters.Param_Guid _:
                             throw new Exception("guid param not supported");
                         case Grasshopper.Kernel.Parameters.Param_Integer _:
-                            mgr.AddIntegerParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddIntegerParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Interval _:
-                            mgr.AddIntervalParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddIntervalParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Interval2D _:
-                            mgr.AddInterval2DParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddInterval2DParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_LatLonLocation _:
                             throw new Exception("latlonlocation param not supported");
                         case Grasshopper.Kernel.Parameters.Param_Line _:
-                            mgr.AddLineParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddLineParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Matrix _:
-                            mgr.AddMatrixParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddMatrixParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Mesh _:
-                            mgr.AddMeshParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddMeshParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_MeshFace _:
-                            mgr.AddMeshFaceParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddMeshFaceParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_MeshParameters _:
                             throw new Exception("meshparameters paran not supported");
                         case Grasshopper.Kernel.Parameters.Param_Number _:
-                            mgr.AddNumberParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddNumberParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         //case Grasshopper.Kernel.Parameters.Param_OGLShader:
                         case Grasshopper.Kernel.Parameters.Param_Plane _:
-                            mgr.AddPlaneParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddPlaneParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Point _:
-                            mgr.AddPointParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddPointParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Rectangle _:
-                            mgr.AddRectangleParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddRectangleParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         //case Grasshopper.Kernel.Parameters.Param_ScriptVariable _:
                         case Grasshopper.Kernel.Parameters.Param_String _:
-                            mgr.AddTextParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddTextParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_StructurePath _:
-                            mgr.AddPathParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddPathParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_SubD _:
-                            mgr.AddSubDParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddSubDParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Surface _:
-                            mgr.AddSurfaceParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddSurfaceParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Time _:
-                            mgr.AddTimeParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddTimeParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Transform _:
-                            mgr.AddTransformParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddTransformParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Vector _:
-                            mgr.AddVectorParameter(name, name, name, GH_ParamAccess.item);
+                            mgr.AddVectorParameter(name, name, name, GH_ParamAccess.tree);
                             break;
                     }
                 }
