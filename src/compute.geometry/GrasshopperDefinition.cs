@@ -659,10 +659,10 @@ namespace compute.geometry
                 outputTree.ParamName = kvp.Key;
 
                 var volatileData = param.VolatileData;
-                for (int p = 0; p < volatileData.PathCount; p++)
+                foreach (var path in volatileData.Paths)
                 {
                     var resthopperObjectList = new List<ResthopperObject>();
-                    foreach (var goo in volatileData.get_Branch(p))
+                    foreach (var goo in volatileData.get_Branch(path))
                     {
                         if (goo == null)
                             continue;
@@ -768,7 +768,7 @@ namespace compute.geometry
                         }
                     }
 
-                    GhPath path = new GhPath(new int[] { p });
+                    // preserve paths when returning data
                     outputTree.Add(path.ToString(), resthopperObjectList);
                 }
 
