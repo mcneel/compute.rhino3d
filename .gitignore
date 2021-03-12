@@ -26,3 +26,4 @@ RhinoCompute.cs
 # OS artifacts
 .DS_Store
 /src/tests/.vscode
+/src/ghhops-server-py/.vscode
