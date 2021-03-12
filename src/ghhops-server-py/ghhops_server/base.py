@@ -2,6 +2,8 @@
 import json
 import base64
 
+from ghhops_server.logger import hlogger
+
 
 DEFAULT_CATEGORY = "Hops"
 DEFAULT_SUBCATEGORY = "Hops Python"
@@ -45,6 +47,18 @@ class HopsComponent:
         self.outputs = outputs or []
         self.handler = handler
 
+    def __str__(self):
+        return repr(self)
+
+    def __repr__(self):
+        inputs_repr = ",".join([x.name for x in self.inputs])
+        outputs_repr = ",".join([x.name for x in self.outputs])
+        return (
+            f"<{self.__class__.__name__} "
+            f"{self.uri} "
+            f"[{inputs_repr} -> {self.name} -> {outputs_repr}] >"
+        )
+
     def encode(self):
         """Serializer"""
         metadata = {
@@ -70,15 +84,20 @@ class HopsBase:
     def query(self, uri) -> tuple[bool, str]:
         """Get information on given uri"""
         if uri == "/":
+            hlogger.debug("Getting a list of all registered components")
             return True, self._get_comps_data()
         elif comp := self._components.get(uri, None):
+            hlogger.debug("Getting component metadata: %s", comp)
             return True, self._get_comp_data(comp)
-        return False, "Unknown uri"
+        return False, json.dumps(self._apply_err("Unknown uri"))
 
     def solve(self, uri, payload) -> tuple[bool, str]:
         """Perform Solve on given uri"""
         if uri == "/":
-            return False, ""
+            hlogger.debug("Nothing to solve on root")
+            return False, json.dumps(
+                self._apply_err("Nothing to solve on root")
+            )
 
         # FIXME: remove support for legacy solve behaviour
         elif uri == "/solve":
@@ -86,12 +105,24 @@ class HopsBase:
             comp_name = data["pointer"]
             for comp in self._components.values():
                 if comp_name == comp.uri.replace("/", ""):
+                    hlogger.info("Solving using legacy API: %s", comp)
                     return self._process_solve_request(comp, payload)
 
         # FIXME: test this new api
         elif comp := self._components.get(uri, None):
+            hlogger.info("Solving: %s", comp)
             return self._process_solve_request(comp, payload)
-        return False, "Unknown uri"
+        return False, json.dumps(self._apply_err("Unknown uri"))
+
+    def _apply_err(self, err_msg, res_dict=None):
+        if res_dict:
+            err = res_dict.get("errors", None)
+            if isinstance(err, list):
+                err.append(err_msg)
+            else:
+                res_dict["errors"] = [err_msg]
+        else:
+            return {"values": [], "errors": [err_msg]}
 
     def _get_comps_data(self):
         return json.dumps(list(self._components.values()), cls=_HopsEncoder)
@@ -108,15 +139,23 @@ class HopsBase:
         # parse payload for inputs
         res, inputs = self._prepare_inputs(comp, payload)
         if not res:
-            return res, "Bad inputs"
+            hlogger.debug("Bad inputs: %s", inputs)
+            return res, json.dumps(self._apply_err("Bad inputs"))
 
         # run
         try:
             solve_returned = self._solve(comp, inputs)
+            hlogger.debug("Return data: %s", solve_returned)
             res, outputs = self._prepare_outputs(comp, solve_returned)
-            return res, outputs if res else "Bad outputs"
+            return res, outputs if res else json.dumps(
+                self._apply_err("Bad outputs")
+            )
         except Exception as solve_ex:
-            return False, str(solve_ex)
+            ex_msg = str(solve_ex)
+            hlogger.debug("Exception occured in handler: %s", ex_msg)
+            return False, json.dumps(
+                self._apply_err("Exception occured in handler | %s" % ex_msg)
+            )
 
     def _prepare_inputs(self, comp, payload) -> tuple[bool, list]:
         # parse input payload
@@ -152,6 +191,7 @@ class HopsBase:
             output_data = out_param.from_result(out_result)
             outputs.append(output_data)
         payload = {"values": outputs}
+        hlogger.debug("Return payload: %s", payload)
         return True, json.dumps(payload, cls=_HopsEncoder)
 
     def component(
@@ -184,6 +224,7 @@ class HopsBase:
                 outputs=outputs or [],
                 handler=comp_func,
             )
+            hlogger.debug("Component registered: %s", comp)
             self._components[uri] = comp
             self._components[comp.solve_uri] = comp
             return comp_func

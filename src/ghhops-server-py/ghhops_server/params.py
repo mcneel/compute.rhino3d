@@ -6,6 +6,14 @@ from ghhops_server.base import _HopsEncoder
 
 import rhino3dm
 
+__all__ = (
+    "HopsParamAccess",
+    "HopsNumber",
+    "HopsCurve",
+    "HopsPoint",
+    "HopsSurface",
+)
+
 
 class HopsParamAccess(Enum):
     """GH Item Access"""
@@ -24,7 +32,12 @@ class _GHParam:
     result_type = None
 
     def __init__(
-        self, name, nickname, desc, access: HopsParamAccess, optional=False
+        self,
+        name,
+        nickname=None,
+        desc=None,
+        access: HopsParamAccess = HopsParamAccess.ITEM,
+        optional=False,
     ):
         self.name = name
         self.nickname = nickname

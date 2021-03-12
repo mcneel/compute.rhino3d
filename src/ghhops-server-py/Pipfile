@@ -20,6 +20,6 @@ python_version = "3.9"
 allow_prereleases = true
 
 [scripts]
-hops_flask = "python -m flask run"
-hops_http = "python app_http.py"
+hops_flask = "python examples/app.py"
+hops_http = "python examples/app_http.py"
 build = "python -m flit build"

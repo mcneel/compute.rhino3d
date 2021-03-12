@@ -1,7 +1,8 @@
 """Hops builtin HTTP server"""
 import ghhops_server.base as base
+from ghhops_server.logger import logging, hlogger
 
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 
 class HopsDefault(base.HopsBase):
@@ -10,16 +11,33 @@ class HopsDefault(base.HopsBase):
     def __init__(self):
         super(HopsDefault, self).__init__(None)
 
-    def start(self, address="localhost", port=5000):
+    def start(self, address="localhost", port=5000, debug=False):
         """Start hops builtin http server on given address:port"""
+        # setup logging
+        hlogger.setLevel(logging.DEBUG if debug else logging.INFO)
+        # start ther server
         _HopsHTTPHandler.hops = self
-        httpd = HTTPServer((address, port), _HopsHTTPHandler)
-        print(f"Starting hops python server on {address}:{port}")
+        httpd = ThreadingHTTPServer((address, port), _HopsHTTPHandler)
+        hlogger.info("Starting hops python server on %s:%s", address, port)
         httpd.serve_forever()
 
 
 class _HopsHTTPHandler(BaseHTTPRequestHandler):
     hops: HopsDefault = None
+
+    def __init__(self, request, client_address, server):
+        super(_HopsHTTPHandler, self).__init__(request, client_address, server)
+
+    def log_message(self, format, *args):
+        """Overriding BaseHTTPRequestHandler.log_message"""
+        hlogger.info(
+            "%s - - [%s] %s"
+            % (
+                self.address_string(),
+                self.log_date_time_string(),
+                format % args,
+            )
+        )
 
     def _get_comp_uri(self):
         return self.path.split("?")[0]
@@ -33,6 +51,7 @@ class _HopsHTTPHandler(BaseHTTPRequestHandler):
         # grab the path before url params
         comp_uri = self._get_comp_uri()
         res, results = self.hops.query(uri=comp_uri)
+        hlogger.debug(f"{res} : {results}")
         if res:
             self._set_headers()
             self.wfile.write(results.encode(encoding="utf_8"))
@@ -48,6 +67,7 @@ class _HopsHTTPHandler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length"))
         data = self.rfile.read(length)
         res, results = self.hops.solve(uri=comp_uri, payload=data)
+        hlogger.debug(f"{res} : {results}")
         if res:
             self._set_headers()
             self.wfile.write(results.encode(encoding="utf_8"))
