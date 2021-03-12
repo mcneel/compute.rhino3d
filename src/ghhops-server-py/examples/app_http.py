@@ -1,44 +1,9 @@
-# add root repo path so module can be loaded
-import os.path as op
-import sys
-
-sys.path.append(op.dirname(op.dirname(__file__)))
-#
-
-import logging
-
+"""Hops default HTTP server example"""
 import ghhops_server as ghhs
-
 import rhino3dm
 
 
 hops = ghhs.Hops()
-
-
-@hops.component(
-    "/binsum",
-    name="Binary Sum",
-    nickname="BSum",
-    inputs=[
-        ghhs.HopsNumber("A"),
-        ghhs.HopsNumber("B", access=ghhs.HopsParamAccess.LIST),
-    ],
-    outputs=[ghhs.HopsNumber("Sum")],
-)
-def BinarySum(a, b_list):
-    b_sum = 0
-    for b in b_list:
-        b_sum += b
-    return a + b_sum
-
-
-@hops.component(
-    "/binmult",
-    inputs=[ghhs.HopsNumber("A"), ghhs.HopsNumber("B")],
-    outputs=[ghhs.HopsNumber("Multiply")],
-)
-def BinaryMultiply(a, b):
-    return a * b
 
 
 @hops.component(

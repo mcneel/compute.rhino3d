@@ -3,8 +3,8 @@ import json
 from enum import Enum
 
 from ghhops_server.base import _HopsEncoder
+from ghhops_server.logger import hlogger
 
-import rhino3dm
 
 __all__ = (
     "HopsParamAccess",
@@ -13,6 +13,68 @@ __all__ = (
     "HopsPoint",
     "HopsSurface",
 )
+
+
+RHINO = None
+RHINO_FROMJSON = None
+RHINO_TOJSON = None
+RHINO_GEOM = None
+
+
+def _init_rhinoinside():
+    global RHINO
+    global RHINO_FROMJSON
+    global RHINO_TOJSON
+    global RHINO_GEOM
+
+    # initialize with Rhino.Inside Cpython ==========
+    import clr
+
+    clr.AddReference("System.Collections")
+    clr.AddReference("Newtonsoft.Json.Rhino")
+    import Newtonsoft.Json as NJ
+    from System.Collections.Generic import Dictionary
+
+    def from_json(json_obj):
+        """Convert to RhinoCommon from json"""
+        data_dict = Dictionary[str, str]()
+        for k, v in json_obj.items():
+            data_dict[k] = str(v)
+        return RHINO.Runtime.CommonObject.FromJSON(data_dict)
+
+    def to_json(value):
+        """Convert RhinoCommon object to json"""
+        return NJ.JsonConvert.SerializeObject(value)
+
+    RHINO_FROMJSON = from_json
+    RHINO_TOJSON = to_json
+
+    import Rhino
+
+    RHINO = Rhino
+    RHINO_GEOM = Rhino.Geometry
+
+
+def _init_rhino3dm():
+    global RHINO
+    global RHINO_FROMJSON
+    global RHINO_TOJSON
+    global RHINO_GEOM
+
+    import rhino3dm
+
+    def from_json(json_obj):
+        """Convert to rhino3dm from json"""
+        return rhino3dm.CommonObject.Decode(json_obj)
+
+    def to_json(value):
+        """Convert rhino3dm object to json"""
+        return json.dumps(value, cls=_HopsEncoder)
+
+    RHINO_FROMJSON = from_json
+    RHINO_TOJSON = to_json
+
+    RHINO_GEOM = rhino3dm
 
 
 class HopsParamAccess(Enum):
@@ -46,12 +108,14 @@ class _GHParam:
         self.optional = optional
 
     def _coerce_value(self, param_type, param_data):
+        # get data as dict
         data = json.loads(param_data)
+        # parse data
         if isinstance(self.coercers, dict):
             if coercer := self.coercers.get(param_type, None):
                 return coercer(data)
         elif param_type.startswith("Rhino.Geometry."):
-            return rhino3dm.CommonObject.Decode(data)
+            return RHINO_FROMJSON(data)
         return param_data
 
     def encode(self):
@@ -77,13 +141,15 @@ class _GHParam:
 
     def from_result(self, value):
         """Serialize parameter with given value for output"""
+        json_data = RHINO_TOJSON(value)
+
         output = {
             "ParamName": self.name,
             "InnerTree": {
                 "0": [
                     {
                         "type": self.result_type,
-                        "data": json.dumps(value, cls=_HopsEncoder),
+                        "data": json_data,
                     }
                 ]
             },
@@ -116,11 +182,11 @@ class HopsPoint(_GHParam):
     result_type = "Rhino.Geometry.Point3d"
 
     coercers = {
-        "Rhino.Geometry.Point2d": lambda d: rhino3dm.Point2d(d["X"], d["Y"]),
-        "Rhino.Geometry.Point3d": lambda d: rhino3dm.Point3d(
+        "Rhino.Geometry.Point2d": lambda d: RHINO_GEOM.Point2d(d["X"], d["Y"]),
+        "Rhino.Geometry.Point3d": lambda d: RHINO_GEOM.Point3d(
             d["X"], d["Y"], d["Z"]
         ),
-        "Rhino.Geometry.Vector3d": lambda d: rhino3dm.Vector3d(
+        "Rhino.Geometry.Vector3d": lambda d: RHINO_GEOM.Vector3d(
             d["X"], d["Y"], d["Z"]
         ),
     }

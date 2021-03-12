@@ -1,27 +1,14 @@
-"""Hops flask middleware example"""
-from flask import Flask
+"""Hops default HTTP server swith rhinoinside example"""
+import rhinoinside
 import ghhops_server as ghhs
-import rhino3dm
 
 
-# register hops app as middleware
-app = Flask(__name__)
-hops: ghhs.HopsFlask = ghhs.Hops(app)
+rhinoinside.load()
+# System and Rhino can only be loaded after rhinoinside is initialized
+import System  # noqa
+import Rhino  # noqa
 
-
-# flask app can be used for other stuff drectly
-@app.route("/help")
-def help():
-    return "Welcome to Grashopper Hops for CPython!"
-
-
-@hops.component(
-    "/binmult",
-    inputs=[ghhs.HopsNumber("A"), ghhs.HopsNumber("B")],
-    outputs=[ghhs.HopsNumber("Multiply")],
-)
-def BinaryMultiply(a, b):
-    return a * b
+hops = ghhs.Hops(app=rhinoinside)
 
 
 @hops.component(
@@ -55,7 +42,13 @@ def add(a, b):
         ghhs.HopsCurve("Curve", "C", "Curve to evaluate"),
         ghhs.HopsNumber("t", "t", "Parameter on Curve to evaluate"),
     ],
-    outputs=[ghhs.HopsPoint("P", "P", "Point on curve at t")],
+    outputs=[
+        ghhs.HopsPoint(
+            "P",
+            "P",
+            "Point on curve at t",
+        )
+    ],
 )
 def pointat(curve, t):
     return curve.PointAt(t)
@@ -77,10 +70,31 @@ def pointat(curve, t):
     outputs=[ghhs.HopsSurface("Surface", "S", "Resulting surface")],
 )
 def ruled_surface(a, b, c, d):
-    edge1 = rhino3dm.LineCurve(a, b)
-    edge2 = rhino3dm.LineCurve(c, d)
-    return rhino3dm.NurbsSurface.CreateRuledSurface(edge1, edge2)
+    edge1 = Rhino.Geometry.LineCurve(a, b)
+    edge2 = Rhino.Geometry.LineCurve(c, d)
+    return Rhino.Geometry.NurbsSurface.CreateRuledSurface(edge1, edge2)
+
+
+@hops.component(
+    "/interplength",
+    name="InterpCurve Length",
+    nickname="ICL",
+    inputs=[
+        ghhs.HopsPoint("P1", "P1", "First point"),
+        ghhs.HopsPoint("P2", "P2", "Second point"),
+        ghhs.HopsPoint("P3", "P3", "Third point"),
+    ],
+    outputs=[ghhs.HopsNumber("Length", "L", "Interpolated curve length")],
+)
+def interp_length(p1, p2, p3):
+    print(p1, p2, p3)
+    pts = System.Collections.Generic.List[Rhino.Geometry.Point3d]()
+    pts.Add(p1)
+    pts.Add(p2)
+    pts.Add(p3)
+    crv = Rhino.Geometry.Curve.CreateInterpolatedCurve(pts, 3)
+    return crv.GetLength()
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    hops.start(debug=True)

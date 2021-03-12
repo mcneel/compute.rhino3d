@@ -6,74 +6,11 @@ import json
 import base64
 
 from ghhops_server.logger import hlogger
+from ghhops_server.component import HopsComponent
 
 
 DEFAULT_CATEGORY = "Hops"
 DEFAULT_SUBCATEGORY = "Hops Python"
-
-
-class _HopsEncoder(json.JSONEncoder):
-    """Custom json encoder to properly encode RhinoCommon and Hops types"""
-
-    def default(self, o):
-        if hasattr(o, "Encode"):
-            return o.Encode()
-        elif hasattr(o, "encode"):
-            return o.encode()
-        return json.JSONEncoder.default(self, o)
-
-
-class HopsComponent:
-    """Hops Component"""
-
-    def __init__(
-        self,
-        uri,
-        name,
-        nickname,
-        desc,
-        cat,
-        subcat,
-        icon,
-        inputs,
-        outputs,
-        handler,
-    ):
-        self.uri = uri
-        # TODO: customize solve uri?
-        self.solve_uri = uri
-        self.name = name
-        self.nickname = nickname
-        self.description = desc
-        self.category = cat
-        self.subcategory = subcat
-        self.icon = icon
-        self.inputs = inputs or []
-        self.outputs = outputs or []
-        self.handler = handler
-
-    def __str__(self):
-        return repr(self)
-
-    def __repr__(self):
-        inputs_repr = ",".join([x.name for x in self.inputs])
-        outputs_repr = ",".join([x.name for x in self.outputs])
-        return (
-            f"<{self.__class__.__name__} "
-            f"{self.uri} "
-            f"[{inputs_repr} -> {self.name} -> {outputs_repr}] >"
-        )
-
-    def encode(self):
-        """Serializer"""
-        metadata = {
-            "Description": self.description,
-            "Inputs": self.inputs,
-            "Outputs": self.outputs,
-        }
-        if self.icon:
-            metadata["Icon"] = self.icon
-        return metadata
 
 
 class HopsBase:
@@ -94,15 +31,13 @@ class HopsBase:
         elif comp := self._components.get(uri, None):
             hlogger.debug("Getting component metadata: %s", comp)
             return True, self._get_comp_data(comp)
-        return False, json.dumps(self._return_with_err("Unknown uri"))
+        return False, self._return_with_err("Unknown Hops url")
 
     def solve(self, uri, payload) -> tuple[bool, str]:
         """Perform Solve on given uri"""
         if uri == "/":
             hlogger.debug("Nothing to solve on root")
-            return False, json.dumps(
-                self._return_with_err("Nothing to solve on root")
-            )
+            return False, self._return_with_err("Nothing to solve on root")
 
         # FIXME: remove support for legacy solve behaviour
         elif uri == "/solve":
@@ -117,7 +52,7 @@ class HopsBase:
         elif comp := self._components.get(uri, None):
             hlogger.info("Solving: %s", comp)
             return self._process_solve_request(comp, payload)
-        return False, json.dumps(self._return_with_err("Unknown uri"))
+        return False, self._return_with_err("Unknown Hops component url")
 
     def _return_with_err(self, err_msg, res_dict=None):
         err_res = res_dict
@@ -172,6 +107,7 @@ class HopsBase:
                 fmt_tb = traceback.format_tb(exc_traceback)
                 # FIXME: can we safely assume we are only 2 levels in stack?
                 ex_msg = "\n".join(fmt_tb[2:])
+                ex_msg = str(solve_ex) + f"\n{ex_msg}"
             except Exception:
                 # otherwise use exception str as msg
                 ex_msg = str(solve_ex)
@@ -257,3 +193,14 @@ class HopsBase:
             return comp_func
 
         return __func_wrapper__
+
+
+class _HopsEncoder(json.JSONEncoder):
+    """Custom json encoder to properly encode RhinoCommon and Hops types"""
+
+    def default(self, o):
+        if hasattr(o, "Encode"):
+            return o.Encode()
+        elif hasattr(o, "encode"):
+            return o.encode()
+        return json.JSONEncoder.default(self, o)

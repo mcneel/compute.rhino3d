@@ -8,6 +8,7 @@ flask = "*"
 rhino3dm = "*"
 pylint = "*"
 flit = "*"
+rhinoinside = "*"
 
 [dev-packages]
 black = "*"
@@ -22,4 +23,5 @@ allow_prereleases = true
 [scripts]
 hops_flask = "python examples/app.py"
 hops_http = "python examples/app_http.py"
+hops_rhinside = "python examples/app_rhinside.py"
 build = "python -m flit build"

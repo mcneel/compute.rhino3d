@@ -1,5 +1,4 @@
 """Hops flask middleware implementation"""
-import flask  # noqa
 import ghhops_server.base as base
 
 from werkzeug.wrappers import Request, Response
