@@ -12,6 +12,7 @@ from ghhops_server.middlewares import *  # noqa
 from ghhops_server.params import *  # noqa
 
 
+# main module version for pypi build
 __version__ = "1.0.0"
 
 

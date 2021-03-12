@@ -42,8 +42,8 @@ class _HopsHTTPHandler(BaseHTTPRequestHandler):
     def _get_comp_uri(self):
         return self.path.split("?")[0]
 
-    def _set_headers(self):
-        self.send_response(200)
+    def _prep_response(self, status=200, msg=None):
+        self.send_response(status, msg if msg else "Success")
         self.send_header("Content-type", "application/json")
         self.end_headers()
 
@@ -53,13 +53,13 @@ class _HopsHTTPHandler(BaseHTTPRequestHandler):
         res, results = self.hops.query(uri=comp_uri)
         hlogger.debug(f"{res} : {results}")
         if res:
-            self._set_headers()
+            self._prep_response()
             self.wfile.write(results.encode(encoding="utf_8"))
         else:
-            self.send_response(404)
+            self._prep_response(status=404)
 
     def do_HEAD(self):
-        self._set_headers()
+        self._prep_response()
 
     def do_POST(self):
         # read the message and convert it into a python dictionary
@@ -69,9 +69,9 @@ class _HopsHTTPHandler(BaseHTTPRequestHandler):
         res, results = self.hops.solve(uri=comp_uri, payload=data)
         hlogger.debug(f"{res} : {results}")
         if res:
-            self._set_headers()
+            self._prep_response()
             self.wfile.write(results.encode(encoding="utf_8"))
         else:
             # TODO: write proper errors
-            self.send_response(500, "Execution Error")
+            self._prep_response(500, "Execution Error")
             self.wfile.write(results.encode(encoding="utf_8"))

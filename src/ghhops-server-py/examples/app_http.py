@@ -55,7 +55,8 @@ def BinaryMultiply(a, b):
     outputs=[ghhs.HopsNumber("Sum", "S", "A + B")],
 )
 def add(a, b):
-    raise Exception("Some error")
+    # testing error report
+    f = 12 / 0
     return a + b
 
 
