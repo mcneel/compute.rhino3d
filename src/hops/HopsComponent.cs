@@ -20,7 +20,8 @@ namespace Compute.Components
         int _majorVersion = 0;
         int _minorVersion = 1;
         RemoteDefinition _remoteDefinition = null;
-        bool _cacheSolveResults = true;
+        bool _cacheResultsInMemory = true;
+        bool _cacheResultsOnServer = true;
         bool _remoteDefinitionRequiresRebuild = false;
         static bool _isHeadless = false;
         #endregion
@@ -73,11 +74,10 @@ namespace Compute.Components
                 return;
             }
 
-            const bool useMemoryCache = true; // we can make this an option in the future
             if(InPreSolve)
             {
                 List<string> warnings;
-                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheSolveResults, out warnings);
+                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheResultsOnServer, out warnings);
                 if (warnings != null && warnings.Count > 0)
                 {
                     foreach (var warning in warnings)
@@ -88,7 +88,7 @@ namespace Compute.Components
                 }
                 if (inputSchema != null)
                 {
-                    var task = System.Threading.Tasks.Task.Run(() => _remoteDefinition.Solve(inputSchema, useMemoryCache));
+                    var task = System.Threading.Tasks.Task.Run(() => _remoteDefinition.Solve(inputSchema, _cacheResultsInMemory));
                     TaskList.Add(task);
                 }
                 return;
@@ -97,7 +97,7 @@ namespace Compute.Components
             if (!GetSolveResults(DA, out var schema))
             {
                 List<string> warnings;
-                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheSolveResults, out warnings);
+                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheResultsOnServer, out warnings);
                 if (warnings != null && warnings.Count > 0)
                 {
                     foreach (var warning in warnings)
@@ -107,7 +107,7 @@ namespace Compute.Components
                     return;
                 }
                 if (inputSchema != null)
-                    schema = _remoteDefinition.Solve(inputSchema, useMemoryCache);
+                    schema = _remoteDefinition.Solve(inputSchema, _cacheResultsInMemory);
                 else
                     schema = null;
             }
@@ -128,7 +128,8 @@ namespace Compute.Components
 
         const string TagVersion = "RemoteSolveVersion";
         const string TagPath = "RemoteDefinitionLocation";
-        const string TagCacheResults = "CacheSolveResults";
+        const string TagCacheResultsOnServer = "CacheSolveResults";
+        const string TagCacheResultsInMemory = "CacheResultsInMemory";
 
         public override bool Write(GH_IWriter writer)
         {
@@ -137,7 +138,8 @@ namespace Compute.Components
             {
                 writer.SetVersion(TagVersion, _majorVersion, _minorVersion, 0);
                 writer.SetString(TagPath, RemoteDefinitionLocation);
-                writer.SetBoolean(TagCacheResults, _cacheSolveResults);
+                writer.SetBoolean(TagCacheResultsOnServer, _cacheResultsOnServer);
+                writer.SetBoolean(TagCacheResultsInMemory, _cacheResultsInMemory);
             }
             return rc;
         }
@@ -160,9 +162,13 @@ namespace Compute.Components
                     // case as we want to read without throwing exceptions
                 }
 
-                bool cacheResults = _cacheSolveResults;
-                if (reader.TryGetBoolean(TagCacheResults, ref cacheResults))
-                    _cacheSolveResults = cacheResults;
+                bool cacheResults = _cacheResultsOnServer;
+                if (reader.TryGetBoolean(TagCacheResultsOnServer, ref cacheResults))
+                    _cacheResultsOnServer = cacheResults;
+
+                cacheResults = _cacheResultsInMemory;
+                if (reader.TryGetBoolean(TagCacheResultsInMemory, ref cacheResults))
+                    _cacheResultsInMemory = cacheResults;
             }
             return rc;
         }
@@ -223,9 +229,14 @@ namespace Compute.Components
             tsi.DropDown.Items.Add(tsi_sub);
             menu.Items.Add(tsi);
 
-            tsi = new ToolStripMenuItem("Cache On Server", null, (s, e) => { _cacheSolveResults = !_cacheSolveResults; });
+            tsi = new ToolStripMenuItem("Cache In Memory", null, (s, e) => { _cacheResultsInMemory = !_cacheResultsInMemory; });
+            tsi.ToolTipText = "Keep previous results in memory cache";
+            tsi.Checked = _cacheResultsInMemory;
+            menu.Items.Add(tsi);
+
+            tsi = new ToolStripMenuItem("Cache On Server", null, (s, e) => { _cacheResultsOnServer = !_cacheResultsOnServer; });
             tsi.ToolTipText = "Tell the compute server to cache results for reuse in the future";
-            tsi.Checked = _cacheSolveResults;
+            tsi.Checked = _cacheResultsOnServer;
             menu.Items.Add(tsi);
         }
 

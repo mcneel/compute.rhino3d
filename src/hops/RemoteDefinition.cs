@@ -265,7 +265,7 @@ namespace Compute.Components
             string inputJson = JsonConvert.SerializeObject(inputSchema);
             if (useMemoryCache && inputSchema.Algo == null)
             {
-                var cachedResults = System.Runtime.Caching.MemoryCache.Default.Get(inputJson) as Schema;
+                var cachedResults = Hops.MemoryCache.Get(inputJson);
                 if (cachedResults != null)
                 {
                     return cachedResults;
@@ -289,7 +289,11 @@ namespace Compute.Components
                         postTask = HttpClient.PostAsync(solveUrl, content2);
                         responseMessage = postTask.Result;
                         if (responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
-                            throw new Exception("Unable to solve on compute");
+                        {
+                            var badSchema = new Schema();
+                            badSchema.Errors.Add("Unable to solve on compute");
+                            return badSchema;
+                        }
                     }
                     else
                     {
@@ -306,7 +310,7 @@ namespace Compute.Components
                 var schema = JsonConvert.DeserializeObject<Resthopper.IO.Schema>(stringResult);
                 if (useMemoryCache && inputSchema.Algo == null)
                 {
-                    System.Runtime.Caching.MemoryCache.Default.Set(inputJson, schema, new System.Runtime.Caching.CacheItemPolicy());
+                    Hops.MemoryCache.Set(inputJson, schema);
                 }
                 _cacheKey = schema.Pointer;
                 return schema;
