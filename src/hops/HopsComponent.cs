@@ -110,6 +110,14 @@ namespace Compute.Components
                 else
                     schema = null;
             }
+            
+            if (DA.Iteration == 0)
+            {
+                // TODO: Having to clear the output data seems like a bug in the
+                // TaskCapable components logic. We need to investigate this further.
+                foreach (var output in Params.Output)
+                    output.ClearData();
+            }
 
             if (schema != null)
             {
