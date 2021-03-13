@@ -152,9 +152,16 @@ namespace Compute.Components
             if (performPost)
             {
                 string postUrl = Servers.GetDescriptionPostUrl();
-                var bytes = System.IO.File.ReadAllBytes(address);
                 var schema = new Schema();
-                schema.Algo = Convert.ToBase64String(bytes);
+                if (Path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                {
+                    schema.Pointer = address;
+                }
+                else
+                {
+                    var bytes = System.IO.File.ReadAllBytes(address);
+                    schema.Algo = Convert.ToBase64String(bytes);
+                }
                 string inputJson = JsonConvert.SerializeObject(schema);
                 var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
                 responseTask = HttpClient.PostAsync(postUrl, content);
@@ -236,7 +243,7 @@ namespace Compute.Components
             }
         }
 
-        public Schema Solve(Schema inputSchema)
+        public Schema Solve(Schema inputSchema, bool useMemoryCache)
         {
             string solveUrl;
             var pathType = GetPathType();
@@ -256,6 +263,14 @@ namespace Compute.Components
             }
 
             string inputJson = JsonConvert.SerializeObject(inputSchema);
+            if (useMemoryCache && inputSchema.Algo == null)
+            {
+                var cachedResults = System.Runtime.Caching.MemoryCache.Default.Get(inputJson) as Schema;
+                if (cachedResults != null)
+                {
+                    return cachedResults;
+                }
+            }
 
             using (var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json"))
             {
@@ -289,6 +304,10 @@ namespace Compute.Components
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
                 var schema = JsonConvert.DeserializeObject<Resthopper.IO.Schema>(stringResult);
+                if (useMemoryCache && inputSchema.Algo == null)
+                {
+                    System.Runtime.Caching.MemoryCache.Default.Set(inputJson, schema, new System.Runtime.Caching.CacheItemPolicy());
+                }
                 _cacheKey = schema.Pointer;
                 return schema;
             }
@@ -315,7 +334,7 @@ namespace Compute.Components
                 }
 
                 var structure = new Grasshopper.Kernel.Data.GH_Structure<Grasshopper.Kernel.Types.IGH_Goo>();
-                Grasshopper.Kernel.Types.IGH_Goo singleGoo = null;
+                Grasshopper.Kernel.Types.IGH_Goo goo = null;
                 foreach (var kv in datatree.InnerTree)
                 {
                     var tokens = kv.Key.Trim(new char[] { '{', '}' }).Split(';');
@@ -329,15 +348,16 @@ namespace Compute.Components
                     }
 
                     var path = new Grasshopper.Kernel.Data.GH_Path(elements.ToArray());
+                    var localBranch = structure.EnsurePath(path);
                     for (int gooIndex = 0; gooIndex < kv.Value.Count; gooIndex++)
                     {
-                        var goo = GooFromReshopperObject(kv.Value[gooIndex]);
-                        singleGoo = goo;
-                        structure.Insert(goo, path, gooIndex);
+                        goo = GooFromReshopperObject(kv.Value[gooIndex]);
+                        localBranch.Add(goo);
+                        //structure.Insert(goo, path, gooIndex);
                     }
                 }
                 if (structure.DataCount == 1)
-                    DA.SetData(paramIndex, singleGoo);
+                    DA.SetData(paramIndex, goo);
                 else if (structure.PathCount == 1)
                     DA.SetDataList(paramIndex, structure.AllData(false)); // let grasshopper handle paths
                 else
@@ -356,23 +376,54 @@ namespace Compute.Components
 
         static Grasshopper.Kernel.Types.IGH_Goo GooFromReshopperObject(ResthopperObject obj)
         {
+            if (obj.ResolvedData != null)
+                return obj.ResolvedData as Grasshopper.Kernel.Types.IGH_Goo;
+
             string data = obj.Data.Trim('"');
             switch (obj.Type)
             {
                 case "System.Double":
-                    return new Grasshopper.Kernel.Types.GH_Number(double.Parse(data));
+                    {
+                        var doubleResult = new Grasshopper.Kernel.Types.GH_Number(double.Parse(data));
+                        obj.ResolvedData = doubleResult;
+                        return doubleResult;
+                    }
                 case "System.String":
-                    return new Grasshopper.Kernel.Types.GH_String(data);
+                    {
+                        var stringResult = new Grasshopper.Kernel.Types.GH_String(data);
+                        obj.ResolvedData = stringResult;
+                        return stringResult;
+                    }
                 case "System.Int32":
-                    return new Grasshopper.Kernel.Types.GH_Integer(int.Parse(data));
+                    {
+                        var intResult = new Grasshopper.Kernel.Types.GH_Integer(int.Parse(data));
+                        obj.ResolvedData = intResult;
+                        return intResult;
+                    }
                 case "Rhino.Geometry.Circle":
-                    return new Grasshopper.Kernel.Types.GH_Circle(JsonConvert.DeserializeObject<Circle>(data));
+                    {
+                        var circleResult = new Grasshopper.Kernel.Types.GH_Circle(JsonConvert.DeserializeObject<Circle>(data));
+                        obj.ResolvedData = circleResult;
+                        return circleResult;
+                    }
                 case "Rhino.Geometry.Line":
-                    return new Grasshopper.Kernel.Types.GH_Line(JsonConvert.DeserializeObject<Line>(data));
+                    {
+                        var lineResult = new Grasshopper.Kernel.Types.GH_Line(JsonConvert.DeserializeObject<Line>(data));
+                        obj.ResolvedData = lineResult;
+                        return lineResult;
+                    }
                 case "Rhino.Geometry.Point3d":
-                    return new Grasshopper.Kernel.Types.GH_Point(JsonConvert.DeserializeObject<Point3d>(data));
+                    {
+                        var pointResult = new Grasshopper.Kernel.Types.GH_Point(JsonConvert.DeserializeObject<Point3d>(data));
+                        obj.ResolvedData = pointResult;
+                        return pointResult;
+                    }
                 case "Rhino.Geometry.Vector3d":
-                    return new Grasshopper.Kernel.Types.GH_Vector(JsonConvert.DeserializeObject<Vector3d>(data));
+                    {
+                        var vectorResult = new Grasshopper.Kernel.Types.GH_Vector(JsonConvert.DeserializeObject<Vector3d>(data));
+                        obj.ResolvedData = vectorResult;
+                        return vectorResult;
+                    }
                 case "Rhino.Geometry.Brep":
                 case "Rhino.Geometry.Curve":
                 case "Rhino.Geometry.Extrusion":
