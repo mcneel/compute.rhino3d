@@ -73,6 +73,7 @@ namespace Compute.Components
                 return;
             }
 
+            const bool useMemoryCache = true; // we can make this an option in the future
             if(InPreSolve)
             {
                 List<string> warnings;
@@ -87,7 +88,7 @@ namespace Compute.Components
                 }
                 if (inputSchema != null)
                 {
-                    var task = System.Threading.Tasks.Task.Run(() => _remoteDefinition.Solve(inputSchema));
+                    var task = System.Threading.Tasks.Task.Run(() => _remoteDefinition.Solve(inputSchema, useMemoryCache));
                     TaskList.Add(task);
                 }
                 return;
@@ -106,7 +107,7 @@ namespace Compute.Components
                     return;
                 }
                 if (inputSchema != null)
-                    schema = _remoteDefinition.Solve(inputSchema);
+                    schema = _remoteDefinition.Solve(inputSchema, useMemoryCache);
                 else
                     schema = null;
             }
