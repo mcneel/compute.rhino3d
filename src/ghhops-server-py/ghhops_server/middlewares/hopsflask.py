@@ -1,7 +1,7 @@
 """Hops flask middleware implementation"""
-from werkzeug.wrappers import Request, Response, ResponseStream
+import ghhops_server.base as base
 
-import hops.base as base
+from werkzeug.wrappers import Request, Response
 
 
 class HopsFlask(base.HopsBase):
@@ -16,6 +16,13 @@ class HopsFlask(base.HopsBase):
         # the unknown/unhandled messages to the original wsgi_app
         flask_app.wsgi_app = self
 
+    def _prep_response(self, status=200, msg=None):
+        return Response(
+            msg if msg else "Success",
+            mimetype="application/json",
+            status=status,
+        )
+
     def __call__(self, environ, start_response):
         request = Request(environ)
 
@@ -25,24 +32,20 @@ class HopsFlask(base.HopsBase):
         if method == "GET":
             res, results = self.query(uri=comp_uri)
             if res:
-                response = Response("Success", mimetype="application/json", status=200)
+                response = self._prep_response()
                 response.data = results
             else:
-                response = Response(
-                    "Unknown URI", mimetype="application/json", status=404
-                )
+                response = self._prep_response(404, "Unknown URI")
             return response(environ, start_response)
 
         elif method == "POST":
             data = request.data
             res, results = self.solve(uri=comp_uri, payload=data)
             if res:
-                response = Response("Success", mimetype="application/json", status=200)
+                response = self._prep_response()
                 response.data = results.encode(encoding="utf_8")
             else:
-                response = Response(
-                    "Execution Error", mimetype="application/json", status=500
-                )
+                response = self._prep_response(404, "Execution Error")
                 response.data = results.encode(encoding="utf_8")
             return response(environ, start_response)
 

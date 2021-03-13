@@ -1,0 +1,11 @@
+{
+    "files.exclude": {
+        "**/__pycache__": true
+    },
+    "python.pythonPath": "/Users/ein/.local/share/virtualenvs/ghhops-server-py-aHT-T4wI/bin/python",
+    "python.linting.flake8Enabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.formatting.blackArgs": [
+        "--line-length=80"
+    ]
+}
