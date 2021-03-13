@@ -12,4 +12,4 @@ requires = ['rhino3dm']
 
 
 [tool.flit.sdist]
-exclude = ["docs/", "dist/", "examples/", "Pipfile", "Pipfile.lock", "README.md"]
+exclude = [".vscode/", "docs/", "dist/", "examples/", ".env", "Pipfile", "Pipfile.lock", "README.md"]
