@@ -8,4 +8,4 @@ author = "Robert McNeel & Associates"
 author-email = "ehsan@mcneel.com"
 home-page = "https://github.com/mcneel/compute.rhino3d/tree/master/src/ghhops-server-py"
 classifiers = ["License :: OSI Approved :: MIT License"]
-requires = ['flask', 'rhino3dm']
+requires = ['rhino3dm']
