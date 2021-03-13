@@ -357,33 +357,6 @@ namespace Compute.Components
         static Grasshopper.Kernel.Types.IGH_Goo GooFromReshopperObject(ResthopperObject obj)
         {
             string data = obj.Data.Trim('"');
-
-            if (obj.Type.StartsWith("Rhino.Geometry"))
-            {
-                var pt = new Rhino.Geometry.Point3d();
-                string s = pt.GetType().AssemblyQualifiedName;
-                int index = s.IndexOf(",");
-                string sType = $"{obj.Type}{s.Substring(index)}";
-
-                System.Type type = System.Type.GetType(sType);
-                if (type != null && typeof(GeometryBase).IsAssignableFrom(type))
-                {
-                    Dictionary<string, string> dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(data);
-                    var geometry = Rhino.Runtime.CommonObject.FromJSON(dict);
-                    Surface surface = geometry as Surface;
-                    if (surface != null)
-                        geometry = surface.ToBrep();
-                    if (geometry is Brep)
-                        return new Grasshopper.Kernel.Types.GH_Brep(geometry as Brep);
-                    if (geometry is Curve)
-                        return new Grasshopper.Kernel.Types.GH_Curve(geometry as Curve);
-                    if (geometry is Mesh)
-                        return new Grasshopper.Kernel.Types.GH_Mesh(geometry as Mesh);
-                    if (geometry is SubD)
-                        return new Grasshopper.Kernel.Types.GH_SubD(geometry as SubD);
-                }
-            }
-
             switch (obj.Type)
             {
                 case "System.Double":
@@ -425,6 +398,33 @@ namespace Compute.Components
                     }
                     break;
             }
+
+            if (obj.Type.StartsWith("Rhino.Geometry"))
+            {
+                var pt = new Rhino.Geometry.Point3d();
+                string s = pt.GetType().AssemblyQualifiedName;
+                int index = s.IndexOf(",");
+                string sType = $"{obj.Type}{s.Substring(index)}";
+
+                System.Type type = System.Type.GetType(sType);
+                if (type != null && typeof(GeometryBase).IsAssignableFrom(type))
+                {
+                    Dictionary<string, string> dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(data);
+                    var geometry = Rhino.Runtime.CommonObject.FromJSON(dict);
+                    Surface surface = geometry as Surface;
+                    if (surface != null)
+                        geometry = surface.ToBrep();
+                    if (geometry is Brep)
+                        return new Grasshopper.Kernel.Types.GH_Brep(geometry as Brep);
+                    if (geometry is Curve)
+                        return new Grasshopper.Kernel.Types.GH_Curve(geometry as Curve);
+                    if (geometry is Mesh)
+                        return new Grasshopper.Kernel.Types.GH_Mesh(geometry as Mesh);
+                    if (geometry is SubD)
+                        return new Grasshopper.Kernel.Types.GH_SubD(geometry as SubD);
+                }
+            }
+
             throw new Exception("unable to convert resthopper data");
         }
 
