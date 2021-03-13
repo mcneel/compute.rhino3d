@@ -25,8 +25,7 @@ RhinoCompute.cs
 
 # OS artifacts
 .DS_Store
-/src/tests/.vscode
-
-
 # vscode python stuff
+/src/tests/.vscode
+/src/ghhops-server-py/.vscode
 **/.vscode/.ropeproject

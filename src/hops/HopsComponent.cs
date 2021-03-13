@@ -335,6 +335,13 @@ namespace Compute.Components
                         buildInputs = true;
                         break;
                     }
+                    else
+                    {
+                        // if input param exists, make sure param access is correct
+                        var (input, _) = inputs[param.Name];
+                        bool itemAccess = input.AtLeast == 1 && input.AtMost == 1;
+                        param.Access = itemAccess ? GH_ParamAccess.item : GH_ParamAccess.list;
+                    }
                 }
             }
             if (buildOutputs && Params.Output.Count == outputs.Count)
