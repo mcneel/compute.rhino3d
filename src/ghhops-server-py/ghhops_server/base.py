@@ -4,6 +4,7 @@ import traceback
 import os.path as op
 import json
 import base64
+from typing import Tuple
 
 from ghhops_server.logger import hlogger
 from ghhops_server.component import HopsComponent
@@ -23,7 +24,7 @@ class HopsBase:
         # it is assumed that uri and solve uri and both unique to the component
         self._components: dict[str, HopsComponent] = {}
 
-    def query(self, uri) -> tuple[bool, str]:
+    def query(self, uri) -> Tuple[bool, str]:
         """Get information on given uri"""
         if uri == "/":
             hlogger.debug("Getting a list of all registered components")
@@ -33,7 +34,7 @@ class HopsBase:
             return True, self._get_comp_data(comp)
         return False, self._return_with_err("Unknown Hops url")
 
-    def solve(self, uri, payload) -> tuple[bool, str]:
+    def solve(self, uri, payload) -> Tuple[bool, str]:
         """Perform Solve on given uri"""
         if uri == "/":
             hlogger.debug("Nothing to solve on root")
@@ -84,7 +85,7 @@ class HopsBase:
                 base64_bytes = base64.b64encode(image_file.read())
                 return base64_bytes.decode("ascii")
 
-    def _process_solve_request(self, comp, payload) -> tuple[bool, str]:
+    def _process_solve_request(self, comp, payload) -> Tuple[bool, str]:
         # parse payload for inputs
         res, inputs = self._prepare_inputs(comp, payload)
         if not res:
@@ -117,7 +118,7 @@ class HopsBase:
                 "Exception occured in handler:\n%s" % ex_msg
             )
 
-    def _prepare_inputs(self, comp, payload) -> tuple[bool, list]:
+    def _prepare_inputs(self, comp, payload) -> Tuple[bool, list]:
         # parse input payload
         data = json.loads(payload)
 
@@ -143,7 +144,7 @@ class HopsBase:
     def _solve(self, comp, inputs):
         return comp.handler(*inputs)
 
-    def _prepare_outputs(self, comp, returns) -> tuple[bool, str]:
+    def _prepare_outputs(self, comp, returns) -> Tuple[bool, str]:
         outputs = []
         if not isinstance(returns, tuple):
             returns = (returns,)
