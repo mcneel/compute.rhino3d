@@ -245,7 +245,7 @@ namespace Compute.Components
 
             void RenderHop(System.Drawing.Graphics graphics, int alpha, System.Drawing.PointF anchor)
             {
-                var boxHops = new System.Drawing.RectangleF(anchor.X - 14, anchor.Y - 8, 16, 16);
+                var boxHops = new System.Drawing.RectangleF(anchor.X - 16, anchor.Y - 8, 16, 16);
                 var bmp = HopsComponent.Hops48Icon();
                 graphics.DrawImage(bmp, boxHops);
             }
