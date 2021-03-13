@@ -76,6 +76,7 @@
     <Compile Include="HopsAppSettingsUserControl.Designer.cs">
       <DependentUpon>HopsAppSettingsUserControl.cs</DependentUpon>
     </Compile>
+    <Compile Include="MemoryCache.cs" />
     <Compile Include="Servers.cs" />
     <Compile Include="RemoteDefinition.cs" />
     <Compile Include="HopsComponent.cs" />
