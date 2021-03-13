@@ -1,12 +1,12 @@
 """Hops flask middleware example"""
 from flask import Flask
-import ghhops_server as ghhs
+import ghhops_server as hs
 import rhino3dm
 
 
 # register hops app as middleware
 app = Flask(__name__)
-hops: ghhs.HopsFlask = ghhs.Hops(app)
+hops: hs.HopsFlask = hs.Hops(app)
 
 
 # flask app can be used for other stuff drectly
@@ -17,10 +17,10 @@ def help():
 
 @hops.component(
     "/binmult",
-    inputs=[ghhs.HopsNumber("A"), ghhs.HopsNumber("B")],
-    outputs=[ghhs.HopsNumber("Multiply")],
+    inputs=[hs.HopsNumber("A"), hs.HopsNumber("B")],
+    outputs=[hs.HopsNumber("Multiply")],
 )
-def BinaryMultiply(a, b):
+def BinaryMultiply(a: float, b: float):
     return a * b
 
 
@@ -32,14 +32,12 @@ def BinaryMultiply(a, b):
     category="Maths",
     subcategory="CPython",
     inputs=[
-        ghhs.HopsNumber("A", "A", "First number"),
-        ghhs.HopsNumber("B", "B", "Second number"),
+        hs.HopsNumber("A", "A", "First number"),
+        hs.HopsNumber("B", "B", "Second number"),
     ],
-    outputs=[ghhs.HopsNumber("Sum", "S", "A + B")],
+    outputs=[hs.HopsNumber("Sum", "S", "A + B")],
 )
-def add(a, b):
-    # testing error report
-    f = 12 / 0
+def add(a: float, b: float):
     return a + b
 
 
@@ -52,12 +50,12 @@ def add(a, b):
     subcategory="Analysis",
     icon="examples/pointat.png",
     inputs=[
-        ghhs.HopsCurve("Curve", "C", "Curve to evaluate"),
-        ghhs.HopsNumber("t", "t", "Parameter on Curve to evaluate"),
+        hs.HopsCurve("Curve", "C", "Curve to evaluate"),
+        hs.HopsNumber("t", "t", "Parameter on Curve to evaluate"),
     ],
-    outputs=[ghhs.HopsPoint("P", "P", "Point on curve at t")],
+    outputs=[hs.HopsPoint("P", "P", "Point on curve at t")],
 )
-def pointat(curve, t):
+def pointat(curve: rhino3dm.Curve, t: float):
     return curve.PointAt(t)
 
 
@@ -69,14 +67,17 @@ def pointat(curve, t):
     category="Surface",
     subcategory="Freeform",
     inputs=[
-        ghhs.HopsPoint("Corner A", "A", "First corner"),
-        ghhs.HopsPoint("Corner B", "B", "Second corner"),
-        ghhs.HopsPoint("Corner C", "C", "Third corner"),
-        ghhs.HopsPoint("Corner D", "D", "Fourth corner"),
+        hs.HopsPoint("Corner A", "A", "First corner"),
+        hs.HopsPoint("Corner B", "B", "Second corner"),
+        hs.HopsPoint("Corner C", "C", "Third corner"),
+        hs.HopsPoint("Corner D", "D", "Fourth corner"),
     ],
-    outputs=[ghhs.HopsSurface("Surface", "S", "Resulting surface")],
+    outputs=[hs.HopsSurface("Surface", "S", "Resulting surface")],
 )
-def ruled_surface(a, b, c, d):
+def ruled_surface(a: rhino3dm.Point3d,
+                  b: rhino3dm.Point3d,
+                  c: rhino3dm.Point3d,
+                  d: rhino3dm.Point3d):
     edge1 = rhino3dm.LineCurve(a, b)
     edge2 = rhino3dm.LineCurve(c, d)
     return rhino3dm.NurbsSurface.CreateRuledSurface(edge1, edge2)
