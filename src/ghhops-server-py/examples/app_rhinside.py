@@ -1,6 +1,6 @@
 """Hops default HTTP server swith rhinoinside example"""
 import rhinoinside
-import ghhops_server as ghhs
+import ghhops_server as hs
 
 
 rhinoinside.load()
@@ -8,7 +8,7 @@ rhinoinside.load()
 import System  # noqa
 import Rhino  # noqa
 
-hops = ghhs.Hops(app=rhinoinside)
+hops = hs.Hops(app=rhinoinside)
 
 
 @hops.component(
@@ -19,10 +19,10 @@ hops = ghhs.Hops(app=rhinoinside)
     category="Maths",
     subcategory="CPython",
     inputs=[
-        ghhs.HopsNumber("A", "A", "First number"),
-        ghhs.HopsNumber("B", "B", "Second number"),
+        hs.HopsNumber("A", "A", "First number"),
+        hs.HopsNumber("B", "B", "Second number"),
     ],
-    outputs=[ghhs.HopsNumber("Sum", "S", "A + B")],
+    outputs=[hs.HopsNumber("Sum", "S", "A + B")],
 )
 def add(a, b):
     # testing error report
@@ -39,11 +39,11 @@ def add(a, b):
     subcategory="Analysis",
     icon="examples/pointat.png",
     inputs=[
-        ghhs.HopsCurve("Curve", "C", "Curve to evaluate"),
-        ghhs.HopsNumber("t", "t", "Parameter on Curve to evaluate"),
+        hs.HopsCurve("Curve", "C", "Curve to evaluate"),
+        hs.HopsNumber("t", "t", "Parameter on Curve to evaluate"),
     ],
     outputs=[
-        ghhs.HopsPoint(
+        hs.HopsPoint(
             "P",
             "P",
             "Point on curve at t",
@@ -62,12 +62,12 @@ def pointat(curve, t):
     category="Surface",
     subcategory="Freeform",
     inputs=[
-        ghhs.HopsPoint("Corner A", "A", "First corner"),
-        ghhs.HopsPoint("Corner B", "B", "Second corner"),
-        ghhs.HopsPoint("Corner C", "C", "Third corner"),
-        ghhs.HopsPoint("Corner D", "D", "Fourth corner"),
+        hs.HopsPoint("Corner A", "A", "First corner"),
+        hs.HopsPoint("Corner B", "B", "Second corner"),
+        hs.HopsPoint("Corner C", "C", "Third corner"),
+        hs.HopsPoint("Corner D", "D", "Fourth corner"),
     ],
-    outputs=[ghhs.HopsSurface("Surface", "S", "Resulting surface")],
+    outputs=[hs.HopsSurface("Surface", "S", "Resulting surface")],
 )
 def ruled_surface(a, b, c, d):
     edge1 = Rhino.Geometry.LineCurve(a, b)
@@ -80,11 +80,11 @@ def ruled_surface(a, b, c, d):
     name="InterpCurve Length",
     nickname="ICL",
     inputs=[
-        ghhs.HopsPoint("P1", "P1", "First point"),
-        ghhs.HopsPoint("P2", "P2", "Second point"),
-        ghhs.HopsPoint("P3", "P3", "Third point"),
+        hs.HopsPoint("P1", "P1", "First point"),
+        hs.HopsPoint("P2", "P2", "Second point"),
+        hs.HopsPoint("P3", "P3", "Third point"),
     ],
-    outputs=[ghhs.HopsNumber("Length", "L", "Interpolated curve length")],
+    outputs=[hs.HopsNumber("Length", "L", "Interpolated curve length")],
 )
 def interp_length(p1, p2, p3):
     print(p1, p2, p3)

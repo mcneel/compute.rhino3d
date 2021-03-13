@@ -5,15 +5,15 @@ This python module helps you create python (specifically CPython) functions and 
 
 ## Example
 
-This is a python example defining a Hops python component that takes a curve and number as input and return coordinates on a point at given parameter on the curve. This example uses *Flask* as the http server:
+This is a python example defining a Hops python component that takes a curve and number as input and return coordinates of a point at given parameter on the curve. This example uses *Flask* as the http server:
 
 ```python
 from flask import Flask
-import ghhops_server as ghhs
+import ghhops_server as hs
 
 # register hops app as middleware
 app = Flask(__name__)
-hops = ghhs.Hops(app)
+hops = hs.Hops(app)
 
 @hops.component(
     "/pointat",
@@ -21,10 +21,12 @@ hops = ghhs.Hops(app)
     description="Get point along curve",
     icon="examples/pointat.png",
     inputs=[
-        ghhs.HopsCurve("Curve", "C", "Curve to evaluate"),
-        ghhs.HopsNumber("t", "t", "Parameter on Curve to evaluate"),
+        hs.HopsCurve("Curve", "C", "Curve to evaluate"),
+        hs.HopsNumber("t", "t", "Parameter on Curve to evaluate"),
     ],
-    outputs=[ghhs.HopsPoint("P", "P", "Point on curve at t")],
+    outputs=[
+        hs.HopsPoint("P", "P", "Point on curve at t")
+    ]
 )
 def pointat(curve, t):
     return curve.PointAt(t)
@@ -52,13 +54,13 @@ Assuming you have python3 installed on your machine, follow the steps below to c
     pip install flask
     ```
 
-3) Let's create a python script and name it `app.py`. We will renamed `ghhops_server` on import to `ghhs` for simplicity:
+3) Let's create a python script and name it `app.py`. We will renamed `ghhops_server` on import to `hs` for simplicity:
 
     ```python
     # import flask, ghhops_server, and rhino3dm
     # rhino3dm is automatically installed with ghhops_server
     from flask import Flask
-    import ghhops_server as ghhs
+    import ghhops_server as hs
     import rhino3dm
     ```
 
@@ -67,10 +69,10 @@ Assuming you have python3 installed on your machine, follow the steps below to c
     ```python
     # register hops app as middleware
     app = Flask(__name__)
-    hops = ghhs.Hops(app)
+    hops = hs.Hops(app)
     ```
 
-5) Now let's continue to create a Hops python component that takes a curve and number as input and return coordinates on a point at given parameter on the curve.
+5) Now let's create a Hops python component that takes a curve and number as input and return coordinates of a point at given parameter on the curve.
    - Note that we are using `@hops.component` decorator to decorate the function `pointat(curve, t)` as a Hops component. The first argument passed to the decorator (`"/pointat"`) is the URL of this component on our server. The rest are the information that Grasshopper needs to visualize the component on its canvas, show the input and outputs, icon, description, and the rest.
 
     - We are using Hops predefined parameter types (e.g. `HopsCurve`) to define the inputs and outputs. This is necessary so Hops knows which exact Grasshopper data type we want to use.
@@ -83,10 +85,12 @@ Assuming you have python3 installed on your machine, follow the steps below to c
         description="Get point along curve",
         icon="examples/pointat.png",
         inputs=[
-            ghhs.HopsCurve("Curve", "C", "Curve to evaluate"),
-            ghhs.HopsNumber("t", "t", "Parameter on Curve to evaluate"),
+            hs.HopsCurve("Curve", "C", "Curve to evaluate"),
+            hs.HopsNumber("t", "t", "Parameter on Curve to evaluate"),
         ],
-        outputs=[ghhs.HopsPoint("P", "P", "Point on curve at t")],
+        outputs=[
+            hs.HopsPoint("P", "P", "Point on curve at t")
+        ]
     )
     def pointat(curve, t):
         return curve.PointAt(t)
@@ -114,7 +118,7 @@ Assuming you have python3 installed on your machine, follow the steps below to c
     [INFO]  * Running on http://127.0.0.1:5000/ (Press CTRL+C to quit)
     ```
 
-7) Now open Rhino and Grasshopper, drop a Hops component on the Grasshopper canvas.
+7) Open Rhino and Grasshopper, drop a Hops component on the Grasshopper canvas.
 
     ![](docs/ghhops-component.png)
 
@@ -128,7 +132,7 @@ Assuming you have python3 installed on your machine, follow the steps below to c
     
     ![](docs/ghhops-oncanvas.png)
 
-9)  Now if you add a curve and a slider and connect them to the Hops component input, you should get the calculated point on the curve as output:
+9)  If you add a curve and a slider and connect them to the Hops component input, you should get the calculated point on the curve as output:
 
     ![](docs/ghhops-connected.png)
 
