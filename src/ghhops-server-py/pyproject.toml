@@ -9,3 +9,7 @@ author-email = "ehsan@mcneel.com"
 home-page = "https://github.com/mcneel/compute.rhino3d/tree/master/src/ghhops-server-py"
 classifiers = ["License :: OSI Approved :: MIT License"]
 requires = ['rhino3dm']
+
+
+[tool.flit.sdist]
+exclude = ["docs/", "dist/", "examples/", "Pipfile", "Pipfile.lock", "README.md"]
