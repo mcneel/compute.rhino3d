@@ -177,13 +177,16 @@ class HopsBase:
                 f_sig = inspect.signature(comp_func)
                 f_params = f_sig.parameters.values()
                 if len(inputs) != len(f_params):
-                    raise Exception("Number of function parameters is "
-                                    "different from defined Hops inputs")
+                    raise Exception(
+                        "Number of function parameters is "
+                        "different from defined Hops inputs"
+                    )
                 # apply function param default values in order
                 # to defined Hops inputs. this will override any
                 # previously defined default values
                 for hinput, fparam in zip(inputs, f_params):
-                    hinput.default = fparam.default
+                    if fparam.default != inspect.Parameter.empty:
+                        hinput.default = fparam.default
 
             # determine name, and uri
             comp_name = name or comp_func.__qualname__
