@@ -382,10 +382,16 @@ namespace Compute.Components
         {
             if (obj.ResolvedData != null)
                 return obj.ResolvedData as Grasshopper.Kernel.Types.IGH_Goo;
-
+            
             string data = obj.Data.Trim('"');
             switch (obj.Type)
             {
+                case "System.Boolean":
+                    {
+                        var boolResult = new Grasshopper.Kernel.Types.GH_Boolean(bool.Parse(data));
+                        obj.ResolvedData = boolResult;
+                        return boolResult;
+                    }
                 case "System.Double":
                     {
                         var doubleResult = new Grasshopper.Kernel.Types.GH_Number(double.Parse(data));
