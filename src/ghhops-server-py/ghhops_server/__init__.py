@@ -3,7 +3,7 @@ import importlib
 import ghhops_server.base as base
 import ghhops_server.middlewares as hmw
 from ghhops_server import params
-from ghhops_server.logger import hlogger
+from ghhops_server.logger import logging, hlogger
 
 # import all supported servers for easy typehinting
 from ghhops_server.middlewares import *  # noqa
@@ -13,13 +13,16 @@ from ghhops_server.params import *  # noqa
 
 
 # main module version for pypi build
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 
 
 class Hops(base.HopsBase):
     """Hops Middleware"""
 
     def __new__(cls, app=None, debug=False, *args, **kwargs) -> base.HopsBase:
+        # set logger level
+        hlogger.setLevel(logging.DEBUG if debug else logging.INFO)
+
         # determine the correct middleware base on the source app being wrapped
         # when running standalone with no source apps
         if app is None:

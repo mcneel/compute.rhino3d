@@ -37,7 +37,7 @@ __all__ = (
     "HopsSurface",
     # "HopsTime",
     # "HopsTransform",
-    "HopsVector"
+    "HopsVector",
 )
 
 
@@ -126,13 +126,14 @@ class _GHParam:
         desc=None,
         access: HopsParamAccess = HopsParamAccess.ITEM,
         optional=False,
+        default=None,
     ):
         self.name = name
         self.nickname = nickname
         self.description = desc
         self.access: HopsParamAccess = access or HopsParamAccess.ITEM
         self.optional = optional
-        self.default = inspect.Parameter.empty
+        self.default = default or inspect.Parameter.empty
 
     def _coerce_value(self, param_type, param_data):
         # get data as dict
@@ -189,38 +190,39 @@ class _GHParam:
 
 class HopsBoolean(_GHParam):
     """Wrapper for GH_Boolean"""
+
     param_type = "Boolean"
     result_type = "System.Boolean"
 
-    coercers = {
-        "System.Boolean": lambda b: bool(b)
-    }
+    coercers = {"System.Boolean": lambda b: bool(b)}
 
 
 class HopsBrep(_GHParam):
     """Wrapper for GH Brep"""
+
     param_type = "Brep"
     result_type = "Rhino.Geometry.Brep"
 
 
 class HopsCurve(_GHParam):
     """Wrapper for GH Curve"""
+
     param_type = "Curve"
     result_type = "Rhino.Geometry.Curve"
 
 
 class HopsInteger(_GHParam):
     """Wrapper for GH_Integer"""
+
     param_type = "Integer"
     result_type = "System.Int32"
 
-    coercers = {
-        "System.Int32": lambda i: int(i)
-    }
+    coercers = {"System.Int32": lambda i: int(i)}
 
 
 class HopsLine(_GHParam):
     """Wrapper for GH_Line"""
+
     param_type = "Line"
     result_type = "Rhino.Geometry.Line"
 
@@ -237,6 +239,7 @@ class HopsLine(_GHParam):
 
 class HopsMesh(_GHParam):
     """Wrapper for GH Mesh"""
+
     param_type = "Mesh"
     result_type = "Rhino.Geometry.Mesh"
 
@@ -254,6 +257,7 @@ class HopsNumber(_GHParam):
 
 class HopsPoint(_GHParam):
     """Wrapper for GH Point"""
+
     param_type = "Point"
     result_type = "Rhino.Geometry.Point3d"
 
@@ -270,16 +274,16 @@ class HopsPoint(_GHParam):
 
 class HopsString(_GHParam):
     """Wrapper for GH_String"""
+
     param_type = "Text"
     result_type = "System.String"
 
-    coercers = {
-        "System.String": lambda s: s
-    }
+    coercers = {"System.String": lambda s: s}
 
 
 class HopsSubD(_GHParam):
     """Wrapper for GH SubD"""
+
     param_type = "SubD"
     result_type = "Rhino.Geometry.SubD"
 
@@ -293,6 +297,7 @@ class HopsSurface(_GHParam):
 
 class HopsVector(_GHParam):
     """Wrapper for GH Vector"""
+
     param_type = "Vector"
     result_type = "Rhino.Geometry.Vcetor3d"
 
