@@ -1,7 +1,7 @@
 """Hops Component Parameter wrappers"""
 import json
 from enum import Enum
-
+import inspect
 from ghhops_server.base import _HopsEncoder
 from ghhops_server.logger import hlogger
 
@@ -132,6 +132,7 @@ class _GHParam:
         self.description = desc
         self.access: HopsParamAccess = access or HopsParamAccess.ITEM
         self.optional = optional
+        self.default = inspect.Parameter.empty
 
     def _coerce_value(self, param_type, param_data):
         # get data as dict
@@ -155,6 +156,8 @@ class _GHParam:
         }
         if HopsParamAccess.ITEM == self.access:
             param_def["AtMost"] = 1
+        if self.default != inspect.Parameter.empty:
+            param_def["Default"] = self.default
         return param_def
 
     def from_input(self, input_data):

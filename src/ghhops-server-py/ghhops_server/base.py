@@ -2,6 +2,7 @@
 import sys
 import traceback
 import os.path as op
+import inspect
 import json
 import base64
 from typing import Tuple
@@ -171,6 +172,13 @@ class HopsBase:
 
         def __func_wrapper__(comp_func):
             # register python func as Hops component
+            if inputs:
+                # check for default parameters in function signature
+                sig = inspect.signature(comp_func)
+                parameters = sig.parameters.values()
+                for i, parameter in enumerate(parameters):
+                    inputs[i].default = parameter.default
+
             # determine name, and uri
             comp_name = name or comp_func.__qualname__
             uri = rule or f"/{comp_name}"
