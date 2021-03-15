@@ -10,6 +10,7 @@ namespace Hops
     static class MemoryCache
     {
         static System.Runtime.Caching.MemoryCache _memCache = new System.Runtime.Caching.MemoryCache("HopsCache");
+
         public static Schema Get(string key)
         {
             var cachedResults = _memCache.Get(key) as Schema;
@@ -18,6 +19,7 @@ namespace Hops
 
         public static void Set(string key, Schema schema)
         {
+            EntryCount++;
             _memCache.Set(key, schema, new System.Runtime.Caching.CacheItemPolicy());
         }
 
@@ -25,6 +27,9 @@ namespace Hops
         {
             _memCache.Dispose();
             _memCache = new System.Runtime.Caching.MemoryCache("HopsCache");
+            EntryCount = 0;
         }
+
+        public static int EntryCount { get; set; } = 0;
     }
 }
