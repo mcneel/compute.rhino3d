@@ -126,13 +126,14 @@ class _GHParam:
         desc=None,
         access: HopsParamAccess = HopsParamAccess.ITEM,
         optional=False,
+        default=None,
     ):
         self.name = name
         self.nickname = nickname
         self.description = desc
         self.access: HopsParamAccess = access or HopsParamAccess.ITEM
         self.optional = optional
-        self.default = inspect.Parameter.empty
+        self.default = default or inspect.Parameter.empty
 
     def _coerce_value(self, param_type, param_data):
         # get data as dict
