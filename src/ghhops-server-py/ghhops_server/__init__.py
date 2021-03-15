@@ -13,7 +13,7 @@ from ghhops_server.params import *  # noqa
 
 
 # main module version for pypi build
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 
 class Hops(base.HopsBase):
