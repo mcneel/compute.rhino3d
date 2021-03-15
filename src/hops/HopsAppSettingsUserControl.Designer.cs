@@ -33,6 +33,7 @@ namespace Hops
       this._hideWorkerWindows = new System.Windows.Forms.CheckBox();
       this._launchWorkerAtStart = new System.Windows.Forms.CheckBox();
       this._btnClearMemCache = new System.Windows.Forms.Button();
+      this._lblCacheCount = new System.Windows.Forms.Label();
       this.SuspendLayout();
       // 
       // _serversTextBox
@@ -72,15 +73,25 @@ namespace Hops
       // 
       this._btnClearMemCache.Location = new System.Drawing.Point(3, 190);
       this._btnClearMemCache.Name = "_btnClearMemCache";
-      this._btnClearMemCache.Size = new System.Drawing.Size(358, 45);
+      this._btnClearMemCache.Size = new System.Drawing.Size(291, 45);
       this._btnClearMemCache.TabIndex = 4;
       this._btnClearMemCache.Text = "Clear Hops Memory Cache";
       this._btnClearMemCache.UseVisualStyleBackColor = true;
+      // 
+      // _lblCacheCount
+      // 
+      this._lblCacheCount.AutoSize = true;
+      this._lblCacheCount.Location = new System.Drawing.Point(309, 200);
+      this._lblCacheCount.Name = "_lblCacheCount";
+      this._lblCacheCount.Size = new System.Drawing.Size(254, 25);
+      this._lblCacheCount.TabIndex = 5;
+      this._lblCacheCount.Text = "(1000000 items in cache)";
       // 
       // HopsAppSettingsUserControl
       // 
       this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
       this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+      this.Controls.Add(this._lblCacheCount);
       this.Controls.Add(this._btnClearMemCache);
       this.Controls.Add(this._launchWorkerAtStart);
       this.Controls.Add(this._hideWorkerWindows);
@@ -97,5 +108,6 @@ namespace Hops
         private System.Windows.Forms.CheckBox _hideWorkerWindows;
         private System.Windows.Forms.CheckBox _launchWorkerAtStart;
         private System.Windows.Forms.Button _btnClearMemCache;
+        private System.Windows.Forms.Label _lblCacheCount;
     }
 }
