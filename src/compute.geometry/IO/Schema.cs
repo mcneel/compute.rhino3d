@@ -41,6 +41,7 @@ namespace Resthopper.IO
     public class IoParamSchema
     {
         public string Name { get; set; }
+        public string Nickname { get; set; }
         public string ParamType { get; set; }
     }
 
