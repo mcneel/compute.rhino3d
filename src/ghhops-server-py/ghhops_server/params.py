@@ -149,6 +149,7 @@ class _GHParam:
         """Parameter serializer"""
         param_def = {
             "Name": self.name,
+            "Nickname": self.nickname,
             "Description": self.description,
             "ParamType": self.param_type,
             "ResultType": self.result_type,
