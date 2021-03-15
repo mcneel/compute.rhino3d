@@ -1,4 +1,5 @@
-﻿using Resthopper.IO;
+﻿using System.Collections.Generic;
+using Resthopper.IO;
 
 namespace Hops
 {
@@ -8,15 +9,22 @@ namespace Hops
     /// </summary>
     static class MemoryCache
     {
+        static System.Runtime.Caching.MemoryCache _memCache = new System.Runtime.Caching.MemoryCache("HopsCache");
         public static Schema Get(string key)
         {
-            var cachedResults = System.Runtime.Caching.MemoryCache.Default.Get(key) as Schema;
+            var cachedResults = _memCache.Get(key) as Schema;
             return cachedResults;
         }
 
         public static void Set(string key, Schema schema)
         {
-            System.Runtime.Caching.MemoryCache.Default.Set(key, schema, new System.Runtime.Caching.CacheItemPolicy());
+            _memCache.Set(key, schema, new System.Runtime.Caching.CacheItemPolicy());
+        }
+
+        public static void ClearCache()
+        {
+            _memCache.Dispose();
+            _memCache = new System.Runtime.Caching.MemoryCache("HopsCache");
         }
     }
 }

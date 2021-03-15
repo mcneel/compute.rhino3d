@@ -20,6 +20,10 @@ namespace Hops
             {
                 HopsAppSettings.LaunchWorkerAtStart = _launchWorkerAtStart.Checked;
             };
+            _btnClearMemCache.Click += (s, e) =>
+            {
+                Hops.MemoryCache.ClearCache();
+            };
         }
 
         private void ServersTextboxChanged(object sender, EventArgs e)
