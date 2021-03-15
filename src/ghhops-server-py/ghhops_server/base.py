@@ -173,11 +173,17 @@ class HopsBase:
         def __func_wrapper__(comp_func):
             # register python func as Hops component
             if inputs:
-                # check for default parameters in function signature
-                sig = inspect.signature(comp_func)
-                parameters = sig.parameters.values()
-                for i, parameter in enumerate(parameters):
-                    inputs[i].default = parameter.default
+                # inspect default parameters in function signature
+                f_sig = inspect.signature(comp_func)
+                f_params = f_sig.parameters.values()
+                if len(inputs) != len(f_params):
+                    raise Exception("Number of function parameters is "
+                                    "different from defined Hops inputs")
+                # apply function param default values in order
+                # to defined Hops inputs. this will override any
+                # previously defined default values
+                for hinput, fparam in zip(inputs, f_params):
+                    hinput.default = fparam.default
 
             # determine name, and uri
             comp_name = name or comp_func.__qualname__
