@@ -38,6 +38,12 @@ if __name__ == "__main__":
 ![](docs/ghhops-working.gif)
 
 
+## Video Intro
+
+<iframe src="https://player.vimeo.com/video/524032610" width="640" height="360" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+<p><a href="https://vimeo.com/524032610">Connecting Hops to CPython in Rhino 7</a> from <a href="https://vimeo.com/rhino">Rhino Tutorials</a> on <a href="https://vimeo.com">Vimeo</a>.</p>
+
+
 ## Quick Start
 
 Assuming you have python3 installed on your machine, follow the steps below to create your first Grasshopper Hops component:
