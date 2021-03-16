@@ -38,6 +38,10 @@ if __name__ == "__main__":
 ![](docs/ghhops-working.gif)
 
 
+## Video Intro
+
+[![](docs/intro-video.png)](https://vimeo.com/524032610)
+
 ## Quick Start
 
 Assuming you have python3 installed on your machine, follow the steps below to create your first Grasshopper Hops component:
