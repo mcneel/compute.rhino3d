@@ -1,6 +1,7 @@
 ﻿using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace rhino.compute
 {
@@ -33,6 +34,37 @@ namespace rhino.compute
             // Launch child processes on start. Getting the base url is enough to get things rolling
             ComputeChildren.UpdateLastCall();
             Task.Run(() => ComputeChildren.GetComputeServerBaseUrl());
+        }
+
+        static System.Timers.Timer _concurrentRequestLogger;
+        static int _activeConcurrentRequests;
+        static int _maxConcurrentRequests;
+        class ConcurrentRequestTracker : System.IDisposable
+        {
+            public ConcurrentRequestTracker()
+            {
+                _activeConcurrentRequests++;
+                if (_activeConcurrentRequests > _maxConcurrentRequests)
+                    _maxConcurrentRequests = _activeConcurrentRequests;
+            }
+
+            public void Dispose()
+            {
+                _activeConcurrentRequests--;
+            }
+        }
+        public static void InitializeConcurrentRequestLogging(ILogger logger)
+        {
+            // log once per minute
+            var span = new System.TimeSpan(0, 1, 0);
+            _concurrentRequestLogger = new System.Timers.Timer(span.TotalMilliseconds);
+            _concurrentRequestLogger.Elapsed += (s, e) =>
+            {
+                logger.LogInformation($"Max concurrent requests = {_maxConcurrentRequests}");
+                _maxConcurrentRequests = _activeConcurrentRequests;
+            };
+            _concurrentRequestLogger.AutoReset = true;
+            _concurrentRequestLogger.Start();
         }
 
         public ReverseProxyModule()
@@ -89,28 +121,40 @@ namespace rhino.compute
 
         private async Task ReverseProxyGet(HttpRequest req, HttpResponse res)
         {
-            var proxyResponse = await SendProxyRequest(req, HttpMethod.Get);
-            ComputeChildren.UpdateLastCall();
-            var stringResponse = await proxyResponse.Content.ReadAsStringAsync();
-            await res.WriteAsync(stringResponse);
+            string responseString;
+            using (var tracker = new ConcurrentRequestTracker())
+            {
+                var proxyResponse = await SendProxyRequest(req, HttpMethod.Get);
+                ComputeChildren.UpdateLastCall();
+                responseString = await proxyResponse.Content.ReadAsStringAsync();
+            }
+            await res.WriteAsync(responseString);
         }
 
         private async Task ReverseProxyPost(HttpRequest req, HttpResponse res)
         {
-            var proxyResponse = await SendProxyRequest(req, HttpMethod.Post);
-            ComputeChildren.UpdateLastCall();
-            res.StatusCode = (int)proxyResponse.StatusCode;
-            var s = await proxyResponse.Content.ReadAsStringAsync();
-            await res.WriteAsync(s);
+            string responseString;
+            using (var tracker = new ConcurrentRequestTracker())
+            {
+                var proxyResponse = await SendProxyRequest(req, HttpMethod.Post);
+                ComputeChildren.UpdateLastCall();
+                res.StatusCode = (int)proxyResponse.StatusCode;
+                responseString = await proxyResponse.Content.ReadAsStringAsync();
+            }
+            await res.WriteAsync(responseString);
         }
 
         private async Task ReverseProxyGrasshopper(HttpRequest req, HttpResponse res)
         {
-            var proxyResponse = await SendProxyRequest(req, HttpMethod.Post);
-            ComputeChildren.UpdateLastCall();
-            res.StatusCode = (int)proxyResponse.StatusCode;
-            var s = await proxyResponse.Content.ReadAsStringAsync();
-            await res.WriteAsync(s);
+            string responseString;
+            using (var tracker = new ConcurrentRequestTracker())
+            {
+                var proxyResponse = await SendProxyRequest(req, HttpMethod.Post);
+                ComputeChildren.UpdateLastCall();
+                res.StatusCode = (int)proxyResponse.StatusCode;
+                responseString = await proxyResponse.Content.ReadAsStringAsync();
+            }
+            await res.WriteAsync(responseString);
         }
     }
 }
