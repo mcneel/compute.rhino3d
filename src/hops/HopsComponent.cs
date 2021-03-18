@@ -714,7 +714,11 @@ namespace Compute.Components
                 Grasshopper.Instances.ActiveCanvas?.Invalidate();
 
                 if (recompute)
-                    OnPingDocument().NewSolution(true);
+                {
+                    var doc = OnPingDocument();
+                    if (doc != null)
+                        doc.NewSolution(true);
+                }
             }
         }
 
