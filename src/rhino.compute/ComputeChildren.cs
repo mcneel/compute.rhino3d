@@ -17,8 +17,15 @@ namespace rhino.compute
             _lastCall = DateTime.Now;
         }
 
+        /// <summary>
+        /// Idle time child processes live. If rhino.compute is not called
+        /// for this period of time to proxy requests, the child processes will
+        /// shut down. The processes will be restarted on a later request
+        /// </summary>
         public static TimeSpan ChildIdleSpan { get; set; } = TimeSpan.Zero;
-        public static int ParentPort { get; set; } = 0;
+
+        /// <summary>Port that rhino.compute is running on</summary>
+        public static int ParentPort { get; set; } = 5000;
 
         /// <summary>
         /// Length of time (in seconds) since rhino.compute last made a call
