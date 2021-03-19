@@ -72,6 +72,7 @@ of any process by this name and if there are none; it will shut down")]
                     }
                 };
                 _selfDestructTimer.AutoReset = true;
+                _selfDestructTimer.Start();
             }
 
             host.Run();
