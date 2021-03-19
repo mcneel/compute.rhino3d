@@ -10,11 +10,11 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DefineConstants>TRACE;DEBUG;COMPUTE_CORE</DefineConstants>
-    <OutputPath>..\bin\Debug\compute\</OutputPath>
+    <OutputPath>..\bin\Debug\compute.geometry\</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <DefineConstants>TRACE;COMPUTE_CORE</DefineConstants>
-    <OutputPath>..\bin\Release\compute\</OutputPath>
+    <OutputPath>..\bin\Release\compute.geometry\</OutputPath>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="RhinoCompute.cs" />
