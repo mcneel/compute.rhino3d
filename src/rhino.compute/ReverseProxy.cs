@@ -19,14 +19,6 @@ namespace rhino.compute
             // Port that rhino.compute is running on
             // todo: figure out how to programatically determine this port
             ComputeChildren.ParentPort = 5000;
-            // Set idle time child processes live. If rhino.compute is not called
-            // for this period of time to proxy requests, the child processes will
-            // shut down. The processes will be restarted on a later request
-            ComputeChildren.ChildIdleSpan = new System.TimeSpan(1, 0, 0);
-            // Number of child compute.geometry processes to start for processing.
-            // Default to 4 instances, but we might want to set this based on the
-            // number of cores available on the computer.
-            ComputeChildren.SpawnCount = 4;
 
             _client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
             _client.DefaultRequestHeaders.Add("User-Agent", $"compute.rhino3d-proxy/1.0.0");
