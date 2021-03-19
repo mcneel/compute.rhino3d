@@ -175,7 +175,7 @@ namespace Compute.Components
                 string pathToGha = typeof(Servers).Assembly.Location;
                 dir = System.IO.Path.GetDirectoryName(pathToGha);
             }
-            string pathToCompute = System.IO.Path.Combine(dir, "compute", "compute.geometry.exe");
+            string pathToCompute = System.IO.Path.Combine(dir, "compute.geometry", "compute.geometry.exe");
             if (!System.IO.File.Exists(pathToCompute))
                 return;
 
