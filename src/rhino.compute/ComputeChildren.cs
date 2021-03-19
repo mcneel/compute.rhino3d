@@ -120,17 +120,17 @@ namespace rhino.compute
         static void LaunchCompute(Queue<Tuple<Process, int>> processQueue, bool waitUntilServing)
         {
             var pathToThisAssembly = new System.IO.FileInfo(typeof(ComputeChildren).Assembly.Location);
-
-#if RHINO_COMPUTE
-            // compute.geometry is in a sibling directory called compute when running rhino.compute.exe
+            // compute.geometry is allowed to be either in:
+            // - a sibling directory named compute.geometry
+            // - a child directory named compute.geometry
             var parentDirectory = pathToThisAssembly.Directory.Parent;
-#else
-            // compute.geometry is in a child directory called compute when running in hops
-            var parentDirectory = pathToThisAssembly.Directory;
-#endif
-            string pathToCompute = System.IO.Path.Combine(parentDirectory.FullName, "compute", "compute.geometry.exe");
+            string pathToCompute = System.IO.Path.Combine(parentDirectory.FullName, "compute.geometry", "compute.geometry.exe");
             if (!System.IO.File.Exists(pathToCompute))
-                return;
+            {
+                pathToCompute = System.IO.Path.Combine(pathToThisAssembly.Directory.FullName, "compute.geometry", "compute.geometry.exe");
+                if (!System.IO.File.Exists(pathToCompute))
+                    return;
+            }
 
             var existingProcesses = processQueue.ToArray();
             var existingPorts = new HashSet<int>();
