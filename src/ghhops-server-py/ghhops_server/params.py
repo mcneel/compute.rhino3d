@@ -140,7 +140,8 @@ class _GHParam:
         data = json.loads(param_data)
         # parse data
         if isinstance(self.coercers, dict):
-            if coercer := self.coercers.get(param_type, None):
+            coercer = self.coercers.get(param_type, None)
+            if coercer:
                 return coercer(data)
         elif param_type.startswith("Rhino.Geometry."):
             return RHINO_FROMJSON(data)
