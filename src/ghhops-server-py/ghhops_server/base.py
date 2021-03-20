@@ -30,9 +30,11 @@ class HopsBase:
         if uri == "/":
             hlogger.debug("Getting a list of all registered components")
             return True, self._get_comps_data()
-        elif comp := self._components.get(uri, None):
-            hlogger.debug("Getting component metadata: %s", comp)
-            return True, self._get_comp_data(comp)
+        else:
+            comp = self._components.get(uri, None)
+            if comp:
+                hlogger.debug("Getting component metadata: %s", comp)
+                return True, self._get_comp_data(comp)
         return False, self._return_with_err("Unknown Hops url")
 
     def solve(self, uri, payload) -> Tuple[bool, str]:
@@ -51,9 +53,11 @@ class HopsBase:
                     return self._process_solve_request(comp, payload)
 
         # FIXME: test this new api
-        elif comp := self._components.get(uri, None):
-            hlogger.info("Solving: %s", comp)
-            return self._process_solve_request(comp, payload)
+        else:
+            comp = self._components.get(uri, None)
+            if comp:
+                hlogger.info("Solving: %s", comp)
+                return self._process_solve_request(comp, payload)
         return False, self._return_with_err("Unknown Hops component url")
 
     def _return_with_err(self, err_msg, res_dict=None):

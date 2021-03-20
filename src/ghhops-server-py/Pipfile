@@ -8,14 +8,14 @@ flask = "*"
 rhino3dm = "*"
 pylint = "*"
 flit = "*"
-rhinoinside = "*"
+rhinoinside = {version="*", sys_platform = "== 'win32'"}
 
 [dev-packages]
 black = "*"
 flake8 = "*"
 
 [requires]
-python_version = "3.9"
+python_version = "3.7"
 
 [pipenv]
 allow_prereleases = true
