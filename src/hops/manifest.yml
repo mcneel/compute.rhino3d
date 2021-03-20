@@ -1,0 +1,8 @@
+---
+name: Hops
+version: $version
+authors:
+- Robert McNeel & Associates
+description: Out of process definition solving using Rhino Compute
+url: https://github.com/mcneel/compute.rhino3d
+icon_url: https://raw.githubusercontent.com/mcneel/compute.rhino3d/master/src/hops/resources/Hops_48x48.png

@@ -59,6 +59,11 @@
   <ItemGroup>
     <EmbeddedResource Include="resources\Hops_48x48.png" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="manifest.yml" Condition="'$(Configuration)' == 'Release'">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
   <PropertyGroup>
     <FallbackCulture>en-US</FallbackCulture>
   </PropertyGroup>
