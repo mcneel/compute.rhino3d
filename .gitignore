@@ -30,3 +30,4 @@ RhinoCompute.cs
 /src/ghhops-server-py/.vscode
 **/.vscode/.ropeproject
 /src/ghhops-server-py/dist
+/src/dist

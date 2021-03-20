@@ -14,7 +14,6 @@ namespace rhino.compute
         public void Configure(IApplicationBuilder app)
         {
             app.UseRouting();
-
             app.UseEndpoints(builder => builder.MapCarter());
         }
     }

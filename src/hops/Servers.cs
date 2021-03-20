@@ -175,7 +175,7 @@ namespace Compute.Components
                 string pathToGha = typeof(Servers).Assembly.Location;
                 dir = System.IO.Path.GetDirectoryName(pathToGha);
             }
-            string pathToCompute = System.IO.Path.Combine(dir, "compute", "compute.geometry.exe");
+            string pathToCompute = System.IO.Path.Combine(dir, "compute.geometry", "compute.geometry.exe");
             if (!System.IO.File.Exists(pathToCompute))
                 return;
 
@@ -228,39 +228,17 @@ namespace Compute.Components
 
             var startInfo = new ProcessStartInfo(pathToCompute);
             startInfo.Arguments = $"-port:{port} -childof:{Process.GetCurrentProcess().Id}";
-            //startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-            startInfo.UseShellExecute = false;
+            startInfo.WindowStyle = Hops.HopsAppSettings.HideWorkerWindows ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Minimized;
+            // Important: Keep UseShellExecute = true
+            // If UseShellExecute is false, the child process inherits file handles from
+            // the parent process. We found this out by noticing that Rhino suddenly thought
+            // all of it's files were read-only. If we want to go with UseShellExecute = false
+            // then we need to write a pInvoke to CreateProcess with the copyFileHandles
+            // set to false.
+            startInfo.UseShellExecute = true;
             startInfo.CreateNoWindow = Hops.HopsAppSettings.HideWorkerWindows;
             var process = Process.Start(startInfo);
             var start = DateTime.Now;
-
-            /*
-            while (true)
-            {
-                System.Threading.Thread.Sleep(500);
-                // It looks like .NET caches the window title for a Process instance.
-                // The following hack is to work around the fact that we are changing
-                // the title to relay information about the port used
-                var temp = Process.GetProcessById(process.Id);
-                string title = temp.MainWindowTitle;
-                var chunks = title.Split(new char[] { ':' });
-                if (chunks.Length > 1)
-                {
-                    string sPort = chunks[chunks.Length - 1];
-                    if(int.TryParse(sPort, out int computePort))
-                    {
-                        if (computePort == port)
-                            break;
-                    }
-                }
-                var span = DateTime.Now - start;
-                if (span.TotalSeconds > 20)
-                {
-                    process.Kill();
-                    throw new Exception("Unable to start a local compute server");
-                }
-            }
-            */
 
             if (waitUntilServing)
             {
@@ -315,7 +293,6 @@ namespace Compute.Components
         static object _lockObject = new Object();
         static Queue<ComputeServer> _computeServerQueue = new Queue<ComputeServer>();
         static bool _settingsNeedReading = true;
-
 
         class ComputeServer
         {
