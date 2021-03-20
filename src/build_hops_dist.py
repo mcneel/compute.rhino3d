@@ -16,6 +16,7 @@ build_cmd = 'dotnet publish .\\hops.sln'
 build_cmd += ' -c Release'
 build_cmd += ' -p:PublishTrimmed=true'
 build_cmd += ' --self-contained true'
+build_cmd += ' -r win-x64'
 rv = os.system(build_cmd)
 if (rv != 0): sys.exit(rv)
 
