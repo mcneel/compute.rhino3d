@@ -4,14 +4,16 @@
     <AssemblyName>rhino.compute</AssemblyName>
     <OutputType>Exe</OutputType>
     <Platforms>x64</Platforms>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutputPath>..\bin\Debug</OutputPath>
+    <OutputPath>..\bin\Debug\$(AssemblyName)</OutputPath>
     <DefineConstants>TRACE;RHINO_COMPUTE</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutputPath>..\bin\Release</OutputPath>
+    <OutputPath>..\bin\Release\$(AssemblyName)</OutputPath>
     <DefineConstants>TRACE;RHINO_COMPUTE</DefineConstants>
+    <PublishDir>..\dist\$(AssemblyName)</PublishDir>
   </PropertyGroup>
 
   <ItemGroup>
