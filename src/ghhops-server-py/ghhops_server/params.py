@@ -159,31 +159,39 @@ class _GHParam:
         }
         if HopsParamAccess.ITEM == self.access:
             param_def["AtMost"] = 1
+        if HopsParamAccess.LIST == self.access:
+            param_def["AtMost"] = 2147483647 #Max 32 bit integer value
         if self.default != inspect.Parameter.empty:
             param_def["Default"] = self.default
         return param_def
 
     def from_input(self, input_data):
         """Extract parameter data from serialized input"""
-        # param_name = input_data["ParamName"]
-        param_value_item = input_data["InnerTree"]["0"][0]
-        param_type = param_value_item["type"]
-        param_value = param_value_item["data"]
-        return self._coerce_value(param_type, param_value)
+        data = []
+        for param_value_item in input_data["InnerTree"]["0"]:
+            param_type = param_value_item["type"]
+            param_value = param_value_item["data"]
+            data.append(self._coerce_value(param_type, param_value))
+        if self.access == HopsParamAccess.ITEM:
+            return data[0]
+        return data
 
     def from_result(self, value):
         """Serialize parameter with given value for output"""
-        json_data = RHINO_TOJSON(value)
+        if not isinstance(value, tuple) and not isinstance(value, list):
+            value = (value,)
+
+        output_list = [
+            {
+                "type": self.result_type,
+                "data": RHINO_TOJSON(v)
+            } for v in value
+        ]
 
         output = {
             "ParamName": self.name,
             "InnerTree": {
-                "0": [
-                    {
-                        "type": self.result_type,
-                        "data": json_data,
-                    }
-                ]
+                "0": output_list
             },
         }
         return output
@@ -300,7 +308,7 @@ class HopsVector(_GHParam):
     """Wrapper for GH Vector"""
 
     param_type = "Vector"
-    result_type = "Rhino.Geometry.Vcetor3d"
+    result_type = "Rhino.Geometry.Vector3d"
 
     coercers = {
         "Rhino.Geometry.Point2d": lambda d: RHINO_GEOM.Point2d(d["X"], d["Y"]),
