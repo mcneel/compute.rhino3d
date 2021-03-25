@@ -8,8 +8,8 @@ namespace Compute.Components
     /// Utility for managing compute server instances. When Hops components are
     /// referencing paths to files (instead of http URLs), the definitions are
     /// processed by compute server instances running local or remote. Hops
-    /// ships with a copy of compute.geometry.exe that it can launch when a
-    /// compute server is needed.
+    /// ships with rhino.compute.exe and compute.geometry.exe that it can launch
+    /// when a compute server is needed.
     /// </summary>
     class Servers
     {
@@ -116,20 +116,6 @@ namespace Compute.Components
                 if (string.IsNullOrEmpty(url) && Rhino.Runtime.HostUtils.RunningOnWindows)
                 {
                     _computeServerQueue = new Queue<ComputeServer>();
-
-                    // see if any compute.geometry process are already open
-                    var processes = Process.GetProcessesByName("compute.geometry");
-                    foreach (var process in processes)
-                    {
-                        int port = 8081;
-                        var chunks = process.MainWindowTitle.Split(new char[] { ':' });
-                        if (chunks.Length > 1)
-                        {
-                            port = int.Parse(chunks[1]);
-                        }
-                        _computeServerQueue.Enqueue(new ComputeServer(process, port));
-                    }
-
                     if (_computeServerQueue.Count == 0)
                     {
                         LaunchLocalCompute(_computeServerQueue, true);
@@ -163,8 +149,29 @@ namespace Compute.Components
             }
         }
 
+        const int RhinoComputePort = 6500;
+
         static void LaunchLocalCompute(Queue<ComputeServer> serverQueue, bool waitUntilServing)
         {
+            // There is one and only one local rhino.compute server ever needed
+            // on a single computer. Check the serverQueue to make sure we don't
+            // alreay have one
+            foreach(var server in serverQueue.ToArray())
+            {
+                if (server.IsLocalProcess)
+                    return;
+            }
+
+            var existingProcesses = Process.GetProcessesByName("rhino.compute");
+            if( existingProcesses!=null && existingProcesses.Length>0)
+            {
+                if (IsPortOpen("localhost", RhinoComputePort, new TimeSpan(0, 0, 0, 0, 100)))
+                {
+                    serverQueue.Enqueue(new ComputeServer(existingProcesses[0], RhinoComputePort));
+                }
+            }
+
+            // No rhino.compute.exe running. Launch one
             string dir = null;
             if (GhaAssemblyInfo.TheAssemblyInfo != null)
             {
@@ -175,60 +182,22 @@ namespace Compute.Components
                 string pathToGha = typeof(Servers).Assembly.Location;
                 dir = System.IO.Path.GetDirectoryName(pathToGha);
             }
-            string pathToCompute = System.IO.Path.Combine(dir, "compute.geometry", "compute.geometry.exe");
-            if (!System.IO.File.Exists(pathToCompute))
-                return;
-
-            var existingProcesses = Process.GetProcessesByName("compute.geometry");
-            var existingPorts = new HashSet<int>();
-            foreach (var existingProcess in existingProcesses)
+            string pathToRhinoCompute = System.IO.Path.Combine(dir, "rhino.compute", "rhino.compute.exe");
+            if (!System.IO.File.Exists(pathToRhinoCompute))
             {
-                bool checkTitle = true;
-                // see if this process is already in the queue
-                foreach(var item in serverQueue)
-                {
-                    if (item.IsProcess(existingProcess))
-                    {
-                        existingPorts.Add(item.LocalProcessPort());
-                        checkTitle = false;
-                        break;
-                    }
-                }
-
-                if (checkTitle)
-                {
-                    var chunks = existingProcess.MainWindowTitle.Split(new char[] { ':' });
-                    if (chunks.Length > 1)
-                    {
-                        if (int.TryParse(chunks[chunks.Length - 1], out int lookForPort))
-                        {
-                            existingPorts.Add(lookForPort);
-                        }
-                    }
-                }
-            }
-            int port = 0;
-            for(int i=0;i<256; i++)
-            {
-                // start at port 6000. Feel free to change this if there is a reason
-                // to use a different port
-                port = 6000 + i;
-                if (existingPorts.Contains(port))
-                    continue;
-
-                if (i == 255)
+                // debug builds are in net5.0 directory
+                pathToRhinoCompute = System.IO.Path.Combine(dir, "net5.0", "rhino.compute.exe");
+                if (!System.IO.File.Exists(pathToRhinoCompute))
                     return;
-
-                bool isOpen = IsPortOpen("localhost", port, new TimeSpan(0, 0, 0, 0, 100));
-                if (isOpen)
-                    continue;
-
-                break;
             }
 
-            var startInfo = new ProcessStartInfo(pathToCompute);
-            startInfo.Arguments = $"-port:{port} -childof:{Process.GetCurrentProcess().Id}";
+            var startInfo = new ProcessStartInfo(pathToRhinoCompute);
+
+            int thisProc = Process.GetCurrentProcess().Id;
+            startInfo.Arguments = $"--childof {thisProc} --childcount 1 --port {RhinoComputePort}";
             startInfo.WindowStyle = Hops.HopsAppSettings.HideWorkerWindows ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Minimized;
+            // uncomment next line to ease debugging
+            // startInfo.WindowStyle = ProcessWindowStyle.Normal;
             // Important: Keep UseShellExecute = true
             // If UseShellExecute is false, the child process inherits file handles from
             // the parent process. We found this out by noticing that Rhino suddenly thought
@@ -244,11 +213,11 @@ namespace Compute.Components
             {
                 while (true)
                 {
-                    bool isOpen = IsPortOpen("localhost", port, new TimeSpan(0, 0, 1));
+                    bool isOpen = IsPortOpen("localhost", RhinoComputePort, new TimeSpan(0, 0, 1));
                     if (isOpen)
                         break;
                     var span = DateTime.Now - start;
-                    // If compute takes more than 60 seconds to launch, assume something
+                    // If rhino.compute takes more than 60 seconds to launch, assume something
                     // is wrong and kill the process. I realize there are installs out
                     // there that take longer to load, but I don't have a better solution
                     // right now.
@@ -267,7 +236,7 @@ namespace Compute.Components
 
             if (process != null)
             {
-                serverQueue.Enqueue(new ComputeServer(process, port));
+                serverQueue.Enqueue(new ComputeServer(process, RhinoComputePort));
             }
         }
 

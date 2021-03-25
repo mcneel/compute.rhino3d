@@ -141,8 +141,6 @@ namespace compute.geometry
             // update console title to differentiate windows (ports) and start parent process shutdown timer
             if (hctrl is Topshelf.Hosts.ConsoleRunHost)
             {
-                var chunks = _bind[0].Split(new char[] { ':' });
-                Console.Title = $"rhino.compute:{chunks[chunks.Length - 1]}";
                 Shutdown.StartTimer(hctrl);
             }
 

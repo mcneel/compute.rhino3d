@@ -8,6 +8,7 @@ namespace rhino.compute
     public class ReverseProxyModule : Carter.CarterModule
     {
         static bool _initCalled = false;
+        static Task<string> _initTask;
         static HttpClient _client;
         private const string _apiKeyHeader = "RhinoComputeKey";
         static void Initialize()
@@ -16,16 +17,12 @@ namespace rhino.compute
                 return;
             _initCalled = true;
 
-            // Port that rhino.compute is running on
-            // todo: figure out how to programatically determine this port
-            ComputeChildren.ParentPort = 5000;
-
             _client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
             _client.DefaultRequestHeaders.Add("User-Agent", $"compute.rhino3d-proxy/1.0.0");
 
             // Launch child processes on start. Getting the base url is enough to get things rolling
             ComputeChildren.UpdateLastCall();
-            Task.Run(() => ComputeChildren.GetComputeServerBaseUrl());
+            _initTask = Task.Run(() => ComputeChildren.GetComputeServerBaseUrl());
         }
 
         static System.Timers.Timer _concurrentRequestLogger;
@@ -76,6 +73,13 @@ namespace rhino.compute
 
         async Task<HttpResponseMessage> SendProxyRequest(HttpRequest initialRequest, HttpMethod method)
         {
+            var task = _initTask;
+            if (task != null)
+            {
+                await task;
+                _initTask = null;
+            }
+
             string baseurl = ComputeChildren.GetComputeServerBaseUrl();
             string proxyUrl = $"{baseurl}{initialRequest.Path}{initialRequest.QueryString}";
 
