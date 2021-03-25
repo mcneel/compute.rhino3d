@@ -49,7 +49,7 @@ namespace Resthopper.IO
     {
         public string Description { get; set; }
         public int AtLeast { get; set; } = 1;
-        public int AtMost { get; set; } = 0;
+        public int AtMost { get; set; } = int.MaxValue;
         public object Default { get; set; } = null;
         public object Minimum { get; set; } = null;
         public object Maximum { get; set; } = null;
