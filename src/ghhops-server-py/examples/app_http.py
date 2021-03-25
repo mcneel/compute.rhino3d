@@ -38,6 +38,27 @@ def pointat(curve, t=0.0):
     return curve.PointAt(t)
 
 
+# same as pointat, but with a list of numbers as input
+# and list of points returned
+@hops.component(
+    "/pointsat",
+    name="PointsAt",
+    nickname="PtsAt",
+    description="Get points along curve",
+    icon="examples/pointat.png",
+    inputs=[
+        hs.HopsCurve("Curve", "C", "Curve to evaluate"),
+        hs.HopsNumber("t", "t", "Parameters on Curve to evaluate", hs.HopsParamAccess.LIST),
+    ],
+    outputs=[
+        hs.HopsPoint("P", "P", "Points on curve at t")
+    ]
+)
+def pointsat(curve, t):
+    points = [curve.PointAt(item) for item in t]
+    return points
+
+
 @hops.component(
     "/srf4pt",
     name="4Point Surface",
