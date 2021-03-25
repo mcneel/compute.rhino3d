@@ -505,7 +505,8 @@ namespace Compute.Components
                 _params.Add(new Grasshopper.Kernel.Parameters.Param_Culture());
                 _params.Add(new Grasshopper.Kernel.Parameters.Param_Curve());
                 _params.Add(new Grasshopper.Kernel.Parameters.Param_Field());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_FilePath());
+                //FilePath has the same ParamType as String
+                //_params.Add(new Grasshopper.Kernel.Parameters.Param_FilePath());
                 _params.Add(new Grasshopper.Kernel.Parameters.Param_GenericObject());
                 _params.Add(new Grasshopper.Kernel.Parameters.Param_Geometry());
                 _params.Add(new Grasshopper.Kernel.Parameters.Param_Group());
@@ -536,7 +537,26 @@ namespace Compute.Components
                 if (p.TypeName.Equals(item.ParamType, StringComparison.OrdinalIgnoreCase))
                 {
                     var obj = System.Activator.CreateInstance(p.GetType());
-                    return obj as IGH_Param;
+                    var ghParam = obj as IGH_Param;
+                    if (ghParam!=null)
+                    {
+                        string name = item.Name;
+                        if (!string.IsNullOrEmpty(name))
+                        {
+                            if (name.StartsWith("RH_IN:"))
+                                name = name.Substring("RH_IN:".Length).Trim();
+                            if (name.StartsWith("RH_OUT:"))
+                                name = name.Substring("RH_OUT:".Length).Trim();
+                        }
+                        if (!string.IsNullOrEmpty(name))
+                            ghParam.Name = item.Name;
+                        string nickname = name;
+                        if (!string.IsNullOrEmpty(item.Nickname))
+                            nickname = item.Nickname;
+                        if (!string.IsNullOrEmpty(nickname))
+                            ghParam.NickName = nickname;
+                    }
+                    return ghParam;
                 }
             }
             return null;
