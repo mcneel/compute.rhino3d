@@ -152,9 +152,16 @@ namespace Compute.Components
             if (performPost)
             {
                 string postUrl = Servers.GetDescriptionPostUrl();
-                var bytes = System.IO.File.ReadAllBytes(address);
                 var schema = new Schema();
-                schema.Algo = Convert.ToBase64String(bytes);
+                if (Path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                {
+                    schema.Pointer = address;
+                }
+                else
+                {
+                    var bytes = System.IO.File.ReadAllBytes(address);
+                    schema.Algo = Convert.ToBase64String(bytes);
+                }
                 string inputJson = JsonConvert.SerializeObject(schema);
                 var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
                 responseTask = HttpClient.PostAsync(postUrl, content);
@@ -236,7 +243,7 @@ namespace Compute.Components
             }
         }
 
-        public Schema Solve(Schema inputSchema)
+        public Schema Solve(Schema inputSchema, bool useMemoryCache)
         {
             string solveUrl;
             var pathType = GetPathType();
@@ -256,6 +263,14 @@ namespace Compute.Components
             }
 
             string inputJson = JsonConvert.SerializeObject(inputSchema);
+            if (useMemoryCache && inputSchema.Algo == null)
+            {
+                var cachedResults = Hops.MemoryCache.Get(inputJson);
+                if (cachedResults != null)
+                {
+                    return cachedResults;
+                }
+            }
 
             using (var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json"))
             {
@@ -263,7 +278,8 @@ namespace Compute.Components
                 var responseMessage = postTask.Result;
                 if (responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
                 {
-                    if (File.Exists(Path) && string.IsNullOrEmpty(inputSchema.Algo))
+                    bool fileExists = File.Exists(Path);
+                    if (fileExists && string.IsNullOrEmpty(inputSchema.Algo))
                     {
                         var bytes = System.IO.File.ReadAllBytes(Path);
                         string base64 = Convert.ToBase64String(bytes);
@@ -273,12 +289,29 @@ namespace Compute.Components
                         postTask = HttpClient.PostAsync(solveUrl, content2);
                         responseMessage = postTask.Result;
                         if (responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
-                            throw new Exception("Unable to solve on compute");
+                        {
+                            var badSchema = new Schema();
+                            badSchema.Errors.Add("Unable to solve on compute");
+                            return badSchema;
+                        }
+                    }
+                    else
+                    {
+                        if (!fileExists && string.IsNullOrEmpty(inputSchema.Algo) && GetPathType() == PathType.GrasshopperDefinition)
+                        {
+                            var badSchema = new Schema();
+                            badSchema.Errors.Add($"Unable to find file: {Path}");
+                            return badSchema;
+                        }
                     }
                 }
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
                 var schema = JsonConvert.DeserializeObject<Resthopper.IO.Schema>(stringResult);
+                if (useMemoryCache && inputSchema.Algo == null)
+                {
+                    Hops.MemoryCache.Set(inputJson, schema);
+                }
                 _cacheKey = schema.Pointer;
                 return schema;
             }
@@ -305,7 +338,7 @@ namespace Compute.Components
                 }
 
                 var structure = new Grasshopper.Kernel.Data.GH_Structure<Grasshopper.Kernel.Types.IGH_Goo>();
-                Grasshopper.Kernel.Types.IGH_Goo singleGoo = null;
+                Grasshopper.Kernel.Types.IGH_Goo goo = null;
                 foreach (var kv in datatree.InnerTree)
                 {
                     var tokens = kv.Key.Trim(new char[] { '{', '}' }).Split(';');
@@ -319,15 +352,16 @@ namespace Compute.Components
                     }
 
                     var path = new Grasshopper.Kernel.Data.GH_Path(elements.ToArray());
+                    var localBranch = structure.EnsurePath(path);
                     for (int gooIndex = 0; gooIndex < kv.Value.Count; gooIndex++)
                     {
-                        var goo = GooFromReshopperObject(kv.Value[gooIndex]);
-                        singleGoo = goo;
-                        structure.Insert(goo, path, gooIndex);
+                        goo = GooFromReshopperObject(kv.Value[gooIndex]);
+                        localBranch.Add(goo);
+                        //structure.Insert(goo, path, gooIndex);
                     }
                 }
                 if (structure.DataCount == 1)
-                    DA.SetData(paramIndex, singleGoo);
+                    DA.SetData(paramIndex, goo);
                 else if (structure.PathCount == 1)
                     DA.SetDataList(paramIndex, structure.AllData(false)); // let grasshopper handle paths
                 else
@@ -346,7 +380,85 @@ namespace Compute.Components
 
         static Grasshopper.Kernel.Types.IGH_Goo GooFromReshopperObject(ResthopperObject obj)
         {
+            if (obj.ResolvedData != null)
+                return obj.ResolvedData as Grasshopper.Kernel.Types.IGH_Goo;
+            
             string data = obj.Data.Trim('"');
+            switch (obj.Type)
+            {
+                case "System.Boolean":
+                    {
+                        var boolResult = new Grasshopper.Kernel.Types.GH_Boolean(bool.Parse(data));
+                        obj.ResolvedData = boolResult;
+                        return boolResult;
+                    }
+                case "System.Double":
+                    {
+                        var doubleResult = new Grasshopper.Kernel.Types.GH_Number(double.Parse(data));
+                        obj.ResolvedData = doubleResult;
+                        return doubleResult;
+                    }
+                case "System.String":
+                    {
+                        var stringResult = new Grasshopper.Kernel.Types.GH_String(data);
+                        obj.ResolvedData = stringResult;
+                        return stringResult;
+                    }
+                case "System.Int32":
+                    {
+                        var intResult = new Grasshopper.Kernel.Types.GH_Integer(int.Parse(data));
+                        obj.ResolvedData = intResult;
+                        return intResult;
+                    }
+                case "Rhino.Geometry.Circle":
+                    {
+                        var circleResult = new Grasshopper.Kernel.Types.GH_Circle(JsonConvert.DeserializeObject<Circle>(data));
+                        obj.ResolvedData = circleResult;
+                        return circleResult;
+                    }
+                case "Rhino.Geometry.Line":
+                    {
+                        var lineResult = new Grasshopper.Kernel.Types.GH_Line(JsonConvert.DeserializeObject<Line>(data));
+                        obj.ResolvedData = lineResult;
+                        return lineResult;
+                    }
+                case "Rhino.Geometry.Point3d":
+                    {
+                        var pointResult = new Grasshopper.Kernel.Types.GH_Point(JsonConvert.DeserializeObject<Point3d>(data));
+                        obj.ResolvedData = pointResult;
+                        return pointResult;
+                    }
+                case "Rhino.Geometry.Vector3d":
+                    {
+                        var vectorResult = new Grasshopper.Kernel.Types.GH_Vector(JsonConvert.DeserializeObject<Vector3d>(data));
+                        obj.ResolvedData = vectorResult;
+                        return vectorResult;
+                    }
+                case "Rhino.Geometry.Brep":
+                case "Rhino.Geometry.Curve":
+                case "Rhino.Geometry.Extrusion":
+                case "Rhino.Geometry.Mesh":
+                case "Rhino.Geometry.PolyCurve":
+                case "Rhino.Geometry.NurbsCurve":
+                case "Rhino.Geometry.PolylineCurve":
+                case "Rhino.Geometry.SubD":
+                    {
+                        Dictionary<string, string> dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(data);
+                        var geometry = Rhino.Runtime.CommonObject.FromJSON(dict);
+                        Surface surface = geometry as Surface;
+                        if (surface != null)
+                            geometry = surface.ToBrep();
+                        if (geometry is Brep)
+                            return new Grasshopper.Kernel.Types.GH_Brep(geometry as Brep);
+                        if (geometry is Curve)
+                            return new Grasshopper.Kernel.Types.GH_Curve(geometry as Curve);
+                        if (geometry is Mesh)
+                            return new Grasshopper.Kernel.Types.GH_Mesh(geometry as Mesh);
+                        if (geometry is SubD)
+                            return new Grasshopper.Kernel.Types.GH_SubD(geometry as SubD);
+                    }
+                    break;
+            }
 
             if (obj.Type.StartsWith("Rhino.Geometry"))
             {
@@ -374,47 +486,6 @@ namespace Compute.Components
                 }
             }
 
-            switch (obj.Type)
-            {
-                case "System.Double":
-                    return new Grasshopper.Kernel.Types.GH_Number(double.Parse(data));
-                case "System.String":
-                    return new Grasshopper.Kernel.Types.GH_String(data);
-                case "System.Int32":
-                    return new Grasshopper.Kernel.Types.GH_Integer(int.Parse(data));
-                case "Rhino.Geometry.Circle":
-                    return new Grasshopper.Kernel.Types.GH_Circle(JsonConvert.DeserializeObject<Circle>(data));
-                case "Rhino.Geometry.Line":
-                    return new Grasshopper.Kernel.Types.GH_Line(JsonConvert.DeserializeObject<Line>(data));
-                case "Rhino.Geometry.Point3d":
-                    return new Grasshopper.Kernel.Types.GH_Point(JsonConvert.DeserializeObject<Point3d>(data));
-                case "Rhino.Geometry.Vector3d":
-                    return new Grasshopper.Kernel.Types.GH_Vector(JsonConvert.DeserializeObject<Vector3d>(data));
-                case "Rhino.Geometry.Brep":
-                case "Rhino.Geometry.Curve":
-                case "Rhino.Geometry.Extrusion":
-                case "Rhino.Geometry.Mesh":
-                case "Rhino.Geometry.PolyCurve":
-                case "Rhino.Geometry.NurbsCurve":
-                case "Rhino.Geometry.PolylineCurve":
-                case "Rhino.Geometry.SubD":
-                    {
-                        Dictionary<string, string> dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(data);
-                        var geometry = Rhino.Runtime.CommonObject.FromJSON(dict);
-                        Surface surface = geometry as Surface;
-                        if (surface != null)
-                            geometry = surface.ToBrep();
-                        if (geometry is Brep)
-                            return new Grasshopper.Kernel.Types.GH_Brep(geometry as Brep);
-                        if (geometry is Curve)
-                            return new Grasshopper.Kernel.Types.GH_Curve(geometry as Curve);
-                        if (geometry is Mesh)
-                            return new Grasshopper.Kernel.Types.GH_Mesh(geometry as Mesh);
-                        if (geometry is SubD)
-                            return new Grasshopper.Kernel.Types.GH_SubD(geometry as SubD);
-                    }
-                    break;
-            }
             throw new Exception("unable to convert resthopper data");
         }
 
@@ -434,7 +505,8 @@ namespace Compute.Components
                 _params.Add(new Grasshopper.Kernel.Parameters.Param_Culture());
                 _params.Add(new Grasshopper.Kernel.Parameters.Param_Curve());
                 _params.Add(new Grasshopper.Kernel.Parameters.Param_Field());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_FilePath());
+                //FilePath has the same ParamType as String
+                //_params.Add(new Grasshopper.Kernel.Parameters.Param_FilePath());
                 _params.Add(new Grasshopper.Kernel.Parameters.Param_GenericObject());
                 _params.Add(new Grasshopper.Kernel.Parameters.Param_Geometry());
                 _params.Add(new Grasshopper.Kernel.Parameters.Param_Group());
@@ -465,7 +537,26 @@ namespace Compute.Components
                 if (p.TypeName.Equals(item.ParamType, StringComparison.OrdinalIgnoreCase))
                 {
                     var obj = System.Activator.CreateInstance(p.GetType());
-                    return obj as IGH_Param;
+                    var ghParam = obj as IGH_Param;
+                    if (ghParam!=null)
+                    {
+                        string name = item.Name;
+                        if (!string.IsNullOrEmpty(name))
+                        {
+                            if (name.StartsWith("RH_IN:"))
+                                name = name.Substring("RH_IN:".Length).Trim();
+                            if (name.StartsWith("RH_OUT:"))
+                                name = name.Substring("RH_OUT:".Length).Trim();
+                        }
+                        if (!string.IsNullOrEmpty(name))
+                            ghParam.Name = item.Name;
+                        string nickname = name;
+                        if (!string.IsNullOrEmpty(item.Nickname))
+                            nickname = item.Nickname;
+                        if (!string.IsNullOrEmpty(nickname))
+                            ghParam.NickName = nickname;
+                    }
+                    return ghParam;
                 }
             }
             return null;
@@ -504,132 +595,134 @@ namespace Compute.Components
 
             schema.CacheSolve = cacheSolveOnServer;
             var inputs = GetInputParams();
-            foreach (var kv in inputs)
+            if (inputs != null)
             {
-                var (input, param) = kv.Value;
-                string inputName = kv.Key;
-                string computeName = input.Name;
-                bool itemAccess = input.AtLeast == 1 && input.AtMost == 1;
-
-                var dataTree = new DataTree<Resthopper.IO.ResthopperObject>();
-                dataTree.ParamName = computeName;
-                schema.Values.Add(dataTree);
-                int inputListCount = 0;
-                switch (param)
+                foreach (var kv in inputs)
                 {
-                    case Grasshopper.Kernel.Parameters.Param_Arc _:
-                        CollectDataHelper<Arc>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_Boolean _:
-                        CollectDataHelper<bool>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_Box _:
-                        CollectDataHelper<Box>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_Brep _:
-                        CollectDataHelper<Brep>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_Circle _:
-                        CollectDataHelper<Circle>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_Colour _:
-                        CollectDataHelper<System.Drawing.Color>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_Complex _:
-                        CollectDataHelper<Grasshopper.Kernel.Types.Complex>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_Culture _:
-                        CollectDataHelper<System.Globalization.CultureInfo>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_Curve _:
-                        CollectDataHelper<Curve>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_Field _:
-                        CollectDataHelper<Grasshopper.Kernel.Types.GH_Field>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_FilePath _:
-                        CollectDataHelper<string>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_GenericObject _:
-                        throw new Exception("generic param not supported");
-                    case Grasshopper.Kernel.Parameters.Param_Geometry _:
-                        CollectDataHelper<GeometryBase>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_Group _:
-                        throw new Exception("group param not supported");
-                    case Grasshopper.Kernel.Parameters.Param_Guid _:
-                        throw new Exception("guid param not supported");
-                    case Grasshopper.Kernel.Parameters.Param_Integer _:
-                        CollectDataHelper<int>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_Interval _:
-                        CollectDataHelper<Grasshopper.Kernel.Types.GH_Interval>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_Interval2D _:
-                        CollectDataHelper<Grasshopper.Kernel.Types.GH_Interval2D>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_LatLonLocation _:
-                        throw new Exception("latlonlocation param not supported");
-                    case Grasshopper.Kernel.Parameters.Param_Line _:
-                        CollectDataHelper<Line>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_Matrix _:
-                        CollectDataHelper<Matrix>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_Mesh _:
-                        CollectDataHelper<Mesh>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_MeshFace _:
-                        CollectDataHelper<MeshFace>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_MeshParameters _:
-                        throw new Exception("meshparameters param not supported");
-                    case Grasshopper.Kernel.Parameters.Param_Number _:
-                        CollectDataHelper<double>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    //case Grasshopper.Kernel.Parameters.Param_OGLShader:
-                    case Grasshopper.Kernel.Parameters.Param_Plane _:
-                        CollectDataHelper<Plane>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_Point _:
-                        CollectDataHelper<Point3d>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_Rectangle _:
-                        CollectDataHelper<Rectangle3d>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    //case Grasshopper.Kernel.Parameters.Param_ScriptVariable _:
-                    case Grasshopper.Kernel.Parameters.Param_String _:
-                        CollectDataHelper<string>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_StructurePath _:
-                        CollectDataHelper<Grasshopper.Kernel.Types.GH_StructurePath>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_Surface _:
-                        CollectDataHelper<Surface>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_Time _:
-                        CollectDataHelper<DateTime>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_Transform _:
-                        CollectDataHelper<Transform>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Parameters.Param_Vector _:
-                        CollectDataHelper<Vector3d>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                    case Grasshopper.Kernel.Special.GH_NumberSlider _:
-                        CollectDataHelper<double>(DA, inputName, itemAccess, ref inputListCount, dataTree);
-                        break;
-                }
+                    var (input, param) = kv.Value;
+                    string inputName = kv.Key;
+                    string computeName = input.Name;
+                    bool itemAccess = input.AtLeast == 1 && input.AtMost == 1;
 
-                if (!itemAccess)
-                {
-                    if (inputListCount < input.AtLeast)
-                        warnings.Add($"{input.Name} requires at least {input.AtLeast} items");
-                    if (inputListCount > input.AtMost)
-                        warnings.Add($"{input.Name} requires at most {input.AtMost} items");
+                    var dataTree = new DataTree<Resthopper.IO.ResthopperObject>();
+                    dataTree.ParamName = computeName;
+                    schema.Values.Add(dataTree);
+                    int inputListCount = 0;
+                    switch (param)
+                    {
+                        case Grasshopper.Kernel.Parameters.Param_Arc _:
+                            CollectDataHelper<Arc>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_Boolean _:
+                            CollectDataHelper<bool>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_Box _:
+                            CollectDataHelper<Box>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_Brep _:
+                            CollectDataHelper<Brep>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_Circle _:
+                            CollectDataHelper<Circle>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_Colour _:
+                            CollectDataHelper<System.Drawing.Color>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_Complex _:
+                            CollectDataHelper<Grasshopper.Kernel.Types.Complex>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_Culture _:
+                            CollectDataHelper<System.Globalization.CultureInfo>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_Curve _:
+                            CollectDataHelper<Curve>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_Field _:
+                            CollectDataHelper<Grasshopper.Kernel.Types.GH_Field>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_FilePath _:
+                            CollectDataHelper<string>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_GenericObject _:
+                            throw new Exception("generic param not supported");
+                        case Grasshopper.Kernel.Parameters.Param_Geometry _:
+                            CollectDataHelper<GeometryBase>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_Group _:
+                            throw new Exception("group param not supported");
+                        case Grasshopper.Kernel.Parameters.Param_Guid _:
+                            throw new Exception("guid param not supported");
+                        case Grasshopper.Kernel.Parameters.Param_Integer _:
+                            CollectDataHelper<int>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_Interval _:
+                            CollectDataHelper<Grasshopper.Kernel.Types.GH_Interval>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_Interval2D _:
+                            CollectDataHelper<Grasshopper.Kernel.Types.GH_Interval2D>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_LatLonLocation _:
+                            throw new Exception("latlonlocation param not supported");
+                        case Grasshopper.Kernel.Parameters.Param_Line _:
+                            CollectDataHelper<Line>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_Matrix _:
+                            CollectDataHelper<Matrix>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_Mesh _:
+                            CollectDataHelper<Mesh>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_MeshFace _:
+                            CollectDataHelper<MeshFace>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_MeshParameters _:
+                            throw new Exception("meshparameters param not supported");
+                        case Grasshopper.Kernel.Parameters.Param_Number _:
+                            CollectDataHelper<double>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        //case Grasshopper.Kernel.Parameters.Param_OGLShader:
+                        case Grasshopper.Kernel.Parameters.Param_Plane _:
+                            CollectDataHelper<Plane>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_Point _:
+                            CollectDataHelper<Point3d>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_Rectangle _:
+                            CollectDataHelper<Rectangle3d>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        //case Grasshopper.Kernel.Parameters.Param_ScriptVariable _:
+                        case Grasshopper.Kernel.Parameters.Param_String _:
+                            CollectDataHelper<string>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_StructurePath _:
+                            CollectDataHelper<Grasshopper.Kernel.Types.GH_StructurePath>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_Surface _:
+                            CollectDataHelper<Surface>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_Time _:
+                            CollectDataHelper<DateTime>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_Transform _:
+                            CollectDataHelper<Transform>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Parameters.Param_Vector _:
+                            CollectDataHelper<Vector3d>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                        case Grasshopper.Kernel.Special.GH_NumberSlider _:
+                            CollectDataHelper<double>(DA, inputName, itemAccess, ref inputListCount, dataTree);
+                            break;
+                    }
+
+                    if (!itemAccess)
+                    {
+                        if (inputListCount < input.AtLeast)
+                            warnings.Add($"{input.Name} requires at least {input.AtLeast} items");
+                        if (inputListCount > input.AtMost)
+                            warnings.Add($"{input.Name} requires at most {input.AtMost} items");
+                    }
                 }
             }
-
             schema.Pointer = Path;
 
             var pathType = GetPathType();

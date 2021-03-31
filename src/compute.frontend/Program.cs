@@ -113,7 +113,7 @@ namespace compute.frontend
                 info.Environment.Add((string)entry.Key, (string)entry.Value);
             }
 
-            info.FileName = "compute/compute.geometry.exe";
+            info.FileName = "compute.geometry/compute.geometry.exe";
 
             Log.Information("Spawning back-end geometry service");
             _backendProcess = System.Diagnostics.Process.Start(info);

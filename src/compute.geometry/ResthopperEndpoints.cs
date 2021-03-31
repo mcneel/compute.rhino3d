@@ -89,7 +89,7 @@ namespace compute.geometry
             {
                 // load grasshopper file
                 GrasshopperDefinition definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
-                if (definition == null)
+                if (definition == null && !string.IsNullOrWhiteSpace(input.Algo))
                 {
                     definition = GrasshopperDefinition.FromBase64String(input.Algo, true);
                 }
@@ -131,18 +131,23 @@ namespace compute.geometry
                     body = body.Substring(1, body.Length - 2);
 
                 Schema input = JsonConvert.DeserializeObject<Schema>(body);
-
-                // load grasshopper file
-                definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
-                if (definition == null)
+                lock (_ghsolvelock)
                 {
-                    definition = GrasshopperDefinition.FromBase64String(input.Algo, true);
+                    // load grasshopper file
+                    definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
+                    if (definition == null)
+                    {
+                        definition = GrasshopperDefinition.FromBase64String(input.Algo, true);
+                    }
                 }
             }
             else
             {
                 string url = Request.Query["Pointer"].ToString();
-                definition = GrasshopperDefinition.FromUrl(url, true);
+                lock (_ghsolvelock)
+                {
+                    definition = GrasshopperDefinition.FromUrl(url, true);
+                }
             }
 
             if (definition == null)

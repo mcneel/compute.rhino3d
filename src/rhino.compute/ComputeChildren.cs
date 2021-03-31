@@ -17,8 +17,15 @@ namespace rhino.compute
             _lastCall = DateTime.Now;
         }
 
+        /// <summary>
+        /// Idle time child processes live. If rhino.compute is not called
+        /// for this period of time to proxy requests, the child processes will
+        /// shut down. The processes will be restarted on a later request
+        /// </summary>
         public static TimeSpan ChildIdleSpan { get; set; } = TimeSpan.Zero;
-        public static int ParentPort { get; set; } = 0;
+
+        /// <summary>Port that rhino.compute is running on</summary>
+        public static int ParentPort { get; set; } = 5000;
 
         /// <summary>
         /// Length of time (in seconds) since rhino.compute last made a call
@@ -76,25 +83,7 @@ namespace rhino.compute
                 if (activePort == 0)
                 {
                     _computeProcesses = new Queue<Tuple<Process, int>>();
-
-                    // see if any compute.geometry process are already open
-                    var processes = Process.GetProcessesByName("compute.geometry");
-                    foreach (var process in processes)
-                    {
-                        int port = 8081;
-                        var chunks = process.MainWindowTitle.Split(new char[] { ':' });
-                        if (chunks.Length > 1)
-                        {
-                            port = int.Parse(chunks[1]);
-                        }
-                        var item = Tuple.Create(process, port);
-                        _computeProcesses.Enqueue(item);
-                    }
-
-                    if (_computeProcesses.Count == 0)
-                    {
-                        LaunchCompute(_computeProcesses, true);
-                    }
+                    LaunchCompute(_computeProcesses, true);
 
                     if (_computeProcesses.Count > 0)
                     {
@@ -131,57 +120,34 @@ namespace rhino.compute
         static void LaunchCompute(Queue<Tuple<Process, int>> processQueue, bool waitUntilServing)
         {
             var pathToThisAssembly = new System.IO.FileInfo(typeof(ComputeChildren).Assembly.Location);
-
-#if RHINO_COMPUTE
-            // compute.geometry is in a sibling directory called compute when running rhino.compute.exe
+            // compute.geometry is allowed to be either in:
+            // - a sibling directory named compute.geometry
+            // - a child directory named compute.geometry
             var parentDirectory = pathToThisAssembly.Directory.Parent;
-#else
-            // compute.geometry is in a child directory called compute when running in hops
-            var parentDirectory = pathToThisAssembly.Directory;
-#endif
-            string pathToCompute = System.IO.Path.Combine(parentDirectory.FullName, "compute", "compute.geometry.exe");
+            string pathToCompute = System.IO.Path.Combine(parentDirectory.FullName, "compute.geometry", "compute.geometry.exe");
             if (!System.IO.File.Exists(pathToCompute))
-                return;
-
-            var existingProcesses = Process.GetProcessesByName("compute.geometry");
-            var existingPorts = new HashSet<int>();
-            foreach (var existingProcess in existingProcesses)
             {
-                bool checkTitle = true;
-                // see if this process is already in the queue
-                foreach (var item in processQueue)
-                {
-                    if (existingProcess.Id == item.Item1.Id)
-                    {
-                        existingPorts.Add(item.Item2);
-                        checkTitle = false;
-                        break;
-                    }
-                }
-
-                if (checkTitle)
-                {
-                    var chunks = existingProcess.MainWindowTitle.Split(new char[] { ':' });
-                    if (chunks.Length > 1)
-                    {
-                        if (int.TryParse(chunks[chunks.Length - 1], out int lookForPort))
-                        {
-                            existingPorts.Add(lookForPort);
-                        }
-                    }
-                }
+                pathToCompute = System.IO.Path.Combine(pathToThisAssembly.Directory.FullName, "compute.geometry", "compute.geometry.exe");
+                if (!System.IO.File.Exists(pathToCompute))
+                    return;
             }
+
+            var existingProcesses = processQueue.ToArray();
+            var existingPorts = new HashSet<int>();
+            foreach (var proc in existingProcesses)
+                existingPorts.Add(proc.Item2);
+
             int port = 0;
             for (int i = 0; i < 256; i++)
             {
                 // start at port 6001. Feel free to change this if there is a reason
                 // to use a different port
                 port = 6001 + i;
-                if (existingPorts.Contains(port))
-                    continue;
-
                 if (i == 255)
                     return;
+
+                if (existingPorts.Contains(port))
+                    continue;
 
                 bool isOpen = IsPortOpen("localhost", port, new TimeSpan(0, 0, 0, 0, 100));
                 if (isOpen)
@@ -209,7 +175,7 @@ namespace rhino.compute
                     if (isOpen)
                         break;
                     var span = DateTime.Now - start;
-                    if (span.TotalSeconds > 20)
+                    if (span.TotalSeconds > 60)
                     {
                         process.Kill();
                         throw new Exception("Unable to start a local compute server");

@@ -41,6 +41,7 @@ namespace Resthopper.IO
     public class IoParamSchema
     {
         public string Name { get; set; }
+        public string Nickname { get; set; }
         public string ParamType { get; set; }
     }
 
@@ -48,7 +49,7 @@ namespace Resthopper.IO
     {
         public string Description { get; set; }
         public int AtLeast { get; set; } = 1;
-        public int AtMost { get; set; } = 0;
+        public int AtMost { get; set; } = int.MaxValue;
         public object Default { get; set; } = null;
         public object Minimum { get; set; } = null;
         public object Maximum { get; set; } = null;
@@ -72,6 +73,8 @@ namespace Resthopper.IO
 
         [JsonProperty(PropertyName = "data")]
         public string Data { get; set; }
+
+        public object ResolvedData { get; set; }
 
         [JsonConstructor]
         public ResthopperObject()

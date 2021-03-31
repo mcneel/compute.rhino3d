@@ -1,12 +1,14 @@
 ﻿using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace rhino.compute
 {
     public class ReverseProxyModule : Carter.CarterModule
     {
         static bool _initCalled = false;
+        static Task<string> _initTask;
         static HttpClient _client;
         private const string _apiKeyHeader = "RhinoComputeKey";
         static void Initialize()
@@ -15,24 +17,43 @@ namespace rhino.compute
                 return;
             _initCalled = true;
 
-            // Port that rhino.compute is running on
-            // todo: figure out how to programatically determine this port
-            ComputeChildren.ParentPort = 5000;
-            // Set idle time child processes live. If rhino.compute is not called
-            // for this period of time to proxy requests, the child processes will
-            // shut down. The processes will be restarted on a later request
-            ComputeChildren.ChildIdleSpan = new System.TimeSpan(1, 0, 0);
-            // Number of child compute.geometry processes to start for processing.
-            // Default to 4 instances, but we might want to set this based on the
-            // number of cores available on the computer.
-            ComputeChildren.SpawnCount = 4;
-
             _client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
             _client.DefaultRequestHeaders.Add("User-Agent", $"compute.rhino3d-proxy/1.0.0");
 
             // Launch child processes on start. Getting the base url is enough to get things rolling
             ComputeChildren.UpdateLastCall();
-            Task.Run(() => ComputeChildren.GetComputeServerBaseUrl());
+            _initTask = Task.Run(() => ComputeChildren.GetComputeServerBaseUrl());
+        }
+
+        static System.Timers.Timer _concurrentRequestLogger;
+        static int _activeConcurrentRequests;
+        static int _maxConcurrentRequests;
+        class ConcurrentRequestTracker : System.IDisposable
+        {
+            public ConcurrentRequestTracker()
+            {
+                _activeConcurrentRequests++;
+                if (_activeConcurrentRequests > _maxConcurrentRequests)
+                    _maxConcurrentRequests = _activeConcurrentRequests;
+            }
+
+            public void Dispose()
+            {
+                _activeConcurrentRequests--;
+            }
+        }
+        public static void InitializeConcurrentRequestLogging(ILogger logger)
+        {
+            // log once per minute
+            var span = new System.TimeSpan(0, 1, 0);
+            _concurrentRequestLogger = new System.Timers.Timer(span.TotalMilliseconds);
+            _concurrentRequestLogger.Elapsed += (s, e) =>
+            {
+                logger.LogInformation($"Max concurrent requests = {_maxConcurrentRequests}");
+                _maxConcurrentRequests = _activeConcurrentRequests;
+            };
+            _concurrentRequestLogger.AutoReset = true;
+            _concurrentRequestLogger.Start();
         }
 
         public ReverseProxyModule()
@@ -52,6 +73,13 @@ namespace rhino.compute
 
         async Task<HttpResponseMessage> SendProxyRequest(HttpRequest initialRequest, HttpMethod method)
         {
+            var task = _initTask;
+            if (task != null)
+            {
+                await task;
+                _initTask = null;
+            }
+
             string baseurl = ComputeChildren.GetComputeServerBaseUrl();
             string proxyUrl = $"{baseurl}{initialRequest.Path}{initialRequest.QueryString}";
 
@@ -89,28 +117,40 @@ namespace rhino.compute
 
         private async Task ReverseProxyGet(HttpRequest req, HttpResponse res)
         {
-            var proxyResponse = await SendProxyRequest(req, HttpMethod.Get);
-            ComputeChildren.UpdateLastCall();
-            var stringResponse = await proxyResponse.Content.ReadAsStringAsync();
-            await res.WriteAsync(stringResponse);
+            string responseString;
+            using (var tracker = new ConcurrentRequestTracker())
+            {
+                var proxyResponse = await SendProxyRequest(req, HttpMethod.Get);
+                ComputeChildren.UpdateLastCall();
+                responseString = await proxyResponse.Content.ReadAsStringAsync();
+            }
+            await res.WriteAsync(responseString);
         }
 
         private async Task ReverseProxyPost(HttpRequest req, HttpResponse res)
         {
-            var proxyResponse = await SendProxyRequest(req, HttpMethod.Post);
-            ComputeChildren.UpdateLastCall();
-            res.StatusCode = (int)proxyResponse.StatusCode;
-            var s = await proxyResponse.Content.ReadAsStringAsync();
-            await res.WriteAsync(s);
+            string responseString;
+            using (var tracker = new ConcurrentRequestTracker())
+            {
+                var proxyResponse = await SendProxyRequest(req, HttpMethod.Post);
+                ComputeChildren.UpdateLastCall();
+                res.StatusCode = (int)proxyResponse.StatusCode;
+                responseString = await proxyResponse.Content.ReadAsStringAsync();
+            }
+            await res.WriteAsync(responseString);
         }
 
         private async Task ReverseProxyGrasshopper(HttpRequest req, HttpResponse res)
         {
-            var proxyResponse = await SendProxyRequest(req, HttpMethod.Post);
-            ComputeChildren.UpdateLastCall();
-            res.StatusCode = (int)proxyResponse.StatusCode;
-            var s = await proxyResponse.Content.ReadAsStringAsync();
-            await res.WriteAsync(s);
+            string responseString;
+            using (var tracker = new ConcurrentRequestTracker())
+            {
+                var proxyResponse = await SendProxyRequest(req, HttpMethod.Post);
+                ComputeChildren.UpdateLastCall();
+                res.StatusCode = (int)proxyResponse.StatusCode;
+                responseString = await proxyResponse.Content.ReadAsStringAsync();
+            }
+            await res.WriteAsync(responseString);
         }
     }
 }

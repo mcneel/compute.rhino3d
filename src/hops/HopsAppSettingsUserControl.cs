@@ -20,6 +20,12 @@ namespace Hops
             {
                 HopsAppSettings.LaunchWorkerAtStart = _launchWorkerAtStart.Checked;
             };
+            _lblCacheCount.Text = $"({Hops.MemoryCache.EntryCount} items in cache)";
+            _btnClearMemCache.Click += (s, e) =>
+            {
+                Hops.MemoryCache.ClearCache();
+                _lblCacheCount.Text = $"({Hops.MemoryCache.EntryCount} items in cache)";
+            };
         }
 
         private void ServersTextboxChanged(object sender, EventArgs e)
