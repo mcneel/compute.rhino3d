@@ -195,10 +195,20 @@ namespace Compute.Components
                 {
                     try
                     {
-                        byte[] bytes = Convert.FromBase64String(responseSchema.Icon);
-                        using (var ms = new MemoryStream(bytes))
+                        // Use reflection until we update requirements for Hops to run on a newer service release of Rhino
+                        var method = typeof(Rhino.UI.DrawingUtilities).GetMethod("BitmapFromSvg");
+                        if (method!=null)
                         {
-                            _customIcon = new System.Drawing.Bitmap(ms);
+                            _customIcon = method.Invoke(null, new object[] { responseSchema.Icon, 24, 24 }) as System.Drawing.Bitmap;
+                        }
+                        //_customIcon = Rhino.UI.DrawingUtilities.BitmapFromSvg(responseSchema.Icon, 24, 24);
+                        if (_customIcon == null)
+                        {
+                            byte[] bytes = Convert.FromBase64String(responseSchema.Icon);
+                            using (var ms = new MemoryStream(bytes))
+                            {
+                                _customIcon = new System.Drawing.Bitmap(ms);
+                            }
                         }
                     }
                     catch(Exception)
