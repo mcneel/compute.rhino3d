@@ -151,7 +151,7 @@ namespace compute.geometry
             // raise DocumentServer.DocumentAdded event (used by some plug-ins)
             Grasshopper.Instances.DocumentServer.AddDocument(definition);
 
-            GrasshopperDefinition rc = new GrasshopperDefinition(definition);
+            GrasshopperDefinition rc = new GrasshopperDefinition(definition, null);
             rc._singularComponent = component;
             foreach(var input in component.Params.Input)
             {
@@ -166,6 +166,21 @@ namespace compute.geometry
 
         private static GrasshopperDefinition Construct(GH_Archive archive)
         {
+            string icon = null;
+            var chunk = archive.GetRootNode.FindChunk("Definition");
+            if (chunk!=null)
+            {
+                chunk = chunk.FindChunk("DefinitionProperties");
+                if (chunk != null)
+                {
+                    string s = String.Empty;
+                    if (chunk.TryGetString("IconImageData", ref s))
+                    {
+                        icon = s;
+                    }
+                }
+            }
+
             var definition = new GH_Document();
             if (!archive.ExtractObject(definition, "Definition"))
                 throw new Exception("Unable to extract definition from archive");
@@ -173,7 +188,7 @@ namespace compute.geometry
             // raise DocumentServer.DocumentAdded event (used by some plug-ins)
             Grasshopper.Instances.DocumentServer.AddDocument(definition);
 
-            GrasshopperDefinition rc = new GrasshopperDefinition(definition);
+            GrasshopperDefinition rc = new GrasshopperDefinition(definition, icon);
             foreach( var obj in definition.Objects)
             {
                 IGH_ContextualParameter contextualParam = obj as IGH_ContextualParameter;
@@ -214,9 +229,10 @@ namespace compute.geometry
             return rc;
         }
 
-        private GrasshopperDefinition(GH_Document definition)
+        private GrasshopperDefinition(GH_Document definition, string icon)
         {
             Definition = definition;
+            _iconString = icon;
             FileRuntimeCacheSerialNumber = _watchedFileRuntimeSerialNumber;
         }
 
@@ -226,6 +242,7 @@ namespace compute.geometry
         public bool IsLocalFileDefinition { get; set; } // default: false
         public uint FileRuntimeCacheSerialNumber { get; private set; }
         public string CacheKey { get; set; }
+        string _iconString;
         GH_Component _singularComponent;
         Dictionary<string, InputGroup> _input = new Dictionary<string, InputGroup>();
         Dictionary<string, IGH_Param> _output = new Dictionary<string, IGH_Param>();
@@ -822,6 +839,9 @@ namespace compute.geometry
 
         public string GetIconAsString()
         {
+            if (!string.IsNullOrWhiteSpace(_iconString))
+                return _iconString;
+
             System.Drawing.Bitmap bmp = null;
             if (_singularComponent!=null)
             {
@@ -835,6 +855,7 @@ namespace compute.geometry
                     bmp.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
                     byte[] bytes = ms.ToArray();
                     string rc = Convert.ToBase64String(bytes);
+                    _iconString = rc;
                     return rc;
                 }
             }
