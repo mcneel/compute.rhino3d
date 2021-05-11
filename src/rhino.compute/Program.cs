@@ -43,7 +43,9 @@ of this handle and will shut down when this process has exited")]
             {
                 ComputeChildren.SpawnCount = o.ChildCount;
                 ComputeChildren.ChildIdleSpan = new System.TimeSpan(0, 0, o.IdleSpanSeconds);
-                _parentProcess = System.Diagnostics.Process.GetProcessById(o.ChildOf);
+                int parentProcessId = o.ChildOf;
+                if (parentProcessId > 0)
+                    _parentProcess = System.Diagnostics.Process.GetProcessById(parentProcessId);
                 port = o.Port;
             });
             var host = Host.CreateDefaultBuilder(args)
@@ -78,6 +80,15 @@ of this handle and will shut down when this process has exited")]
             }
 
             host.Run();
+        }
+
+        public static bool IsParentRhinoProcess(int processId)
+        {
+            if (_parentProcess != null && _parentProcess.ProcessName.Contains("rhino", StringComparison.OrdinalIgnoreCase))
+            {
+                return (_parentProcess.Id == processId);
+            }
+            return false;
         }
     }
 }

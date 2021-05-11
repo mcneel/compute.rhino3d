@@ -18,7 +18,10 @@ namespace Compute.Components
         {
             _initServerTask = System.Threading.Tasks.Task.Run(() =>
             {
-                LaunchLocalCompute(true);
+                lock (_lockObject)
+                {
+                    LaunchLocalRhinoCompute(_computeServerQueue, true);
+                }
                 return true;
             });
         }
@@ -118,7 +121,7 @@ namespace Compute.Components
                     _computeServerQueue = new Queue<ComputeServer>();
                     if (_computeServerQueue.Count == 0)
                     {
-                        LaunchLocalCompute(_computeServerQueue, true);
+                        LaunchLocalRhinoCompute(_computeServerQueue, true);
                     }
 
                     if (_computeServerQueue.Count > 0)
@@ -141,17 +144,22 @@ namespace Compute.Components
             return url;
         }
 
-        public static void LaunchLocalCompute(bool waitUntilServing)
+        public static void LaunchChildComputeGeometry(int childCount)
         {
-            lock (_lockObject)
-            {
-                LaunchLocalCompute(_computeServerQueue, waitUntilServing);
-            }
+            string baseUrl = GetComputeServerBaseUrl();
+            int thisProc = Process.GetCurrentProcess().Id;
+            string address = $"{baseUrl}/launch?children={childCount}&parent={thisProc}";
+            RemoteDefinition.HttpClient.GetAsync(address);
         }
 
         const int RhinoComputePort = 6500;
 
-        static void LaunchLocalCompute(Queue<ComputeServer> serverQueue, bool waitUntilServing)
+        /// <summary>
+        /// Launch rhino.compute reverse proxy server on this computer
+        /// </summary>
+        /// <param name="serverQueue"></param>
+        /// <param name="waitUntilServing"></param>
+        static void LaunchLocalRhinoCompute(Queue<ComputeServer> serverQueue, bool waitUntilServing)
         {
             // There is one and only one local rhino.compute server ever needed
             // on a single computer. Check the serverQueue to make sure we don't

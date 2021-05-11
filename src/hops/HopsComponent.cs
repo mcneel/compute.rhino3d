@@ -217,13 +217,12 @@ namespace Compute.Components
 
             tsi = new ToolStripMenuItem($"Local Computes ({Servers.ActiveLocalComputeCount})");
             var tsi_sub = new ToolStripMenuItem("1 More", null, (s, e) => {
-                Servers.LaunchLocalCompute(false);
+                Servers.LaunchChildComputeGeometry(1);
             });
             tsi_sub.ToolTipText = "Launch a local compute instance";
             tsi.DropDown.Items.Add(tsi_sub);
             tsi_sub = new ToolStripMenuItem("6 Pack", null, (s, e) => {
-                for(int i=0; i<6; i++)
-                    Servers.LaunchLocalCompute(false);
+                Servers.LaunchChildComputeGeometry(6);
             });
             tsi_sub.ToolTipText = "Get drunk with power and launch 6 compute instances";
             tsi.DropDown.Items.Add(tsi_sub);
