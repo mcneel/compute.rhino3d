@@ -231,7 +231,7 @@ namespace Compute.Components
         }
 
         static System.Net.Http.HttpClient _httpClient = null;
-        static System.Net.Http.HttpClient HttpClient
+        public static System.Net.Http.HttpClient HttpClient
         {
             get
             {

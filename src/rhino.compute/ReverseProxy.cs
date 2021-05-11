@@ -62,6 +62,7 @@ namespace rhino.compute
             Get("/robots.txt", async (req, res) => await res.WriteAsync("User-agent: *\nDisallow: / "));
             Get("/idlespan", async (req, res) => await res.WriteAsync($"{ComputeChildren.IdleSpan()}"));
             Get("/", async (req, res) => await res.WriteAsync("compute.rhino3d"));
+            Get("/launch", LaunchChildren);
 
             // routes that are proxied to compute.geometry
             Get("/{*uri}", ReverseProxyGet);
@@ -69,6 +70,20 @@ namespace rhino.compute
             Post("/{*uri}", ReverseProxyPost);
 
             Initialize();
+        }
+
+        Task LaunchChildren(HttpRequest request, HttpResponse response)
+        {
+            int children = System.Convert.ToInt32(request.Query["children"]);
+            int parentProcessId = System.Convert.ToInt32(request.Query["parent"]);
+            if (Program.IsParentRhinoProcess(parentProcessId))
+            {
+                for(int i=0; i<children; i++)
+                {
+                    ComputeChildren.LaunchCompute(false);
+                }
+            }
+            return null;
         }
 
         async Task<HttpResponseMessage> SendProxyRequest(HttpRequest initialRequest, HttpMethod method)
