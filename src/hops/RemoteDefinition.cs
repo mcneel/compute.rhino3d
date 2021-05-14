@@ -47,6 +47,17 @@ namespace Compute.Components
             RemoteDefinitionCache.Remove(this);
         }
 
+        public bool IsNotResponingUrl()
+        {
+            var pathtype = GetPathType();
+            return pathtype == PathType.NonresponsiveUrl;
+        }
+
+        public void ResetPathType()
+        {
+            _pathType = null;
+        }
+
         PathType GetPathType()
         {
             if (!_pathType.HasValue)
@@ -147,7 +158,7 @@ namespace Compute.Components
                 return;
 
             IoResponseSchema responseSchema = null;
-            System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage> responseTask = null;
+            System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage> responseTask;
             IDisposable contentToDispose = null;
             if (performPost)
             {
@@ -196,12 +207,21 @@ namespace Compute.Components
                     try
                     {
                         // Use reflection until we update requirements for Hops to run on a newer service release of Rhino
-                        var method = typeof(Rhino.UI.DrawingUtilities).GetMethod("BitmapFromSvg");
-                        if (method!=null)
+                        string svg = responseSchema.Icon;
+                        // Check for some hope that the string is svg. Pre-7.7 has a bug where it could crash
+                        // Rhino with invalid svg
+                        if (svg.IndexOf("svg", StringComparison.InvariantCultureIgnoreCase) < 0 || svg.IndexOf("xmlns", StringComparison.InvariantCultureIgnoreCase) < 0)
+                            svg = null;
+
+                        if (svg != null)
                         {
-                            _customIcon = method.Invoke(null, new object[] { responseSchema.Icon, 24, 24 }) as System.Drawing.Bitmap;
+                            var method = typeof(Rhino.UI.DrawingUtilities).GetMethod("BitmapFromSvg");
+                            if (method != null)
+                            {
+                                _customIcon = method.Invoke(null, new object[] { svg, 24, 24 }) as System.Drawing.Bitmap;
+                            }
+                            //_customIcon = Rhino.UI.DrawingUtilities.BitmapFromSvg(responseSchema.Icon, 24, 24);
                         }
-                        //_customIcon = Rhino.UI.DrawingUtilities.BitmapFromSvg(responseSchema.Icon, 24, 24);
                         if (_customIcon == null)
                         {
                             byte[] bytes = Convert.FromBase64String(responseSchema.Icon);

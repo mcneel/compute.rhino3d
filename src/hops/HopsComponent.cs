@@ -314,7 +314,10 @@ namespace Compute.Components
             }
             set
             {
-                if (!string.Equals(RemoteDefinitionLocation, value, StringComparison.OrdinalIgnoreCase))
+                // Always rebuild the remote definition information when setting this property.
+                // This way you can poke the path button to force a refresh in case the situation
+                // on the server has changed.
+                //if (!string.Equals(RemoteDefinitionLocation, value, StringComparison.OrdinalIgnoreCase))
                 {
                     if(_remoteDefinition != null)
                     {
@@ -334,6 +337,14 @@ namespace Compute.Components
         {
             ClearRuntimeMessages();
             string description = _remoteDefinition.GetDescription(out System.Drawing.Bitmap customIcon);
+
+            if (_remoteDefinition.IsNotResponingUrl())
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unable to connect to server");
+                Grasshopper.Instances.ActiveCanvas?.Invalidate();
+                return;
+            }
+
             if (!string.IsNullOrWhiteSpace(description) && !Description.Equals(description))
             {
                 Description = description;
