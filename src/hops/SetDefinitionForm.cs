@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Compute.Components
+namespace Hops
 {
     class SetDefinitionForm : Eto.Forms.Dialog<bool>
     {
