@@ -10,6 +10,7 @@ namespace Hops
         const string HOPS_SERVERS = "Hops:Servers";
         const string HIDE_WORKER_WINDOWS = "Hops:HideWorkerWindows";
         const string LAUNCH_WORKER_AT_START = "Hops:LaunchWorkerAtStart";
+        const string LOCAL_WORKER_COUNT = "Hops:LocalWorkerCount";
 
         public static string[] Servers
         {
@@ -41,7 +42,7 @@ namespace Hops
                     }
                     Grasshopper.Instances.Settings.SetValue(HOPS_SERVERS, sb.ToString());
                 }
-                Compute.Components.Servers.SettingsChanged();
+                Hops.Servers.SettingsChanged();
             }
         }
 
@@ -68,6 +69,20 @@ namespace Hops
             set
             {
                 Grasshopper.Instances.Settings.SetValue(LAUNCH_WORKER_AT_START, value);
+            }
+        }
+
+        public static int LocalWorkerCount
+        {
+            get
+            {
+                int count = Grasshopper.Instances.Settings.GetValue(LOCAL_WORKER_COUNT, 1);
+                return count;
+            }
+            set
+            {
+                if (value >= 0)
+                    Grasshopper.Instances.Settings.SetValue(LOCAL_WORKER_COUNT, value);
             }
         }
     }

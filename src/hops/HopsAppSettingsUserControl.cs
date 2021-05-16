@@ -20,6 +20,17 @@ namespace Hops
             {
                 HopsAppSettings.LaunchWorkerAtStart = _launchWorkerAtStart.Checked;
             };
+            _childComputeCount.Value = HopsAppSettings.LocalWorkerCount;
+            _childComputeCount.ValueChanged += (s, e) =>
+            {
+                HopsAppSettings.LocalWorkerCount = (int)_childComputeCount.Value;
+            };
+            _updateChildCountButton.Click += (s, e) =>
+            {
+                int numberToLaunch = HopsAppSettings.LocalWorkerCount - Servers.ActiveLocalComputeCount;
+                Servers.LaunchChildComputeGeometry(numberToLaunch);
+            };
+            toolTip1.SetToolTip(_updateChildCountButton, "Click to force Rhino.Compute to update");
             _lblCacheCount.Text = $"({Hops.MemoryCache.EntryCount} items in cache)";
             _btnClearMemCache.Click += (s, e) =>
             {

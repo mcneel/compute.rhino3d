@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace Compute.Components
+namespace Hops
 {
     /// <summary>
     /// Utility for managing compute server instances. When Hops components are
@@ -146,6 +146,8 @@ namespace Compute.Components
 
         public static void LaunchChildComputeGeometry(int childCount)
         {
+            if (childCount < 1)
+                return;
             string baseUrl = GetComputeServerBaseUrl();
             int thisProc = Process.GetCurrentProcess().Id;
             string address = $"{baseUrl}/launch?children={childCount}&parent={thisProc}";
@@ -200,9 +202,11 @@ namespace Compute.Components
             }
 
             var startInfo = new ProcessStartInfo(pathToRhinoCompute);
-
+            int childCount = Hops.HopsAppSettings.LocalWorkerCount;
+            if (childCount < 1)
+                childCount = 1;
             int thisProc = Process.GetCurrentProcess().Id;
-            startInfo.Arguments = $"--childof {thisProc} --childcount 1 --port {RhinoComputePort}";
+            startInfo.Arguments = $"--childof {thisProc} --childcount {childCount} --port {RhinoComputePort}";
             startInfo.WindowStyle = Hops.HopsAppSettings.HideWorkerWindows ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Minimized;
             // uncomment next line to ease debugging
             // startInfo.WindowStyle = ProcessWindowStyle.Normal;

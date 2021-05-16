@@ -29,51 +29,51 @@ namespace Hops
         /// </summary>
         private void InitializeComponent()
         {
+      this.components = new System.ComponentModel.Container();
       this._serversTextBox = new System.Windows.Forms.TextBox();
       this._hideWorkerWindows = new System.Windows.Forms.CheckBox();
       this._launchWorkerAtStart = new System.Windows.Forms.CheckBox();
       this._btnClearMemCache = new System.Windows.Forms.Button();
       this._lblCacheCount = new System.Windows.Forms.Label();
+      this._childComputeCount = new System.Windows.Forms.NumericUpDown();
+      this._updateChildCountButton = new System.Windows.Forms.Button();
+      this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
+      ((System.ComponentModel.ISupportInitialize)(this._childComputeCount)).BeginInit();
       this.SuspendLayout();
       // 
       // _serversTextBox
       // 
-      this._serversTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
       this._serversTextBox.Location = new System.Drawing.Point(3, 1);
       this._serversTextBox.Multiline = true;
       this._serversTextBox.Name = "_serversTextBox";
-      this._serversTextBox.Size = new System.Drawing.Size(586, 96);
+      this._serversTextBox.Size = new System.Drawing.Size(586, 91);
       this._serversTextBox.TabIndex = 1;
       // 
       // _hideWorkerWindows
       // 
-      this._hideWorkerWindows.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
       this._hideWorkerWindows.AutoSize = true;
-      this._hideWorkerWindows.Location = new System.Drawing.Point(3, 111);
+      this._hideWorkerWindows.Location = new System.Drawing.Point(3, 106);
       this._hideWorkerWindows.Name = "_hideWorkerWindows";
-      this._hideWorkerWindows.Size = new System.Drawing.Size(358, 29);
+      this._hideWorkerWindows.Size = new System.Drawing.Size(409, 29);
       this._hideWorkerWindows.TabIndex = 2;
-      this._hideWorkerWindows.Text = "Hide Compute Console Windows";
+      this._hideWorkerWindows.Text = "Hide Rhino.Compute Console Window";
       this._hideWorkerWindows.UseVisualStyleBackColor = true;
       // 
       // _launchWorkerAtStart
       // 
-      this._launchWorkerAtStart.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
       this._launchWorkerAtStart.AutoSize = true;
-      this._launchWorkerAtStart.Location = new System.Drawing.Point(3, 154);
+      this._launchWorkerAtStart.Location = new System.Drawing.Point(3, 149);
       this._launchWorkerAtStart.Name = "_launchWorkerAtStart";
-      this._launchWorkerAtStart.Size = new System.Drawing.Size(367, 29);
+      this._launchWorkerAtStart.Size = new System.Drawing.Size(402, 29);
       this._launchWorkerAtStart.TabIndex = 3;
-      this._launchWorkerAtStart.Text = "Launch Compute Console at Start";
+      this._launchWorkerAtStart.Text = "Launch Local Rhino.Compute at Start";
       this._launchWorkerAtStart.UseVisualStyleBackColor = true;
       // 
       // _btnClearMemCache
       // 
-      this._btnClearMemCache.Location = new System.Drawing.Point(3, 190);
+      this._btnClearMemCache.Location = new System.Drawing.Point(3, 241);
       this._btnClearMemCache.Name = "_btnClearMemCache";
-      this._btnClearMemCache.Size = new System.Drawing.Size(291, 45);
+      this._btnClearMemCache.Size = new System.Drawing.Size(321, 45);
       this._btnClearMemCache.TabIndex = 4;
       this._btnClearMemCache.Text = "Clear Hops Memory Cache";
       this._btnClearMemCache.UseVisualStyleBackColor = true;
@@ -81,23 +81,42 @@ namespace Hops
       // _lblCacheCount
       // 
       this._lblCacheCount.AutoSize = true;
-      this._lblCacheCount.Location = new System.Drawing.Point(309, 200);
+      this._lblCacheCount.Location = new System.Drawing.Point(333, 251);
       this._lblCacheCount.Name = "_lblCacheCount";
       this._lblCacheCount.Size = new System.Drawing.Size(254, 25);
       this._lblCacheCount.TabIndex = 5;
       this._lblCacheCount.Text = "(1000000 items in cache)";
       // 
+      // _childComputeCount
+      // 
+      this._childComputeCount.Location = new System.Drawing.Point(4, 194);
+      this._childComputeCount.Name = "_childComputeCount";
+      this._childComputeCount.Size = new System.Drawing.Size(120, 31);
+      this._childComputeCount.TabIndex = 6;
+      // 
+      // _updateChildCountButton
+      // 
+      this._updateChildCountButton.Location = new System.Drawing.Point(136, 189);
+      this._updateChildCountButton.Name = "_updateChildCountButton";
+      this._updateChildCountButton.Size = new System.Drawing.Size(276, 39);
+      this._updateChildCountButton.TabIndex = 7;
+      this._updateChildCountButton.Text = "Child Process Count";
+      this._updateChildCountButton.UseVisualStyleBackColor = true;
+      // 
       // HopsAppSettingsUserControl
       // 
       this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
       this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+      this.Controls.Add(this._updateChildCountButton);
+      this.Controls.Add(this._childComputeCount);
       this.Controls.Add(this._lblCacheCount);
       this.Controls.Add(this._btnClearMemCache);
       this.Controls.Add(this._launchWorkerAtStart);
       this.Controls.Add(this._hideWorkerWindows);
       this.Controls.Add(this._serversTextBox);
       this.Name = "HopsAppSettingsUserControl";
-      this.Size = new System.Drawing.Size(599, 238);
+      this.Size = new System.Drawing.Size(599, 298);
+      ((System.ComponentModel.ISupportInitialize)(this._childComputeCount)).EndInit();
       this.ResumeLayout(false);
       this.PerformLayout();
 
@@ -109,5 +128,8 @@ namespace Hops
         private System.Windows.Forms.CheckBox _launchWorkerAtStart;
         private System.Windows.Forms.Button _btnClearMemCache;
         private System.Windows.Forms.Label _lblCacheCount;
+        private System.Windows.Forms.NumericUpDown _childComputeCount;
+        private System.Windows.Forms.Button _updateChildCountButton;
+        private System.Windows.Forms.ToolTip toolTip1;
     }
 }

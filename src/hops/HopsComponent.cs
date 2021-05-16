@@ -11,7 +11,7 @@ using Resthopper.IO;
 using Newtonsoft.Json;
 using Rhino.Geometry;
 
-namespace Compute.Components
+namespace Hops
 {
     [Guid("C69BB52C-88BA-4640-B69F-188D111029E8")]
     public class HopsComponent : GH_TaskCapableComponent<Schema>, IGH_VariableParameterComponent
@@ -215,17 +215,11 @@ namespace Compute.Components
             tsi.Font = new System.Drawing.Font(tsi.Font, System.Drawing.FontStyle.Bold);
             menu.Items.Add(tsi);
 
-            tsi = new ToolStripMenuItem($"Local Computes ({Servers.ActiveLocalComputeCount})");
-            var tsi_sub = new ToolStripMenuItem("1 More", null, (s, e) => {
-                Servers.LaunchChildComputeGeometry(1);
-            });
-            tsi_sub.ToolTipText = "Launch a local compute instance";
-            tsi.DropDown.Items.Add(tsi_sub);
-            tsi_sub = new ToolStripMenuItem("6 Pack", null, (s, e) => {
-                Servers.LaunchChildComputeGeometry(6);
-            });
-            tsi_sub.ToolTipText = "Get drunk with power and launch 6 compute instances";
-            tsi.DropDown.Items.Add(tsi_sub);
+            int count = Servers.ActiveLocalComputeCount;
+            if (count < HopsAppSettings.LocalWorkerCount)
+                count = HopsAppSettings.LocalWorkerCount;
+            tsi = new ToolStripMenuItem($"Local Computes ({count})");
+            Menu_AppendTextItem(tsi.DropDown, $"{count}", (s, e) => MenuKeyDown(s, e, true), Menu_SingleValueTextChanged, true, 200, true);
             menu.Items.Add(tsi);
 
             tsi = new ToolStripMenuItem("Cache In Memory", null, (s, e) => { _cacheResultsInMemory = !_cacheResultsInMemory; });
@@ -237,6 +231,42 @@ namespace Compute.Components
             tsi.ToolTipText = "Tell the compute server to cache results for reuse in the future";
             tsi.Checked = _cacheResultsOnServer;
             menu.Items.Add(tsi);
+        }
+
+        void Menu_SingleValueTextChanged(GH_MenuTextBox sender, string text)
+        {
+            if ((text.Length == 0))
+            {
+                sender.TextBoxItem.ForeColor = System.Drawing.SystemColors.WindowText;
+            }
+            else
+            {
+                int i;
+                if ((GH_Convert.ToInt32(text, out i, GH_Conversion.Secondary) && i > 0))
+                    sender.TextBoxItem.ForeColor = System.Drawing.SystemColors.WindowText;
+                else
+                    sender.TextBoxItem.ForeColor = System.Drawing.Color.Red;
+            }
+        }
+
+        void MenuKeyDown(GH_MenuTextBox sender, System.Windows.Forms.KeyEventArgs e, bool lineWidth)
+        {
+            switch (e.KeyCode)
+            {
+                case System.Windows.Forms.Keys.Enter:
+                    string text = sender.Text;
+                    e.Handled = true;
+                    int val;
+                    if ((GH_Convert.ToInt32(text, out val, GH_Conversion.Secondary)) && val > 0)
+                    {
+                        int numberToLaunch = val - Servers.ActiveLocalComputeCount;
+                        Servers.LaunchChildComputeGeometry(numberToLaunch);
+                    }
+                    break;
+                case System.Windows.Forms.Keys.Escape:
+                    sender.CloseEntireMenuStructure();
+                    break;
+            }
         }
 
         /// <summary>

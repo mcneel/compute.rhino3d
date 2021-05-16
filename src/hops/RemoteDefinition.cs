@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 using Resthopper.IO;
 using System.IO;
 
-namespace Compute.Components
+namespace Hops
 {
     class RemoteDefinition : IDisposable
     {

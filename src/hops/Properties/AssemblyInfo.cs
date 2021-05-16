@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using Grasshopper.Kernel;
 using System.Drawing;
-using Compute.Components;
+using Hops;
 
 [assembly: AssemblyTitle("Hops")]
 [assembly: AssemblyDescription("Out of process solving using Rhino Compute")]
@@ -18,7 +18,7 @@ using Compute.Components;
 [assembly: AssemblyVersion(GhaAssemblyInfo.AppVersion)]
 [assembly: AssemblyFileVersion(GhaAssemblyInfo.AppVersion)]
 
-namespace Compute.Components
+namespace Hops
 {
     public class GhaAssemblyInfo : GH_AssemblyInfo
     {
