@@ -406,8 +406,7 @@ namespace Hops
                     {
                         // if input param exists, make sure param access is correct
                         var (input, _) = inputs[param.Name];
-                        bool itemAccess = input.AtLeast == 1 && input.AtMost == 1;
-                        param.Access = itemAccess ? GH_ParamAccess.item : GH_ParamAccess.list;
+                        param.Access = RemoteDefinition.AccessFromInput(input);
                     }
                 }
             }
@@ -449,9 +448,7 @@ namespace Hops
                 {
                     string name = kv.Key;
                     var (input, param) = kv.Value;
-                    GH_ParamAccess access = GH_ParamAccess.list;
-                    if (input.AtLeast == 1 && input.AtMost == 1)
-                        access = GH_ParamAccess.item;
+                    GH_ParamAccess access = RemoteDefinition.AccessFromInput(input);
                     string inputDescription = name;
                     if (!string.IsNullOrWhiteSpace(input.Description))
                         inputDescription = input.Description;

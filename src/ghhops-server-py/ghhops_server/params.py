@@ -160,13 +160,28 @@ class _GHParam:
         if HopsParamAccess.ITEM == self.access:
             param_def["AtMost"] = 1
         if HopsParamAccess.LIST == self.access:
-            param_def["AtMost"] = 2147483647 #Max 32 bit integer value
+            param_def["AtMost"] = 2147483647  # Max 32 bit integer value
+        if HopsParamAccess.TREE == self.access:
+            param_def["AtLeast"] = -1
+            param_def["AtMost"] = -1
         if self.default != inspect.Parameter.empty:
             param_def["Default"] = self.default
         return param_def
 
     def from_input(self, input_data):
         """Extract parameter data from serialized input"""
+        if self.access == HopsParamAccess.TREE:
+            paths = input_data["InnerTree"]
+            tree = {}
+            for k, v in paths.items():
+                data = []
+                for param_value_item in v:
+                    param_type = param_value_item["type"]
+                    param_value = param_value_item["data"]
+                    data.append(self._coerce_value(param_type, param_value))
+                tree[k] = data
+            return tree
+
         data = []
         for param_value_item in input_data["InnerTree"]["0"]:
             param_type = param_value_item["type"]
