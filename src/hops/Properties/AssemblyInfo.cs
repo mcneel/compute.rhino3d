@@ -28,7 +28,7 @@ namespace Hops
             TheAssemblyInfo = this;
         }
 
-        public const string AppVersion = "0.4.7.0";
+        public const string AppVersion = "0.5.0.0";
         
         public override Bitmap Icon
         {
