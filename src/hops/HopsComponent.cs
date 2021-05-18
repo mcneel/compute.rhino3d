@@ -215,13 +215,6 @@ namespace Hops
             tsi.Font = new System.Drawing.Font(tsi.Font, System.Drawing.FontStyle.Bold);
             menu.Items.Add(tsi);
 
-            int count = Servers.ActiveLocalComputeCount;
-            if (count < HopsAppSettings.LocalWorkerCount)
-                count = HopsAppSettings.LocalWorkerCount;
-            tsi = new ToolStripMenuItem($"Local Computes ({count})");
-            Menu_AppendTextItem(tsi.DropDown, $"{count}", (s, e) => MenuKeyDown(s, e, true), Menu_SingleValueTextChanged, true, 200, true);
-            menu.Items.Add(tsi);
-
             tsi = new ToolStripMenuItem("Cache In Memory", null, (s, e) => { _cacheResultsInMemory = !_cacheResultsInMemory; });
             tsi.ToolTipText = "Keep previous results in memory cache";
             tsi.Checked = _cacheResultsInMemory;
@@ -231,42 +224,6 @@ namespace Hops
             tsi.ToolTipText = "Tell the compute server to cache results for reuse in the future";
             tsi.Checked = _cacheResultsOnServer;
             menu.Items.Add(tsi);
-        }
-
-        void Menu_SingleValueTextChanged(GH_MenuTextBox sender, string text)
-        {
-            if ((text.Length == 0))
-            {
-                sender.TextBoxItem.ForeColor = System.Drawing.SystemColors.WindowText;
-            }
-            else
-            {
-                int i;
-                if ((GH_Convert.ToInt32(text, out i, GH_Conversion.Secondary) && i > 0))
-                    sender.TextBoxItem.ForeColor = System.Drawing.SystemColors.WindowText;
-                else
-                    sender.TextBoxItem.ForeColor = System.Drawing.Color.Red;
-            }
-        }
-
-        void MenuKeyDown(GH_MenuTextBox sender, System.Windows.Forms.KeyEventArgs e, bool lineWidth)
-        {
-            switch (e.KeyCode)
-            {
-                case System.Windows.Forms.Keys.Enter:
-                    string text = sender.Text;
-                    e.Handled = true;
-                    int val;
-                    if ((GH_Convert.ToInt32(text, out val, GH_Conversion.Secondary)) && val > 0)
-                    {
-                        int numberToLaunch = val - Servers.ActiveLocalComputeCount;
-                        Servers.LaunchChildComputeGeometry(numberToLaunch);
-                    }
-                    break;
-                case System.Windows.Forms.Keys.Escape:
-                    sender.CloseEntireMenuStructure();
-                    break;
-            }
         }
 
         /// <summary>
@@ -653,7 +610,8 @@ namespace Hops
                             mgr.AddTextParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_GenericObject _:
-                            throw new Exception("generic param not supported");
+                            mgr.AddGenericParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                            break;
                         case Grasshopper.Kernel.Parameters.Param_Geometry _:
                             mgr.AddGeometryParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
                             break;
