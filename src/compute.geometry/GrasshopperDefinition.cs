@@ -96,7 +96,7 @@ namespace compute.geometry
             }
             if (cache)
             {
-                DataCache.SetCachedDefinition(url, rc);
+                DataCache.SetCachedDefinition(url, rc, null);
                 rc.InDataCache = true;
             }
             return rc;
@@ -111,32 +111,14 @@ namespace compute.geometry
             var rc = Construct(archive);
             if (rc!=null)
             {
-                rc.CacheKey = CreateMD5(data);
+                rc.CacheKey = DataCache.CreateCacheKey(data);
                 if (cache)
                 {
-                    DataCache.SetCachedDefinition(rc.CacheKey, rc);
+                    DataCache.SetCachedDefinition(rc.CacheKey, rc, data);
                     rc.InDataCache = true;
                 }
             }
             return rc;
-        }
-
-        static string CreateMD5(string input)
-        {
-            // Use input string to calculate MD5 hash
-            using (System.Security.Cryptography.MD5 md5 = System.Security.Cryptography.MD5.Create())
-            {
-                byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(input);
-                byte[] hashBytes = md5.ComputeHash(inputBytes);
-
-                // Convert the byte array to hexadecimal string
-                var sb = new System.Text.StringBuilder("md5_");
-                for (int i = 0; i < hashBytes.Length; i++)
-                {
-                    sb.Append(hashBytes[i].ToString("X2"));
-                }
-                return sb.ToString();
-            }
         }
 
         private static GrasshopperDefinition Construct(Guid componentId)
