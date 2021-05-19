@@ -8,7 +8,7 @@ namespace rhino.compute
     public class ReverseProxyModule : Carter.CarterModule
     {
         static bool _initCalled = false;
-        static Task<(string, int)> _initTask;
+        static Task _initTask;
         static HttpClient _client;
         private const string _apiKeyHeader = "RhinoComputeKey";
         static void Initialize()
@@ -22,7 +22,11 @@ namespace rhino.compute
 
             // Launch child processes on start. Getting the base url is enough to get things rolling
             ComputeChildren.UpdateLastCall();
-            _initTask = Task.Run(() => ComputeChildren.GetComputeServerBaseUrl());
+            _initTask = Task.Run(() =>
+            {
+                var (url, port) = ComputeChildren.GetComputeServerBaseUrl();
+                ComputeChildren.MoveToFrontOfQueue(port);
+            });
         }
 
         static System.Timers.Timer _concurrentRequestLogger;
