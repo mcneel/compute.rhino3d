@@ -63,7 +63,7 @@ namespace rhino.compute
         /// found to be available.
         /// </summary>
         /// <returns></returns>
-        public static string GetComputeServerBaseUrl()
+        public static (string, int) GetComputeServerBaseUrl()
         {
             // Simple round robin scheduler using a queue of compute.geometry processes
             int activePort = 0;
@@ -106,7 +106,26 @@ namespace rhino.compute
                 }
             }
 
-            return $"http://localhost:{activePort}";
+            return ($"http://localhost:{activePort}", activePort);
+        }
+
+        public static void MoveToFrontOfQueue(int port)
+        {
+            lock (_lockObject)
+            {
+                // TODO: We really should be using a simple list with an index
+                // pointing at the next item to use
+                if (_computeProcesses.Count > 1)
+                {
+                    for( int i=0; i<_computeProcesses.Count; i++)
+                    {
+                        if (_computeProcesses.Peek().Item2 == port)
+                            break;
+                        var item = _computeProcesses.Dequeue();
+                        _computeProcesses.Enqueue(item);
+                    }
+                }
+            }
         }
 
         public static void LaunchCompute(bool waitUntilServing)

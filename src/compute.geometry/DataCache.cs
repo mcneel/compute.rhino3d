@@ -21,13 +21,112 @@ namespace compute.geometry
             public string Json { get; set; }
         }
 
+        public static string CreateCacheKey(string input)
+        {
+            // Use input string to calculate MD5 hash
+            using (System.Security.Cryptography.MD5 md5 = System.Security.Cryptography.MD5.Create())
+            {
+                byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(input);
+                byte[] hashBytes = md5.ComputeHash(inputBytes);
+
+                // Convert the byte array to hexadecimal string
+                var sb = new System.Text.StringBuilder("md5_");
+                for (int i = 0; i < hashBytes.Length; i++)
+                {
+                    sb.Append(hashBytes[i].ToString("X2"));
+                }
+                return sb.ToString();
+            }
+        }
+        static bool LooksLikeACacheKey(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                return false;
+            if (!key.StartsWith("md5_", StringComparison.Ordinal))
+                return false;
+            if (key.Length > 100)
+                return false;
+            return true;
+        }
+
+        static string _definitionCacheDirectory;
+        static string DefinitionCacheDirectory
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(_definitionCacheDirectory))
+                {
+                    string path = System.Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                    _definitionCacheDirectory = System.IO.Path.Combine(path, "McNeel", "rhino.compute", "definitioncache");
+                }
+                return _definitionCacheDirectory;
+            }
+        }
+
+        static int CompareFilesByDate(string a, string b)
+        {
+            var fileInfoA = new System.IO.FileInfo(a);
+            var fileInfoB = new System.IO.FileInfo(b);
+            return DateTime.Compare(fileInfoB.LastAccessTime, fileInfoA.LastAccessTime);
+        }
+
+        static void CGCacheDirectory()
+        {
+            try
+            {
+                if (System.IO.Directory.Exists(DefinitionCacheDirectory))
+                {
+                    var files = System.IO.Directory.GetFiles(DefinitionCacheDirectory);
+                    const int ALLOWED_COUNT = 20;
+                    if (files!=null && files.Length > ALLOWED_COUNT)
+                    {
+                        Array.Sort(files, CompareFilesByDate);
+                        for(int i = ALLOWED_COUNT; i< files.Length; i++)
+                        {
+                            System.IO.File.Delete(files[i]);
+                        }
+                    }
+                }
+            }
+            catch(Exception ex)
+            {
+                Serilog.Log.Error(ex, "exception while GC on cache directory");
+            }
+        }
+
+        static string DefinitionCacheFileName(string key)
+        {
+            if (LooksLikeACacheKey(key))
+            {
+                string filename = System.IO.Path.Combine(DefinitionCacheDirectory, key + ".cache");
+                return filename;
+            }
+            return null;
+        }
+
         public static GrasshopperDefinition GetCachedDefinition(string key)
         {
             if (string.IsNullOrWhiteSpace(key))
                 return null;
             var def = System.Runtime.Caching.MemoryCache.Default.Get(key) as CachedDefinition;
             if (def == null)
+            {
+                string filename = DefinitionCacheFileName(key);
+                if (filename != null && System.IO.File.Exists(filename))
+                {
+                    try
+                    {
+                        string data = System.IO.File.ReadAllText(filename);
+                        return GrasshopperDefinition.FromBase64String(data, true);
+                    }
+                    catch(Exception ex)
+                    {
+                        Serilog.Log.Error($"Unable to read cache file: {filename}");
+                        Serilog.Log.Error(ex, "File error exception");
+                    }
+                }
                 return null;
+            }
             if (def.Definition.IsLocalFileDefinition)
             {
                 if(def.WatchedFileRuntimeSerialNumber != GrasshopperDefinition.WatchedFileRuntimeSerialNumber)
@@ -39,7 +138,7 @@ namespace compute.geometry
             return def.Definition;
         }
 
-        public static void SetCachedDefinition(string key, GrasshopperDefinition definition)
+        public static void SetCachedDefinition(string key, GrasshopperDefinition definition, string data)
         {
             CachedDefinition cachedef = new CachedDefinition
             {
@@ -47,6 +146,27 @@ namespace compute.geometry
                 WatchedFileRuntimeSerialNumber = GrasshopperDefinition.WatchedFileRuntimeSerialNumber
             };
             System.Runtime.Caching.MemoryCache.Default.Set(key, cachedef, CachePolicy);
+
+            if (!string.IsNullOrWhiteSpace(data))
+            {
+                string filename = DefinitionCacheFileName(key);
+                if (filename != null && !System.IO.File.Exists(filename))
+                {
+                    try
+                    {
+                        if (!System.IO.Directory.Exists(DefinitionCacheDirectory))
+                            System.IO.Directory.CreateDirectory(DefinitionCacheDirectory);
+
+                        System.IO.File.WriteAllText(filename, data);
+                        System.Threading.Tasks.Task.Run(() => DataCache.CGCacheDirectory());
+                    }
+                    catch(Exception ex)
+                    {
+                        Serilog.Log.Error($"Unable to write cache file: {filename}");
+                        Serilog.Log.Error(ex, "File error exception");
+                    }
+                }
+            }
         }
 
         public static string GetCachedSolveResults(string key)

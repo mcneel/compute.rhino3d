@@ -8,7 +8,7 @@ namespace rhino.compute
     public class ReverseProxyModule : Carter.CarterModule
     {
         static bool _initCalled = false;
-        static Task<string> _initTask;
+        static Task<(string, int)> _initTask;
         static HttpClient _client;
         private const string _apiKeyHeader = "RhinoComputeKey";
         static void Initialize()
@@ -86,7 +86,7 @@ namespace rhino.compute
             return null;
         }
 
-        async Task<HttpResponseMessage> SendProxyRequest(HttpRequest initialRequest, HttpMethod method)
+        async Task AwaitInitTask()
         {
             var task = _initTask;
             if (task != null)
@@ -94,8 +94,10 @@ namespace rhino.compute
                 await task;
                 _initTask = null;
             }
+        }
 
-            string baseurl = ComputeChildren.GetComputeServerBaseUrl();
+        async Task<HttpResponseMessage> SendProxyRequest(HttpRequest initialRequest, HttpMethod method, string baseurl)
+        {
             string proxyUrl = $"{baseurl}{initialRequest.Path}{initialRequest.QueryString}";
 
             // mark the current time as a call to a compute child process
@@ -132,11 +134,16 @@ namespace rhino.compute
 
         private async Task ReverseProxyGet(HttpRequest req, HttpResponse res)
         {
+            await AwaitInitTask();
             string responseString;
             using (var tracker = new ConcurrentRequestTracker())
             {
-                var proxyResponse = await SendProxyRequest(req, HttpMethod.Get);
+                var (baseurl, port) = ComputeChildren.GetComputeServerBaseUrl();
+                var proxyResponse = await SendProxyRequest(req, HttpMethod.Get, baseurl);
                 ComputeChildren.UpdateLastCall();
+                if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                    ComputeChildren.MoveToFrontOfQueue(port);
+
                 responseString = await proxyResponse.Content.ReadAsStringAsync();
             }
             await res.WriteAsync(responseString);
@@ -144,11 +151,16 @@ namespace rhino.compute
 
         private async Task ReverseProxyPost(HttpRequest req, HttpResponse res)
         {
+            await AwaitInitTask();
             string responseString;
             using (var tracker = new ConcurrentRequestTracker())
             {
-                var proxyResponse = await SendProxyRequest(req, HttpMethod.Post);
+                var (baseurl, port) = ComputeChildren.GetComputeServerBaseUrl();
+                var proxyResponse = await SendProxyRequest(req, HttpMethod.Post, baseurl);
                 ComputeChildren.UpdateLastCall();
+                if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                    ComputeChildren.MoveToFrontOfQueue(port);
+
                 res.StatusCode = (int)proxyResponse.StatusCode;
                 responseString = await proxyResponse.Content.ReadAsStringAsync();
             }
@@ -157,11 +169,16 @@ namespace rhino.compute
 
         private async Task ReverseProxyGrasshopper(HttpRequest req, HttpResponse res)
         {
+            await AwaitInitTask();
             string responseString;
             using (var tracker = new ConcurrentRequestTracker())
             {
-                var proxyResponse = await SendProxyRequest(req, HttpMethod.Post);
+                var (baseurl, port) = ComputeChildren.GetComputeServerBaseUrl();
+                var proxyResponse = await SendProxyRequest(req, HttpMethod.Post, baseurl);
                 ComputeChildren.UpdateLastCall();
+                if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                    ComputeChildren.MoveToFrontOfQueue(port);
+
                 res.StatusCode = (int)proxyResponse.StatusCode;
                 responseString = await proxyResponse.Content.ReadAsStringAsync();
             }
