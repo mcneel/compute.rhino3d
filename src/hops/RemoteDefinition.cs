@@ -165,7 +165,8 @@ namespace Hops
             {
                 string postUrl = Servers.GetDescriptionPostUrl();
                 var schema = new Schema();
-                if (Path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                if (Path.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                    || postUrl.IndexOf("localhost", StringComparison.OrdinalIgnoreCase)>0)
                 {
                     schema.Pointer = address;
                 }
