@@ -10,6 +10,7 @@ using Grasshopper.Kernel.Attributes;
 using Resthopper.IO;
 using Newtonsoft.Json;
 using Rhino.Geometry;
+using System.Threading.Tasks;
 
 namespace Hops
 {
@@ -23,7 +24,15 @@ namespace Hops
         bool _cacheResultsInMemory = true;
         bool _cacheResultsOnServer = true;
         bool _remoteDefinitionRequiresRebuild = false;
+        bool _synchronous = true;
+
+        object _componentLock = new object();
+        Tuple<int, List<Task<Schema>>> _workingAsyncSolveList;
+        Tuple<int, List<Task<Schema>>> _backgroundAsyncSolveList;
+        Tuple<int, List<Task<Schema>>> _solvedAsyncSolveList;
+        int _solveSerialNumber = 0;
         static bool _isHeadless = false;
+        static int _currentSolveSerialNumber = 1;
         #endregion
 
         static HopsComponent()
@@ -57,6 +66,34 @@ namespace Hops
         {
         }
 
+        protected override void BeforeSolveInstance()
+        {
+            Message = "";
+            lock(_componentLock)
+            {
+                if (_backgroundAsyncSolveList!=null)
+                {
+                    _solvedAsyncSolveList = _backgroundAsyncSolveList;
+                    _backgroundAsyncSolveList = null;
+                }
+            }
+
+            if (_solvedAsyncSolveList == null || _solvedAsyncSolveList.Item1 != _solveSerialNumber)
+            {
+                _solveSerialNumber = _currentSolveSerialNumber++;
+                _solvedAsyncSolveList = null;
+                if (!_synchronous)
+                    _workingAsyncSolveList = Tuple.Create(_solveSerialNumber, new List<Task<Schema>>());
+            }
+            base.BeforeSolveInstance();
+        }
+
+        protected override void AfterSolveInstance()
+        {
+            _solvedAsyncSolveList = null;
+            base.AfterSolveInstance();
+        }
+
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             if( string.IsNullOrWhiteSpace(RemoteDefinitionLocation))
@@ -76,6 +113,13 @@ namespace Hops
 
             if(InPreSolve)
             {
+                if(_solvedAsyncSolveList!=null && _solvedAsyncSolveList.Item1 == _solveSerialNumber)
+                {
+                    var solvedTask = _solvedAsyncSolveList.Item2[DA.Iteration];
+                    TaskList.Add(solvedTask);
+                    return;
+                }
+
                 List<string> warnings;
                 var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheResultsOnServer, out warnings);
                 if (warnings != null && warnings.Count > 0)
@@ -88,9 +132,36 @@ namespace Hops
                 }
                 if (inputSchema != null)
                 {
-                    var task = System.Threading.Tasks.Task.Run(() => _remoteDefinition.Solve(inputSchema, _cacheResultsInMemory));
-                    TaskList.Add(task);
+                    var task = Task.Run(() => _remoteDefinition.Solve(inputSchema, _cacheResultsInMemory));
+                    if (_workingAsyncSolveList != null && _workingAsyncSolveList.Item1 == _solveSerialNumber)
+                        _workingAsyncSolveList.Item2.Add(task);
+                    else
+                        TaskList.Add(task);
                 }
+                return;
+            }
+
+            if (_workingAsyncSolveList!=null)
+            {
+                int sn = _workingAsyncSolveList.Item1;
+                Task<Schema>[] tasks = _workingAsyncSolveList.Item2.ToArray();
+                _workingAsyncSolveList = null;
+                int waitTime = HopsAppSettings.SynchronousWaitTime;
+                if (waitTime > 0 && Task.WaitAll(tasks, waitTime))
+                {
+                    TaskList.Clear();
+                    TaskList.AddRange(tasks);
+                    _solvedAsyncSolveList = null;
+                }
+                else
+                {
+                    Task.Run(() => WaitAsyncOnWorkingSolveList(sn, tasks));
+                }
+            }
+
+            if (!_synchronous && TaskList.Count == 0)
+            {
+                Message = "solving...";
                 return;
             }
 
@@ -123,6 +194,26 @@ namespace Hops
             if (schema != null)
             {
                 _remoteDefinition.SetComponentOutputs(schema, DA, Params.Output, this);
+            }
+        }
+
+        void WaitAsyncOnWorkingSolveList(int runSerialNumber, Task<Schema>[] solveTasks)
+        {
+            Task.WaitAll(solveTasks);
+            var list = Tuple.Create(runSerialNumber, new List<Task<Schema>>(solveTasks));
+            lock (_componentLock)
+            {
+                if (_backgroundAsyncSolveList == null || _backgroundAsyncSolveList.Item1 < runSerialNumber)
+                {
+                    _backgroundAsyncSolveList = list;
+                    if (_backgroundAsyncSolveList.Item1 == _solveSerialNumber)
+                    {
+                        Rhino.RhinoApp.InvokeOnUiThread((Action)delegate
+                        {
+                            ExpireSolution(true);
+                        });
+                    }
+                }
             }
         }
 
@@ -213,6 +304,11 @@ namespace Hops
             base.AppendAdditionalMenuItems(menu);
             var tsi = new ToolStripMenuItem("&Path...", null, (sender, e) => { ShowSetDefinitionUi(); });
             tsi.Font = new System.Drawing.Font(tsi.Font, System.Drawing.FontStyle.Bold);
+            menu.Items.Add(tsi);
+
+            tsi = new ToolStripMenuItem("Synchronous", null, (s, e) => { _synchronous = !_synchronous; });
+            tsi.ToolTipText = "Block until solved";
+            tsi.Checked = _synchronous;
             menu.Items.Add(tsi);
 
             tsi = new ToolStripMenuItem("Cache In Memory", null, (s, e) => { _cacheResultsInMemory = !_cacheResultsInMemory; });

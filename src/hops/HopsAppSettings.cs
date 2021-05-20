@@ -11,6 +11,7 @@ namespace Hops
         const string HIDE_WORKER_WINDOWS = "Hops:HideWorkerWindows";
         const string LAUNCH_WORKER_AT_START = "Hops:LaunchWorkerAtStart";
         const string LOCAL_WORKER_COUNT = "Hops:LocalWorkerCount";
+        const string SYNCHRONOUS_WAIT_TIME = "Hops:SynchronousWaitTime";
 
         public static string[] Servers
         {
@@ -83,6 +84,25 @@ namespace Hops
             {
                 if (value >= 0)
                     Grasshopper.Instances.Settings.SetValue(LOCAL_WORKER_COUNT, value);
+            }
+        }
+
+        static int _waittime;
+        public static int SynchronousWaitTime
+        {
+            get
+            {
+                if (0==_waittime)
+                    _waittime = Grasshopper.Instances.Settings.GetValue(SYNCHRONOUS_WAIT_TIME, 50);
+                return _waittime;
+            }
+            set
+            {
+                if (value >= 0)
+                {
+                    Grasshopper.Instances.Settings.SetValue(SYNCHRONOUS_WAIT_TIME, value);
+                    _waittime = value;
+                }
             }
         }
     }
