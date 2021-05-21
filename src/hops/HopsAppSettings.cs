@@ -12,6 +12,7 @@ namespace Hops
         const string LAUNCH_WORKER_AT_START = "Hops:LaunchWorkerAtStart";
         const string LOCAL_WORKER_COUNT = "Hops:LocalWorkerCount";
         const string SYNCHRONOUS_WAIT_TIME = "Hops:SynchronousWaitTime";
+        const string MAX_CONCURRENT_REQUESTS = "Hops:MaxConcurrentRequests";
 
         public static string[] Servers
         {
@@ -104,6 +105,26 @@ namespace Hops
                     _waittime = value;
                 }
             }
+        }
+
+        static int _maxConcurrentRequests = 0;
+        public static int MaxConcurrentRequests
+        {
+            get
+            {
+                if (0 == _maxConcurrentRequests)
+                    _maxConcurrentRequests = Grasshopper.Instances.Settings.GetValue(MAX_CONCURRENT_REQUESTS, 4);
+                return _maxConcurrentRequests;
+            }
+            set
+            {
+                if (value >= 1)
+                {
+                    Grasshopper.Instances.Settings.SetValue(MAX_CONCURRENT_REQUESTS, value);
+                    _maxConcurrentRequests = value;
+                }
+            }
+
         }
     }
     /*
