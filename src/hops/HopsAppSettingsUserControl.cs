@@ -10,16 +10,16 @@ namespace Hops
             InitializeComponent();
             _serversTextBox.Lines = HopsAppSettings.Servers;
             _serversTextBox.TextChanged += ServersTextboxChanged;
-            _syncWaitTimeTextbox.Text = HopsAppSettings.SynchronousWaitTime.ToString();
-            _syncWaitTimeTextbox.KeyPress += (s, e) =>
+            _maxConcurrentRequestsTextbox.Text = HopsAppSettings.MaxConcurrentRequests.ToString();
+            _maxConcurrentRequestsTextbox.KeyPress += (s, e) =>
             {
                 e.Handled = !char.IsDigit(e.KeyChar) && !char.IsControl(e.KeyChar);
             };
-            _syncWaitTimeTextbox.TextChanged += (s, e) =>
+            _maxConcurrentRequestsTextbox.TextChanged += (s, e) =>
             {
-                if (int.TryParse(_syncWaitTimeTextbox.Text, out int result) && result>=0)
+                if (int.TryParse(_maxConcurrentRequestsTextbox.Text, out int result) && result>0)
                 {
-                    HopsAppSettings.SynchronousWaitTime = result;
+                    HopsAppSettings.MaxConcurrentRequests = result;
                 }
             };
             _hideWorkerWindows.Checked = HopsAppSettings.HideWorkerWindows;

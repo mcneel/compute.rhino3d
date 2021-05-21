@@ -188,6 +188,7 @@ namespace Hops
         const string TagPath = "RemoteDefinitionLocation";
         const string TagCacheResultsOnServer = "CacheSolveResults";
         const string TagCacheResultsInMemory = "CacheResultsInMemory";
+        const string TagSynchronousSolve = "SynchronousSolve";
 
         public override bool Write(GH_IWriter writer)
         {
@@ -198,6 +199,7 @@ namespace Hops
                 writer.SetString(TagPath, RemoteDefinitionLocation);
                 writer.SetBoolean(TagCacheResultsOnServer, _cacheResultsOnServer);
                 writer.SetBoolean(TagCacheResultsInMemory, _cacheResultsInMemory);
+                writer.SetBoolean(TagSynchronousSolve, _synchronous);
             }
             return rc;
         }
@@ -227,6 +229,10 @@ namespace Hops
                 cacheResults = _cacheResultsInMemory;
                 if (reader.TryGetBoolean(TagCacheResultsInMemory, ref cacheResults))
                     _cacheResultsInMemory = cacheResults;
+
+                bool synchronous = _synchronous;
+                if (reader.TryGetBoolean(TagSynchronousSolve, ref synchronous))
+                    _synchronous = synchronous;
             }
             return rc;
         }

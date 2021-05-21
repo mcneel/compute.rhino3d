@@ -38,7 +38,7 @@ namespace Hops
       this._childComputeCount = new System.Windows.Forms.NumericUpDown();
       this._updateChildCountButton = new System.Windows.Forms.Button();
       this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
-      this._syncWaitTimeTextbox = new System.Windows.Forms.TextBox();
+      this._maxConcurrentRequestsTextbox = new System.Windows.Forms.TextBox();
       this.label1 = new System.Windows.Forms.Label();
       ((System.ComponentModel.ISupportInitialize)(this._childComputeCount)).BeginInit();
       this.SuspendLayout();
@@ -105,28 +105,28 @@ namespace Hops
       this._updateChildCountButton.Text = "Child Process Count";
       this._updateChildCountButton.UseVisualStyleBackColor = true;
       // 
-      // _syncWaitTimeTextbox
+      // _maxConcurrentRequestsTextbox
       // 
-      this._syncWaitTimeTextbox.Location = new System.Drawing.Point(3, 105);
-      this._syncWaitTimeTextbox.Name = "_syncWaitTimeTextbox";
-      this._syncWaitTimeTextbox.Size = new System.Drawing.Size(129, 31);
-      this._syncWaitTimeTextbox.TabIndex = 8;
+      this._maxConcurrentRequestsTextbox.Location = new System.Drawing.Point(3, 105);
+      this._maxConcurrentRequestsTextbox.Name = "_maxConcurrentRequestsTextbox";
+      this._maxConcurrentRequestsTextbox.Size = new System.Drawing.Size(80, 31);
+      this._maxConcurrentRequestsTextbox.TabIndex = 8;
       // 
       // label1
       // 
       this.label1.AutoSize = true;
-      this.label1.Location = new System.Drawing.Point(139, 110);
+      this.label1.Location = new System.Drawing.Point(102, 110);
       this.label1.Name = "label1";
-      this.label1.Size = new System.Drawing.Size(288, 25);
+      this.label1.Size = new System.Drawing.Size(262, 25);
       this.label1.TabIndex = 9;
-      this.label1.Text = "Synchronous Wait Time (ms)";
+      this.label1.Text = "Max Concurrent Requests";
       // 
       // HopsAppSettingsUserControl
       // 
       this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
       this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
       this.Controls.Add(this.label1);
-      this.Controls.Add(this._syncWaitTimeTextbox);
+      this.Controls.Add(this._maxConcurrentRequestsTextbox);
       this.Controls.Add(this._updateChildCountButton);
       this.Controls.Add(this._childComputeCount);
       this.Controls.Add(this._lblCacheCount);
@@ -151,7 +151,7 @@ namespace Hops
         private System.Windows.Forms.NumericUpDown _childComputeCount;
         private System.Windows.Forms.Button _updateChildCountButton;
         private System.Windows.Forms.ToolTip toolTip1;
-        private System.Windows.Forms.TextBox _syncWaitTimeTextbox;
+        private System.Windows.Forms.TextBox _maxConcurrentRequestsTextbox;
         private System.Windows.Forms.Label label1;
     }
 }
