@@ -22,33 +22,46 @@ namespace Hops
                     HopsAppSettings.MaxConcurrentRequests = result;
                 }
             };
-            _hideWorkerWindows.Checked = HopsAppSettings.HideWorkerWindows;
-            _hideWorkerWindows.CheckedChanged += (s, e) =>
-            {
-                HopsAppSettings.HideWorkerWindows = _hideWorkerWindows.Checked;
-            };
-            _launchWorkerAtStart.Checked = HopsAppSettings.LaunchWorkerAtStart;
-            _launchWorkerAtStart.CheckedChanged += (s, e) =>
-            {
-                HopsAppSettings.LaunchWorkerAtStart = _launchWorkerAtStart.Checked;
-            };
-            _childComputeCount.Value = HopsAppSettings.LocalWorkerCount;
-            _childComputeCount.ValueChanged += (s, e) =>
-            {
-                HopsAppSettings.LocalWorkerCount = (int)_childComputeCount.Value;
-            };
-            _updateChildCountButton.Click += (s, e) =>
-            {
-                int numberToLaunch = HopsAppSettings.LocalWorkerCount - Servers.ActiveLocalComputeCount;
-                Servers.LaunchChildComputeGeometry(numberToLaunch);
-            };
-            toolTip1.SetToolTip(_updateChildCountButton, "Click to force Rhino.Compute to update");
-            _lblCacheCount.Text = $"({Hops.MemoryCache.EntryCount} items in cache)";
             _btnClearMemCache.Click += (s, e) =>
             {
                 Hops.MemoryCache.ClearCache();
                 _lblCacheCount.Text = $"({Hops.MemoryCache.EntryCount} items in cache)";
             };
+            _lblCacheCount.Text = $"({Hops.MemoryCache.EntryCount} items in cache)";
+
+
+            if (!Rhino.Runtime.HostUtils.RunningOnWindows)
+            {
+                _hideWorkerWindows.Visible = false;
+                _launchWorkerAtStart.Visible = false;
+                _childComputeCount.Visible = false;
+                _updateChildCountButton.Visible = false;
+                Size = new System.Drawing.Size(Size.Width, _btnClearMemCache.Bottom + 4);
+            }
+            else
+            {
+                _hideWorkerWindows.Checked = HopsAppSettings.HideWorkerWindows;
+                _hideWorkerWindows.CheckedChanged += (s, e) =>
+                {
+                    HopsAppSettings.HideWorkerWindows = _hideWorkerWindows.Checked;
+                };
+                _launchWorkerAtStart.Checked = HopsAppSettings.LaunchWorkerAtStart;
+                _launchWorkerAtStart.CheckedChanged += (s, e) =>
+                {
+                    HopsAppSettings.LaunchWorkerAtStart = _launchWorkerAtStart.Checked;
+                };
+                _childComputeCount.Value = HopsAppSettings.LocalWorkerCount;
+                _childComputeCount.ValueChanged += (s, e) =>
+                {
+                    HopsAppSettings.LocalWorkerCount = (int)_childComputeCount.Value;
+                };
+                _updateChildCountButton.Click += (s, e) =>
+                {
+                    int numberToLaunch = HopsAppSettings.LocalWorkerCount - Servers.ActiveLocalComputeCount;
+                    Servers.LaunchChildComputeGeometry(numberToLaunch);
+                };
+                toolTip1.SetToolTip(_updateChildCountButton, "Click to force Rhino.Compute to update");
+            }
         }
 
         private void ServersTextboxChanged(object sender, EventArgs e)
