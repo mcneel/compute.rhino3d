@@ -336,6 +336,14 @@ namespace Hops
                         }
                     }
                 }
+
+                if (responseMessage.StatusCode == System.Net.HttpStatusCode.RequestTimeout)
+                {
+                    var badSchema = new Schema();
+                    badSchema.Errors.Add($"Request timeout: {Path}");
+                    return badSchema;
+                }
+
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
                 var schema = JsonConvert.DeserializeObject<Resthopper.IO.Schema>(stringResult);

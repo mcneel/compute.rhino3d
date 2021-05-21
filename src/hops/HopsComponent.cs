@@ -10,6 +10,7 @@ using Grasshopper.Kernel.Attributes;
 using Resthopper.IO;
 using Newtonsoft.Json;
 using Rhino.Geometry;
+using System.Threading.Tasks;
 
 namespace Hops
 {
@@ -23,7 +24,12 @@ namespace Hops
         bool _cacheResultsInMemory = true;
         bool _cacheResultsOnServer = true;
         bool _remoteDefinitionRequiresRebuild = false;
+        bool _synchronous = true;
+
+        SolveDataList _workingSolveList;
+        int _solveSerialNumber = 0;
         static bool _isHeadless = false;
+        static int _currentSolveSerialNumber = 1;
         #endregion
 
         static HopsComponent()
@@ -51,11 +57,39 @@ namespace Hops
 
         protected override void RegisterInputParams(GH_InputParamManager pManager)
         {
+            // Nothing to do here. Inputs and outputs are dynamically created
         }
 
         protected override void RegisterOutputParams(GH_OutputParamManager pManager)
         {
+            // Nothing to do here. Inputs and outputs are dynamically created
         }
+
+        protected override void BeforeSolveInstance()
+        {
+            Message = "";
+            if (!_solvedCallback)
+            {
+                _solveSerialNumber = _currentSolveSerialNumber++;
+                if (_workingSolveList != null)
+                    _workingSolveList.Canceled = true;
+                _workingSolveList = new SolveDataList(_solveSerialNumber, this, _remoteDefinition, _cacheResultsInMemory);
+            }
+            base.BeforeSolveInstance();
+        }
+
+        bool _solvedCallback = false;
+        public void OnWorkingListComplete()
+        {
+            _solvedCallback = true;
+            if (_workingSolveList.SolvedFor(_solveSerialNumber))
+            {
+                ExpireSolution(true);
+            }
+            _solvedCallback = false;
+        }
+
+        public int SolveSerialNumber => _solveSerialNumber;
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
@@ -76,6 +110,13 @@ namespace Hops
 
             if(InPreSolve)
             {
+                if(_workingSolveList.SolvedFor(_solveSerialNumber))
+                {
+                    var solvedTask = Task.FromResult(_workingSolveList.SolvedSchema(DA.Iteration));
+                    TaskList.Add(solvedTask);
+                    return;
+                }
+
                 List<string> warnings;
                 var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheResultsOnServer, out warnings);
                 if (warnings != null && warnings.Count > 0)
@@ -88,10 +129,27 @@ namespace Hops
                 }
                 if (inputSchema != null)
                 {
-                    var task = System.Threading.Tasks.Task.Run(() => _remoteDefinition.Solve(inputSchema, _cacheResultsInMemory));
-                    TaskList.Add(task);
+                    _workingSolveList.Add(inputSchema);
                 }
                 return;
+            }
+
+            if (TaskList.Count == 0)
+            {
+                _workingSolveList.StartSolving(_synchronous);
+                if (!_synchronous)
+                {
+                    Message = "solving...";
+                    return;
+                }
+                else
+                {
+                    for(int i=0; i<_workingSolveList.Count; i++)
+                    {
+                        var output = _workingSolveList.SolvedSchema(i);
+                        TaskList.Add(Task.FromResult(output));
+                    }
+                }
             }
 
             if (!GetSolveResults(DA, out var schema))
@@ -213,6 +271,11 @@ namespace Hops
             base.AppendAdditionalMenuItems(menu);
             var tsi = new ToolStripMenuItem("&Path...", null, (sender, e) => { ShowSetDefinitionUi(); });
             tsi.Font = new System.Drawing.Font(tsi.Font, System.Drawing.FontStyle.Bold);
+            menu.Items.Add(tsi);
+
+            tsi = new ToolStripMenuItem("Asynchronous", null, (s, e) => { _synchronous = !_synchronous; });
+            tsi.ToolTipText = "Do not block while solving";
+            tsi.Checked = !_synchronous;
             menu.Items.Add(tsi);
 
             tsi = new ToolStripMenuItem("Cache In Memory", null, (s, e) => { _cacheResultsInMemory = !_cacheResultsInMemory; });

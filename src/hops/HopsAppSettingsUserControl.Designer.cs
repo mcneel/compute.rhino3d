@@ -38,6 +38,8 @@ namespace Hops
       this._childComputeCount = new System.Windows.Forms.NumericUpDown();
       this._updateChildCountButton = new System.Windows.Forms.Button();
       this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
+      this._syncWaitTimeTextbox = new System.Windows.Forms.TextBox();
+      this.label1 = new System.Windows.Forms.Label();
       ((System.ComponentModel.ISupportInitialize)(this._childComputeCount)).BeginInit();
       this.SuspendLayout();
       // 
@@ -52,7 +54,7 @@ namespace Hops
       // _hideWorkerWindows
       // 
       this._hideWorkerWindows.AutoSize = true;
-      this._hideWorkerWindows.Location = new System.Drawing.Point(3, 106);
+      this._hideWorkerWindows.Location = new System.Drawing.Point(3, 213);
       this._hideWorkerWindows.Name = "_hideWorkerWindows";
       this._hideWorkerWindows.Size = new System.Drawing.Size(409, 29);
       this._hideWorkerWindows.TabIndex = 2;
@@ -62,7 +64,7 @@ namespace Hops
       // _launchWorkerAtStart
       // 
       this._launchWorkerAtStart.AutoSize = true;
-      this._launchWorkerAtStart.Location = new System.Drawing.Point(3, 149);
+      this._launchWorkerAtStart.Location = new System.Drawing.Point(3, 256);
       this._launchWorkerAtStart.Name = "_launchWorkerAtStart";
       this._launchWorkerAtStart.Size = new System.Drawing.Size(402, 29);
       this._launchWorkerAtStart.TabIndex = 3;
@@ -71,7 +73,7 @@ namespace Hops
       // 
       // _btnClearMemCache
       // 
-      this._btnClearMemCache.Location = new System.Drawing.Point(3, 241);
+      this._btnClearMemCache.Location = new System.Drawing.Point(3, 154);
       this._btnClearMemCache.Name = "_btnClearMemCache";
       this._btnClearMemCache.Size = new System.Drawing.Size(321, 45);
       this._btnClearMemCache.TabIndex = 4;
@@ -81,7 +83,7 @@ namespace Hops
       // _lblCacheCount
       // 
       this._lblCacheCount.AutoSize = true;
-      this._lblCacheCount.Location = new System.Drawing.Point(333, 251);
+      this._lblCacheCount.Location = new System.Drawing.Point(333, 164);
       this._lblCacheCount.Name = "_lblCacheCount";
       this._lblCacheCount.Size = new System.Drawing.Size(254, 25);
       this._lblCacheCount.TabIndex = 5;
@@ -89,24 +91,42 @@ namespace Hops
       // 
       // _childComputeCount
       // 
-      this._childComputeCount.Location = new System.Drawing.Point(4, 194);
+      this._childComputeCount.Location = new System.Drawing.Point(4, 301);
       this._childComputeCount.Name = "_childComputeCount";
       this._childComputeCount.Size = new System.Drawing.Size(120, 31);
       this._childComputeCount.TabIndex = 6;
       // 
       // _updateChildCountButton
       // 
-      this._updateChildCountButton.Location = new System.Drawing.Point(136, 189);
+      this._updateChildCountButton.Location = new System.Drawing.Point(136, 296);
       this._updateChildCountButton.Name = "_updateChildCountButton";
       this._updateChildCountButton.Size = new System.Drawing.Size(276, 39);
       this._updateChildCountButton.TabIndex = 7;
       this._updateChildCountButton.Text = "Child Process Count";
       this._updateChildCountButton.UseVisualStyleBackColor = true;
       // 
+      // _syncWaitTimeTextbox
+      // 
+      this._syncWaitTimeTextbox.Location = new System.Drawing.Point(3, 105);
+      this._syncWaitTimeTextbox.Name = "_syncWaitTimeTextbox";
+      this._syncWaitTimeTextbox.Size = new System.Drawing.Size(129, 31);
+      this._syncWaitTimeTextbox.TabIndex = 8;
+      // 
+      // label1
+      // 
+      this.label1.AutoSize = true;
+      this.label1.Location = new System.Drawing.Point(139, 110);
+      this.label1.Name = "label1";
+      this.label1.Size = new System.Drawing.Size(288, 25);
+      this.label1.TabIndex = 9;
+      this.label1.Text = "Synchronous Wait Time (ms)";
+      // 
       // HopsAppSettingsUserControl
       // 
       this.AutoScaleDimensions = new System.Drawing.SizeF(12F, 25F);
       this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+      this.Controls.Add(this.label1);
+      this.Controls.Add(this._syncWaitTimeTextbox);
       this.Controls.Add(this._updateChildCountButton);
       this.Controls.Add(this._childComputeCount);
       this.Controls.Add(this._lblCacheCount);
@@ -115,7 +135,7 @@ namespace Hops
       this.Controls.Add(this._hideWorkerWindows);
       this.Controls.Add(this._serversTextBox);
       this.Name = "HopsAppSettingsUserControl";
-      this.Size = new System.Drawing.Size(599, 298);
+      this.Size = new System.Drawing.Size(599, 348);
       ((System.ComponentModel.ISupportInitialize)(this._childComputeCount)).EndInit();
       this.ResumeLayout(false);
       this.PerformLayout();
@@ -131,5 +151,7 @@ namespace Hops
         private System.Windows.Forms.NumericUpDown _childComputeCount;
         private System.Windows.Forms.Button _updateChildCountButton;
         private System.Windows.Forms.ToolTip toolTip1;
+        private System.Windows.Forms.TextBox _syncWaitTimeTextbox;
+        private System.Windows.Forms.Label label1;
     }
 }
