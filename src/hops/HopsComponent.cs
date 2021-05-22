@@ -25,6 +25,8 @@ namespace Hops
         bool _cacheResultsOnServer = true;
         bool _remoteDefinitionRequiresRebuild = false;
         bool _synchronous = true;
+        bool _showEnabledInput = false;
+        bool _enabledThisSolve = true;
 
         SolveDataList _workingSolveList;
         int _solveSerialNumber = 0;
@@ -68,6 +70,7 @@ namespace Hops
         protected override void BeforeSolveInstance()
         {
             Message = "";
+            _enabledThisSolve = true;
             if (!_solvedCallback)
             {
                 _solveSerialNumber = _currentSolveSerialNumber++;
@@ -93,6 +96,9 @@ namespace Hops
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
+            if (!_enabledThisSolve)
+                return;
+
             if( string.IsNullOrWhiteSpace(RemoteDefinitionLocation))
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "No URL or path defined for definition");
@@ -108,7 +114,17 @@ namespace Hops
                 return;
             }
 
-            if(InPreSolve)
+            if (_showEnabledInput && DA.Iteration == 0)
+            {
+                bool enabled = true;
+                if (DA.GetData("__Enabled", ref enabled) && enabled == false)
+                {
+                    _enabledThisSolve = false;
+                    return;
+                }
+            }
+
+            if (InPreSolve)
             {
                 if(_workingSolveList.SolvedFor(_solveSerialNumber))
                 {
@@ -189,6 +205,7 @@ namespace Hops
         const string TagCacheResultsOnServer = "CacheSolveResults";
         const string TagCacheResultsInMemory = "CacheResultsInMemory";
         const string TagSynchronousSolve = "SynchronousSolve";
+        const string TagShowEnabled = "ShowEnabled";
 
         public override bool Write(GH_IWriter writer)
         {
@@ -200,6 +217,7 @@ namespace Hops
                 writer.SetBoolean(TagCacheResultsOnServer, _cacheResultsOnServer);
                 writer.SetBoolean(TagCacheResultsInMemory, _cacheResultsInMemory);
                 writer.SetBoolean(TagSynchronousSolve, _synchronous);
+                writer.SetBoolean(TagShowEnabled, _showEnabledInput);
             }
             return rc;
         }
@@ -233,6 +251,10 @@ namespace Hops
                 bool synchronous = _synchronous;
                 if (reader.TryGetBoolean(TagSynchronousSolve, ref synchronous))
                     _synchronous = synchronous;
+
+                bool showEnabled = _showEnabledInput;
+                if (reader.TryGetBoolean(TagShowEnabled, ref showEnabled))
+                    _showEnabledInput = showEnabled;
             }
             return rc;
         }
@@ -277,6 +299,14 @@ namespace Hops
             base.AppendAdditionalMenuItems(menu);
             var tsi = new ToolStripMenuItem("&Path...", null, (sender, e) => { ShowSetDefinitionUi(); });
             tsi.Font = new System.Drawing.Font(tsi.Font, System.Drawing.FontStyle.Bold);
+            menu.Items.Add(tsi);
+
+            tsi = new ToolStripMenuItem("Show Input: Enabled", null, (s, e) => {
+                _showEnabledInput = !_showEnabledInput;
+                DefineInputsAndOutputs();
+            });
+            tsi.ToolTipText = "Create input for enabled";
+            tsi.Checked = _showEnabledInput;
             menu.Items.Add(tsi);
 
             tsi = new ToolStripMenuItem("Asynchronous", null, (s, e) => { _synchronous = !_synchronous; });
@@ -391,398 +421,421 @@ namespace Hops
 
         void DefineInputsAndOutputs()
         {
-            ClearRuntimeMessages();
-            string description = _remoteDefinition.GetDescription(out System.Drawing.Bitmap customIcon);
-
-            if (_remoteDefinition.IsNotResponingUrl())
+            if (_remoteDefinition != null)
             {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unable to connect to server");
-                Grasshopper.Instances.ActiveCanvas?.Invalidate();
-                return;
-            }
+                ClearRuntimeMessages();
+                string description = _remoteDefinition.GetDescription(out System.Drawing.Bitmap customIcon);
 
-            if (!string.IsNullOrWhiteSpace(description) && !Description.Equals(description))
-            {
-                Description = description;
-            }
-            var inputs = _remoteDefinition.GetInputParams();
-            var outputs = _remoteDefinition.GetOutputParams();
-
-            bool buildInputs = inputs != null;
-            bool buildOutputs = outputs != null;
-
-            // check to see if the existing params match
-            Dictionary<string, List<IGH_Param>> inputSources = new Dictionary<string, List<IGH_Param>>();
-            foreach (var param in Params.Input)
-            {
-                inputSources.Add(param.Name, new List<IGH_Param>(param.Sources));
-            }
-
-            if (buildInputs && Params.Input.Count == inputs.Count)
-            {
-                buildInputs = false;
-                foreach (var param in Params.Input.ToArray())
+                if (_remoteDefinition.IsNotResponingUrl())
                 {
-                    if (!inputs.ContainsKey(param.Name))
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unable to connect to server");
+                    Grasshopper.Instances.ActiveCanvas?.Invalidate();
+                    return;
+                }
+
+                if (!string.IsNullOrWhiteSpace(description) && !Description.Equals(description))
+                {
+                    Description = description;
+                }
+                var inputs = _remoteDefinition.GetInputParams();
+                var outputs = _remoteDefinition.GetOutputParams();
+
+                bool buildInputs = inputs != null;
+                bool buildOutputs = outputs != null;
+
+                // check to see if the existing params match
+                Dictionary<string, List<IGH_Param>> inputSources = new Dictionary<string, List<IGH_Param>>();
+                foreach (var param in Params.Input)
+                {
+                    inputSources.Add(param.Name, new List<IGH_Param>(param.Sources));
+                }
+
+                int inputCount = inputs.Count;
+                if (_showEnabledInput)
+                    inputCount++;
+                if (buildInputs && Params.Input.Count == inputCount)
+                {
+                    buildInputs = false;
+                    foreach (var param in Params.Input.ToArray())
                     {
-                        buildInputs = true;
-                        break;
+                        if (!inputs.ContainsKey(param.Name))
+                        {
+                            buildInputs = true;
+                            break;
+                        }
+                        else
+                        {
+                            // if input param exists, make sure param access is correct
+                            var (input, _) = inputs[param.Name];
+                            param.Access = RemoteDefinition.AccessFromInput(input);
+                        }
                     }
-                    else
+                }
+                if (buildOutputs && Params.Output.Count == outputs.Count)
+                {
+                    buildOutputs = false;
+                    foreach (var param in Params.Output.ToArray())
                     {
-                        // if input param exists, make sure param access is correct
-                        var (input, _) = inputs[param.Name];
-                        param.Access = RemoteDefinition.AccessFromInput(input);
+                        if (!outputs.ContainsKey(param.Name))
+                        {
+                            buildOutputs = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Remove all existing inputs and outputs
+                if (buildInputs)
+                {
+                    foreach (var param in Params.Input.ToArray())
+                    {
+                        Params.UnregisterInputParameter(param);
+                    }
+                }
+                if (buildOutputs)
+                {
+                    foreach (var param in Params.Output.ToArray())
+                    {
+                        Params.UnregisterOutputParameter(param);
+                    }
+                }
+
+                bool recompute = false;
+                if (buildInputs && inputs != null)
+                {
+                    bool containsEmptyDefaults = false;
+                    var mgr = CreateInputManager();
+
+                    if (_showEnabledInput)
+                        mgr.AddBooleanParameter("__Enabled", "Enabled", "Enabled state for solving", GH_ParamAccess.item, true);
+
+                    foreach (var kv in inputs)
+                    {
+                        string name = kv.Key;
+                        var (input, param) = kv.Value;
+                        GH_ParamAccess access = RemoteDefinition.AccessFromInput(input);
+                        string inputDescription = name;
+                        if (!string.IsNullOrWhiteSpace(input.Description))
+                            inputDescription = input.Description;
+                        if (input.Default == null)
+                            containsEmptyDefaults = true;
+                        string nickname = name;
+                        if (!string.IsNullOrWhiteSpace(input.Nickname))
+                            nickname = input.Nickname;
+                        int paramIndex = -1;
+                        switch (param)
+                        {
+                            case Grasshopper.Kernel.Parameters.Param_Arc _:
+                                paramIndex = mgr.AddArcParameter(name, nickname, inputDescription, access);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Boolean _:
+                                if (input.Default == null)
+                                    paramIndex = mgr.AddBooleanParameter(name, nickname, inputDescription, access);
+                                else
+                                    paramIndex = mgr.AddBooleanParameter(name, nickname, inputDescription, access, Convert.ToBoolean(input.Default));
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Box _:
+                                paramIndex = mgr.AddBoxParameter(name, nickname, inputDescription, access);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Brep _:
+                                paramIndex = mgr.AddBrepParameter(name, nickname, inputDescription, access);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Circle _:
+                                paramIndex = mgr.AddCircleParameter(name, nickname, inputDescription, access);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Colour _:
+                                paramIndex = mgr.AddColourParameter(name, nickname, inputDescription, access);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Complex _:
+                                paramIndex = mgr.AddComplexNumberParameter(name, nickname, inputDescription, access);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Culture _:
+                                paramIndex = mgr.AddCultureParameter(name, nickname, inputDescription, access);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Curve _:
+                                paramIndex = mgr.AddCurveParameter(name, nickname, inputDescription, access);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Field _:
+                                paramIndex = mgr.AddFieldParameter(name, nickname, inputDescription, access);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_FilePath _:
+                                if (input.Default == null)
+                                    paramIndex = mgr.AddTextParameter(name, nickname, inputDescription, access);
+                                else
+                                    paramIndex = mgr.AddTextParameter(name, nickname, inputDescription, access, input.Default.ToString());
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_GenericObject _:
+                                throw new Exception("generic param not supported");
+                            case Grasshopper.Kernel.Parameters.Param_Geometry _:
+                                paramIndex = mgr.AddGeometryParameter(name, nickname, inputDescription, access);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Group _:
+                                throw new Exception("group param not supported");
+                            case Grasshopper.Kernel.Parameters.Param_Guid _:
+                                throw new Exception("guid param not supported");
+                            case Grasshopper.Kernel.Parameters.Param_Integer _:
+                                if (input.Default == null)
+                                    paramIndex = mgr.AddIntegerParameter(name, nickname, inputDescription, access);
+                                else
+                                    paramIndex = mgr.AddIntegerParameter(name, nickname, inputDescription, access, Convert.ToInt32(input.Default));
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Interval _:
+                                paramIndex = mgr.AddIntervalParameter(name, nickname, inputDescription, access);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Interval2D _:
+                                paramIndex = mgr.AddInterval2DParameter(name, nickname, inputDescription, access);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_LatLonLocation _:
+                                throw new Exception("latlonlocation param not supported");
+                            case Grasshopper.Kernel.Parameters.Param_Line _:
+                                if (input.Default == null)
+                                    paramIndex = mgr.AddLineParameter(name, nickname, inputDescription, access);
+                                else
+                                    paramIndex = mgr.AddLineParameter(name, nickname, inputDescription, access, JsonConvert.DeserializeObject<Line>(input.Default.ToString()));
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Matrix _:
+                                paramIndex = mgr.AddMatrixParameter(name, nickname, inputDescription, access);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Mesh _:
+                                paramIndex = mgr.AddMeshParameter(name, nickname, inputDescription, access);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_MeshFace _:
+                                paramIndex = mgr.AddMeshFaceParameter(name, nickname, inputDescription, access);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_MeshParameters _:
+                                throw new Exception("meshparameters paran not supported");
+                            case Grasshopper.Kernel.Parameters.Param_Number _:
+                                if (input.Default == null)
+                                    paramIndex = mgr.AddNumberParameter(name, nickname, inputDescription, access);
+                                else
+                                    paramIndex = mgr.AddNumberParameter(name, nickname, inputDescription, access, Convert.ToDouble(input.Default));
+                                break;
+                            //case Grasshopper.Kernel.Parameters.Param_OGLShader:
+                            case Grasshopper.Kernel.Parameters.Param_Plane _:
+                                if (input.Default == null)
+                                    paramIndex = mgr.AddPlaneParameter(name, nickname, inputDescription, access);
+                                else
+                                    paramIndex = mgr.AddPlaneParameter(name, nickname, inputDescription, access, JsonConvert.DeserializeObject<Plane>(input.Default.ToString()));
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Point _:
+                                if (input.Default == null)
+                                    paramIndex = mgr.AddPointParameter(name, nickname, inputDescription, access);
+                                else
+                                    paramIndex = mgr.AddPointParameter(name, nickname, inputDescription, access, JsonConvert.DeserializeObject<Point3d>(input.Default.ToString()));
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Rectangle _:
+                                paramIndex = mgr.AddRectangleParameter(name, nickname, inputDescription, access);
+                                break;
+                            //case Grasshopper.Kernel.Parameters.Param_ScriptVariable _:
+                            case Grasshopper.Kernel.Parameters.Param_String _:
+                                if (input.Default == null)
+                                    paramIndex = mgr.AddTextParameter(name, nickname, inputDescription, access);
+                                else
+                                    paramIndex = mgr.AddTextParameter(name, nickname, inputDescription, access, input.Default.ToString());
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_StructurePath _:
+                                paramIndex = mgr.AddPathParameter(name, nickname, inputDescription, access);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_SubD _:
+                                paramIndex = mgr.AddSubDParameter(name, nickname, inputDescription, access);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Surface _:
+                                paramIndex = mgr.AddSurfaceParameter(name, nickname, inputDescription, access);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Time _:
+                                paramIndex = mgr.AddTimeParameter(name, nickname, inputDescription, access);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Transform _:
+                                paramIndex = mgr.AddTransformParameter(name, nickname, inputDescription, access);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Vector _:
+                                if (input.Default == null)
+                                    paramIndex = mgr.AddVectorParameter(name, nickname, inputDescription, access);
+                                else
+                                    paramIndex = mgr.AddVectorParameter(name, nickname, inputDescription, access, JsonConvert.DeserializeObject<Vector3d>(input.Default.ToString()));
+                                break;
+                            case Grasshopper.Kernel.Special.GH_NumberSlider _:
+                                paramIndex = mgr.AddNumberParameter(name, nickname, inputDescription, access);
+                                break;
+                        }
+
+                        if (paramIndex >= 0 && inputSources.TryGetValue(name, out List<IGH_Param> rehookInputs))
+                        {
+                            foreach (var rehookInput in rehookInputs)
+                                Params.Input[paramIndex].AddSource(rehookInput);
+                        }
+                    }
+
+                    if (!containsEmptyDefaults)
+                        recompute = true;
+                }
+                if (buildOutputs && outputs != null)
+                {
+                    var mgr = CreateOutputManager();
+                    foreach (var kv in outputs)
+                    {
+                        string name = kv.Key;
+                        var param = kv.Value;
+                        string nickname = name;
+                        if (!string.IsNullOrWhiteSpace(param.NickName))
+                            nickname = param.NickName;
+                        string outputDescription = name;
+                        if (!string.IsNullOrWhiteSpace(param.Description))
+                            outputDescription = param.Description;
+                        switch (param)
+                        {
+                            case Grasshopper.Kernel.Parameters.Param_Arc _:
+                                mgr.AddArcParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Boolean _:
+                                mgr.AddBooleanParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Box _:
+                                mgr.AddBoxParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Brep _:
+                                mgr.AddBrepParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Circle _:
+                                mgr.AddCircleParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Colour _:
+                                mgr.AddColourParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Complex _:
+                                mgr.AddComplexNumberParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Culture _:
+                                mgr.AddCultureParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Curve _:
+                                mgr.AddCurveParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Field _:
+                                mgr.AddFieldParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_FilePath _:
+                                mgr.AddTextParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_GenericObject _:
+                                mgr.AddGenericParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Geometry _:
+                                mgr.AddGeometryParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Group _:
+                                throw new Exception("group param not supported");
+                            case Grasshopper.Kernel.Parameters.Param_Guid _:
+                                throw new Exception("guid param not supported");
+                            case Grasshopper.Kernel.Parameters.Param_Integer _:
+                                mgr.AddIntegerParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Interval _:
+                                mgr.AddIntervalParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Interval2D _:
+                                mgr.AddInterval2DParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_LatLonLocation _:
+                                throw new Exception("latlonlocation param not supported");
+                            case Grasshopper.Kernel.Parameters.Param_Line _:
+                                mgr.AddLineParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Matrix _:
+                                mgr.AddMatrixParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Mesh _:
+                                mgr.AddMeshParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_MeshFace _:
+                                mgr.AddMeshFaceParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_MeshParameters _:
+                                throw new Exception("meshparameters paran not supported");
+                            case Grasshopper.Kernel.Parameters.Param_Number _:
+                                mgr.AddNumberParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            //case Grasshopper.Kernel.Parameters.Param_OGLShader:
+                            case Grasshopper.Kernel.Parameters.Param_Plane _:
+                                mgr.AddPlaneParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Point _:
+                                mgr.AddPointParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Rectangle _:
+                                mgr.AddRectangleParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            //case Grasshopper.Kernel.Parameters.Param_ScriptVariable _:
+                            case Grasshopper.Kernel.Parameters.Param_String _:
+                                mgr.AddTextParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_StructurePath _:
+                                mgr.AddPathParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_SubD _:
+                                mgr.AddSubDParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Surface _:
+                                mgr.AddSurfaceParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Time _:
+                                mgr.AddTimeParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Transform _:
+                                mgr.AddTransformParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                            case Grasshopper.Kernel.Parameters.Param_Vector _:
+                                mgr.AddVectorParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
+                                break;
+                        }
+                    }
+                }
+
+                if (customIcon != null)
+                {
+                    // Draw hops icon overlay on custom icon. We can add an option
+                    // to the data returned from a server to skip this overlay in
+                    // the future.
+                    // Create a slightly large image so we can cram the hops overlay
+                    // deeper into the lower right corner
+                    //var bmp = new System.Drawing.Bitmap(28, 28);
+                    //using(var graphics = System.Drawing.Graphics.FromImage(bmp))
+                    //{
+                    //    // use fill to debug
+                    //    //graphics.FillRectangle(System.Drawing.Brushes.PowderBlue, 0, 0, 28, 28);
+                    //    var rect = new System.Drawing.Rectangle(2, 2, 24, 24);
+                    //    graphics.DrawImage(customIcon, rect);
+                    //    rect = new System.Drawing.Rectangle(16, 14, 14, 14);
+                    //    graphics.DrawImage(Hops24Icon(), rect);
+
+                    //}
+                    SetIconOverride(customIcon);
+                }
+                if (buildInputs || buildOutputs)
+                {
+                    Params.OnParametersChanged();
+                    Grasshopper.Instances.ActiveCanvas?.Invalidate();
+
+                    if (recompute)
+                    {
+                        var doc = OnPingDocument();
+                        if (doc != null)
+                            doc.NewSolution(true);
                     }
                 }
             }
-            if (buildOutputs && Params.Output.Count == outputs.Count)
-            {
-                buildOutputs = false;
-                foreach (var param in Params.Output.ToArray())
-                {
-                    if (!outputs.ContainsKey(param.Name))
-                    {
-                        buildOutputs = true;
-                        break;
-                    }
-                }
-            }
-
-            // Remove all existing inputs and outputs
-            if (buildInputs)
+            else
             {
                 foreach (var param in Params.Input.ToArray())
                 {
                     Params.UnregisterInputParameter(param);
                 }
-            }
-            if (buildOutputs)
-            {
-                foreach (var param in Params.Output.ToArray())
-                {
-                    Params.UnregisterOutputParameter(param);
-                }
-            }
 
-            bool recompute = false;
-            if (buildInputs && inputs != null)
-            {
-                bool containsEmptyDefaults = false;
                 var mgr = CreateInputManager();
-                foreach (var kv in inputs)
-                {
-                    string name = kv.Key;
-                    var (input, param) = kv.Value;
-                    GH_ParamAccess access = RemoteDefinition.AccessFromInput(input);
-                    string inputDescription = name;
-                    if (!string.IsNullOrWhiteSpace(input.Description))
-                        inputDescription = input.Description;
-                    if (input.Default == null)
-                        containsEmptyDefaults = true;
-                    string nickname = name;
-                    if (!string.IsNullOrWhiteSpace(input.Nickname))
-                        nickname = input.Nickname;
-                    int paramIndex = -1;
-                    switch (param)
-                    {
-                        case Grasshopper.Kernel.Parameters.Param_Arc _:
-                            paramIndex = mgr.AddArcParameter(name, nickname, inputDescription, access);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Boolean _:
-                            if (input.Default == null)
-                                paramIndex = mgr.AddBooleanParameter(name, nickname, inputDescription, access);
-                            else
-                                paramIndex = mgr.AddBooleanParameter(name, nickname, inputDescription, access, Convert.ToBoolean(input.Default));
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Box _:
-                            paramIndex = mgr.AddBoxParameter(name, nickname, inputDescription, access);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Brep _:
-                            paramIndex = mgr.AddBrepParameter(name, nickname, inputDescription, access);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Circle _:
-                            paramIndex = mgr.AddCircleParameter(name, nickname, inputDescription, access);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Colour _:
-                            paramIndex = mgr.AddColourParameter(name, nickname, inputDescription, access);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Complex _:
-                            paramIndex = mgr.AddComplexNumberParameter(name, nickname, inputDescription, access);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Culture _:
-                            paramIndex = mgr.AddCultureParameter(name, nickname, inputDescription, access);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Curve _:
-                            paramIndex = mgr.AddCurveParameter(name, nickname, inputDescription, access);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Field _:
-                            paramIndex = mgr.AddFieldParameter(name, nickname, inputDescription, access);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_FilePath _:
-                            if (input.Default == null)
-                                paramIndex = mgr.AddTextParameter(name, nickname, inputDescription, access);
-                            else
-                                paramIndex = mgr.AddTextParameter(name, nickname, inputDescription, access, input.Default.ToString());
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_GenericObject _:
-                            throw new Exception("generic param not supported");
-                        case Grasshopper.Kernel.Parameters.Param_Geometry _:
-                            paramIndex = mgr.AddGeometryParameter(name, nickname, inputDescription, access);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Group _:
-                            throw new Exception("group param not supported");
-                        case Grasshopper.Kernel.Parameters.Param_Guid _:
-                            throw new Exception("guid param not supported");
-                        case Grasshopper.Kernel.Parameters.Param_Integer _:
-                            if (input.Default == null)
-                                paramIndex = mgr.AddIntegerParameter(name, nickname, inputDescription, access);
-                            else
-                                paramIndex = mgr.AddIntegerParameter(name, nickname, inputDescription, access, Convert.ToInt32(input.Default));
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Interval _:
-                            paramIndex = mgr.AddIntervalParameter(name, nickname, inputDescription, access);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Interval2D _:
-                            paramIndex = mgr.AddInterval2DParameter(name, nickname, inputDescription, access);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_LatLonLocation _:
-                            throw new Exception("latlonlocation param not supported");
-                        case Grasshopper.Kernel.Parameters.Param_Line _:
-                            if (input.Default == null)
-                                paramIndex = mgr.AddLineParameter(name, nickname, inputDescription, access);
-                            else
-                                paramIndex = mgr.AddLineParameter(name, nickname, inputDescription, access, JsonConvert.DeserializeObject<Line>(input.Default.ToString()));
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Matrix _:
-                            paramIndex = mgr.AddMatrixParameter(name, nickname, inputDescription, access);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Mesh _:
-                            paramIndex = mgr.AddMeshParameter(name, nickname, inputDescription, access);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_MeshFace _:
-                            paramIndex = mgr.AddMeshFaceParameter(name, nickname, inputDescription, access);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_MeshParameters _:
-                            throw new Exception("meshparameters paran not supported");
-                        case Grasshopper.Kernel.Parameters.Param_Number _:
-                            if (input.Default == null)
-                                paramIndex = mgr.AddNumberParameter(name, nickname, inputDescription, access);
-                            else
-                                paramIndex = mgr.AddNumberParameter(name, nickname, inputDescription, access, Convert.ToDouble(input.Default));
-                            break;
-                        //case Grasshopper.Kernel.Parameters.Param_OGLShader:
-                        case Grasshopper.Kernel.Parameters.Param_Plane _:
-                            if (input.Default == null)
-                                paramIndex = mgr.AddPlaneParameter(name, nickname, inputDescription, access);
-                            else
-                                paramIndex = mgr.AddPlaneParameter(name, nickname, inputDescription, access, JsonConvert.DeserializeObject<Plane>(input.Default.ToString()));
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Point _:
-                            if (input.Default == null)
-                                paramIndex = mgr.AddPointParameter(name, nickname, inputDescription, access);
-                            else
-                                paramIndex = mgr.AddPointParameter(name, nickname, inputDescription, access, JsonConvert.DeserializeObject<Point3d>(input.Default.ToString()));
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Rectangle _:
-                            paramIndex = mgr.AddRectangleParameter(name, nickname, inputDescription, access);
-                            break;
-                        //case Grasshopper.Kernel.Parameters.Param_ScriptVariable _:
-                        case Grasshopper.Kernel.Parameters.Param_String _:
-                            if (input.Default == null)
-                                paramIndex = mgr.AddTextParameter(name, nickname, inputDescription, access);
-                            else
-                                paramIndex = mgr.AddTextParameter(name, nickname, inputDescription, access, input.Default.ToString());
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_StructurePath _:
-                            paramIndex = mgr.AddPathParameter(name, nickname, inputDescription, access);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_SubD _:
-                            paramIndex = mgr.AddSubDParameter(name, nickname, inputDescription, access);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Surface _:
-                            paramIndex = mgr.AddSurfaceParameter(name, nickname, inputDescription, access);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Time _:
-                            paramIndex = mgr.AddTimeParameter(name, nickname, inputDescription, access);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Transform _:
-                            paramIndex = mgr.AddTransformParameter(name, nickname, inputDescription, access);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Vector _:
-                            if(input.Default == null)
-                                paramIndex = mgr.AddVectorParameter(name, nickname, inputDescription, access);
-                            else
-                                paramIndex = mgr.AddVectorParameter(name, nickname, inputDescription, access, JsonConvert.DeserializeObject<Vector3d>(input.Default.ToString()));
-                            break;
-                        case Grasshopper.Kernel.Special.GH_NumberSlider _:
-                            paramIndex = mgr.AddNumberParameter(name, nickname, inputDescription, access);
-                            break;
-                    }
-
-                    if (paramIndex >=0 && inputSources.TryGetValue(name, out List<IGH_Param> rehookInputs))
-                    {
-                        foreach (var rehookInput in rehookInputs)
-                            Params.Input[paramIndex].AddSource(rehookInput);
-                    }
-                }
-
-                if (!containsEmptyDefaults)
-                    recompute = true;
-            }
-            if (buildOutputs && outputs != null)
-            {
-                var mgr = CreateOutputManager();
-                foreach (var kv in outputs)
-                {
-                    string name = kv.Key;
-                    var param = kv.Value;
-                    string nickname = name;
-                    if (!string.IsNullOrWhiteSpace(param.NickName))
-                        nickname = param.NickName;
-                    string outputDescription = name;
-                    if (!string.IsNullOrWhiteSpace(param.Description))
-                        outputDescription = param.Description;
-                    switch (param)
-                    {
-                        case Grasshopper.Kernel.Parameters.Param_Arc _:
-                            mgr.AddArcParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Boolean _:
-                            mgr.AddBooleanParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Box _:
-                            mgr.AddBoxParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Brep _:
-                            mgr.AddBrepParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Circle _:
-                            mgr.AddCircleParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Colour _:
-                            mgr.AddColourParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Complex _:
-                            mgr.AddComplexNumberParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Culture _:
-                            mgr.AddCultureParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Curve _:
-                            mgr.AddCurveParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Field _:
-                            mgr.AddFieldParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_FilePath _:
-                            mgr.AddTextParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_GenericObject _:
-                            mgr.AddGenericParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Geometry _:
-                            mgr.AddGeometryParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Group _:
-                            throw new Exception("group param not supported");
-                        case Grasshopper.Kernel.Parameters.Param_Guid _:
-                            throw new Exception("guid param not supported");
-                        case Grasshopper.Kernel.Parameters.Param_Integer _:
-                            mgr.AddIntegerParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Interval _:
-                            mgr.AddIntervalParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Interval2D _:
-                            mgr.AddInterval2DParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_LatLonLocation _:
-                            throw new Exception("latlonlocation param not supported");
-                        case Grasshopper.Kernel.Parameters.Param_Line _:
-                            mgr.AddLineParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Matrix _:
-                            mgr.AddMatrixParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Mesh _:
-                            mgr.AddMeshParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_MeshFace _:
-                            mgr.AddMeshFaceParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_MeshParameters _:
-                            throw new Exception("meshparameters paran not supported");
-                        case Grasshopper.Kernel.Parameters.Param_Number _:
-                            mgr.AddNumberParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        //case Grasshopper.Kernel.Parameters.Param_OGLShader:
-                        case Grasshopper.Kernel.Parameters.Param_Plane _:
-                            mgr.AddPlaneParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Point _:
-                            mgr.AddPointParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Rectangle _:
-                            mgr.AddRectangleParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        //case Grasshopper.Kernel.Parameters.Param_ScriptVariable _:
-                        case Grasshopper.Kernel.Parameters.Param_String _:
-                            mgr.AddTextParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_StructurePath _:
-                            mgr.AddPathParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_SubD _:
-                            mgr.AddSubDParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Surface _:
-                            mgr.AddSurfaceParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Time _:
-                            mgr.AddTimeParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Transform _:
-                            mgr.AddTransformParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                        case Grasshopper.Kernel.Parameters.Param_Vector _:
-                            mgr.AddVectorParameter(name, nickname, outputDescription, GH_ParamAccess.tree);
-                            break;
-                    }
-                }
-            }
-
-            if (customIcon != null)
-            {
-                // Draw hops icon overlay on custom icon. We can add an option
-                // to the data returned from a server to skip this overlay in
-                // the future.
-                // Create a slightly large image so we can cram the hops overlay
-                // deeper into the lower right corner
-                //var bmp = new System.Drawing.Bitmap(28, 28);
-                //using(var graphics = System.Drawing.Graphics.FromImage(bmp))
-                //{
-                //    // use fill to debug
-                //    //graphics.FillRectangle(System.Drawing.Brushes.PowderBlue, 0, 0, 28, 28);
-                //    var rect = new System.Drawing.Rectangle(2, 2, 24, 24);
-                //    graphics.DrawImage(customIcon, rect);
-                //    rect = new System.Drawing.Rectangle(16, 14, 14, 14);
-                //    graphics.DrawImage(Hops24Icon(), rect);
-
-                //}
-                SetIconOverride(customIcon);
-            }
-            if (buildInputs || buildOutputs)
-            {
+                if (_showEnabledInput)
+                    mgr.AddBooleanParameter("__Enabled", "Enabled", "Enabled state for solving", GH_ParamAccess.item, true);
                 Params.OnParametersChanged();
                 Grasshopper.Instances.ActiveCanvas?.Invalidate();
-
-                if (recompute)
-                {
-                    var doc = OnPingDocument();
-                    if (doc != null)
-                        doc.NewSolution(true);
-                }
             }
         }
 
