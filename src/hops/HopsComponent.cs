@@ -112,7 +112,7 @@ namespace Hops
             if (_showPathInput && DA.Iteration == 0)
             {
                 string path = "";
-                if (!DA.GetData("__Path", ref path))
+                if (!DA.GetData("_Path", ref path))
                 {
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "No URL or path defined for definition");
                     return;
@@ -134,7 +134,7 @@ namespace Hops
             if (_showEnabledInput && DA.Iteration == 0)
             {
                 bool enabled = true;
-                if (DA.GetData("__Enabled", ref enabled) && enabled == false)
+                if (DA.GetData("_Enabled", ref enabled) && enabled == false)
                 {
                     _enabledThisSolve = false;
                     return;
@@ -582,7 +582,7 @@ namespace Hops
 
                     if (_showPathInput)
                     {
-                        const string name = "__Path";
+                        const string name = "_Path";
                         int paramIndex = mgr.AddTextParameter(name, "Path", "URL to remote process", GH_ParamAccess.item);
                         if (paramIndex >= 0 && inputSources.TryGetValue(name, out List<IGH_Param> rehookInputs))
                         {
@@ -593,7 +593,7 @@ namespace Hops
 
                     if (_showEnabledInput)
                     {
-                        const string name = "__Enabled";
+                        const string name = "_Enabled";
                         int paramIndex = mgr.AddBooleanParameter(name, "Enabled", "Enabled state for solving", GH_ParamAccess.item);
                         if (paramIndex >= 0 && inputSources.TryGetValue(name, out List<IGH_Param> rehookInputs))
                         {
@@ -926,9 +926,9 @@ namespace Hops
 
                 var mgr = CreateInputManager();
                 if (_showPathInput)
-                    mgr.AddTextParameter("__Path", "Path", "URL to remote process", GH_ParamAccess.item);
+                    mgr.AddTextParameter("_Path", "Path", "URL to remote process", GH_ParamAccess.item);
                 if (_showEnabledInput)
-                    mgr.AddBooleanParameter("__Enabled", "Enabled", "Enabled state for solving", GH_ParamAccess.item, true);
+                    mgr.AddBooleanParameter("_Enabled", "Enabled", "Enabled state for solving", GH_ParamAccess.item, true);
                 Params.OnParametersChanged();
                 Grasshopper.Instances.ActiveCanvas?.Invalidate();
             }
