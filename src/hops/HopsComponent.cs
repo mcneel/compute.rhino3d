@@ -27,6 +27,7 @@ namespace Hops
         bool _synchronous = true;
         bool _showEnabledInput = false;
         bool _enabledThisSolve = true;
+        bool _showPathInput = false;
 
         SolveDataList _workingSolveList;
         int _solveSerialNumber = 0;
@@ -99,18 +100,34 @@ namespace Hops
             if (!_enabledThisSolve)
                 return;
 
-            if( string.IsNullOrWhiteSpace(RemoteDefinitionLocation))
-            {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "No URL or path defined for definition");
-                return;
-            }
-
             // Don't allow hops components to run on compute for now.
             if (_isHeadless)
             {
                 AddRuntimeMessage(
                     GH_RuntimeMessageLevel.Error,
                     "Hops components are not allowed to run in external definitions. Please help us understand why you need this by emailing steve@mcneel.com");
+                return;
+            }
+
+            if (_showPathInput && DA.Iteration == 0)
+            {
+                string path = "";
+                if (!DA.GetData("__Path", ref path))
+                {
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "No URL or path defined for definition");
+                    return;
+                }
+
+                if (!string.Equals(path, RemoteDefinitionLocation))
+                {
+                    RebuildWithNewPathAndRecompute(path);
+                    return;
+                }
+            }
+
+            if ( string.IsNullOrWhiteSpace(RemoteDefinitionLocation))
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "No URL or path defined for definition");
                 return;
             }
 
@@ -205,7 +222,8 @@ namespace Hops
         const string TagCacheResultsOnServer = "CacheSolveResults";
         const string TagCacheResultsInMemory = "CacheResultsInMemory";
         const string TagSynchronousSolve = "SynchronousSolve";
-        const string TagShowEnabled = "ShowEnabled";
+        const string TagShowEnabled = "ShowInput_Enabled";
+        const string TagShowPath = "ShowInput_Path";
 
         public override bool Write(GH_IWriter writer)
         {
@@ -218,6 +236,7 @@ namespace Hops
                 writer.SetBoolean(TagCacheResultsInMemory, _cacheResultsInMemory);
                 writer.SetBoolean(TagSynchronousSolve, _synchronous);
                 writer.SetBoolean(TagShowEnabled, _showEnabledInput);
+                writer.SetBoolean(TagShowPath, _showPathInput);
             }
             return rc;
         }
@@ -230,15 +249,6 @@ namespace Hops
                 _majorVersion = version.major;
                 _minorVersion = version.minor;
                 string path = reader.GetString(TagPath);
-                try
-                {
-                    RemoteDefinitionLocation = path;
-                }
-                catch (System.Net.WebException)
-                {
-                    // this can happen if a server is not responding and is acceptable in this
-                    // case as we want to read without throwing exceptions
-                }
 
                 bool cacheResults = _cacheResultsOnServer;
                 if (reader.TryGetBoolean(TagCacheResultsOnServer, ref cacheResults))
@@ -255,6 +265,22 @@ namespace Hops
                 bool showEnabled = _showEnabledInput;
                 if (reader.TryGetBoolean(TagShowEnabled, ref showEnabled))
                     _showEnabledInput = showEnabled;
+
+                bool showPath = _showPathInput;
+                if (reader.TryGetBoolean(TagShowPath, ref showPath))
+                    _showPathInput = showPath;
+
+                // set remote definition location last as it will need all of the
+                // previous values to define inputs and outputs
+                try
+                {
+                    RemoteDefinitionLocation = path;
+                }
+                catch (System.Net.WebException)
+                {
+                    // this can happen if a server is not responding and is acceptable in this
+                    // case as we want to read without throwing exceptions
+                }
             }
             return rc;
         }
@@ -298,7 +324,17 @@ namespace Hops
         {
             base.AppendAdditionalMenuItems(menu);
             var tsi = new ToolStripMenuItem("&Path...", null, (sender, e) => { ShowSetDefinitionUi(); });
-            tsi.Font = new System.Drawing.Font(tsi.Font, System.Drawing.FontStyle.Bold);
+            if (!_showPathInput)
+                tsi.Font = new System.Drawing.Font(tsi.Font, System.Drawing.FontStyle.Bold);
+            tsi.Enabled = !_showPathInput;
+            menu.Items.Add(tsi);
+
+            tsi = new ToolStripMenuItem("Show Input: Path", null, (s, e) => {
+                _showPathInput = !_showPathInput;
+                DefineInputsAndOutputs();
+            });
+            tsi.ToolTipText = "Create input for path";
+            tsi.Checked = _showPathInput;
             menu.Items.Add(tsi);
 
             tsi = new ToolStripMenuItem("Show Input: Enabled", null, (s, e) => {
@@ -387,6 +423,28 @@ namespace Hops
             }
         }
 
+        string _tempPath;
+        void RebuildWithNewPathAndRecompute(string path)
+        {
+            if (string.Equals(path, RemoteDefinitionLocation))
+                return;
+            _tempPath = path;
+            Rhino.RhinoApp.Idle += RebuildAfterSolution;
+        }
+
+        private void RebuildAfterSolution(object sender, EventArgs e)
+        {
+            var doc = OnPingDocument();
+            if (doc != null && doc.SolutionDepth == 0)
+            {
+                Rhino.RhinoApp.Idle -= RebuildAfterSolution;
+                RemoteDefinitionLocation = _tempPath;
+                _tempPath = null;
+            }
+        }
+
+
+
         // keep public in case external C# code wants to set this
         public string RemoteDefinitionLocation
         {
@@ -416,6 +474,20 @@ namespace Hops
                         DefineInputsAndOutputs();
                     }
                 }
+            }
+        }
+
+        public override void CollectData()
+        {
+            base.CollectData();
+            if (_showPathInput &&
+                !string.IsNullOrWhiteSpace(RemoteDefinitionLocation) &&
+                !Params.Input[0].VolatileData.IsEmpty)
+            {
+                var path = Params.Input[0].VolatileData.get_Path(0);
+                string newPath = Params.Input[0].VolatileData.get_Branch(path)[0].ToString();
+                if (!string.Equals(newPath, RemoteDefinitionLocation))
+                    RebuildWithNewPathAndRecompute(newPath);
             }
         }
 
@@ -450,8 +522,10 @@ namespace Hops
                     inputSources.Add(param.Name, new List<IGH_Param>(param.Sources));
                 }
 
-                int inputCount = inputs.Count;
+                int inputCount = inputs!=null ? inputs.Count : 0;
                 if (_showEnabledInput)
+                    inputCount++;
+                if (_showPathInput)
                     inputCount++;
                 if (buildInputs && Params.Input.Count == inputCount)
                 {
@@ -506,8 +580,27 @@ namespace Hops
                     bool containsEmptyDefaults = false;
                     var mgr = CreateInputManager();
 
+                    if (_showPathInput)
+                    {
+                        const string name = "__Path";
+                        int paramIndex = mgr.AddTextParameter(name, "Path", "URL to remote process", GH_ParamAccess.item);
+                        if (paramIndex >= 0 && inputSources.TryGetValue(name, out List<IGH_Param> rehookInputs))
+                        {
+                            foreach (var rehookInput in rehookInputs)
+                                Params.Input[paramIndex].AddSource(rehookInput);
+                        }
+                    }
+
                     if (_showEnabledInput)
-                        mgr.AddBooleanParameter("__Enabled", "Enabled", "Enabled state for solving", GH_ParamAccess.item, true);
+                    {
+                        const string name = "__Enabled";
+                        int paramIndex = mgr.AddBooleanParameter(name, "Enabled", "Enabled state for solving", GH_ParamAccess.item);
+                        if (paramIndex >= 0 && inputSources.TryGetValue(name, out List<IGH_Param> rehookInputs))
+                        {
+                            foreach (var rehookInput in rehookInputs)
+                                Params.Input[paramIndex].AddSource(rehookInput);
+                        }
+                    }
 
                     foreach (var kv in inputs)
                     {
@@ -832,6 +925,8 @@ namespace Hops
                 }
 
                 var mgr = CreateInputManager();
+                if (_showPathInput)
+                    mgr.AddTextParameter("__Path", "Path", "URL to remote process", GH_ParamAccess.item);
                 if (_showEnabledInput)
                     mgr.AddBooleanParameter("__Enabled", "Enabled", "Enabled state for solving", GH_ParamAccess.item, true);
                 Params.OnParametersChanged();
