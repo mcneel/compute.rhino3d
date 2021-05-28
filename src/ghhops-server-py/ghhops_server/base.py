@@ -144,6 +144,12 @@ class HopsBase:
             value = in_param.from_input(in_param_data)
             inputs.append(value)
 
+        if len(comp.inputs) != len(param_values):
+            return (
+                False,
+                "Input count does not match number of inputs for component"
+            )
+
         return True, inputs
 
     def _solve(self, comp, inputs):

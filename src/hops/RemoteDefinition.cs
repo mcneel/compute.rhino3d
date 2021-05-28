@@ -347,9 +347,26 @@ namespace Hops
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
                 var schema = JsonConvert.DeserializeObject<Resthopper.IO.Schema>(stringResult);
-                if (useMemoryCache && inputSchema.Algo == null)
+
+                bool rebuildDefinition = (responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError
+                    && schema.Errors.Count > 0
+                    && string.Equals(schema.Errors[0], "Bad inputs", StringComparison.OrdinalIgnoreCase));
+                rebuildDefinition |= schema.Values.Count != _outputParams.Count;
+
+                if (rebuildDefinition)
                 {
-                    Hops.MemoryCache.Set(inputJson, schema);
+                    GetRemoteDescription();
+                    _parentComponent.OnRemoteDefinitionChanged();
+                }
+                else
+                {
+                    if (responseMessage.StatusCode == System.Net.HttpStatusCode.OK)
+                    {
+                        if (useMemoryCache && inputSchema.Algo == null)
+                        {
+                            Hops.MemoryCache.Set(inputJson, schema);
+                        }
+                    }
                 }
                 _cacheKey = schema.Pointer;
                 return schema;
