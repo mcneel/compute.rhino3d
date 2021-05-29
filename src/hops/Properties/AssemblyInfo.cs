@@ -1,8 +1,8 @@
 ﻿using System;
+using System.Drawing;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Grasshopper.Kernel;
-using System.Drawing;
 using Hops;
 
 [assembly: AssemblyTitle("Hops")]
@@ -28,8 +28,8 @@ namespace Hops
             TheAssemblyInfo = this;
         }
 
-        public const string AppVersion = "0.5.0.0";
-        
+        public const string AppVersion = "0.6.0.0";
+
         public override Bitmap Icon
         {
             get
