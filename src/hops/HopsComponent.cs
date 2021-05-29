@@ -323,6 +323,23 @@ namespace Hops
         public override void AppendAdditionalMenuItems(ToolStripDropDown menu)
         {
             base.AppendAdditionalMenuItems(menu);
+
+            // remove parallel computing and variable parameters menu items
+            // as they aren't useful for this component
+            for (int i = menu.Items.Count - 1; i >= 0; i--)
+            {
+                if (menu.Items[i].Text.Equals("parallel computing", StringComparison.OrdinalIgnoreCase))
+                {
+                    menu.Items.RemoveAt(i);
+                    continue;
+                }
+                if (menu.Items[i].Text.Equals("variable parameters", StringComparison.OrdinalIgnoreCase))
+                {
+                    menu.Items.RemoveAt(i);
+                    continue;
+                }
+            }
+
             var tsi = new ToolStripMenuItem("&Path...", null, (sender, e) => { ShowSetDefinitionUi(); });
             if (!_showPathInput)
                 tsi.Font = new System.Drawing.Font(tsi.Font, System.Drawing.FontStyle.Bold);
