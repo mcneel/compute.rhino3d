@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.6.0] - Unreleased
+## [0.6.0] - 2021-05-30
 ### Added
 - Path input (optional)
 - Enabled input (optional)
@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Hid some preference controls on Mac that are only meant for Windows
 - Component attempts to detect when inputs/outputs on a server have changed and will rebuild itself
+- Removed parallel computing and variable parameters context menu items as they were unnecessary
 
 ## [0.5.0] - 2021-05-18
 ### Added
