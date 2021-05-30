@@ -58,6 +58,11 @@ namespace Hops
         public override Guid ComponentGuid => GetType().GUID;
         public override GH_Exposure Exposure => GH_Exposure.tertiary;
 
+        protected override string HtmlHelp_Source()
+        {
+            return "GOTO:https://developer.rhino3d.com/guides/grasshopper/hops-component/";
+        }
+
         protected override void RegisterInputParams(GH_InputParamManager pManager)
         {
             // Nothing to do here. Inputs and outputs are dynamically created
