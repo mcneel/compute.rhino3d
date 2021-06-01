@@ -351,7 +351,11 @@ namespace Hops
                 bool rebuildDefinition = (responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError
                     && schema.Errors.Count > 0
                     && string.Equals(schema.Errors[0], "Bad inputs", StringComparison.OrdinalIgnoreCase));
-                rebuildDefinition |= schema.Values.Count != _outputParams.Count;
+                if (!rebuildDefinition)
+                {
+                    if (schema.Values.Count > 0 && schema.Values.Count != _outputParams.Count)
+                        rebuildDefinition = true;
+                }
 
                 if (rebuildDefinition)
                 {

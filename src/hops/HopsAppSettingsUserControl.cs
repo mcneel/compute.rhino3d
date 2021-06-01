@@ -3,7 +3,7 @@ using System.Windows.Forms;
 
 namespace Hops
 {
-    public partial class HopsAppSettingsUserControl : UserControl
+    partial class HopsAppSettingsUserControl : UserControl
     {
         public HopsAppSettingsUserControl()
         {
