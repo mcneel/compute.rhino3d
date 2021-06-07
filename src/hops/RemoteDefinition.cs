@@ -482,6 +482,12 @@ namespace Hops
                         obj.ResolvedData = lineResult;
                         return lineResult;
                     }
+                case "Rhino.Geometry.Plane":
+                    {
+                        var planeResult = new Grasshopper.Kernel.Types.GH_Plane(JsonConvert.DeserializeObject<Plane>(data));
+                        obj.ResolvedData = planeResult;
+                        return planeResult;
+                    }
                 case "Rhino.Geometry.Point3d":
                     {
                         var pointResult = new Grasshopper.Kernel.Types.GH_Point(JsonConvert.DeserializeObject<Point3d>(data));
