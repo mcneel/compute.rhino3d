@@ -104,7 +104,6 @@ namespace compute.geometry
             Log.Information("Launching RhinoCore library as {User}", Environment.UserName);
             Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
 
-            // if RHINO_TOKEN was set at the process level, delete it now to prevent exposure through malicious scripts
             Environment.SetEnvironmentVariable("RHINO_TOKEN", null, EnvironmentVariableTarget.Process);
 
             Rhino.Runtime.HostUtils.OnExceptionReport += (source, ex) => {
