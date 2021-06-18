@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.7.0] - unreleased
 ### Added
 - Nested hops calls now permitted with a recursion limit of 10. This limit can be modified by changing a GH app setting
+- Components in named RH_OUT groups are now supported
 
 ### Fixed
 - String inputs/outputs were not getting unescaped when passed back and forth between hops and compute
