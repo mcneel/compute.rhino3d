@@ -460,7 +460,14 @@ namespace Hops
                     }
                 case "System.String":
                     {
-                        var stringResult = new Grasshopper.Kernel.Types.GH_String(data);
+                        string unescaped = data;
+                        // TODO: This is a a hack. I understand that JSON needs to escape
+                        // embedded JSON, but I'm not particularly happy with the following code
+                        if (unescaped.Trim().StartsWith("{") && unescaped.Contains("\\"))
+                        {
+                            unescaped = System.Text.RegularExpressions.Regex.Unescape(data);
+                        }
+                        var stringResult = new Grasshopper.Kernel.Types.GH_String(unescaped);
                         obj.ResolvedData = stringResult;
                         return stringResult;
                     }
