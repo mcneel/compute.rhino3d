@@ -96,6 +96,9 @@ namespace compute.geometry
                 if (definition == null)
                     throw new Exception("Unable to load grasshopper definition");
 
+                int recursionLevel = input.RecursionLevel + 1;
+                definition.Definition.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(recursionLevel));
+
                 definition.SetInputs(input.Values);
                 long decodeTime = stopwatch.ElapsedMilliseconds;
                 stopwatch.Restart();

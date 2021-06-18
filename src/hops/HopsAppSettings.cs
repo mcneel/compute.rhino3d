@@ -13,6 +13,7 @@ namespace Hops
         const string LOCAL_WORKER_COUNT = "Hops:LocalWorkerCount";
         //const string SYNCHRONOUS_WAIT_TIME = "Hops:SynchronousWaitTime";
         const string MAX_CONCURRENT_REQUESTS = "Hops:MaxConcurrentRequests";
+        const string RECURSION_LIMIT = "Hops:RecursionLimit";
 
         public static string[] Servers
         {
@@ -88,6 +89,19 @@ namespace Hops
             }
         }
 
+        public static int RecursionLimit
+        {
+            get
+            {
+                int limit = Grasshopper.Instances.Settings.GetValue(RECURSION_LIMIT, 10);
+                return limit;
+            }
+            set
+            {
+                if (value >= 0)
+                    Grasshopper.Instances.Settings.SetValue(RECURSION_LIMIT, value);
+            }
+        }
         //static int _waittime;
         //public static int SynchronousWaitTime
         //{
