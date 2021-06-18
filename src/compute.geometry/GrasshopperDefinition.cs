@@ -319,7 +319,8 @@ namespace compute.geometry
                                     for (int i = 0; i < entree.Value.Count; i++)
                                     {
                                         ResthopperObject restobj = entree.Value[i];
-                                        strings[i] = restobj.Data.Trim(new char[] { '"' });
+                                        // Use JsonConvert to properly unescape the string
+                                        strings[i] = JsonConvert.DeserializeObject<string>(restobj.Data);
                                     }
                                     contextualParameter.AssignContextualData(strings);
                                     break;
@@ -1095,6 +1096,8 @@ namespace compute.geometry
                         break;
                     case Grasshopper.Kernel.Special.GH_NumberSlider paramSlider:
                         return paramSlider.CurrentValue;
+                    case Grasshopper.Kernel.Special.GH_Panel paramPanel:
+                        return paramPanel.UserText;
                 }
                 return null;
             }
