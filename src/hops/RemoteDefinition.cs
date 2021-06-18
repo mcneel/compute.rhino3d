@@ -702,10 +702,12 @@ namespace Hops
             return GH_ParamAccess.list;
         }
 
-        public Schema CreateSolveInput(IGH_DataAccess DA, bool cacheSolveOnServer, out List<string> warnings)
+        public Schema CreateSolveInput(IGH_DataAccess DA, bool cacheSolveOnServer, int recursionLevel,
+            out List<string> warnings)
         {
             warnings = new List<string>();
             var schema = new Resthopper.IO.Schema();
+            schema.RecursionLevel = recursionLevel;
 
             schema.CacheSolve = cacheSolveOnServer;
             var inputs = GetInputParams();

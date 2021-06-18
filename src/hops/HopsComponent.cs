@@ -31,6 +31,7 @@ namespace Hops
 
         SolveDataList _workingSolveList;
         int _solveSerialNumber = 0;
+        int _solveRecursionLevel = 0;
         static bool _isHeadless = false;
         static int _currentSolveSerialNumber = 1;
         #endregion
@@ -77,6 +78,15 @@ namespace Hops
         {
             Message = "";
             _enabledThisSolve = true;
+
+            _solveRecursionLevel = 0;
+            if (_isHeadless)
+            {
+                // compute will set the ComputeRecursionLevel
+                var doc = OnPingDocument();
+                _solveRecursionLevel = doc.ConstantServer["ComputeRecursionLevel"]._Int;
+            }
+
             if (!_solvedCallback)
             {
                 _solveSerialNumber = _currentSolveSerialNumber++;
@@ -105,12 +115,13 @@ namespace Hops
             if (!_enabledThisSolve)
                 return;
 
-            // Don't allow hops components to run on compute for now.
-            if (_isHeadless)
+            // Limit recursive calls on compute
+            if (_isHeadless && _solveRecursionLevel > HopsAppSettings.RecursionLimit)
             {
+                // Don't allow hops components to run on compute for now. Recursive calls will lock
                 AddRuntimeMessage(
                     GH_RuntimeMessageLevel.Error,
-                    "Hops components are not allowed to run in external definitions. Please help us understand why you need this by emailing steve@mcneel.com");
+                    $"Hops recursion level beyond limit of {HopsAppSettings.RecursionLimit}. Please help us understand why you need this by emailing steve@mcneel.com");
                 return;
             }
 
@@ -156,7 +167,7 @@ namespace Hops
                 }
 
                 List<string> warnings;
-                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheResultsOnServer, out warnings);
+                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheResultsOnServer, _solveRecursionLevel, out warnings);
                 if (warnings != null && warnings.Count > 0)
                 {
                     foreach (var warning in warnings)
@@ -193,7 +204,7 @@ namespace Hops
             if (!GetSolveResults(DA, out var schema))
             {
                 List<string> warnings;
-                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheResultsOnServer, out warnings);
+                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheResultsOnServer, _solveRecursionLevel, out warnings);
                 if (warnings != null && warnings.Count > 0)
                 {
                     foreach (var warning in warnings)

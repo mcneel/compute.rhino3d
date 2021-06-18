@@ -19,6 +19,10 @@ namespace Resthopper.IO
         [JsonProperty(PropertyName = "cachesolve")]
         public bool CacheSolve { get; set; } = false;
 
+        // Used for nested calls
+        [JsonProperty(PropertyName = "recursionlevel")]
+        public int RecursionLevel { get; set; } = 0;
+
         [JsonProperty(PropertyName = "values")]
         public List<DataTree<ResthopperObject>> Values { get; set; } = new List<DataTree<ResthopperObject>>();
 
