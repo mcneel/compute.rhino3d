@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - unreleased
+### Added
+- Nested hops calls now permitted with a recursion limit of 10. This limit can be modified by changing a GH app setting
+
+### Fixed
+- String inputs/outputs were not getting unescaped when passed back and forth between hops and compute
+
 ## [0.6.0] - 2021-05-30
 ### Added
 - Path input (optional)
@@ -15,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hid some preference controls on Mac that are only meant for Windows
 - Component attempts to detect when inputs/outputs on a server have changed and will rebuild itself
 - Removed parallel computing and variable parameters context menu items as they were unnecessary
+- [0.6.2] Planes were not supported as a data type to be passed between processes
 
 ## [0.5.0] - 2021-05-18
 ### Added
