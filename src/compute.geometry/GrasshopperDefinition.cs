@@ -201,10 +201,25 @@ namespace compute.geometry
 
                 if (nickname.Contains("RH_OUT") && groupObjects.Count > 0)
                 {
-                    var param = groupObjects[0] as IGH_Param;
-                    if (param != null)
+                    if (groupObjects[0] is IGH_Param param)
                     {
                         rc._output[nickname] = param;
+                    }
+                    else if(groupObjects[0] is GH_Component component)
+                    {
+                        int outputCount = component.Params.Output.Count;
+                        for(int i=0; i<outputCount; i++)
+                        {
+                            if(1==outputCount)
+                            {
+                                rc._output[nickname] = component.Params.Output[i];
+                            }
+                            else
+                            {
+                                string itemName = $"{nickname} ({component.Params.Output[i].NickName})";
+                                rc._output[itemName] = component.Params.Output[i];
+                            }
+                        }
                     }
                 }
             }
