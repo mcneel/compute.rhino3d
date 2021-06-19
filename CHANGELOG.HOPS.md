@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - String inputs/outputs were not getting unescaped when passed back and forth between hops and compute
+- Points, lines, circles were not getting converted to geometry when input to a "Get Geometry" component
 
 ## [0.6.0] - 2021-05-30
 ### Added
