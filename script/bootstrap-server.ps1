@@ -66,7 +66,7 @@ Install-WindowsFeature -name Web-Server -IncludeManagementTools
 
 Write-Step 'Configure URL reservation (80 and 443)'
 Start-Process "netsh" -ArgumentList "http", "add", "urlacl", "url='http://+:80/'", "user='Everyone'"
-Start-Process "netsh" -ArgumentList "http", "add", "urlacl", "url='http://+:443/'", "user='Everyone'"
+Start-Process "netsh" -ArgumentList "http", "add", "urlacl", "url='https://+:443/'", "user='Everyone'"
 
 Write-Step 'Download and unzip latest build of compute'
 if ((Test-Path "$appDirectory\compute") -eq $false) {
