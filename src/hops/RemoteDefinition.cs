@@ -274,6 +274,18 @@ namespace Hops
             }
         }
 
+        static Schema SafeSchemaDeserialize(string data)
+        {
+            try
+            {
+                return JsonConvert.DeserializeObject<Resthopper.IO.Schema>(data);
+            }
+            catch (Exception)
+            {
+            }
+            return null;
+        }
+
         public Schema Solve(Schema inputSchema, bool useMemoryCache)
         {
             string solveUrl;
@@ -307,7 +319,11 @@ namespace Hops
             {
                 var postTask = HttpClient.PostAsync(solveUrl, content);
                 var responseMessage = postTask.Result;
-                if (responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                var remoteSolvedData = responseMessage.Content;
+                var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
+                Schema schema = SafeSchemaDeserialize(stringResult);
+
+                if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
                 {
                     bool fileExists = File.Exists(Path);
                     if (fileExists && string.IsNullOrEmpty(inputSchema.Algo))
@@ -319,7 +335,10 @@ namespace Hops
                         var content2 = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
                         postTask = HttpClient.PostAsync(solveUrl, content2);
                         responseMessage = postTask.Result;
-                        if (responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                        remoteSolvedData = responseMessage.Content;
+                        stringResult = remoteSolvedData.ReadAsStringAsync().Result;
+                        schema = SafeSchemaDeserialize(stringResult);
+                        if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
                         {
                             var badSchema = new Schema();
                             badSchema.Errors.Add("Unable to solve on compute");
@@ -343,10 +362,6 @@ namespace Hops
                     badSchema.Errors.Add($"Request timeout: {Path}");
                     return badSchema;
                 }
-
-                var remoteSolvedData = responseMessage.Content;
-                var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-                var schema = JsonConvert.DeserializeObject<Resthopper.IO.Schema>(stringResult);
 
                 bool rebuildDefinition = (responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError
                     && schema.Errors.Count > 0
