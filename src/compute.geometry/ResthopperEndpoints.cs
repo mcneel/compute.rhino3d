@@ -134,23 +134,18 @@ namespace compute.geometry
                     body = body.Substring(1, body.Length - 2);
 
                 Schema input = JsonConvert.DeserializeObject<Schema>(body);
-                lock (_ghsolvelock)
+
+                // load grasshopper file
+                definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
+                if (definition == null)
                 {
-                    // load grasshopper file
-                    definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
-                    if (definition == null)
-                    {
-                        definition = GrasshopperDefinition.FromBase64String(input.Algo, true);
-                    }
+                    definition = GrasshopperDefinition.FromBase64String(input.Algo, true);
                 }
             }
             else
             {
                 string url = Request.Query["Pointer"].ToString();
-                lock (_ghsolvelock)
-                {
-                    definition = GrasshopperDefinition.FromUrl(url, true);
-                }
+                definition = GrasshopperDefinition.FromUrl(url, true);
             }
 
             if (definition == null)
