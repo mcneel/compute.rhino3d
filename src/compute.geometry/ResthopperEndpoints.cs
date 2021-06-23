@@ -58,6 +58,45 @@ namespace compute.geometry
         }
 
         static object _ghsolvelock = new object();
+
+        static Response GrasshopperSolveHelper(Schema input, string body, System.Diagnostics.Stopwatch stopwatch)
+        {
+            // load grasshopper file
+            GrasshopperDefinition definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
+            if (definition == null && !string.IsNullOrWhiteSpace(input.Algo))
+            {
+                definition = GrasshopperDefinition.FromBase64String(input.Algo, true);
+            }
+            if (definition == null)
+                throw new Exception("Unable to load grasshopper definition");
+
+            int recursionLevel = input.RecursionLevel + 1;
+            definition.Definition.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(recursionLevel));
+
+            definition.SetInputs(input.Values);
+            long decodeTime = stopwatch.ElapsedMilliseconds;
+            stopwatch.Restart();
+            var output = definition.Solve();
+            output.Pointer = definition.CacheKey;
+            long solveTime = stopwatch.ElapsedMilliseconds;
+            stopwatch.Restart();
+            string returnJson = JsonConvert.SerializeObject(output, GeometryResolver.Settings);
+            long encodeTime = stopwatch.ElapsedMilliseconds;
+            Response res = returnJson;
+            res.ContentType = "application/json";
+            res = res.WithHeader("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
+            if (definition.HasErrors)
+                res.StatusCode = Nancy.HttpStatusCode.InternalServerError;
+            else
+            {
+                if (input.CacheSolve)
+                {
+                    DataCache.SetCachedSolveResults(body, returnJson, definition);
+                }
+            }
+            return res;
+        }
+
         static Response Grasshopper(NancyContext ctx)
         {
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -78,6 +117,12 @@ namespace compute.geometry
                 }
             }
 
+            // we can't block on recursive calls
+            if (input.RecursionLevel > 0)
+            {
+                return GrasshopperSolveHelper(input, body, stopwatch);
+            }
+
             // 5 Feb 2021 S. Baer
             // Throw a lock around the entire solve process for now. I can easily
             // repeat multi-threaded issues by creating a catenary component with Hops
@@ -87,40 +132,7 @@ namespace compute.geometry
             // to deal with solving many times simultaniously.
             lock (_ghsolvelock)
             {
-                // load grasshopper file
-                GrasshopperDefinition definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
-                if (definition == null && !string.IsNullOrWhiteSpace(input.Algo))
-                {
-                    definition = GrasshopperDefinition.FromBase64String(input.Algo, true);
-                }
-                if (definition == null)
-                    throw new Exception("Unable to load grasshopper definition");
-
-                int recursionLevel = input.RecursionLevel + 1;
-                definition.Definition.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(recursionLevel));
-
-                definition.SetInputs(input.Values);
-                long decodeTime = stopwatch.ElapsedMilliseconds;
-                stopwatch.Restart();
-                var output = definition.Solve();
-                output.Pointer = definition.CacheKey;
-                long solveTime = stopwatch.ElapsedMilliseconds;
-                stopwatch.Restart();
-                string returnJson = JsonConvert.SerializeObject(output, GeometryResolver.Settings);
-                long encodeTime = stopwatch.ElapsedMilliseconds;
-                Response res = returnJson;
-                res.ContentType = "application/json";
-                res = res.WithHeader("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
-                if (definition.HasErrors)
-                    res.StatusCode = Nancy.HttpStatusCode.InternalServerError;
-                else
-                {
-                    if (input.CacheSolve)
-                    {
-                        DataCache.SetCachedSolveResults(body, returnJson, definition);
-                    }
-                }
-                return res;
+                return GrasshopperSolveHelper(input, body, stopwatch);
             }
         }
 
