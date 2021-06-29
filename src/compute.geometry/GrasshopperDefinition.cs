@@ -651,7 +651,7 @@ namespace compute.geometry
 
         }
 
-        public Schema Solve()
+        public Schema Solve(bool expireAllObjects = false)
         {
             HasErrors = false;
             Schema outputSchema = new Schema();
@@ -659,7 +659,7 @@ namespace compute.geometry
 
             // solve definition
             Definition.Enabled = true;
-            Definition.NewSolution(false, GH_SolutionMode.CommandLine);
+            Definition.NewSolution(expireAllObjects, GH_SolutionMode.CommandLine);
 
             LogRuntimeMessages(Definition.ActiveObjects(), outputSchema);
 
