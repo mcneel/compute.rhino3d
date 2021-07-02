@@ -334,8 +334,20 @@ namespace compute.geometry
                                     for (int i = 0; i < entree.Value.Count; i++)
                                     {
                                         ResthopperObject restobj = entree.Value[i];
-                                        // Use JsonConvert to properly unescape the string
-                                        strings[i] = JsonConvert.DeserializeObject<string>(restobj.Data);
+                                        // 2 July 2021 S. Baer (Github issue #394)
+                                        // This is pretty hacky and I wish I understood json.net a bit more
+                                        // to figure out why it is throwing exceptions in certain cases.
+                                        // I'm hoping to support both embedded json inside of other json as
+                                        // well as plain strings.
+                                        try
+                                        {
+                                            // Use JsonConvert to properly unescape the string
+                                            strings[i] = JsonConvert.DeserializeObject<string>(restobj.Data);
+                                        }
+                                        catch(Exception)
+                                        {
+                                            strings[i] = System.Text.RegularExpressions.Regex.Unescape(restobj.Data);
+                                        }
                                     }
                                     contextualParameter.AssignContextualData(strings);
                                     break;
