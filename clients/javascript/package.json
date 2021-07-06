@@ -1,0 +1,25 @@
+{
+  "name": "compute-rhino3d",
+  "version": "0.12.1",
+  "description": "JavaScript library for compute.rhino3d.com geometry service",
+  "main": "compute.rhino3d.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mcneel/compute.rhino3d.git"
+  },
+  "keywords": [
+    "rhino3d"
+  ],
+  "author": "Robert McNeel & Associates",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mcneel/compute.rhino3d/issues"
+  },
+  "homepage": "https://github.com/mcneel/compute.rhino3d#readme",
+  "dependencies": {
+    "node-fetch": "^2.3.0"
+  }
+}

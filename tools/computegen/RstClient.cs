@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -7,12 +8,12 @@ namespace computegen
 {
     class RstClient
     {
-        public static void WritePythonDocs(string basePythonDirectory, ClassBuilder[] classes)
+        public static void WritePythonDocs(ClassBuilder[] classes, string distDir)
         {
+            var di = Directory.CreateDirectory(Path.Combine(distDir, "python", "docs"));
+
             PythonClient.SpacesPerTab = 3;
-            var di = new System.IO.DirectoryInfo(System.IO.Path.Combine(basePythonDirectory, "docs"));
-            if( !di.Exists )
-                di = System.IO.Directory.CreateDirectory("docs\\python");
+            
             foreach (var c in classes)
             {
                 StringBuilder sb = new StringBuilder();
@@ -134,10 +135,10 @@ Indices and tables
         }
 
 
-        public static void WriteJavascriptDocs(ClassBuilder[] classes, System.IO.DirectoryInfo di)
+        public static void WriteJavascriptDocs(ClassBuilder[] classes, string distDir)
         {
-            if (!di.Exists)
-                di.Create();
+            var di = Directory.CreateDirectory(Path.Combine(distDir, "javascript", "docs"));
+
             foreach (var c in classes)
             {
                 StringBuilder sb = new StringBuilder();
