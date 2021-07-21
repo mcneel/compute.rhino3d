@@ -9,6 +9,11 @@ namespace rhino.compute
 
     public class Program
     {
+        /// <summary>
+        /// Command line options for rhino.compute.exe. An example of the syntax is
+        /// rhino.compute.exe --childcount 8
+        /// This would launch rhino.compute with 8 child compute.geometry.exe processes
+        /// </summary>
         class Options
         {
             [Option("childof",
@@ -24,7 +29,12 @@ of this handle and will shut down when this process has exited")]
 
             [Option("idlespan", 
              Required = false,
-             HelpText = "Seconds that child compute.geometry processes should remain open between requests")]
+             HelpText = 
+@"Seconds that child compute.geometry processes should remain open between requests. (Default 1 hour)
+When rhino.compute.exe does not receive requests to solve over a period of 'idlespan' seconds, child
+compute.geometry.exe processes will shut down and stop incurring core hour billing. At some date in the
+future when a new request is received, the child processes will be relaunched which will cause a delay on
+requests while the child processes are launching.")]
             public int IdleSpanSeconds { get; set; } = 60 * 60;
 
             [Option("port",
