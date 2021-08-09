@@ -15,6 +15,7 @@ using GH_IO.Serialization;
 using Resthopper.IO;
 using Newtonsoft.Json;
 using System.Linq;
+using Serilog;
 
 namespace compute.geometry
 {
@@ -130,8 +131,15 @@ namespace compute.geometry
             var definition = new GH_Document();
             definition.AddObject(component, false);
 
-            // raise DocumentServer.DocumentAdded event (used by some plug-ins)
-            Grasshopper.Instances.DocumentServer.AddDocument(definition);
+            try
+            {
+                // raise DocumentServer.DocumentAdded event (used by some plug-ins)
+                Grasshopper.Instances.DocumentServer.AddDocument(definition);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "Exception in DocumentAdded event handler");
+            }
 
             GrasshopperDefinition rc = new GrasshopperDefinition(definition, null);
             rc._singularComponent = component;
@@ -167,8 +175,15 @@ namespace compute.geometry
             if (!archive.ExtractObject(definition, "Definition"))
                 throw new Exception("Unable to extract definition from archive");
 
-            // raise DocumentServer.DocumentAdded event (used by some plug-ins)
-            Grasshopper.Instances.DocumentServer.AddDocument(definition);
+            try
+            {
+                // raise DocumentServer.DocumentAdded event (used by some plug-ins)
+                Grasshopper.Instances.DocumentServer.AddDocument(definition);
+            }
+            catch (Exception e)
+            {
+                Log.Error(e, "Exception in DocumentAdded event handler");
+            }
 
             GrasshopperDefinition rc = new GrasshopperDefinition(definition, icon);
             foreach( var obj in definition.Objects)
