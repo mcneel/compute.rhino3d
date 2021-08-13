@@ -1043,6 +1043,15 @@ namespace compute.geometry
             {
                 switch (param)
                 {
+                    case Grasshopper.Kernel.Special.GH_Relay _:
+                        {
+                            if (param.Sources.Count == 1)
+                            {
+                                var sourceParam = param.Sources[0];
+                                return GetDefaultValueHelper(sourceParam, depth + 1);
+                            }
+                        }
+                        break;
                     case Grasshopper.Kernel.IGH_ContextualParameter _:
                         {
                             if (0 == depth && param.Sources.Count == 1)
