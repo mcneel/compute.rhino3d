@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 - Default values for "Get" components can be resolved when relays are in between the component and upstream data
+- Custom icons for hops components are always resized to 24x24
 
 ## [0.7.0] - 2021-06-23
 ### Added
