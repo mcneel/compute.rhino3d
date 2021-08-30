@@ -229,6 +229,13 @@ namespace Hops
                             using (var ms = new MemoryStream(bytes))
                             {
                                 _customIcon = new System.Drawing.Bitmap(ms);
+                                if (_customIcon != null && (_customIcon.Width != 24 || _customIcon.Height != 24))
+                                {
+                                    // Make sure the custom icon is 24x24 which is what GH expects.
+                                    var temp = _customIcon;
+                                    _customIcon = new System.Drawing.Bitmap(temp, new System.Drawing.Size(24, 24));
+                                    temp.Dispose();
+                                }
                             }
                         }
                     }
