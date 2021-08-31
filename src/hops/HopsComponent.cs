@@ -400,9 +400,14 @@ namespace Hops
             tsi.Checked = _cacheResultsOnServer;
             menu.Items.Add(tsi);
 
+            var exportTsi = new ToolStripMenuItem("Export");
+            exportTsi.Enabled = _remoteDefinition != null;
+            menu.Items.Add(exportTsi);
             tsi = new ToolStripMenuItem("Export python sample...", null, (s, e) => { ExportAsPython(); });
-            tsi.Enabled = _remoteDefinition!=null;
-            menu.Items.Add(tsi);
+            exportTsi.DropDownItems.Add(tsi);
+
+            tsi = new ToolStripMenuItem("Export input as json...", null, (s, e) => { ExportAsJson(); });
+            exportTsi.DropDownItems.Add(tsi);
         }
 
         /// <summary>
@@ -542,6 +547,25 @@ for value in values:
 ");
                 System.IO.File.WriteAllText(dlg.FileName, sb.ToString());
             }
+        }
+
+        void ExportAsJson()
+        {
+            if (_lastCreatedSchema == null)
+            {
+                Eto.Forms.MessageBox.Show("No input created. Run this component at least once", Eto.Forms.MessageBoxType.Error);
+                return;
+            }
+
+            var dlg = new Eto.Forms.SaveFileDialog();
+            dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
+            if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
+            {
+                var sb = new System.Text.StringBuilder();
+                sb.Append(JsonConvert.SerializeObject(_lastCreatedSchema.Values));
+                System.IO.File.WriteAllText(dlg.FileName, sb.ToString());
+            }
+
         }
 
         string _tempPath;
