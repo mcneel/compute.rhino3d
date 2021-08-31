@@ -79,7 +79,7 @@ namespace Hops
         {
             Message = "";
             _enabledThisSolve = true;
-            _workingSolveList = null;
+            _lastCreatedSchema = null;
             _solveRecursionLevel = 0;
             if (_isHeadless)
             {
