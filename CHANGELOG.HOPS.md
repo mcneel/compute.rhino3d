@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Export python sample added to Hops component context menu
+- Export JSON added to Hops component context menu
 
 ### Fixed
 - Default values for "Get" components can be resolved when relays are in between the component and upstream data
