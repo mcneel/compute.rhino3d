@@ -118,7 +118,9 @@ namespace compute.geometry
                 options.Urls.Add(url);
             }
 
-            Log.Information("Starting listener(s): {Urls}", _bind);
+            // Don't log listener urls when this is a child process. It is confusing
+            if (Shutdown.ParentProcesses == null)
+                Log.Information("Starting listener(s): {Urls}", _bind);
 
             // start listener and unpack HttpListenerException if thrown
             // (missing urlacl or lack of permissions)
@@ -137,7 +139,8 @@ namespace compute.geometry
                 throw ex;
             }
 
-            Log.Information("Listening on {Urls}", _bind);
+            if (Shutdown.ParentProcesses == null)
+                Log.Information("Listening on {Urls}", _bind);
 
             // when running in a console (not as a service), i.e. when launched as a child process of hops
             // update console title to differentiate windows (ports) and start parent process shutdown timer
