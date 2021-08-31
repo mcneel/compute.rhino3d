@@ -17,7 +17,8 @@ namespace Hops
             GrasshopperDefinition,
             ComponentGuid,
             Server,
-            NonresponsiveUrl
+            NonresponsiveUrl,
+            InvalidUrl //responding, but does not appear to have anything to do with solving
         }
 
         HopsComponent _parentComponent;
@@ -52,6 +53,12 @@ namespace Hops
         {
             var pathtype = GetPathType();
             return pathtype == PathType.NonresponsiveUrl;
+        }
+
+        public bool IsInvalidUrl()
+        {
+            var pathtype = GetPathType();
+            return pathtype == PathType.InvalidUrl;
         }
 
         public void ResetPathType()
@@ -189,7 +196,11 @@ namespace Hops
                 var responseMessage = responseTask.Result;
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-                if (!string.IsNullOrEmpty(stringResult))
+                if (string.IsNullOrEmpty(stringResult))
+                {
+                    _pathType = PathType.InvalidUrl; // Looks like a valid but not related URL
+                }
+                else
                 {
                     responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(stringResult);
                     _cacheKey = responseSchema.CacheKey;

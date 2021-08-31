@@ -624,6 +624,13 @@ for value in values:
                     return;
                 }
 
+                if (_remoteDefinition.IsInvalidUrl())
+                {
+                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Path appears valid, but to something that is not Hops related");
+                    Grasshopper.Instances.ActiveCanvas?.Invalidate();
+                    return;
+                }
+
                 if (!string.IsNullOrWhiteSpace(description) && !Description.Equals(description))
                 {
                     Description = description;
