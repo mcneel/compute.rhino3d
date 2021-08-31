@@ -78,6 +78,7 @@ namespace Resthopper.IO
         [JsonProperty(PropertyName = "data")]
         public string Data { get; set; }
 
+        [JsonIgnore]
         public object ResolvedData { get; set; }
 
         [JsonConstructor]
