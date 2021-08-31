@@ -32,6 +32,7 @@ namespace Hops
         SolveDataList _workingSolveList;
         int _solveSerialNumber = 0;
         int _solveRecursionLevel = 0;
+        Schema _lastCreatedSchema = null;
         static bool _isHeadless = false;
         static int _currentSolveSerialNumber = 1;
         #endregion
@@ -178,6 +179,7 @@ namespace Hops
                 }
                 if (inputSchema != null)
                 {
+                    _lastCreatedSchema = inputSchema;
                     _workingSolveList.Add(inputSchema);
                 }
                 return;
@@ -214,7 +216,10 @@ namespace Hops
                     return;
                 }
                 if (inputSchema != null)
+                {
                     schema = _remoteDefinition.Solve(inputSchema, _cacheResultsInMemory);
+                    _lastCreatedSchema = inputSchema;
+                }
                 else
                     schema = null;
             }
@@ -392,6 +397,10 @@ namespace Hops
             tsi.ToolTipText = "Tell the compute server to cache results for reuse in the future";
             tsi.Checked = _cacheResultsOnServer;
             menu.Items.Add(tsi);
+
+            tsi = new ToolStripMenuItem("Export python sample...", null, (s, e) => { ExportAsPython(); });
+            tsi.Enabled = _remoteDefinition!=null;
+            menu.Items.Add(tsi);
         }
 
         /// <summary>
@@ -453,6 +462,83 @@ namespace Hops
                     RemoteDefinitionLocation = comp.Guid.ToString();
                 else
                     RemoteDefinitionLocation = form.Path;
+            }
+        }
+
+        void ExportAsPython()
+        {
+            if (_lastCreatedSchema == null)
+            {
+                Eto.Forms.MessageBox.Show("No input created. Run this component at least once", Eto.Forms.MessageBoxType.Error);
+                return;
+            }
+
+            var dlg = new Eto.Forms.SaveFileDialog();
+            dlg.Filters.Add(new Eto.Forms.FileFilter("Python script", ".py"));
+            if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
+            {
+                string solveUrl = Servers.GetSolveUrl();
+                if (solveUrl.EndsWith("grasshopper", StringComparison.InvariantCultureIgnoreCase))
+                    solveUrl = solveUrl.Substring(0, solveUrl.Length - "grasshopper".Length);
+                var sb = new System.Text.StringBuilder();
+                sb.Append(@"# pip install compute_rhino3d and rhino3dm
+import compute_rhino3d.Util
+import compute_rhino3d.Grasshopper as gh
+import rhino3dm
+import json
+
+compute_rhino3d.Util.url = '");
+                sb.Append(solveUrl);
+sb.Append(@"'
+
+# create DataTree for each input
+input_trees = []
+");
+
+                foreach(var val in _lastCreatedSchema.Values)
+                {
+                    sb.AppendLine($"tree = gh.DataTree(\"{val.ParamName}\")");
+                    foreach (var kv in val.InnerTree)
+                    {
+                        List<string> values = new List<string>();
+                        foreach (var v in kv.Value)
+                            values.Add(v.Data);
+                        string innerData = JsonConvert.SerializeObject(values);
+                        sb.AppendLine($"tree.Append([{kv.Key}], {innerData})");
+                        sb.AppendLine("input_trees.append(tree)");
+                        sb.AppendLine();
+                    }
+                }
+
+                sb.AppendLine($"output = gh.EvaluateDefinition('{RemoteDefinitionLocation.Replace("\\", "\\\\")}', input_trees)");
+                sb.Append(@"errors = output['errors']
+if errors:
+    print('ERRORS')
+    for error in errors:
+        print(error)
+warnings = output['warnings']
+if warnings:
+    print('WARNINGS')
+    for warning in warnings:
+        print(warning)
+
+values = output['values']
+for value in values:
+    name = value['ParamName']
+    inner_tree = value['InnerTree']
+    print(name)
+    for path in inner_tree:
+        print(path)
+        values_at_path = inner_tree[path]
+        for value_at_path in values_at_path:
+            data = value_at_path['data']
+            if isinstance(data, str) and 'archive3dm' in data:
+                obj = rhino3dm.CommonObject.Decode(json.loads(data))
+                print(obj)
+            else:
+                print(data)
+");
+                System.IO.File.WriteAllText(dlg.FileName, sb.ToString());
             }
         }
 
