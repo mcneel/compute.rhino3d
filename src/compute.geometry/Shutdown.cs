@@ -6,7 +6,7 @@ namespace compute.geometry
     class Shutdown
     {
         static System.Threading.Timer _timer;
-        static Dictionary<int, System.Diagnostics.Process> ParentProcesses { get; set; }
+        internal static Dictionary<int, System.Diagnostics.Process> ParentProcesses { get; set; }
         static int _parentPort = -1;
         static int _idleSpan = -1;
 
