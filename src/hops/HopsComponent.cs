@@ -79,7 +79,7 @@ namespace Hops
         {
             Message = "";
             _enabledThisSolve = true;
-
+            _lastCreatedSchema = null;
             _solveRecursionLevel = 0;
             if (_isHeadless)
             {
@@ -179,7 +179,8 @@ namespace Hops
                 }
                 if (inputSchema != null)
                 {
-                    _lastCreatedSchema = inputSchema;
+                    if (_lastCreatedSchema==null)
+                        _lastCreatedSchema = inputSchema;
                     _workingSolveList.Add(inputSchema);
                 }
                 return;
@@ -218,7 +219,8 @@ namespace Hops
                 if (inputSchema != null)
                 {
                     schema = _remoteDefinition.Solve(inputSchema, _cacheResultsInMemory);
-                    _lastCreatedSchema = inputSchema;
+                    if (_lastCreatedSchema==null)
+                        _lastCreatedSchema = inputSchema;
                 }
                 else
                     schema = null;
