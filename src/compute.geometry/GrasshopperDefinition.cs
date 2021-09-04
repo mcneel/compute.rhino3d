@@ -1037,6 +1037,10 @@ namespace compute.geometry
             {
                 Param = param;
                 _default = GetDefaultValueHelper(param, 0);
+                if (_default is GH_Number ghNumber)
+                {
+                    _default = ghNumber.Value;
+                }
             }
 
             object GetDefaultValueHelper(IGH_Param param, int depth)
@@ -1129,7 +1133,9 @@ namespace compute.geometry
                     case Grasshopper.Kernel.Parameters.Param_Rectangle _:
                         break;
                     //case Grasshopper.Kernel.Parameters.Param_ScriptVariable _:
-                    case Grasshopper.Kernel.Parameters.Param_String _:
+                    case Grasshopper.Kernel.Parameters.Param_String paramString:
+                        if (paramString.PersistentDataCount == 1)
+                            return paramString.PersistentData[0][0].Value;
                         break;
                     case Grasshopper.Kernel.Parameters.Param_StructurePath _:
                         break;
@@ -1149,6 +1155,8 @@ namespace compute.geometry
                         return paramSlider.CurrentValue;
                     case Grasshopper.Kernel.Special.GH_Panel paramPanel:
                         return paramPanel.UserText;
+                    case Grasshopper.Kernel.Special.GH_ValueList paramValueList:
+                        return paramValueList.FirstSelectedItem.Value;
                 }
                 return null;
             }
