@@ -281,6 +281,21 @@ namespace compute.geometry
                 {
                     switch (ParamTypeName(inputGroup.Param))
                     {
+                        case "Boolean":
+                            {
+                                foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
+                                {
+                                    bool[] booleans = new bool[entree.Value.Count];
+                                    for (int i = 0; i < booleans.Length; i++)
+                                    {
+                                        ResthopperObject restobj = entree.Value[i];
+                                        booleans[i] = JsonConvert.DeserializeObject<bool>(restobj.Data);
+                                    }
+                                    contextualParameter.AssignContextualData(booleans);
+                                    break;
+                                }
+                            }
+                            break;
                         case "Number":
                             {
                                 foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
@@ -1040,6 +1055,10 @@ namespace compute.geometry
                 if (_default is GH_Number ghNumber)
                 {
                     _default = ghNumber.Value;
+                }
+                else if(_default is GH_Boolean ghBoolean)
+                {
+                    _default = ghBoolean.Value;
                 }
             }
 
