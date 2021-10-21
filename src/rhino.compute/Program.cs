@@ -61,7 +61,12 @@ requests while the child processes are launching.")]
             var host = Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    var b = webBuilder.UseStartup<Startup>();
+                    var b = webBuilder.ConfigureKestrel((context, options) =>
+                    {
+                        // Handle requests up to 50 MB
+                        options.Limits.MaxRequestBodySize = 52428800;
+                    })
+                    .UseStartup<Startup>();
                     if (port > 0)
                     {
                         b.UseUrls($"http://localhost:{port}");
