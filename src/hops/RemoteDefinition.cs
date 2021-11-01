@@ -7,6 +7,8 @@ using Rhino.Geometry;
 using Newtonsoft.Json;
 using Resthopper.IO;
 using System.IO;
+using System.Reflection;
+using System.Linq;
 
 namespace Hops
 {
@@ -277,6 +279,36 @@ namespace Hops
                     _outputParams[outputParamName] = ParamFromIoResponseSchema(output);
                 }
             }
+        }
+
+        public double GetDocumentTolerance()
+        {
+            Assembly assembly = Assembly.GetAssembly(typeof(Grasshopper.Utility));
+            if (assembly == null)
+                return Rhino.RhinoMath.DefaultDistanceToleranceMillimeters;
+            var types = assembly.GetTypes().FirstOrDefault(x => x.Name.Equals("Utility"));
+            if (types == null)
+                return Rhino.RhinoMath.DefaultDistanceToleranceMillimeters;
+            var method = types.GetMethod("DocumentTolerance", BindingFlags.Public | BindingFlags.Static);
+            if (method == null)
+                return Rhino.RhinoMath.DefaultDistanceToleranceMillimeters;
+            var documentTolerance = (double)method.Invoke(null, null); 
+            return documentTolerance;
+        }
+
+        public double GetDocumentAngleTolerance()
+        {
+            Assembly assembly = Assembly.GetAssembly(typeof(Grasshopper.Utility));
+            if (assembly == null)
+                return Rhino.RhinoMath.ToDegrees(Rhino.RhinoMath.DefaultAngleTolerance);
+            var types = assembly.GetTypes().FirstOrDefault(x => x.Name.Equals("Utility"));
+            if (types == null)
+                return Rhino.RhinoMath.ToDegrees(Rhino.RhinoMath.DefaultAngleTolerance);
+            var method = types.GetMethod("DocumentAngleTolerance", BindingFlags.Public | BindingFlags.Static);
+            if (method == null)
+                return Rhino.RhinoMath.ToDegrees(Rhino.RhinoMath.DefaultAngleTolerance);
+            var angleTolerance = (double)method.Invoke(null, null);
+            return angleTolerance;
         }
 
         static System.Net.Http.HttpClient _httpClient = null;
@@ -763,6 +795,8 @@ namespace Hops
             warnings = new List<string>();
             var schema = new Resthopper.IO.Schema();
             schema.RecursionLevel = recursionLevel;
+            schema.AbsoluteTolerance = GetDocumentTolerance();
+            schema.AngleTolerance = GetDocumentAngleTolerance();
 
             schema.CacheSolve = cacheSolveOnServer;
             var inputs = GetInputParams();

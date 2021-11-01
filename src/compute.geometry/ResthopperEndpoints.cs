@@ -13,6 +13,8 @@ using Grasshopper.Kernel.Special;
 using Rhino.Geometry;
 using System.Net;
 using Nancy.Extensions;
+using System.Reflection;
+using System.Linq;
 
 namespace compute.geometry
 {
@@ -57,6 +59,23 @@ namespace compute.geometry
             return null;
         }
 
+        static void SetDefaultTolerances(double absoluteTolerance, double angleToleranceDegrees)
+        {
+            Assembly assembly = Assembly.GetAssembly(typeof(Grasshopper.Utility));
+            if (assembly != null)
+            {
+                var types = assembly.GetTypes().FirstOrDefault(x => x.Name.Equals("Utility"));
+                if (types != null)
+                {
+                    var method = types.GetMethod("SetDefaultTolerances", BindingFlags.Public | BindingFlags.Static);
+                    if (method != null)
+                    {
+                        method.Invoke(null, new object[] { absoluteTolerance, angleToleranceDegrees });
+                    }
+                }
+            }           
+        }
+
         static object _ghsolvelock = new object();
 
         static Response GrasshopperSolveHelper(Schema input, string body, System.Diagnostics.Stopwatch stopwatch)
@@ -69,6 +88,8 @@ namespace compute.geometry
             }
             if (definition == null)
                 throw new Exception("Unable to load grasshopper definition");
+
+            SetDefaultTolerances(input.AbsoluteTolerance, input.AngleTolerance);
 
             int recursionLevel = input.RecursionLevel + 1;
             definition.Definition.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(recursionLevel));
