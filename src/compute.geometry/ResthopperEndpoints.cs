@@ -61,7 +61,7 @@ namespace compute.geometry
 
         static void SetDefaultTolerances(double absoluteTolerance, double angleToleranceDegrees)
         {
-            if (absoluteTolerance <= 0 && angleToleranceDegrees <= 0)
+            if (absoluteTolerance <= 0 || angleToleranceDegrees <= 0)
                 return;
  
             var utilityType = typeof(Grasshopper.Utility);

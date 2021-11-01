@@ -284,27 +284,39 @@ namespace Hops
         private double GetDocumentTolerance()
         {
             var rhinoDoc = Rhino.RhinoDoc.ActiveDoc;
-            var utilityType = typeof(Grasshopper.Utility);
-            if (utilityType == null)
-                return 0;
-            var method = utilityType.GetMethod("DocumentTolerance", BindingFlags.Public | BindingFlags.Static);
-            if (method != null && rhinoDoc != null)
-                return (double)method.Invoke(null, null);   
+            if (rhinoDoc != null)  //if the rhino document exists, then return the current document tolerance setting
+                return rhinoDoc.ModelAbsoluteTolerance;
             else
-                return 0;
+            {
+                //rhino document is null
+                var utilityType = typeof(Grasshopper.Utility);
+                if (utilityType == null)
+                    return 0;  //utility class cannot be found, return zero
+                var method = utilityType.GetMethod("DocumentTolerance", BindingFlags.Public | BindingFlags.Static);
+                if (method == null)
+                    return 0;  //method cannot be found, return zero
+                else
+                    return (double)method.Invoke(null, null);  //method exists so call function to get current default tolerance
+            }
         }
 
         private double GetDocumentAngleTolerance()
         {
             var rhinoDoc = Rhino.RhinoDoc.ActiveDoc;
-            var utilityType = typeof(Grasshopper.Utility);
-            if (utilityType == null)
-                return 0;
-            var method = utilityType.GetMethod("DocumentAngleTolerance", BindingFlags.Public | BindingFlags.Static);
-            if (method != null && rhinoDoc != null)
-                return (double)method.Invoke(null, null);
+            if (rhinoDoc != null)  //if the rhino document exists, then return the current document tolerance setting in degrees
+                return rhinoDoc.ModelAngleToleranceDegrees;
             else
-                return 0; 
+            {
+                //rhino document is null
+                var utilityType = typeof(Grasshopper.Utility);
+                if (utilityType == null)
+                    return 0;  //utility class cannot be found, return zero
+                var method = utilityType.GetMethod("DocumentAngleTolerance", BindingFlags.Public | BindingFlags.Static);
+                if (method == null)
+                    return 0;  //method cannot be found, return zero
+                else
+                    return (double)method.Invoke(null, null);  //method exists so call function to get current default tolerance
+            }
         }
 
         static System.Net.Http.HttpClient _httpClient = null;
