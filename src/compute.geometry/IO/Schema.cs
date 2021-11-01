@@ -8,6 +8,12 @@ namespace Resthopper.IO
     {
         public Schema() {}
 
+        [JsonProperty(PropertyName = "absolutetolerance")]
+        public double AbsoluteTolerance { get; set; }
+
+        [JsonProperty(PropertyName = "angletolerance")]
+        public double AngleTolerance { get; set; }
+
         [JsonProperty(PropertyName = "algo")]
         public string Algo { get; set; }
 
