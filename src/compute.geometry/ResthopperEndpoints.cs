@@ -61,13 +61,15 @@ namespace compute.geometry
 
         static void SetDefaultTolerances(double absoluteTolerance, double angleToleranceDegrees)
         {
+            if (absoluteTolerance == 0 && angleToleranceDegrees == 0)
+                return;
             Assembly assembly = Assembly.GetAssembly(typeof(Grasshopper.Utility));
             if (assembly != null)
             {
-                var types = assembly.GetTypes().FirstOrDefault(x => x.Name.Equals("Utility"));
-                if (types != null)
+                var utilityType = typeof(Grasshopper.Utility);
+                if (utilityType != null)
                 {
-                    var method = types.GetMethod("SetDefaultTolerances", BindingFlags.Public | BindingFlags.Static);
+                    var method = utilityType.GetMethod("SetDefaultTolerances", BindingFlags.Public | BindingFlags.Static);
                     if (method != null)
                     {
                         method.Invoke(null, new object[] { absoluteTolerance, angleToleranceDegrees });

@@ -281,32 +281,32 @@ namespace Hops
             }
         }
 
-        public double GetDocumentTolerance()
+        private double GetDocumentTolerance()
         {
             Assembly assembly = Assembly.GetAssembly(typeof(Grasshopper.Utility));
             if (assembly == null)
-                return Rhino.RhinoMath.DefaultDistanceToleranceMillimeters;
-            var types = assembly.GetTypes().FirstOrDefault(x => x.Name.Equals("Utility"));
-            if (types == null)
-                return Rhino.RhinoMath.DefaultDistanceToleranceMillimeters;
-            var method = types.GetMethod("DocumentTolerance", BindingFlags.Public | BindingFlags.Static);
+                return Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
+            var utilityType = typeof(Grasshopper.Utility);
+            if (utilityType == null)
+                return Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
+            var method = utilityType.GetMethod("DocumentTolerance", BindingFlags.Public | BindingFlags.Static);
             if (method == null)
-                return Rhino.RhinoMath.DefaultDistanceToleranceMillimeters;
+                return Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
             var documentTolerance = (double)method.Invoke(null, null); 
             return documentTolerance;
         }
 
-        public double GetDocumentAngleTolerance()
+        private double GetDocumentAngleTolerance()
         {
             Assembly assembly = Assembly.GetAssembly(typeof(Grasshopper.Utility));
             if (assembly == null)
-                return Rhino.RhinoMath.ToDegrees(Rhino.RhinoMath.DefaultAngleTolerance);
-            var types = assembly.GetTypes().FirstOrDefault(x => x.Name.Equals("Utility"));
-            if (types == null)
-                return Rhino.RhinoMath.ToDegrees(Rhino.RhinoMath.DefaultAngleTolerance);
-            var method = types.GetMethod("DocumentAngleTolerance", BindingFlags.Public | BindingFlags.Static);
+                return Rhino.RhinoDoc.ActiveDoc.ModelAngleToleranceDegrees;
+            var utilityType = typeof(Grasshopper.Utility);
+            if (utilityType == null)
+                return Rhino.RhinoDoc.ActiveDoc.ModelAngleToleranceDegrees;
+            var method = utilityType.GetMethod("DocumentAngleTolerance", BindingFlags.Public | BindingFlags.Static);
             if (method == null)
-                return Rhino.RhinoMath.ToDegrees(Rhino.RhinoMath.DefaultAngleTolerance);
+                return Rhino.RhinoDoc.ActiveDoc.ModelAngleToleranceDegrees;
             var angleTolerance = (double)method.Invoke(null, null);
             return angleTolerance;
         }
