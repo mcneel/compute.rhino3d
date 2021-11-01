@@ -283,32 +283,28 @@ namespace Hops
 
         private double GetDocumentTolerance()
         {
-            Assembly assembly = Assembly.GetAssembly(typeof(Grasshopper.Utility));
-            if (assembly == null)
-                return Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
+            var rhinoDoc = Rhino.RhinoDoc.ActiveDoc;
             var utilityType = typeof(Grasshopper.Utility);
             if (utilityType == null)
-                return Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
+                return 0;
             var method = utilityType.GetMethod("DocumentTolerance", BindingFlags.Public | BindingFlags.Static);
-            if (method == null)
-                return Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance;
-            var documentTolerance = (double)method.Invoke(null, null); 
-            return documentTolerance;
+            if (method != null && rhinoDoc != null)
+                return (double)method.Invoke(null, null);   
+            else
+                return 0;
         }
 
         private double GetDocumentAngleTolerance()
         {
-            Assembly assembly = Assembly.GetAssembly(typeof(Grasshopper.Utility));
-            if (assembly == null)
-                return Rhino.RhinoDoc.ActiveDoc.ModelAngleToleranceDegrees;
+            var rhinoDoc = Rhino.RhinoDoc.ActiveDoc;
             var utilityType = typeof(Grasshopper.Utility);
             if (utilityType == null)
-                return Rhino.RhinoDoc.ActiveDoc.ModelAngleToleranceDegrees;
+                return 0;
             var method = utilityType.GetMethod("DocumentAngleTolerance", BindingFlags.Public | BindingFlags.Static);
-            if (method == null)
-                return Rhino.RhinoDoc.ActiveDoc.ModelAngleToleranceDegrees;
-            var angleTolerance = (double)method.Invoke(null, null);
-            return angleTolerance;
+            if (method != null && rhinoDoc != null)
+                return (double)method.Invoke(null, null);
+            else
+                return 0; 
         }
 
         static System.Net.Http.HttpClient _httpClient = null;

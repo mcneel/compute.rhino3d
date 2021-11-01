@@ -61,21 +61,18 @@ namespace compute.geometry
 
         static void SetDefaultTolerances(double absoluteTolerance, double angleToleranceDegrees)
         {
-            if (absoluteTolerance == 0 && angleToleranceDegrees == 0)
+            if (absoluteTolerance <= 0 && angleToleranceDegrees <= 0)
                 return;
-            Assembly assembly = Assembly.GetAssembly(typeof(Grasshopper.Utility));
-            if (assembly != null)
+ 
+            var utilityType = typeof(Grasshopper.Utility);
+            if (utilityType != null)
             {
-                var utilityType = typeof(Grasshopper.Utility);
-                if (utilityType != null)
+                var method = utilityType.GetMethod("SetDefaultTolerances", BindingFlags.Public | BindingFlags.Static);
+                if (method != null)
                 {
-                    var method = utilityType.GetMethod("SetDefaultTolerances", BindingFlags.Public | BindingFlags.Static);
-                    if (method != null)
-                    {
-                        method.Invoke(null, new object[] { absoluteTolerance, angleToleranceDegrees });
-                    }
+                    method.Invoke(null, new object[] { absoluteTolerance, angleToleranceDegrees });
                 }
-            }           
+            }         
         }
 
         static object _ghsolvelock = new object();
