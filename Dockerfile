@@ -4,17 +4,26 @@
 
 # NOTE: use 'process' isolation to build image (otherwise rhino fails to install)
 
+# run "docker build --isolation process -t rhinoimg:tag ." to build an image
+
 ### builder image
 FROM mcr.microsoft.com/dotnet/sdk:5.0 as builder
 
 # copy everything, restore nuget packages and build app
 COPY src/ ./src/
-RUN dotnet build -c Release src/compute.sln
+RUN dotnet publish -c Release -r win10-x64 --self-contained true src/compute.sln
 
 ### main image
 # tag must match windows host for build (and run, if running with process isolation)
 # e.g. 1903 for Windows 10 version 1903 host
 FROM mcr.microsoft.com/windows:1809
+
+#Copy the fonts and font install script
+COPY fonts/* fonts/
+COPY InstallFont.ps1 .
+
+#Run font install script in powershell
+RUN powershell -ExecutionPolicy Bypass -Command .\InstallFont.ps1
 
 # install .net 4.8 if you're using the 1809 base image (see https://git.io/JUYio)
 # comment this out for 1903 and newer
@@ -27,7 +36,7 @@ RUN curl -fSLo dotnet-framework-installer.exe https://download.visualstudio.micr
 # NOTE: edit this if you use a different version of rhino!
 # the url below will always redirect to the latest rhino 7 (email required)
 # https://www.rhino3d.com/download/rhino-for-windows/7/latest/direct?email=EMAIL
-RUN curl -fSLo rhino_installer.exe https://files.mcneel.com/dujour/exe/20210319/rhino_en-us_7.4.21078.01001.exe `
+RUN curl -fSLo rhino_installer.exe https://www.rhino3d.com/download/rhino-for-windows/7/latest/direct?email=nikhil@jewlr.com `
     && .\rhino_installer.exe -package -quiet `
     && del .\rhino_installer.exe
 
@@ -35,15 +44,15 @@ RUN curl -fSLo rhino_installer.exe https://files.mcneel.com/dujour/exe/20210319/
 # RUN ""C:\Program Files\Rhino 7\System\Yak.exe"" install jswan
 
 # copy compute app to image
-COPY --from=builder ["/src/bin/Release/compute.geometry", "/app"]
+COPY --from=builder ["/src/dist", "/app"]
 WORKDIR /app
 
-# bind compute.geometry to port 80
-ENV RHINO_COMPUTE_URLS="http://+:80"
-EXPOSE 80
+# bind rhino.compute to port 5000
+ENV ASPNETCORE_URLS="http://*:5000"
+EXPOSE 5000
 
 # uncomment to build core-hour billing credentials into image (not recommended)
 # see https://developer.rhino3d.com/guides/compute/core-hour-billing/
-# ENV RHINO_TOKEN="TOKEN"
+#ENV RHINO_TOKEN=
 
-CMD ["compute.geometry.exe"]
+CMD ["rhino.compute/rhino.compute.exe"]
