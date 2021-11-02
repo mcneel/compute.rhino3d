@@ -363,6 +363,11 @@ namespace Hops
                 }
             }
 
+            //remove extra separator from menu
+            var separator = menu.Items[menu.Items.Count - 1] as ToolStripSeparator;
+            if (separator != null)
+                menu.Items.RemoveAt(menu.Items.Count - 1);
+
             var tsi = new ToolStripMenuItem("&Path...", null, (sender, e) => { ShowSetDefinitionUi(); });
             if (!_showPathInput)
                 tsi.Font = new System.Drawing.Font(tsi.Font, System.Drawing.FontStyle.Bold);
