@@ -684,36 +684,6 @@ for value in values:
                     inputCount++;
                 if (_showPathInput)
                     inputCount++;
-                if (buildInputs && Params.Input.Count == inputCount)
-                {
-                    buildInputs = false;
-                    foreach (var param in Params.Input.ToArray())
-                    {
-                        if (!inputs.ContainsKey(param.Name))
-                        {
-                            buildInputs = true;
-                            break;
-                        }
-                        else
-                        {
-                            // if input param exists, make sure param access is correct
-                            var (input, _) = inputs[param.Name];
-                            param.Access = RemoteDefinition.AccessFromInput(input);
-                        }
-                    }
-                }
-                if (buildOutputs && Params.Output.Count == outputs.Count)
-                {
-                    buildOutputs = false;
-                    foreach (var param in Params.Output.ToArray())
-                    {
-                        if (!outputs.ContainsKey(param.Name))
-                        {
-                            buildOutputs = true;
-                            break;
-                        }
-                    }
-                }
 
                 // Remove all existing inputs and outputs
                 if (buildInputs)
