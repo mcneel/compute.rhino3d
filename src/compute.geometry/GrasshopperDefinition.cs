@@ -910,7 +910,10 @@ namespace compute.geometry
             var inputs = new List<InputParamSchema>();
             var outputs = new List<IoParamSchema>();
 
-            foreach (var i in _input)
+            var sortedInputs = from x in _input orderby x.Value.Param.Attributes.Pivot.Y select x;
+            var sortedOutputs = from x in _output orderby x.Value.Attributes.Pivot.Y select x;
+
+            foreach (var i in sortedInputs)
             {
                 inputNames.Add(i.Key);
                 var inputSchema = new InputParamSchema
@@ -935,7 +938,7 @@ namespace compute.geometry
                 inputs.Add(inputSchema);
             }
 
-            foreach (var o in _output)
+            foreach (var o in sortedOutputs)
             {
                 outputNames.Add(o.Key);
                 outputs.Add(new IoParamSchema
