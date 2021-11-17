@@ -224,16 +224,17 @@ namespace compute.geometry
                     continue;
                 }
 
-                MethodInfo isBaker = obj.GetType().GetMethod("IsContextBaker");
-                if (isBaker != null)
+
+                Type objectClass = obj.GetType();
+                var className = objectClass.Name;
+                if (className == "ContextBakeComponent")
                 {
                     var contextBaker = obj as GH_Component;
                     IGH_Param param = contextBaker.Params.Input[0];
                     AddOutput(param, param.NickName, ref rc);
                 }
 
-                MethodInfo isPrinter = obj.GetType().GetMethod("IsContextPrinter");
-                if (isPrinter != null)
+                if (className == "ContextPrintComponent")
                 {
                     var contextPrinter = obj as GH_Component;
                     IGH_Param param = contextPrinter.Params.Input[0];
