@@ -3,8 +3,7 @@
 # see https://discourse.mcneel.com/t/docker-support/89322 for troubleshooting
 
 # NOTE: use 'process' isolation to build image (otherwise rhino fails to install)
-
-# run "docker build --isolation process -t rhinoimg:tag ." to build an image
+#docker build --isolation process -t rhinoimg:version
 
 ### builder image
 FROM mcr.microsoft.com/dotnet/sdk:5.0 as builder
@@ -22,8 +21,12 @@ FROM mcr.microsoft.com/windows:1809
 COPY fonts/* fonts/
 COPY InstallFont.ps1 .
 
-#Run font install script in powershell
+#Run font install scriptin powershell
 RUN powershell -ExecutionPolicy Bypass -Command .\InstallFont.ps1
+
+#Copy and extract Pufferfish plugin
+COPY pufferfish3-0.zip .
+RUN powershell Expand-Archive -Path ./pufferfish3-0.zip -DestinationPath .
 
 # install .net 4.8 if you're using the 1809 base image (see https://git.io/JUYio)
 # comment this out for 1903 and newer
@@ -39,6 +42,10 @@ RUN curl -fSLo dotnet-framework-installer.exe https://download.visualstudio.micr
 RUN curl -fSLo rhino_installer.exe https://www.rhino3d.com/download/rhino-for-windows/7/latest/direct?email=nikhil@jewlr.com `
     && .\rhino_installer.exe -package -quiet `
     && del .\rhino_installer.exe
+
+#Create a libraries directory for the plugin and copy .gha file
+RUN powershell mkdir C:\Users\ContainerAdministrator\AppData\Roaming\Grasshopper\Libraries
+RUN powershell Copy-Item -Path .\Pufferfish3-0\Pufferfish3-0.gha -Destination "C:\Users\ContainerAdministrator\AppData\Roaming\Grasshopper\Libraries\Pufferfish3-0.gha"
 
 # (optional) use the package manager to install plug-ins
 # RUN ""C:\Program Files\Rhino 7\System\Yak.exe"" install jswan
