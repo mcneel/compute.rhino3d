@@ -142,6 +142,7 @@ namespace rhino.compute
         static void LaunchCompute(Queue<Tuple<Process, int>> processQueue, bool waitUntilServing)
         {
             Logger log = LogManager.GetCurrentClassLogger();
+
             var pathToThisAssembly = new System.IO.FileInfo(typeof(ComputeChildren).Assembly.Location);
             // compute.geometry is allowed to be either in:
             // - a sibling directory named compute.geometry
@@ -201,7 +202,6 @@ namespace rhino.compute
 
                     if (isOpen)
                     {
-                        log.Debug("*********  Port is now open on: " + port.ToString() + "  *********");
                         break;
                     }
                         
@@ -222,6 +222,7 @@ namespace rhino.compute
 
             if (process != null)
             {
+                log.Error("*********  Child process was started and is listening on port " + port.ToString() + "  *********");
                 processQueue.Enqueue(Tuple.Create(process, port));
             }
         }
@@ -230,25 +231,20 @@ namespace rhino.compute
         static bool IsPortOpen(string host, int port, TimeSpan timeout)
         {
             Logger log = LogManager.GetCurrentClassLogger();
+
             try
             {
                 using (var client = new System.Net.Sockets.TcpClient())
                 {
-                    log.Debug("*********  Trying to start a local compute server  *********");
-                    log.Debug("   Host is: " + host);
-                    log.Debug("   Port number is: " + port.ToString());
-                    log.Debug("   Timeout is: " + timeout.TotalSeconds + " secs");
                     var result = client.BeginConnect(host, port, null, null);
                     var success = result.AsyncWaitHandle.WaitOne(timeout);
-                    log.Debug("   Success is: " + success.ToString());
                     client.EndConnect(result);
                     return success;
                 }
             }
             catch(Exception ex)
             {
-                log.Error("*********  Error in starting a local compute server  *********");
-                log.Error("   " + ex.Message);
+                log.Error(ex.Message);
                 return false;
             }
         }
