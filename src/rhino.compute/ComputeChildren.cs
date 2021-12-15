@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using NLog;
 
 namespace rhino.compute
 {
@@ -26,7 +27,6 @@ namespace rhino.compute
 
         /// <summary>Port that rhino.compute is running on</summary>
         public static int ParentPort { get; set; } = 5000;
-
         /// <summary>
         /// Length of time (in seconds) since rhino.compute last made a call
         /// to a child process. The child processes use this information to
@@ -105,7 +105,6 @@ namespace rhino.compute
                     LaunchCompute(false);
                 }
             }
-
             return ($"http://localhost:{activePort}", activePort);
         }
 
@@ -138,12 +137,15 @@ namespace rhino.compute
 
         static void LaunchCompute(Queue<Tuple<Process, int>> processQueue, bool waitUntilServing)
         {
+            Logger log = LogManager.GetCurrentClassLogger();
+
             var pathToThisAssembly = new System.IO.FileInfo(typeof(ComputeChildren).Assembly.Location);
             // compute.geometry is allowed to be either in:
             // - a sibling directory named compute.geometry
             // - a child directory named compute.geometry
             var parentDirectory = pathToThisAssembly.Directory.Parent;
             string pathToCompute = System.IO.Path.Combine(parentDirectory.FullName, "compute.geometry", "compute.geometry.exe");
+
             if (!System.IO.File.Exists(pathToCompute))
             {
                 pathToCompute = System.IO.Path.Combine(pathToThisAssembly.Directory.FullName, "compute.geometry", "compute.geometry.exe");
@@ -176,6 +178,7 @@ namespace rhino.compute
             }
 
             var startInfo = new ProcessStartInfo(pathToCompute);
+
             string commandLineArgs = $"-port:{port} -childof:{Process.GetCurrentProcess().Id}";
             if (ParentPort > 0 && ChildIdleSpan.TotalSeconds > 1.0)
             {
@@ -183,6 +186,7 @@ namespace rhino.compute
                 commandLineArgs += $" -parentport:{ParentPort} -idlespan:{seconds}";
             }
             startInfo.Arguments = commandLineArgs;
+
             var process = Process.Start(startInfo);
             var start = DateTime.Now;
 
@@ -191,12 +195,17 @@ namespace rhino.compute
                 while (true)
                 {
                     bool isOpen = IsPortOpen("localhost", port, new TimeSpan(0, 0, 1));
+
                     if (isOpen)
+                    {
                         break;
+                    }
+                        
                     var span = DateTime.Now - start;
                     if (span.TotalSeconds > 60)
                     {
                         process.Kill();
+                        log.Debug("*********  Unable to start a local compute server. Timeout of 60 seconds was exceeded. *********");
                         throw new Exception("Unable to start a local compute server");
                     }
                 }
@@ -209,6 +218,7 @@ namespace rhino.compute
 
             if (process != null)
             {
+                log.Error("*********  Child process was started and is listening on port " + port.ToString() + "  *********");
                 processQueue.Enqueue(Tuple.Create(process, port));
             }
         }
@@ -216,6 +226,8 @@ namespace rhino.compute
 
         static bool IsPortOpen(string host, int port, TimeSpan timeout)
         {
+            Logger log = LogManager.GetCurrentClassLogger();
+
             try
             {
                 using (var client = new System.Net.Sockets.TcpClient())
@@ -226,8 +238,9 @@ namespace rhino.compute
                     return success;
                 }
             }
-            catch
+            catch(Exception ex)
             {
+                log.Error(ex.Message);
                 return false;
             }
         }

@@ -44,6 +44,9 @@
     <Reference Include="System.Runtime.Caching" />
     <Reference Include="System.Security" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Logging\" />
+  </ItemGroup>
   <Target Name="AfterBuild">
     <ItemGroup>
       <FilesToDelete Include="$(TargetDir)\*.so" />

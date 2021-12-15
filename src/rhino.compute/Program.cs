@@ -6,6 +6,7 @@ namespace rhino.compute
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using CommandLine;
+    using NLog.Extensions.Logging;
 
     public class Program
     {
@@ -45,7 +46,6 @@ requests while the child processes are launching.")]
 
         static System.Diagnostics.Process _parentProcess;
         static System.Timers.Timer _selfDestructTimer;
-
         public static void Main(string[] args)
         {
             int port = -1;
@@ -58,6 +58,7 @@ requests while the child processes are launching.")]
                     _parentProcess = System.Diagnostics.Process.GetProcessById(parentProcessId);
                 port = o.Port;
             });
+
             var host = Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
@@ -66,12 +67,19 @@ requests while the child processes are launching.")]
                         // Handle requests up to 50 MB
                         options.Limits.MaxRequestBodySize = 52428800;
                     })
-                    .UseStartup<Startup>();
+                    .UseIISIntegration()
+                    .UseStartup<Startup>()
+                    .CaptureStartupErrors(true)
+                    .ConfigureLogging((hostingContext, logging) => {
+                        logging.AddNLog(hostingContext.Configuration.GetSection("Logging"));
+                    });
+
                     if (port > 0)
                     {
                         b.UseUrls($"http://localhost:{port}");
                         ComputeChildren.ParentPort = port;
                     }
+
                 }).Build();
 
             var logger = host.Services.GetRequiredService<ILogger<ReverseProxyModule>>();
@@ -93,7 +101,6 @@ requests while the child processes are launching.")]
                 _selfDestructTimer.AutoReset = true;
                 _selfDestructTimer.Start();
             }
-
             host.Run();
         }
 

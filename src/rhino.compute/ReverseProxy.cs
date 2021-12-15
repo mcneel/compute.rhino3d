@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using NLog;
 
 namespace rhino.compute
 {
@@ -46,7 +47,7 @@ namespace rhino.compute
                 _activeConcurrentRequests--;
             }
         }
-        public static void InitializeConcurrentRequestLogging(ILogger logger)
+        public static void InitializeConcurrentRequestLogging(Microsoft.Extensions.Logging.ILogger logger)
         {
             // log once per minute
             var span = new System.TimeSpan(0, 1, 0);
@@ -66,6 +67,9 @@ namespace rhino.compute
             Get("/robots.txt", async (req, res) => await res.WriteAsync("User-agent: *\nDisallow: / "));
             Get("/idlespan", async (req, res) => await res.WriteAsync($"{ComputeChildren.IdleSpan()}"));
             Get("/", async (req, res) => await res.WriteAsync("compute.rhino3d"));
+            Get("/activechildren", async (req, res) => await res.WriteAsync($"{ComputeChildren.ActiveComputeCount}"));
+            Get("/testNlog", (req, res) => throw new System.Exception());
+            ;
             Get("/launch", LaunchChildren);
 
             // routes that are proxied to compute.geometry
