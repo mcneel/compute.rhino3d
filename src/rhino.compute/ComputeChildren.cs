@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Security;
 using NLog;
 
 namespace rhino.compute
@@ -29,8 +27,6 @@ namespace rhino.compute
 
         /// <summary>Port that rhino.compute is running on</summary>
         public static int ParentPort { get; set; } = 5000;
-
-        public static string ParentBaseUrl { get; set; } = "";
         /// <summary>
         /// Length of time (in seconds) since rhino.compute last made a call
         /// to a child process. The child processes use this information to

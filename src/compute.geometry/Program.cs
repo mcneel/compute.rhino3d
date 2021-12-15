@@ -25,11 +25,11 @@ namespace compute.geometry
             // tells compute to use a different RhinoCore than what RhinoInside thinks
             // should use.
             // (for McNeel devs only and only those devs who use the same path as Steve)
-            /*
-            string rhinoSystemDir = @"C:\dev\github\mcneel\rhino\src4\bin\Debug";
-            if (System.IO.File.Exists(rhinoSystemDir + "\\Rhino.exe"))
-                RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
-            */
+            
+            //string rhinoSystemDir = @"C:\dev\github\mcneel\rhino7\src4\bin\Debug";
+            //if (System.IO.File.Exists(rhinoSystemDir + "\\Rhino.exe"))
+                //RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
+            
 #endif
 
             LogVersions();

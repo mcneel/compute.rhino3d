@@ -1,14 +1,8 @@
 namespace rhino.compute
 {
-    using System;
-    using System.Linq;
-    using System.Threading;
-    using System.Threading.Tasks;
     using Carter;
     using Microsoft.AspNetCore.Builder;
-    using Microsoft.AspNetCore.Hosting.Server.Features;
     using Microsoft.Extensions.DependencyInjection;
-    using Microsoft.Extensions.Hosting;
     using rhino.compute.Logging;
 
     public class Startup

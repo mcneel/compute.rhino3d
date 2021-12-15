@@ -7,16 +7,6 @@ namespace rhino.compute
     using Microsoft.Extensions.Logging;
     using CommandLine;
     using NLog.Extensions.Logging;
-    using NLog;
-    using System.Net;
-    using Microsoft.Extensions.Configuration;
-    using System.IO;
-    using Microsoft.AspNetCore;
-    using System.Collections.Generic;
-    using Microsoft.AspNetCore.Hosting.Server.Features;
-    using System.Threading.Tasks;
-    using System.Threading;
-    using System.Linq;
 
     public class Program
     {
