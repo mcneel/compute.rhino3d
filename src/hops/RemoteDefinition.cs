@@ -9,6 +9,7 @@ using Resthopper.IO;
 using System.IO;
 using System.Reflection;
 using System.Linq;
+using System.Net.Http;
 
 namespace Hops
 {
@@ -31,6 +32,34 @@ namespace Hops
         string _path = null;
         string _cacheKey = null;
         PathType? _pathType;
+        static string _lastIORequest = "";
+        static string _lastIOResponse = "";
+        static string _lastSolveRequest = "";
+        static string _lastSolveResponse = "";
+
+        public static string LastIORequest
+        {
+            get { return _lastIORequest; }
+            set { _lastIORequest = value; }
+        }
+
+        public static string LastIOResponse
+        {
+            get { return _lastIOResponse; }
+            set { _lastIOResponse = value; }
+        }
+
+        public static string LastSolveRequest
+        {
+            get { return _lastSolveRequest; }
+            set { _lastSolveRequest = value; }
+        }
+
+        public static string LastSolveResponse
+        {
+            get { return _lastSolveResponse; }
+            set { _lastSolveResponse = value; }
+        }
 
         public static RemoteDefinition Create(string path, HopsComponent parentComponent)
         {
@@ -184,12 +213,17 @@ namespace Hops
                     schema.Algo = Convert.ToBase64String(bytes);
                 }
                 string inputJson = JsonConvert.SerializeObject(schema);
+                _lastIORequest = "{";
+                _lastIORequest += "\"URL\": \"" + postUrl + "\"," + Environment.NewLine;
+                _lastIORequest += "\"content\": " + inputJson  + Environment.NewLine;
+                _lastIORequest += "}";
                 var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
                 responseTask = HttpClient.PostAsync(postUrl, content);
                 contentToDispose = content;
             }
             else
             {
+                _lastIORequest = "Address: " + address + Environment.NewLine;
                 responseTask = HttpClient.GetAsync(address);
             }
 
@@ -201,9 +235,11 @@ namespace Hops
                 if (string.IsNullOrEmpty(stringResult))
                 {
                     _pathType = PathType.InvalidUrl; // Looks like a valid but not related URL
+                    _lastIOResponse = "Invalid URL";
                 }
                 else
                 {
+                    _lastIOResponse = stringResult;
                     responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(stringResult);
                     _cacheKey = responseSchema.CacheKey;
                 }
@@ -373,12 +409,18 @@ namespace Hops
                 }
             }
 
+            _lastSolveRequest = "{";
+            _lastSolveRequest += "\"URL\": \"" + solveUrl + "\"," + Environment.NewLine;
+            _lastSolveRequest += "\"content\": " + inputJson + Environment.NewLine;
+            _lastSolveRequest += "}";
+
             using (var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json"))
             {
                 var postTask = HttpClient.PostAsync(solveUrl, content);
                 var responseMessage = postTask.Result;
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
+                _lastSolveResponse = stringResult;
                 Schema schema = SafeSchemaDeserialize(stringResult);
 
                 if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
@@ -390,11 +432,16 @@ namespace Hops
                         string base64 = Convert.ToBase64String(bytes);
                         inputSchema.Algo = base64;
                         inputJson = JsonConvert.SerializeObject(inputSchema);
+                        _lastSolveRequest = "{";
+                        _lastSolveRequest += "\"URL\": \"" + solveUrl + "\"," + Environment.NewLine;
+                        _lastSolveRequest += "\"content\":" + inputJson + Environment.NewLine;
+                        _lastSolveRequest += "}";
                         var content2 = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
                         postTask = HttpClient.PostAsync(solveUrl, content2);
                         responseMessage = postTask.Result;
                         remoteSolvedData = responseMessage.Content;
                         stringResult = remoteSolvedData.ReadAsStringAsync().Result;
+                        _lastSolveResponse = stringResult;
                         schema = SafeSchemaDeserialize(stringResult);
                         if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
                         {

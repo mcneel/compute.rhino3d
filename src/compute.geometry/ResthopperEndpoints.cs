@@ -124,7 +124,7 @@ namespace compute.geometry
             if (body.StartsWith("[") && body.EndsWith("]"))
                 body = body.Substring(1, body.Length - 2);
             Schema input = JsonConvert.DeserializeObject<Schema>(body);
-
+           
             if (input.CacheSolve)
             {
                 // look in the cache to see if this has already been solved
