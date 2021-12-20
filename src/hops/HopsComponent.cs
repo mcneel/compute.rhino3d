@@ -421,22 +421,17 @@ namespace Hops
             restAPITsi.Enabled = _remoteDefinition != null;
             exportTsi.DropDownItems.Add(restAPITsi);
 
-            var ioTsi = new ToolStripMenuItem("IO");
-            restAPITsi.DropDownItems.Add(ioTsi);
-            var solveTsi = new ToolStripMenuItem("Solve");
-            restAPITsi.DropDownItems.Add(solveTsi);
-
             tsi = new ToolStripMenuItem("Last IO request...", null, (s, e) => { ExportLastIORequest(); });
-            ioTsi.DropDownItems.Add(tsi);
+            restAPITsi.DropDownItems.Add(tsi);
 
             tsi = new ToolStripMenuItem("Last IO response...", null, (s, e) => { ExportLastIOResponse(); });
-            ioTsi.DropDownItems.Add(tsi);
+            restAPITsi.DropDownItems.Add(tsi);
 
             tsi = new ToolStripMenuItem("Last Solve request...", null, (s, e) => { ExportLastSolveRequest(); });
-            solveTsi.DropDownItems.Add(tsi);
+            restAPITsi.DropDownItems.Add(tsi);
 
             tsi = new ToolStripMenuItem("Last Solve response...", null, (s, e) => { ExportLastSolveResponse(); });
-            solveTsi.DropDownItems.Add(tsi);
+            restAPITsi.DropDownItems.Add(tsi);
         }
 
         /// <summary>
