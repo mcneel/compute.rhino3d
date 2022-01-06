@@ -7,6 +7,8 @@ namespace rhino.compute
     using Microsoft.Extensions.Logging;
     using CommandLine;
     using NLog.Extensions.Logging;
+    using Serilog;
+    using Serilog.Events;
 
     public class Program
     {
@@ -48,6 +50,14 @@ requests while the child processes are launching.")]
         static System.Timers.Timer _selfDestructTimer;
         public static void Main(string[] args)
         {
+            Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+            .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+            .Filter.ByExcluding("RequestPath in ['/healthcheck']")
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            .CreateLogger();
+
             int port = -1;
             Parser.Default.ParseArguments<Options>(args).WithParsed(o =>
             {
@@ -60,6 +70,7 @@ requests while the child processes are launching.")]
             });
 
             var host = Host.CreateDefaultBuilder(args)
+                .UseSerilog()
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     var b = webBuilder.ConfigureKestrel((context, options) =>
