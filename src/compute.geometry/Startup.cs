@@ -38,9 +38,12 @@ namespace compute.geometry
             IOwinResponse res = ctx.Response;
             string contentLength = res.ContentLength > -1 ? res.ContentLength.ToString() : "-";
 
-            // log request in apache format
-            string msg = $"{req.RemoteIpAddress} - [{DateTime.Now:o}] \"{req.Method} {req.Uri.AbsolutePath} {req.Protocol}\" {res.StatusCode} {contentLength}";
-            Console.WriteLine(msg);
+            if (req.Uri.AbsolutePath != "/healthcheck")
+            {
+                // log request in apache format
+                string msg = $"{req.RemoteIpAddress} - [{DateTime.Now:o}] \"{req.Method} {req.Uri.AbsolutePath} {req.Protocol}\" {res.StatusCode} {contentLength}";
+                Console.WriteLine(msg);
+            }
         }
     }
 }
