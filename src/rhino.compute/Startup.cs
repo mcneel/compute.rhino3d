@@ -11,6 +11,7 @@
     {
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddHealthChecks();
             services.AddCarter();
             services.AddSingleton<ILog, LogNLog>();
         }
@@ -19,7 +20,11 @@
         {
             app.UseSerilogRequestLogging();
             app.UseRouting();
-            app.UseEndpoints(builder => builder.MapCarter());
+            app.UseEndpoints(builder =>
+            {
+                builder.MapHealthChecks("/healthcheck");
+                builder.MapCarter();
+            });
             app.ConfigureExceptionHandler(logger);
         }
     }

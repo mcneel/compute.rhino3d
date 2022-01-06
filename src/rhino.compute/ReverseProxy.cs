@@ -63,7 +63,7 @@ namespace rhino.compute
 
         public ReverseProxyModule()
         {
-            Get("/healthcheck", async (req, res) => await res.WriteAsync("healthy"));
+            //Get("/healthcheck", async (req, res) => await res.WriteAsync("healthy"));
             Get("/robots.txt", async (req, res) => await res.WriteAsync("User-agent: *\nDisallow: / "));
             Get("/idlespan", async (req, res) => await res.WriteAsync($"{ComputeChildren.IdleSpan()}"));
             Get("/", async (req, res) => await res.WriteAsync("compute.rhino3d"));
