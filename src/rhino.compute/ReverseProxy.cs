@@ -2,7 +2,6 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using NLog;
 
 namespace rhino.compute
 {
@@ -63,14 +62,13 @@ namespace rhino.compute
 
         public ReverseProxyModule()
         {
-            Get("/healthcheck", async (req, res) => await res.WriteAsync("healthy"));
+            //Get("/healthcheck", async (req, res) => await res.WriteAsync("healthy"));
             Get("/robots.txt", async (req, res) => await res.WriteAsync("User-agent: *\nDisallow: / "));
             Get("/idlespan", async (req, res) => await res.WriteAsync($"{ComputeChildren.IdleSpan()}"));
             Get("/", async (req, res) => await res.WriteAsync("compute.rhino3d"));
             Get("/activechildren", async (req, res) => await res.WriteAsync($"{ComputeChildren.ActiveComputeCount}"));
-            Get("/testNlog", (req, res) => throw new System.Exception());
-            ;
             Get("/launch", LaunchChildren);
+            Get("/favicon.ico", async (req, res) => await res.WriteAsync("Handled"));
 
             // routes that are proxied to compute.geometry
             Get("/{*uri}", ReverseProxyGet);
