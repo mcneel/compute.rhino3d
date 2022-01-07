@@ -2,6 +2,7 @@
 using Nancy;
 using Nancy.Routing;
 using Serilog;
+using Serilog.Context;
 using System;
 using System.Net;
 using System.Reflection;
@@ -25,14 +26,14 @@ namespace compute.geometry
             // tells compute to use a different RhinoCore than what RhinoInside thinks
             // should use.
             // (for McNeel devs only and only those devs who use the same path as Steve)
-            
+
             //string rhinoSystemDir = @"C:\dev\github\mcneel\rhino7\src4\bin\Debug";
             //if (System.IO.File.Exists(rhinoSystemDir + "\\Rhino.exe"))
-                //RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
-            
-#endif
+            //RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
 
+#endif
             LogVersions();
+
             var rc = Topshelf.HostFactory.Run(x =>
             {
                 x.AddCommandLineDefinition("address", address =>
@@ -116,6 +117,15 @@ namespace compute.geometry
             foreach (var url in _bind)
             {
                 options.Urls.Add(url);
+
+                string[] parts = url.Split(':');
+                if (parts.Length != 3)
+                {
+                    throw new ArgumentException("Invalid host:port format");
+                }
+                string port = parts[2];
+
+                LogContext.PushProperty("Port", port);
             }
 
             // Don't log listener urls when this is a child process. It is confusing
@@ -141,7 +151,7 @@ namespace compute.geometry
 
             if (Shutdown.ParentProcesses == null)
                 Log.Information("Listening on {Urls}", _bind);
-
+                    
             // when running in a console (not as a service), i.e. when launched as a child process of hops
             // update console title to differentiate windows (ports) and start parent process shutdown timer
             if (hctrl is Topshelf.Hosts.ConsoleRunHost)

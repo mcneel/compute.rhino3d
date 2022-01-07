@@ -38,11 +38,11 @@ namespace compute.geometry
             IOwinResponse res = ctx.Response;
             string contentLength = res.ContentLength > -1 ? res.ContentLength.ToString() : "-";
 
-            if (req.Uri.AbsolutePath != "/healthcheck")
+            if (req.Uri.AbsolutePath != "/healthcheck" || req.Uri.AbsolutePath != "/favicon.ico")
             {
                 // log request in apache format
                 string msg = $"{req.RemoteIpAddress} - [{DateTime.Now:o}] \"{req.Method} {req.Uri.AbsolutePath} {req.Protocol}\" {res.StatusCode} {contentLength}";
-                Console.WriteLine(msg);
+                Serilog.Log.Information(msg);
             }
         }
     }

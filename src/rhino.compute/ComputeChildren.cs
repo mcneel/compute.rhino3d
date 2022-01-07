@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using NLog;
 
 namespace rhino.compute
 {
@@ -137,8 +136,6 @@ namespace rhino.compute
 
         static void LaunchCompute(Queue<Tuple<Process, int>> processQueue, bool waitUntilServing)
         {
-            Logger log = LogManager.GetCurrentClassLogger();
-
             var pathToThisAssembly = new System.IO.FileInfo(typeof(ComputeChildren).Assembly.Location);
             // compute.geometry is allowed to be either in:
             // - a sibling directory named compute.geometry
@@ -205,7 +202,6 @@ namespace rhino.compute
                     if (span.TotalSeconds > 60)
                     {
                         process.Kill();
-                        log.Debug("*********  Unable to start a local compute server. Timeout of 60 seconds was exceeded. *********");
                         throw new Exception("Unable to start a local compute server");
                     }
                 }
@@ -218,7 +214,6 @@ namespace rhino.compute
 
             if (process != null)
             {
-                log.Error("*********  Child process was started and is listening on port " + port.ToString() + "  *********");
                 processQueue.Enqueue(Tuple.Create(process, port));
             }
         }
@@ -226,8 +221,6 @@ namespace rhino.compute
 
         static bool IsPortOpen(string host, int port, TimeSpan timeout)
         {
-            Logger log = LogManager.GetCurrentClassLogger();
-
             try
             {
                 using (var client = new System.Net.Sockets.TcpClient())
@@ -240,7 +233,6 @@ namespace rhino.compute
             }
             catch(Exception ex)
             {
-                log.Error(ex.Message);
                 return false;
             }
         }

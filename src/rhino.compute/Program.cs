@@ -6,7 +6,6 @@ namespace rhino.compute
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using CommandLine;
-    using NLog.Extensions.Logging;
     using Serilog;
     using Serilog.Events;
 
@@ -53,7 +52,7 @@ requests while the child processes are launching.")]
             Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
             .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-            .Filter.ByExcluding("RequestPath in ['/healthcheck']")
+            .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico']")
             .Enrich.FromLogContext()
             .WriteTo.Console()
             .CreateLogger();
@@ -80,10 +79,7 @@ requests while the child processes are launching.")]
                     })
                     .UseIISIntegration()
                     .UseStartup<Startup>()
-                    .CaptureStartupErrors(true)
-                    .ConfigureLogging((hostingContext, logging) => {
-                        logging.AddNLog(hostingContext.Configuration.GetSection("Logging"));
-                    });
+                    .CaptureStartupErrors(true);
 
                     if (port > 0)
                     {
