@@ -16,6 +16,7 @@ using Resthopper.IO;
 using Newtonsoft.Json;
 using System.Linq;
 using Serilog;
+using System.Reflection;
 
 namespace compute.geometry
 {
@@ -153,6 +154,30 @@ namespace compute.geometry
             }
             return rc;
         }
+        private static void AddInput(IGH_Param param, string name, ref GrasshopperDefinition rc)
+        {
+            if (rc._input.ContainsKey(name))
+            {
+                rc.HasErrors = true;
+                string msg = "Multiple input parameters with the same name were detected. Parameter names must be unique.";
+                rc._errorMessages.Add(msg);
+                LogError(msg);
+            }   
+            else
+                rc._input[name] = new InputGroup(param);
+        }
+        private static void AddOutput(IGH_Param param, string name, ref GrasshopperDefinition rc)
+        {
+            if (rc._output.ContainsKey(name))
+            {
+                rc.HasErrors = true;
+                string msg = "Multiple output parameters with the same name were detected. Parameter names must be unique.";
+                rc._errorMessages.Add(msg);
+                LogError(msg);
+            }  
+            else
+                rc._output[name] = param;
+        }
 
         private static GrasshopperDefinition Construct(GH_Archive archive)
         {
@@ -194,9 +219,26 @@ namespace compute.geometry
                     IGH_Param param = obj as IGH_Param;
                     if (param != null)
                     {
-                        rc._input[param.NickName] = new InputGroup(param);
+                        AddInput(param, param.NickName, ref rc);
                     }
                     continue;
+                }
+
+
+                Type objectClass = obj.GetType();
+                var className = objectClass.Name;
+                if (className == "ContextBakeComponent")
+                {
+                    var contextBaker = obj as GH_Component;
+                    IGH_Param param = contextBaker.Params.Input[0];
+                    AddOutput(param, param.NickName, ref rc);
+                }
+
+                if (className == "ContextPrintComponent")
+                {
+                    var contextPrinter = obj as GH_Component;
+                    IGH_Param param = contextPrinter.Params.Input[0];
+                    AddOutput(param, param.NickName, ref rc);
                 }
 
                 var group = obj as GH_Group;
@@ -210,7 +252,7 @@ namespace compute.geometry
                     var param = groupObjects[0] as IGH_Param;
                     if (param != null)
                     {
-                        rc._input[nickname] = new InputGroup(param);
+                        AddInput(param, nickname, ref rc);
                     }
                 }
 
@@ -218,7 +260,7 @@ namespace compute.geometry
                 {
                     if (groupObjects[0] is IGH_Param param)
                     {
-                        rc._output[nickname] = param;
+                        AddOutput(param, nickname, ref rc);
                     }
                     else if(groupObjects[0] is GH_Component component)
                     {
@@ -227,12 +269,12 @@ namespace compute.geometry
                         {
                             if(1==outputCount)
                             {
-                                rc._output[nickname] = component.Params.Output[i];
+                                AddOutput(component.Params.Output[i], nickname, ref rc);
                             }
                             else
                             {
                                 string itemName = $"{nickname} ({component.Params.Output[i].NickName})";
-                                rc._output[itemName] = component.Params.Output[i];
+                                AddOutput(component.Params.Output[i], itemName, ref rc);
                             }
                         }
                     }
@@ -258,6 +300,7 @@ namespace compute.geometry
         GH_Component _singularComponent;
         Dictionary<string, InputGroup> _input = new Dictionary<string, InputGroup>();
         Dictionary<string, IGH_Param> _output = new Dictionary<string, IGH_Param>();
+        List<string> _errorMessages = new List<string>();
 
         public void SetInputs(List<DataTree<ResthopperObject>> values)
         {
@@ -703,6 +746,11 @@ namespace compute.geometry
             Definition.Enabled = true;
             Definition.NewSolution(false, GH_SolutionMode.CommandLine);
 
+            foreach(string msg in _errorMessages)
+            {
+                outputSchema.Errors.Add(msg);
+            }
+
             LogRuntimeMessages(Definition.ActiveObjects(), outputSchema);
 
             foreach (var kvp in _output)
@@ -910,7 +958,10 @@ namespace compute.geometry
             var inputs = new List<InputParamSchema>();
             var outputs = new List<IoParamSchema>();
 
-            foreach (var i in _input)
+            var sortedInputs = from x in _input orderby x.Value.Param.Attributes.Pivot.Y select x;
+            var sortedOutputs = from x in _output orderby x.Value.Attributes.Pivot.Y select x;
+
+            foreach (var i in sortedInputs)
             {
                 inputNames.Add(i.Key);
                 var inputSchema = new InputParamSchema
@@ -935,7 +986,7 @@ namespace compute.geometry
                 inputs.Add(inputSchema);
             }
 
-            foreach (var o in _output)
+            foreach (var o in sortedOutputs)
             {
                 outputNames.Add(o.Key);
                 outputs.Add(new IoParamSchema

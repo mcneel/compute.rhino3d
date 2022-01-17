@@ -6,6 +6,8 @@ namespace rhino.compute
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using CommandLine;
+    using Serilog;
+    using Serilog.Events;
 
     public class Program
     {
@@ -45,9 +47,16 @@ requests while the child processes are launching.")]
 
         static System.Diagnostics.Process _parentProcess;
         static System.Timers.Timer _selfDestructTimer;
-
         public static void Main(string[] args)
         {
+            Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+            .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+            .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico']")
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            .CreateLogger();
+
             int port = -1;
             Parser.Default.ParseArguments<Options>(args).WithParsed(o =>
             {
@@ -58,7 +67,9 @@ requests while the child processes are launching.")]
                     _parentProcess = System.Diagnostics.Process.GetProcessById(parentProcessId);
                 port = o.Port;
             });
+
             var host = Host.CreateDefaultBuilder(args)
+                .UseSerilog()
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     var b = webBuilder.ConfigureKestrel((context, options) =>
@@ -66,12 +77,16 @@ requests while the child processes are launching.")]
                         // Handle requests up to 50 MB
                         options.Limits.MaxRequestBodySize = 52428800;
                     })
-                    .UseStartup<Startup>();
+                    .UseIISIntegration()
+                    .UseStartup<Startup>()
+                    .CaptureStartupErrors(true);
+
                     if (port > 0)
                     {
                         b.UseUrls($"http://localhost:{port}");
                         ComputeChildren.ParentPort = port;
                     }
+
                 }).Build();
 
             var logger = host.Services.GetRequiredService<ILogger<ReverseProxyModule>>();
@@ -93,7 +108,6 @@ requests while the child processes are launching.")]
                 _selfDestructTimer.AutoReset = true;
                 _selfDestructTimer.Start();
             }
-
             host.Run();
         }
 

@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.1] - 2021-11-17
+### Added
+- Hops output parameters can now be created using either the Context Print or Context Bake components. The nickname for these components will be used as the name of the output parameter in Hops. Note: All names should be unique (ie. no duplicates).
+
+### Fixed
+- A bug was fixed where output parameters did not retain the connection to their recipient parameters when saved/reopened.
+
+## [0.9.0] - 2021-11-08
+### Added
+- Document tolerances (ie. absolute distance and angle tolerances) are now passed to rhino.compute as part of the JSON request.
+- Get Boolean and Get File components are now correctly interpretted by Hops.
+
+### Fixed
+- Hops input and output parameters are now ordered based on the Y-canvas-position of the Get Components in the referenced definition.
+- The maximum request body size was increased to from approximately 28.6mb to 50mb.
+
 ## [0.8.0] - 2021-08-31
 ### Added
 - Export python sample added to Hops component context menu
