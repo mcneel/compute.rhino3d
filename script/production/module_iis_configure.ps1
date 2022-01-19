@@ -1,14 +1,6 @@
-#param (
-    #[Parameter(Mandatory=$true)][string] ${Login user name},
-    #[Parameter(Mandatory=$true)][string] ${Login password}
-#)
-
 $userName = Read-Host 'Login user name'
 $passwordSecure = Read-Host 'Login password' -AsSecureString
 $password = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($passwordSecure))
-
-#$userName = ${Login user name}
-#$password = ${Login password}
 
 $appPoolName = "RhinoComputeAppPool"
 $websiteName = "Rhino.Compute"
