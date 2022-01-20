@@ -52,7 +52,7 @@ jobs:
             fetch-depth: 0
       - name: revision
         id: revision
-        run: git rev-list --count master
+        run: git rev-list --count HEAD
       - name: build
         run: dotnet publish --configuration Release src/compute.sln
       - name: artifacts
