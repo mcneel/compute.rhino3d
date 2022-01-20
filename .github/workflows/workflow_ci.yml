@@ -48,6 +48,9 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v2
+      - name: revision
+        id: revision
+        run: echo ${{ git rev-list --count master }}
       - name: build
         run: dotnet publish --configuration Release src/compute.sln
       - name: artifacts
