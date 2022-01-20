@@ -1,9 +1,8 @@
-# escape=`
+﻿# escape=`
 
 # see https://discourse.mcneel.com/t/docker-support/89322 for troubleshooting
 
 # NOTE: use 'process' isolation to build image (otherwise rhino fails to install)
-#docker build --isolation process -t rhinoimg:version
 
 ### builder image
 FROM mcr.microsoft.com/dotnet/sdk:5.0 as builder
@@ -25,8 +24,9 @@ COPY InstallFont.ps1 .
 RUN powershell -ExecutionPolicy Bypass -Command .\InstallFont.ps1
 
 #Copy and extract Pufferfish plugin
-COPY pufferfish3-0.zip .
-RUN powershell Expand-Archive -Path ./pufferfish3-0.zip -DestinationPath .
+COPY plugins/* plugins/
+
+#RUN powershell Expand-Archive -Path ./test_plugins.zip -DestinationPath .
 
 # install .net 4.8 if you're using the 1809 base image (see https://git.io/JUYio)
 # comment this out for 1903 and newer
@@ -45,10 +45,18 @@ RUN curl -fSLo rhino_installer.exe https://www.rhino3d.com/download/rhino-for-wi
 
 #Create a libraries directory for the plugin and copy .gha file
 RUN powershell mkdir C:\Users\ContainerAdministrator\AppData\Roaming\Grasshopper\Libraries
-RUN powershell Copy-Item -Path .\Pufferfish3-0\Pufferfish3-0.gha -Destination "C:\Users\ContainerAdministrator\AppData\Roaming\Grasshopper\Libraries\Pufferfish3-0.gha"
+
+RUN powershell Copy-Item -Path .\plugins\Pufferfish.gha -Destination "C:\Users\ContainerAdministrator\AppData\Roaming\Grasshopper\Libraries\Pufferfish.gha" `
+    && powershell Copy-Item -Path .\plugins\Jewlr.gha -Destination "C:\Program` Files\Rhino` 7\Plug-ins\Grasshopper\Components\Jewlr.gha"
+
+#Copy config files
+RUN powershell mkdir C:\Users\ContainerAdministrator\config
+COPY config/* C:\Users\ContainerAdministrator\config\
+
 
 # (optional) use the package manager to install plug-ins
-# RUN ""C:\Program Files\Rhino 7\System\Yak.exe"" install jswan
+#RUN ""C:\Program Files\Rhino 7\System\Yak.exe"" install jswan
+RUN ""C:\Program Files\Rhino 7\System\Yak.exe"" install hops
 
 # copy compute app to image
 COPY --from=builder ["/src/dist", "/app"]
@@ -62,4 +70,4 @@ EXPOSE 5000
 # see https://developer.rhino3d.com/guides/compute/core-hour-billing/
 #ENV RHINO_TOKEN=
 
-CMD ["rhino.compute/rhino.compute.exe"]
+CMD ["rhino.compute/rhino.compute.exe","--idlespan=1800"]
