@@ -1,6 +1,6 @@
-$userName = Read-Host 'Login user name'
-$passwordSecure = Read-Host 'Login password' -AsSecureString
-$password = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($passwordSecure))
+#$userName = Read-Host 'Login user name'
+#$passwordSecure = Read-Host 'Login password' -AsSecureString
+#$password = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($passwordSecure))
 
 $appPoolName = "RhinoComputeAppPool"
 $websiteName = "Rhino.Compute"
@@ -29,7 +29,6 @@ function CreateAppPool {
 }
 #EndRegion funcs
 
-
 Write-Step "Creating application pool"
 CreateAppPool $appPoolName
 Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "managedRuntimeVersion" -Value ""
@@ -47,10 +46,10 @@ If((Test-Path $rhinoComputePath))
     If(!(Test-Path "IIS:\Sites\$websiteName"))
     {
         New-WebSite -Name $websiteName -Id 2 -PhysicalPath $rhinoComputePath -ApplicationPool $appPoolName -Port 80 
-        $website = Get-Item "IIS:\Sites\$websiteName"
-        $website.virtualDirectoryDefaults.userName = $userName
-        $website.virtualDirectoryDefaults.password = $password
-        $website | set-item
+        #$website = Get-Item "IIS:\Sites\$websiteName"
+        #$website.virtualDirectoryDefaults.userName = $userName
+        #$website.virtualDirectoryDefaults.password = $password
+        #$website | set-item
         Set-ItemProperty "IIS:\Sites\$websiteName" -name applicationDefaults.preloadEnabled -value True
     }
     else {
