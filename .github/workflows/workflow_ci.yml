@@ -49,9 +49,9 @@ jobs:
       - name: checkout
         uses: actions/checkout@v2
       - name: build
-        run: dotnet build src/compute.sln
+        run: dotnet publish --configuration Release src/compute.sln
       - name: artifacts
         uses: actions/upload-artifact@v2
         with:
-          path: src/build/
+          path: src/bin/Release
           name: compute
