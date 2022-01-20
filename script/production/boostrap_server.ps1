@@ -33,4 +33,4 @@ Write-Host "Root Script Path:" $PSScriptRoot
 & "$PSScriptRoot\module_iis_install.ps1"
 & "$PSScriptRoot\module_compute.ps1"
 & "$PSScriptRoot\module_hostingbundle.ps1"
-#& "$PSScriptRoot\module_iis_configure.ps1"
+& "$PSScriptRoot\module_iis_configure.ps1"

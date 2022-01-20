@@ -60,8 +60,6 @@ function Confirm-IISPrerequisites {
 
 # Install IIS and subsystems
 Write-Step 'Installing IIS Role Services'
-
+Confirm-IISPrerequisites
 Install-WindowsFeature WAS
 Install-WindowsFeature NET-Framework-45-Features
-
-Confirm-IISPrerequisites
