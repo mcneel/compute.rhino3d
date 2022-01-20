@@ -45,8 +45,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [check_workflow, check_src]
     if: ${{ needs.check_src.outputs.any_changed == 'true' || needs.check_workflow.outputs.any_changed == 'true' }}
-    env:
-      SHA8: ${GITHUB_SHA:::8}
     steps:
       - name: checkout
         uses: actions/checkout@v2
@@ -55,14 +53,13 @@ jobs:
       - name: revision
         id: revision
         run: |
-          echo "::set-output name=revision::${GITHUB_SHA:0:8}"
-          echo $GITHUB_SHA_SHORT
-          echo $SHA8
+          echo "::set-output name=revision::${GITHUB_SHA::8}"
       - name: revision number
         shell: pwsh
         run: |
-          echo "Revision: :$SHA8"
-          (get-content .\src\compute.geometry\FixedEndpoints.cs).replace('git_sha = null', 'git_sha = "' + :$SHA8 + '"') | set-content .\src\compute.geometry\FixedEndpoints.cs
+          echo ${GITHUB_SHA::8}
+          echo ${{ steps.revision.outputs.revision }}
+          (get-content .\src\compute.geometry\FixedEndpoints.cs).replace('git_sha = null', 'git_sha = "' + ${GITHUB_SHA::8} + '"') | set-content .\src\compute.geometry\FixedEndpoints.cs
       - name: build
         run: dotnet publish src/compute.sln -c Release -p:PublishTrimmed=true --self-contained true -r win-x64
       - name: artifacts
