@@ -54,6 +54,9 @@ jobs:
         id: revision
         run: |
           echo "::set-output name=revision::$(git rev-list --all --count)"
+      - name: revision number
+        run: |
+          echo "Revision: ${{ steps.revision.outputs.revision }}"
       - name: build
         run: dotnet publish --configuration Release src/compute.sln
       - name: artifacts
