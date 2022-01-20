@@ -54,17 +54,15 @@ jobs:
         id: revision
         run: |
           echo "::set-output name=revision::${GITHUB_SHA::8}"
-          echo "SHA8=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
       - name: revision number
         shell: pwsh
         run: |
-          echo ${SHA8}
           echo ${{ steps.revision.outputs.revision }}
-          (get-content .\src\compute.geometry\FixedEndpoints.cs).replace('git_sha = null', 'git_sha = "' + ${SHA8} + '"') | set-content .\src\compute.geometry\FixedEndpoints.cs
+          (get-content .\src\compute.geometry\FixedEndpoints.cs).replace('git_sha = null', 'git_sha = "' + ${{ steps.revision.outputs.revision }} + '"') | set-content .\src\compute.geometry\FixedEndpoints.cs
       - name: build
         run: dotnet publish src/compute.sln -c Release -p:PublishTrimmed=true --self-contained true -r win-x64
       - name: artifacts
         uses: actions/upload-artifact@v2
         with:
           path: src/dist
-          name: rhino.compute ${SHA8}
+          name: rhino.compute ${{ steps.revision.outputs.revision }}
