@@ -53,16 +53,16 @@ jobs:
       - name: revision
         id: revision
         run: |
-          echo "::set-output name=revision::$(git rev-list --all --count)"
+          echo "::set-output name=revision::${GITHUB_SHA:0:8}"
       - name: revision number
         shell: pwsh
         run: |
           echo "Revision: ${{ steps.revision.outputs.revision }}"
           (get-content .\src\compute.geometry\FixedEndpoints.cs).replace('git_sha = null', 'git_sha = "' + ${{ steps.revision.outputs.revision }} + '"') | set-content .\src\compute.geometry\FixedEndpoints.cs
       - name: build
-        run: dotnet publish --configuration Release src/compute.sln
+        run: dotnet publish src/compute.sln -c Release -p:PublishTrimmed=true --self-contained true -r win-x64
       - name: artifacts
         uses: actions/upload-artifact@v2
         with:
-          path: src/bin/Release
-          name: compute
+          path: src/dist
+          name: rhino.compute ${{ steps.revision.outputs.revision }}
