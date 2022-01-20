@@ -52,7 +52,8 @@ jobs:
           fetch-depth: 0
       - name: revision
         id: revision
-        run: git rev-list --count master
+        run: |
+          echo "::set-output name=revision::$(git rev-list --all --count)"
       - name: build
         run: dotnet publish --configuration Release src/compute.sln
       - name: artifacts
