@@ -31,6 +31,7 @@ namespace Hops
         System.Drawing.Bitmap _customIcon = null;
         string _path = null;
         string _cacheKey = null;
+        const string _apiKeyName = "RhinoComputeKey";
         PathType? _pathType;
         static string _lastIORequest = "";
         static string _lastIOResponse = "";
@@ -218,7 +219,10 @@ namespace Hops
                 _lastIORequest += "\"content\": " + inputJson  + Environment.NewLine;
                 _lastIORequest += "}";
                 var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
-                responseTask = HttpClient.PostAsync(postUrl, content);
+                HttpClient client = new HttpClient();
+                if(!String.IsNullOrEmpty(HopsAppSettings.APIKey))
+                    client.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
+                responseTask = client.PostAsync(postUrl, content);
                 contentToDispose = content;
             }
             else
@@ -416,7 +420,10 @@ namespace Hops
 
             using (var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json"))
             {
-                var postTask = HttpClient.PostAsync(solveUrl, content);
+                HttpClient client = new HttpClient();
+                if (!String.IsNullOrEmpty(HopsAppSettings.APIKey))
+                    client.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
+                var postTask = client.PostAsync(solveUrl, content);
                 var responseMessage = postTask.Result;
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
@@ -437,7 +444,10 @@ namespace Hops
                         _lastSolveRequest += "\"content\":" + inputJson + Environment.NewLine;
                         _lastSolveRequest += "}";
                         var content2 = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
-                        postTask = HttpClient.PostAsync(solveUrl, content2);
+                        HttpClient client2 = new HttpClient();
+                        if (!String.IsNullOrEmpty(HopsAppSettings.APIKey))
+                            client2.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
+                        postTask = client.PostAsync(solveUrl, content2);
                         responseMessage = postTask.Result;
                         remoteSolvedData = responseMessage.Content;
                         stringResult = remoteSolvedData.ReadAsStringAsync().Result;

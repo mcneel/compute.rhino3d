@@ -8,6 +8,7 @@ namespace Hops
     static class HopsAppSettings
     {
         const string HOPS_SERVERS = "Hops:Servers";
+        const string HOPS_APIKEY = "Hops:ApiKey";
         const string HIDE_WORKER_WINDOWS = "Hops:HideWorkerWindows";
         const string LAUNCH_WORKER_AT_START = "Hops:LaunchWorkerAtStart";
         const string LOCAL_WORKER_COUNT = "Hops:LocalWorkerCount";
@@ -44,6 +45,29 @@ namespace Hops
                         sb.Append(s);
                     }
                     Grasshopper.Instances.Settings.SetValue(HOPS_SERVERS, sb.ToString());
+                }
+                Hops.Servers.SettingsChanged();
+            }
+        }
+
+        public static string APIKey
+        {
+            get
+            {
+                string apiKey = Grasshopper.Instances.Settings.GetValue(HOPS_APIKEY, "");
+                if (string.IsNullOrWhiteSpace(apiKey))
+                    return String.Empty;
+                return apiKey;
+            }
+            set
+            {
+                if (value == null)
+                {
+                    Grasshopper.Instances.Settings.SetValue(HOPS_APIKEY, "");
+                }
+                else
+                {
+                    Grasshopper.Instances.Settings.SetValue(HOPS_APIKEY, value);
                 }
                 Hops.Servers.SettingsChanged();
             }
