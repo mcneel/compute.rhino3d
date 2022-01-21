@@ -4,7 +4,7 @@
 #Region funcs
 function Write-Step { 
     Write-Host
-    Write-Host "===> "$args[0] -ForegroundColor Darkgreen
+    Write-Host "===> "$args[0] -ForegroundColor Green
     Write-Host
 }
 function Download {

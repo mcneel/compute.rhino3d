@@ -6,7 +6,7 @@ $appDirectory = "C:\inetpub\wwwroot\aspnet_client\system_web\4_0_30319"
 #Region funcs
 function Write-Step { 
     Write-Host
-    Write-Host "===> "$args[0] -ForegroundColor Darkgreen
+    Write-Host "===> "$args[0] -ForegroundColor Green
     Write-Host
 }
 function Download {
@@ -34,7 +34,7 @@ if (-Not (Test-Path -Path $appDirectory)){
 }
 
 if ((Test-Path $appDirectory)) {
-    Write-Step 'Download and unzip latest build of compute from $downloadurl'
+    Write-Step "Download and unzip latest build of compute from $downloadurl"
     Download $downloadurl "$appDirectory/compute.zip"
     Expand-Archive "$appDirectory/compute.zip" -DestinationPath $appDirectory
     Remove-Item "$appDirectory/compute.zip"

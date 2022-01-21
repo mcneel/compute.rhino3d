@@ -28,9 +28,11 @@ if ($os -notlike '*server*') {
 Write-Host "Root Script Path:" $PSScriptRoot
 
 # These scripts should be run in this order
-& "$PSScriptRoot\module_firewall.ps1"
 & "$PSScriptRoot\module_rhino.ps1"
+& "$PSScriptRoot\module_firewall.ps1"
 & "$PSScriptRoot\module_iis_install.ps1"
 & "$PSScriptRoot\module_compute.ps1"
 & "$PSScriptRoot\module_hostingbundle.ps1"
 & "$PSScriptRoot\module_iis_configure.ps1"
+
+Write-Host "Congratulations! All components have now been installed."
