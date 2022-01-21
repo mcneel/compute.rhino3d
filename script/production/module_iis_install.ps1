@@ -42,10 +42,10 @@ $required_IIS_features = @(
 #Region funcs
 function Write-Step { 
     Write-Host
-    Write-Host "===> "$args[0] -ForegroundColor Darkgreen
+    Write-Host "===> "$args[0] -ForegroundColor Green
     Write-Host
 }
-function Confirm-IISPrerequisites {
+function Install-IISPrerequisites {
     #Check to see if IIS components are installed
     Write-Host "Determining if all necessary IIS components have been installed" -ForegroundColor Green
     ForEach ($feature in $required_IIS_features) {
@@ -54,12 +54,12 @@ function Confirm-IISPrerequisites {
            Enable-WindowsOptionalFeature -Online -FeatureName $feature
         }
     }
+    Install-WindowsFeature WAS
+    Install-WindowsFeature NET-Framework-45-Features
     Write-Step "All of the Necessary IIS Role Services have been installed"
 }
 #EndRegion funcs
 
 # Install IIS and subsystems
 Write-Step 'Installing IIS Role Services'
-Confirm-IISPrerequisites
-Install-WindowsFeature WAS
-Install-WindowsFeature NET-Framework-45-Features
+Install-IISPrerequisites
