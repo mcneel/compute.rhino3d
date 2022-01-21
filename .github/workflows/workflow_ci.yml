@@ -62,7 +62,8 @@ jobs:
       - name: build
         run: dotnet publish src/compute.sln -c Release -p:PublishTrimmed=true --self-contained true -r win-x64
       - name: artifacts
+        if: ${{ always() && format('refs/heads/{0}', ) == github.ref }}
         uses: actions/upload-artifact@v2
         with:
           path: src/dist
-          name: rhino.compute ${{ steps.revision.outputs.revision }}
+          name: rhino.compute
