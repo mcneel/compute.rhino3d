@@ -49,6 +49,7 @@ requests while the child processes are launching.")]
         static System.Timers.Timer _selfDestructTimer;
         public static void Main(string[] args)
         {
+            Config.Load();
             Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
             .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)

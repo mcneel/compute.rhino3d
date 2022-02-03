@@ -9,6 +9,7 @@ namespace compute.geometry
         internal static Dictionary<int, System.Diagnostics.Process> ParentProcesses { get; set; }
         static int _parentPort = -1;
         static int _idleSpan = -1;
+        static DateTime _startTime;
 
         public static void RegisterParentProcess(int processId)
         {
@@ -19,6 +20,11 @@ namespace compute.geometry
             }
             if (process != null)
                 ParentProcesses[processId] = process;
+        }
+
+        public static void RegisterStartTime(DateTime dateTime)
+        {
+            _startTime = dateTime;
         }
 
         public static void RegisterParentPort(int port)
@@ -95,6 +101,9 @@ namespace compute.geometry
 
             if (shutdown)
             {
+                var elapsedTime = DateTime.Now - _startTime;
+                //Serilog.Log.Information($"Child process stopped at " + DateTime.Now.ToLocalTime().ToString());
+                Serilog.Log.Information("Total elapsed time for child process is " + string.Format("{0:D2} days, {1:D2} hrs, {2:D2} mins, {3:D2} secs", elapsedTime.Days, elapsedTime.Hours, elapsedTime.Minutes, elapsedTime.Seconds));
                 var hctrl = timerState as Topshelf.HostControl;
                 if (hctrl != null)
                     hctrl.Stop();

@@ -1,5 +1,6 @@
 ﻿namespace rhino.compute
 {
+    using System;
     using Carter;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +18,8 @@
         {
             app.UseSerilogRequestLogging();
             app.UseRouting();
+            if (!String.IsNullOrEmpty(Config.ApiKey))
+                app.UseMiddleware<ApiKeyMiddleware>();
             app.UseEndpoints(builder =>
             {
                 builder.MapHealthChecks("/healthcheck");

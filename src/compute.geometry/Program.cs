@@ -14,6 +14,7 @@ namespace compute.geometry
     class Program
     {
         public static IDisposable RhinoCore { get; set; }
+        public static DateTime StartTime { get; set; }
 
         static void Main(string[] args)
         {
@@ -33,6 +34,9 @@ namespace compute.geometry
 
 #endif
             LogVersions();
+            StartTime = DateTime.Now;
+            Shutdown.RegisterStartTime(StartTime);
+            Log.Information($"Child process started at " + StartTime.ToLocalTime().ToString());
 
             var rc = Topshelf.HostFactory.Run(x =>
             {
