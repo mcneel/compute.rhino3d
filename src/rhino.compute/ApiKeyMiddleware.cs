@@ -22,8 +22,6 @@ namespace rhino.compute
                 return;
             }
 
-            var appSettings = context.RequestServices.GetRequiredService<IConfiguration>();
-
             var apiKey = Config.ApiKey;
 
             if (!apiKey.Equals(extractedApiKey))

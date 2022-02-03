@@ -78,7 +78,7 @@ namespace compute.geometry
                 // Don't check the server every timer tick. Just check when we start approaching
                 // what we think is our span limit.
                 var shouldCheckSpan = DateTime.Now - _lastSpanCheck;
-                if (shouldCheckSpan.TotalSeconds * 0.5 > _idleSpan)
+                if (shouldCheckSpan.TotalSeconds > _idleSpan)
                 {
                     if (_httpClient == null)
                         _httpClient = new System.Net.Http.HttpClient();
@@ -86,6 +86,8 @@ namespace compute.geometry
                     _lastSpanCheck = DateTime.Now;
                     try
                     {
+                        if (!String.IsNullOrEmpty(Config.ApiKey))
+                            _httpClient.DefaultRequestHeaders.Add("RhinoComputeKey", Config.ApiKey);
                         string span = _httpClient.GetAsync(url).Result.Content.ReadAsStringAsync().Result;
                         int serverIdleSpan = int.Parse(span);
                         if (serverIdleSpan > _idleSpan)
@@ -97,7 +99,6 @@ namespace compute.geometry
                     }
                 }
             }
-
 
             if (shutdown)
             {
