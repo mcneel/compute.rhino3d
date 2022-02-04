@@ -8,6 +8,8 @@ namespace rhino.compute
     using CommandLine;
     using Serilog;
     using Serilog.Events;
+    using Microsoft.Extensions.Configuration;
+    using System.IO;
 
     public class Program
     {
@@ -29,6 +31,11 @@ of this handle and will shut down when this process has exited")]
              HelpText = "Number of child compute.geometry processes to manage")]
             public int ChildCount { get; set; } = 4;
 
+            [Option("spawn-on-startup",
+             Required = false,
+             HelpText = "Determines whether to launch a child compute.geometry process when rhino.compute gets started")]
+            public bool SpawnOnStartup { get; set; } = true;
+
             [Option("idlespan", 
              Required = false,
              HelpText = 
@@ -47,12 +54,19 @@ requests while the child processes are launching.")]
 
         static System.Diagnostics.Process _parentProcess;
         static System.Timers.Timer _selfDestructTimer;
+        public static IConfiguration Configuration { get; } = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true)
+            .AddJsonFile($"appsettings.{Environment.MachineName}.json", optional: true)
+            .AddEnvironmentVariables()
+            .Build();
+
         public static void Main(string[] args)
         {
             Config.Load();
             Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-            .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+            .ReadFrom.Configuration(Configuration)
             .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico']")
             .Enrich.FromLogContext()
             .WriteTo.Console()
@@ -90,6 +104,8 @@ requests while the child processes are launching.")]
 
                 }).Build();
 
+            Log.Information($"Rhino compute started at {DateTime.Now.ToLocalTime()}");
+
             var logger = host.Services.GetRequiredService<ILogger<ReverseProxyModule>>();
             ReverseProxyModule.InitializeConcurrentRequestLogging(logger);
 
@@ -103,6 +119,7 @@ requests while the child processes are launching.")]
                         _selfDestructTimer.Stop();
                         _parentProcess = null;
                         Console.WriteLine("self-destruct");
+                        Log.Information($"Self-destruct called at {DateTime.Now.ToLocalTime()}");
                         host.StopAsync();
                     }
                 };

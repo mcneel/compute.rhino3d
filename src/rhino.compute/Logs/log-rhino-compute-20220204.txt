@@ -1,0 +1,50 @@
+2022-02-04 11:33:52.532 -05:00 [INF] Rhino compute started at 2/4/2022 11:33:52 AM
+2022-02-04 11:33:52.689 -05:00 [INF] Initiliazing reverse proxy at 2/4/2022 11:33:52 AM
+2022-02-04 11:33:52.820 -05:00 [INF] Now listening on: http://localhost:6500
+2022-02-04 11:33:52.823 -05:00 [INF] Application started. Press Ctrl+C to shut down.
+2022-02-04 11:33:52.825 -05:00 [INF] Hosting environment: Production
+2022-02-04 11:33:52.826 -05:00 [INF] Content root path: C:\dev\github\mcneel\compute\src\rhino.compute
+2022-02-04 11:33:56.947 -05:00 [ERR] Error in IsPortOpen: No connection could be made because the target machine actively refused it. [::ffff:127.0.0.1]:6001
+2022-02-04 11:34:01.088 -05:00 [ERR] Error in IsPortOpen: No connection could be made because the target machine actively refused it. [::ffff:127.0.0.1]:6001
+2022-02-04 11:34:05.175 -05:00 [ERR] Error in IsPortOpen: No connection could be made because the target machine actively refused it. [::ffff:127.0.0.1]:6001
+2022-02-04 11:34:06.692 -05:00 [INF] Started child process at http://localhost:6001 at 2/4/2022 11:34:06 AM
+2022-02-04 11:45:25.841 -05:00 [INF] Rhino compute started at 2/4/2022 11:45:25 AM
+2022-02-04 11:45:25.929 -05:00 [INF] Initiliazing reverse proxy at 2/4/2022 11:45:25 AM
+2022-02-04 11:45:25.992 -05:00 [INF] Now listening on: http://localhost:6500
+2022-02-04 11:45:25.994 -05:00 [INF] Application started. Press Ctrl+C to shut down.
+2022-02-04 11:45:25.995 -05:00 [INF] Hosting environment: Production
+2022-02-04 11:45:25.996 -05:00 [INF] Content root path: C:\dev\github\mcneel\compute\src\rhino.compute
+2022-02-04 11:45:30.128 -05:00 [ERR] Error in IsPortOpen: No connection could be made because the target machine actively refused it. [::ffff:127.0.0.1]:6001
+2022-02-04 11:52:23.952 -05:00 [INF] Rhino compute started at 2/4/2022 11:52:23 AM
+2022-02-04 11:52:24.037 -05:00 [INF] Initiliazing reverse proxy at 2/4/2022 11:52:24 AM
+2022-02-04 11:52:24.093 -05:00 [INF] Now listening on: http://localhost:6500
+2022-02-04 11:52:24.095 -05:00 [INF] Application started. Press Ctrl+C to shut down.
+2022-02-04 11:52:24.095 -05:00 [INF] Hosting environment: Production
+2022-02-04 11:52:24.095 -05:00 [INF] Content root path: C:\dev\github\mcneel\compute\src\rhino.compute
+2022-02-04 11:52:28.231 -05:00 [ERR] Error in IsPortOpen: No connection could be made because the target machine actively refused it. [::ffff:127.0.0.1]:6001
+2022-02-04 11:52:32.320 -05:00 [ERR] Error in IsPortOpen: No connection could be made because the target machine actively refused it. [::ffff:127.0.0.1]:6001
+2022-02-04 11:52:32.827 -05:00 [INF] Started child process at http://localhost:6001 at 2/4/2022 11:52:32 AM
+2022-02-04 11:53:22.541 -05:00 [INF] Rhino compute started at 2/4/2022 11:53:22 AM
+2022-02-04 11:53:22.609 -05:00 [INF] Initiliazing reverse proxy at 2/4/2022 11:53:22 AM
+2022-02-04 11:53:22.663 -05:00 [INF] Now listening on: http://localhost:6500
+2022-02-04 11:53:22.665 -05:00 [INF] Application started. Press Ctrl+C to shut down.
+2022-02-04 11:53:22.665 -05:00 [INF] Hosting environment: Production
+2022-02-04 11:53:22.666 -05:00 [INF] Content root path: C:\dev\github\mcneel\compute\src\rhino.compute
+2022-02-04 11:53:26.803 -05:00 [INF] Exception in IsPortOpen: No connection could be made because the target machine actively refused it. [::ffff:127.0.0.1]:6001
+2022-02-04 11:53:30.903 -05:00 [INF] Exception in IsPortOpen: No connection could be made because the target machine actively refused it. [::ffff:127.0.0.1]:6001
+2022-02-04 11:53:31.412 -05:00 [INF] Started child process at http://localhost:6001 at 2/4/2022 11:53:31 AM
+2022-02-04 11:54:08.480 -05:00 [INF] Rhino compute started at 2/4/2022 11:54:08 AM
+2022-02-04 11:54:08.597 -05:00 [INF] Initiliazing reverse proxy at 2/4/2022 11:54:08 AM
+2022-02-04 11:54:08.649 -05:00 [INF] Now listening on: http://localhost:6500
+2022-02-04 11:54:08.651 -05:00 [INF] Application started. Press Ctrl+C to shut down.
+2022-02-04 11:54:08.652 -05:00 [INF] Hosting environment: Production
+2022-02-04 11:54:08.652 -05:00 [INF] Content root path: C:\dev\github\mcneel\compute\src\rhino.compute
+2022-02-04 11:54:17.354 -05:00 [INF] Started child process at http://localhost:6001 at 2/4/2022 11:54:17 AM
+2022-02-04 11:55:08.499 -05:00 [INF] Max concurrent requests = 0
+2022-02-04 11:58:02.828 -05:00 [INF] Rhino compute started at 2/4/2022 11:58:02 AM
+2022-02-04 11:58:02.923 -05:00 [INF] Initiliazing reverse proxy at 2/4/2022 11:58:02 AM
+2022-02-04 11:58:02.984 -05:00 [INF] Now listening on: http://localhost:6500
+2022-02-04 11:58:02.986 -05:00 [INF] Application started. Press Ctrl+C to shut down.
+2022-02-04 11:58:02.986 -05:00 [INF] Hosting environment: Production
+2022-02-04 11:58:02.986 -05:00 [INF] Content root path: C:\dev\github\mcneel\compute\src\rhino.compute
+2022-02-04 11:58:11.717 -05:00 [INF] Started child process at http://localhost:6001 at 2/4/2022 11:58:11 AM

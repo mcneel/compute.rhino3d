@@ -1,7 +1,9 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace rhino.compute
 {
@@ -16,6 +18,8 @@ namespace rhino.compute
             if (_initCalled)
                 return;
             _initCalled = true;
+
+            Log.Information($"Initiliazing reverse proxy at {DateTime.Now.ToLocalTime()}");
 
             _client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
             _client.DefaultRequestHeaders.Add("User-Agent", $"compute.rhino3d-proxy/1.0.0");

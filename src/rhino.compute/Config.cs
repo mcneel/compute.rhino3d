@@ -21,7 +21,6 @@ namespace rhino.compute
         }
 
         #region private
-
         // environment variables
         const string RHINO_COMPUTE_KEY = "RHINO_COMPUTE_KEY";
 
