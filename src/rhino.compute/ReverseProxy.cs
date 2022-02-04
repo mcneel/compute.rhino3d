@@ -20,11 +20,20 @@ namespace rhino.compute
             _initCalled = true;
 
             Log.Information($"Initiliazing reverse proxy at {DateTime.Now.ToLocalTime()}");
+            Log.Information($"The no spawn at startup value is {ComputeChildren.NoSpawnOnStartup}");
 
             _client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
             _client.DefaultRequestHeaders.Add("User-Agent", $"compute.rhino3d-proxy/1.0.0");
 
             // Launch child processes on start. Getting the base url is enough to get things rolling
+            if (!ComputeChildren.NoSpawnOnStartup)
+            {
+                InitializeChildren();
+            }
+        }
+
+        static void InitializeChildren()
+        {
             ComputeChildren.UpdateLastCall();
             _initTask = Task.Run(() =>
             {
@@ -68,8 +77,8 @@ namespace rhino.compute
         {
             Get("/robots.txt", async (req, res) => await res.WriteAsync("User-agent: *\nDisallow: / "));
             Get("/idlespan", async (req, res) => await res.WriteAsync($"{ComputeChildren.IdleSpan()}"));
-            Get("/", async (req, res) => await res.WriteAsync("compute.rhino3d"));
-            Get("/activechildren", async (req, res) => await res.WriteAsync($"{ComputeChildren.ActiveComputeCount}"));
+            Get("/", async (req, res) => { InitializeChildren(); await res.WriteAsync("compute.rhino3d"); });
+            Get("/activechildren", async (req, res) => { InitializeChildren(); await res.WriteAsync($"{ComputeChildren.ActiveComputeCount}"); });
             Get("/launch", LaunchChildren);
             Get("/favicon.ico", async (req, res) => await res.WriteAsync("Handled"));
 

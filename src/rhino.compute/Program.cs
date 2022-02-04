@@ -31,10 +31,11 @@ of this handle and will shut down when this process has exited")]
              HelpText = "Number of child compute.geometry processes to manage")]
             public int ChildCount { get; set; } = 4;
 
-            [Option("spawn-on-startup",
-             Required = false,
-             HelpText = "Determines whether to launch a child compute.geometry process when rhino.compute gets started")]
-            public bool SpawnOnStartup { get; set; } = true;
+            //[Option("no-spawn-on-startup",
+            // Required = false,
+            // Default = false,
+            // HelpText = "Determines whether to launch a child compute.geometry process when rhino.compute gets started")]
+            //public bool NoSpawnOnStartup { get; set; }
 
             [Option("idlespan", 
              Required = false,
@@ -57,8 +58,6 @@ requests while the child processes are launching.")]
         public static IConfiguration Configuration { get; } = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true)
-            .AddJsonFile($"appsettings.{Environment.MachineName}.json", optional: true)
             .AddEnvironmentVariables()
             .Build();
 
@@ -76,6 +75,7 @@ requests while the child processes are launching.")]
             Parser.Default.ParseArguments<Options>(args).WithParsed(o =>
             {
                 ComputeChildren.SpawnCount = o.ChildCount;
+                //ComputeChildren.NoSpawnOnStartup = o.NoSpawnOnStartup;
                 ComputeChildren.ChildIdleSpan = new System.TimeSpan(0, 0, o.IdleSpanSeconds);
                 int parentProcessId = o.ChildOf;
                 if (parentProcessId > 0)
@@ -105,7 +105,7 @@ requests while the child processes are launching.")]
                 }).Build();
 
             Log.Information($"Rhino compute started at {DateTime.Now.ToLocalTime()}");
-
+            
             var logger = host.Services.GetRequiredService<ILogger<ReverseProxyModule>>();
             ReverseProxyModule.InitializeConcurrentRequestLogging(logger);
 

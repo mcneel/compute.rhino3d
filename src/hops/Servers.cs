@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Reflection;
 
 namespace Hops
 {
@@ -218,6 +220,9 @@ namespace Hops
             // set to false.
             startInfo.UseShellExecute = true;
             startInfo.CreateNoWindow = Hops.HopsAppSettings.HideWorkerWindows;
+            string assemblyPath = Assembly.GetExecutingAssembly().Location;
+            string parentPath = Path.GetDirectoryName(assemblyPath);
+            startInfo.WorkingDirectory = Path.Combine(parentPath, "rhino.compute");
             var process = Process.Start(startInfo);
             var start = DateTime.Now;
 

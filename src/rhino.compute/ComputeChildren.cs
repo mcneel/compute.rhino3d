@@ -25,6 +25,13 @@ namespace rhino.compute
         /// </summary>
         public static TimeSpan ChildIdleSpan { get; set; } = TimeSpan.Zero;
 
+        /// <summary>
+        /// This value determines whether a child process should be started
+        /// when rhino.compute is first launched. If running in a production
+        /// environment, this value should be set to true.
+        /// </summary>
+        public static bool NoSpawnOnStartup { get; set; } = false;
+
         /// <summary>Port that rhino.compute is running on</summary>
         public static int ParentPort { get; set; } = 5000;
         /// <summary>
