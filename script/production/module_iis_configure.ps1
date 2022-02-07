@@ -40,6 +40,22 @@ CreateAppPool $appPoolName
 Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "managedRuntimeVersion" -Value ""
 Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "processModel.loadUserProfile" -Value "True"
 
+$node = Select-XML -Path "$rhinoComputePath\web.config" -XPath "//aspNetCore" | Select -ExpandProperty Node
+$arguments = $node.arguments
+
+if($arguments.Contains('idlespan'))
+{
+    $params = $arguments -split "--"
+    foreach($i in $params)
+    {
+        if($i.Contains('idlespan'))
+        {
+            $values = $i -split " "
+            Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "processModel.idleTimeout" -Value ([TimeSpan]::FromMinutes(($values[1]/60) + 5))
+        }
+    }
+}
+
 If((Test-Path "IIS:\Sites\Default Web Site"))
 {
     Write-Step "Removing default website"
@@ -66,5 +82,4 @@ cmd /c icacls $computeGeometryPath /grant ("IIS AppPool\$appPoolName"+ ':(OI)(CI
 Write-Step "Starting rhino.compute site" 
 Start-IISSite -Name $websiteName
 
-Write-Step "Setting environment variables for logs"
 SetEnvVar 'RHINO_COMPUTE_LOG_PATH' "$rhinoComputePath\logs"
