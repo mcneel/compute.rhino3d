@@ -28,9 +28,9 @@ namespace rhino.compute
         /// <summary>
         /// This value determines whether a child process should be started
         /// when rhino.compute is first launched. If running in a production
-        /// environment, this value should be set to true.
+        /// environment, this value should be set to false.
         /// </summary>
-        public static bool NoSpawnOnStartup { get; set; } = false;
+        public static bool SpawnOnStartup { get; set; } = false;
 
         /// <summary>Port that rhino.compute is running on</summary>
         public static int ParentPort { get; set; } = 5000;

@@ -20,13 +20,13 @@ namespace rhino.compute
             _initCalled = true;
 
             Log.Information($"Initiliazing reverse proxy at {DateTime.Now.ToLocalTime()}");
-            Log.Information($"The no spawn at startup value is {ComputeChildren.NoSpawnOnStartup}");
+            Log.Information($"Spawn children at startup is set to {ComputeChildren.SpawnOnStartup}");
 
             _client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
             _client.DefaultRequestHeaders.Add("User-Agent", $"compute.rhino3d-proxy/1.0.0");
 
             // Launch child processes on start. Getting the base url is enough to get things rolling
-            if (!ComputeChildren.NoSpawnOnStartup)
+            if (ComputeChildren.SpawnOnStartup)
             {
                 InitializeChildren();
             }

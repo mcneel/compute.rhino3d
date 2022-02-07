@@ -208,7 +208,7 @@ namespace Hops
             if (childCount < 1)
                 childCount = 1;
             int thisProc = Process.GetCurrentProcess().Id;
-            startInfo.Arguments = $"--childof {thisProc} --childcount {childCount} --port {RhinoComputePort}";
+            startInfo.Arguments = $"--childof {thisProc} --childcount {childCount} --port {RhinoComputePort} --spawn-on-startup";
             startInfo.WindowStyle = Hops.HopsAppSettings.HideWorkerWindows ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Minimized;
             // uncomment next line to ease debugging
             // startInfo.WindowStyle = ProcessWindowStyle.Normal;
