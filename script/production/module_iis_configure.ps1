@@ -23,6 +23,16 @@ function CreateAppPool {
      }
      $appPool = New-WebAppPool -Name $appPoolName
 }
+function SetEnvVar {
+    param (
+        [Parameter(Mandatory=$true)][string] $name,
+        [Parameter(Mandatory=$true)][string] $value,
+        [switch] $secret = $false
+    )
+    $print = if ($secret) {"***"} else {$value}
+    Write-Host "Setting environment variable: $name=$print"
+    [System.Environment]::SetEnvironmentVariable($name, $value, "Machine")
+}
 #EndRegion funcs
 
 Write-Step "Creating application pool"
@@ -55,3 +65,6 @@ cmd /c icacls $computeGeometryPath /grant ("IIS AppPool\$appPoolName"+ ':(OI)(CI
 
 Write-Step "Starting rhino.compute site" 
 Start-IISSite -Name $websiteName
+
+Write-Step "Setting environment variables for logs"
+SetEnvVar 'RHINO_COMPUTE_LOG_PATH' "$rhinoComputePath\logs"
