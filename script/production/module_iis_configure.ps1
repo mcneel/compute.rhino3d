@@ -55,6 +55,10 @@ if($arguments.Contains('idlespan'))
         }
     }
 }
+else
+{
+    Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "processModel.idleTimeout" -Value ([TimeSpan]::FromMinutes(65))
+}
 
 If((Test-Path "IIS:\Sites\Default Web Site"))
 {
