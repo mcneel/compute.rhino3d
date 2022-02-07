@@ -23,12 +23,38 @@ function CreateAppPool {
      }
      $appPool = New-WebAppPool -Name $appPoolName
 }
+function SetEnvVar {
+    param (
+        [Parameter(Mandatory=$true)][string] $name,
+        [Parameter(Mandatory=$true)][string] $value,
+        [switch] $secret = $false
+    )
+    $print = if ($secret) {"***"} else {$value}
+    Write-Host "Setting environment variable: $name=$print"
+    [System.Environment]::SetEnvironmentVariable($name, $value, "Machine")
+}
 #EndRegion funcs
 
 Write-Step "Creating application pool"
 CreateAppPool $appPoolName
 Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "managedRuntimeVersion" -Value ""
 Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "processModel.loadUserProfile" -Value "True"
+
+$node = Select-XML -Path "$rhinoComputePath\web.config" -XPath "//aspNetCore" | Select -ExpandProperty Node
+$arguments = $node.arguments
+
+if($arguments.Contains('idlespan'))
+{
+    $params = $arguments -split "--"
+    foreach($i in $params)
+    {
+        if($i.Contains('idlespan'))
+        {
+            $values = $i -split " "
+            Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "processModel.idleTimeout" -Value ([TimeSpan]::FromMinutes(($values[1]/60) + 5))
+        }
+    }
+}
 
 If((Test-Path "IIS:\Sites\Default Web Site"))
 {
@@ -55,3 +81,5 @@ cmd /c icacls $computeGeometryPath /grant ("IIS AppPool\$appPoolName"+ ':(OI)(CI
 
 Write-Step "Starting rhino.compute site" 
 Start-IISSite -Name $websiteName
+
+SetEnvVar 'RHINO_COMPUTE_LOG_PATH' "$rhinoComputePath\logs"

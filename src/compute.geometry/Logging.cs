@@ -18,7 +18,7 @@ namespace compute.geometry
             if (_enabled)
                 return;
 
-            var path = Path.Combine(Config.LogPath, "log-geometry-.txt"); // log-geometry-20180925.txt, etc.
+            var path = Path.Combine(Config.LogPath, "log-compute-geometry-.txt"); // log-geometry-20180925.txt, etc.
             var limit = Config.LogRetainDays;
             var level = Config.Debug ? LogEventLevel.Debug : LogEventLevel.Information;
 

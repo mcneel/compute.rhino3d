@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Serilog;
 
 namespace rhino.compute
 {
@@ -23,6 +24,13 @@ namespace rhino.compute
         /// shut down. The processes will be restarted on a later request
         /// </summary>
         public static TimeSpan ChildIdleSpan { get; set; } = TimeSpan.Zero;
+
+        /// <summary>
+        /// This value determines whether a child process should be started
+        /// when rhino.compute is first launched. If running in a production
+        /// environment, this value should be set to false.
+        /// </summary>
+        public static bool SpawnOnStartup { get; set; } = false;
 
         /// <summary>Port that rhino.compute is running on</summary>
         public static int ParentPort { get; set; } = 5000;
@@ -104,6 +112,8 @@ namespace rhino.compute
                     LaunchCompute(false);
                 }
             }
+
+            Log.Information($"Started child process at http://localhost:{activePort} at {DateTime.Now.ToLocalTime()}");
             return ($"http://localhost:{activePort}", activePort);
         }
 
@@ -202,7 +212,9 @@ namespace rhino.compute
                     if (span.TotalSeconds > 60)
                     {
                         process.Kill();
-                        throw new Exception("Unable to start a local compute server");
+                        string msg = "Unable to start a local compute server";
+                        Log.Information(msg);
+                        throw new Exception(msg);
                     }
                 }
             }
