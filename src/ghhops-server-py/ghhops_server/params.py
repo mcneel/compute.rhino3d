@@ -299,7 +299,6 @@ class HopsPlane(_GHParam):
         return RHINO_GEOM.Plane(rco, rcx, rcy)
 
 
-
 class HopsPoint(_GHParam):
     """Wrapper for GH Point"""
 
