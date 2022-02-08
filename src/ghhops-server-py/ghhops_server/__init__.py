@@ -19,7 +19,7 @@ __version__ = "1.4.1"
 class Hops(base.HopsBase):
     """Hops Middleware"""
 
-    def __new__(cls, app=None, debug=False, *args, **kwargs) -> base.HopsBase:
+    def __new__(cls, app=None, inside=False, debug=False, *args, **kwargs) -> base.HopsBase:
         # set logger level
         hlogger.setLevel(logging.DEBUG if debug else logging.INFO)
 
@@ -27,30 +27,33 @@ class Hops(base.HopsBase):
         # when running standalone with no source apps
         if app is None:
             hlogger.debug("Using Hops default http server")
-            params._init_rhino3dm()
-            return hmw.HopsDefault()
+            if inside:
+                if not Hops.is_inside():
+                    raise Exception("rhinoinside is not loaded yet")
+                hlogger.debug("Using rhinoinside as engine")
+                params._init_rhinoinside()
+            else:
+                hlogger.debug("Using rhino3dm as engine")
+                params._init_rhino3dm()
+            return hmw.HopsDefault(*args, **kwargs)
 
         # if wrapping another app
         app_type = repr(app)
         # if app is Flask
         if app_type.startswith("<Flask"):
             hlogger.debug("Using Hops Flask middleware")
-            params._init_rhino3dm()
+            # if engine is rhinoinside
+            if inside:
+                if not Hops.is_inside():
+                    raise Exception("rhinoinside is not loaded yet")
+                hlogger.debug("Using rhinoinside as engine")
+                params._init_rhinoinside()
+            else:
+                hlogger.debug("Using rhino3dm as engine")
+                params._init_rhino3dm()
             return hmw.HopsFlask(app, *args, **kwargs)
 
-        # if wrapping rhinoinside
-        # paractically this is not necessary. it is implemented this way
-        # mostly to provide a level of consistency on how Hops is used
-        elif app_type.startswith("<module 'rhinoinside'"):
-            # detemine if running with rhino.inside.cpython
-            # and init the param module accordingly
-            if not Hops.is_inside():
-                raise Exception("rhinoinside is not loaded yet")
-            hlogger.debug("Using Hops default http server with rhinoinside")
-            params._init_rhinoinside()
-            return hmw.HopsDefault(*args, **kwargs)
-
-        raise Exception("Unsupported app")
+        raise Exception("Unsupported app type")
 
     @classmethod
     def is_inside(cls):
