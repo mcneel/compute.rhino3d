@@ -28,7 +28,7 @@ __all__ = (
     "HopsMesh",
     # "HopsMeshFace",
     "HopsNumber",
-    # "HopsPlane",
+    "HopsPlane",
     "HopsPoint",
     # "HopsRectangle",
     "HopsString",
@@ -277,6 +277,26 @@ class HopsNumber(_GHParam):
     coercers = {
         "System.Double": lambda d: float(d),
     }
+
+
+class HopsPlane(_GHParam):
+    """Wrapper for GH_Plane"""
+
+    param_type ="Plane"
+    result_type = "Rhino.Geometry.Plane"
+
+    coercers = {
+        "Rhino.Geometry.Plane": lambda p: _make_plane(p["Origin"],
+                                                      p["XAXis"],
+                                                      p["YAxis"])
+    }
+
+    @staticmethod
+    def _make_plane(o, x, y):
+        rco = RHINO_GEOM.Point3d(o["X"], o["Y"], o["Z"])
+        rcx = RHINO_GEOM.Vector3d(x["X"], x["Y"], x["Z"])
+        rcy = RHINO_GEOM.Vector3d(y["X"], y["Y"], y["Z"])
+        return RHINO_GEOM.Plane(rco, rcy, rcy)
 
 
 class HopsPoint(_GHParam):
