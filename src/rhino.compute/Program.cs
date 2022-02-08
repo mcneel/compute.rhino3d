@@ -6,6 +6,10 @@ namespace rhino.compute
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using CommandLine;
+    using Serilog;
+    using Serilog.Events;
+    using Microsoft.Extensions.Configuration;
+    using System.IO;
 
     public class Program
     {
@@ -27,6 +31,12 @@ of this handle and will shut down when this process has exited")]
              HelpText = "Number of child compute.geometry processes to manage")]
             public int ChildCount { get; set; } = 4;
 
+            [Option("spawn-on-startup",
+             Required = false,
+             Default = false,
+             HelpText = "Determines whether to launch a child compute.geometry process when rhino.compute gets started")]
+            public bool SpawnOnStartup { get; set; }
+
             [Option("idlespan", 
              Required = false,
              HelpText = 
@@ -45,20 +55,36 @@ requests while the child processes are launching.")]
 
         static System.Diagnostics.Process _parentProcess;
         static System.Timers.Timer _selfDestructTimer;
+        public static IConfiguration Configuration { get; } = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .AddEnvironmentVariables()
+            .Build();
 
         public static void Main(string[] args)
         {
+            Config.Load();
+            Log.Logger = new LoggerConfiguration()
+            .ReadFrom.Configuration(Configuration)
+            .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico']")
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            .CreateLogger();
+
             int port = -1;
             Parser.Default.ParseArguments<Options>(args).WithParsed(o =>
             {
                 ComputeChildren.SpawnCount = o.ChildCount;
+                ComputeChildren.SpawnOnStartup = o.SpawnOnStartup;
                 ComputeChildren.ChildIdleSpan = new System.TimeSpan(0, 0, o.IdleSpanSeconds);
                 int parentProcessId = o.ChildOf;
                 if (parentProcessId > 0)
                     _parentProcess = System.Diagnostics.Process.GetProcessById(parentProcessId);
                 port = o.Port;
             });
+
             var host = Host.CreateDefaultBuilder(args)
+                .UseSerilog()
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     var b = webBuilder.ConfigureKestrel((context, options) =>
@@ -66,14 +92,20 @@ requests while the child processes are launching.")]
                         // Handle requests up to 50 MB
                         options.Limits.MaxRequestBodySize = 52428800;
                     })
-                    .UseStartup<Startup>();
+                    .UseIISIntegration()
+                    .UseStartup<Startup>()
+                    .CaptureStartupErrors(true);
+
                     if (port > 0)
                     {
                         b.UseUrls($"http://localhost:{port}");
                         ComputeChildren.ParentPort = port;
                     }
+
                 }).Build();
 
+            Log.Information($"Rhino compute started at {DateTime.Now.ToLocalTime()}");
+            
             var logger = host.Services.GetRequiredService<ILogger<ReverseProxyModule>>();
             ReverseProxyModule.InitializeConcurrentRequestLogging(logger);
 
@@ -87,13 +119,13 @@ requests while the child processes are launching.")]
                         _selfDestructTimer.Stop();
                         _parentProcess = null;
                         Console.WriteLine("self-destruct");
+                        Log.Information($"Self-destruct called at {DateTime.Now.ToLocalTime()}");
                         host.StopAsync();
                     }
                 };
                 _selfDestructTimer.AutoReset = true;
                 _selfDestructTimer.Start();
             }
-
             host.Run();
         }
 

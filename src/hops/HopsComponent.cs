@@ -417,8 +417,21 @@ namespace Hops
             tsi = new ToolStripMenuItem("Export python sample...", null, (s, e) => { ExportAsPython(); });
             exportTsi.DropDownItems.Add(tsi);
 
-            tsi = new ToolStripMenuItem("Export input as json...", null, (s, e) => { ExportAsJson(); });
-            exportTsi.DropDownItems.Add(tsi);
+            var restAPITsi = new ToolStripMenuItem("REST API");
+            restAPITsi.Enabled = _remoteDefinition != null;
+            exportTsi.DropDownItems.Add(restAPITsi);
+
+            tsi = new ToolStripMenuItem("Last IO request...", null, (s, e) => { ExportLastIORequest(); });
+            restAPITsi.DropDownItems.Add(tsi);
+
+            tsi = new ToolStripMenuItem("Last IO response...", null, (s, e) => { ExportLastIOResponse(); });
+            restAPITsi.DropDownItems.Add(tsi);
+
+            tsi = new ToolStripMenuItem("Last Solve request...", null, (s, e) => { ExportLastSolveRequest(); });
+            restAPITsi.DropDownItems.Add(tsi);
+
+            tsi = new ToolStripMenuItem("Last Solve response...", null, (s, e) => { ExportLastSolveResponse(); });
+            restAPITsi.DropDownItems.Add(tsi);
         }
 
         /// <summary>
@@ -560,23 +573,68 @@ for value in values:
             }
         }
 
-        void ExportAsJson()
+        void ExportLastIORequest()
         {
             if (_lastCreatedSchema == null)
             {
-                Eto.Forms.MessageBox.Show("No input created. Run this component at least once", Eto.Forms.MessageBoxType.Error);
+                Eto.Forms.MessageBox.Show("No API request has been made. Run this component at least once", Eto.Forms.MessageBoxType.Error);
                 return;
             }
-
             var dlg = new Eto.Forms.SaveFileDialog();
             dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
             if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
             {
-                var sb = new System.Text.StringBuilder();
-                sb.Append(JsonConvert.SerializeObject(_lastCreatedSchema.Values));
-                System.IO.File.WriteAllText(dlg.FileName, sb.ToString());
+                if (!String.IsNullOrEmpty(RemoteDefinition.LastIORequest))
+                    System.IO.File.WriteAllText(dlg.FileName, RemoteDefinition.LastIORequest);
             }
+        }
 
+        void ExportLastIOResponse()
+        {
+            if (_lastCreatedSchema == null)
+            {
+                Eto.Forms.MessageBox.Show("No API response has been received. Run this component at least once", Eto.Forms.MessageBoxType.Error);
+                return;
+            }
+            var dlg = new Eto.Forms.SaveFileDialog();
+            dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
+            if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
+            {
+                if (!String.IsNullOrEmpty(RemoteDefinition.LastIOResponse))
+                    System.IO.File.WriteAllText(dlg.FileName, RemoteDefinition.LastIOResponse);
+            }
+        }
+
+        void ExportLastSolveRequest()
+        {
+            if (_lastCreatedSchema == null)
+            {
+                Eto.Forms.MessageBox.Show("No API request has been made. Run this component at least once", Eto.Forms.MessageBoxType.Error);
+                return;
+            }
+            var dlg = new Eto.Forms.SaveFileDialog();
+            dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
+            if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
+            {
+                if (!String.IsNullOrEmpty(RemoteDefinition.LastSolveRequest))
+                    System.IO.File.WriteAllText(dlg.FileName, RemoteDefinition.LastSolveRequest);
+            }
+        }
+
+        void ExportLastSolveResponse()
+        {
+            if (_lastCreatedSchema == null)
+            {
+                Eto.Forms.MessageBox.Show("No API response has been received. Run this component at least once", Eto.Forms.MessageBoxType.Error);
+                return;
+            }
+            var dlg = new Eto.Forms.SaveFileDialog();
+            dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
+            if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
+            {
+                if (!String.IsNullOrEmpty(RemoteDefinition.LastSolveResponse))
+                    System.IO.File.WriteAllText(dlg.FileName, RemoteDefinition.LastSolveResponse);
+            }
         }
 
         string _tempPath;

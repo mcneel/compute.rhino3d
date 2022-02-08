@@ -18,15 +18,16 @@ namespace compute.geometry
             if (_enabled)
                 return;
 
-            var path = Path.Combine(Config.LogPath, "log-geometry-.txt"); // log-geometry-20180925.txt, etc.
+            var path = Path.Combine(Config.LogPath, "log-compute-geometry-.txt"); // log-geometry-20180925.txt, etc.
             var limit = Config.LogRetainDays;
             var level = Config.Debug ? LogEventLevel.Debug : LogEventLevel.Information;
 
             var logger = new LoggerConfiguration()
                 .MinimumLevel.Is(level)
+                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+                .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico']")
                 .Enrich.FromLogContext()
-                //.Enrich.WithProperty("Source", "geometry")
-                .WriteTo.Console()
+                .WriteTo.Console(outputTemplate: "CG {Port} [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
                 .WriteTo.File(new JsonFormatter(renderMessage: true), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
 
             Log.Logger = logger.CreateLogger();
