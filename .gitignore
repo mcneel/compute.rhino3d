@@ -31,3 +31,10 @@ RhinoCompute.cs
 **/.vscode/.ropeproject
 /src/ghhops-server-py/dist
 /src/dist
+
+# Web Deploy publish profiles
+*.[Pp]ublish.xml
+*.azurePubxml
+*.pubxml
+*.pubxml.user
+*.publishproj

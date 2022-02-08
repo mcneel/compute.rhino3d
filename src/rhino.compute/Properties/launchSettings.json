@@ -1,8 +1,24 @@
 {
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iis": {
+      "applicationUrl": "http://localhost:81",
+      "sslPort": 0
+    }
+  },
   "profiles": {
     "rhino.compute": {
       "commandName": "Project",
       "commandLineArgs": "--port 6500 --childcount 1"
+    },
+    "IIS_Debug": {
+      "commandName": "IIS",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "ancmHostingModel": "OutOfProcess"
     }
   }
 }
