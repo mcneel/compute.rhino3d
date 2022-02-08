@@ -286,9 +286,9 @@ class HopsPlane(_GHParam):
     result_type = "Rhino.Geometry.Plane"
 
     coercers = {
-        "Rhino.Geometry.Plane": lambda p: _make_plane(p["Origin"],
-                                                      p["XAXis"],
-                                                      p["YAxis"])
+        "Rhino.Geometry.Plane": lambda p: HopsPlane._make_plane(p["Origin"],
+                                                                p["XAxis"],
+                                                                p["YAxis"])
     }
 
     @staticmethod
@@ -296,7 +296,8 @@ class HopsPlane(_GHParam):
         rco = RHINO_GEOM.Point3d(o["X"], o["Y"], o["Z"])
         rcx = RHINO_GEOM.Vector3d(x["X"], x["Y"], x["Z"])
         rcy = RHINO_GEOM.Vector3d(y["X"], y["Y"], y["Z"])
-        return RHINO_GEOM.Plane(rco, rcy, rcy)
+        return RHINO_GEOM.Plane(rco, rcx, rcy)
+
 
 
 class HopsPoint(_GHParam):
