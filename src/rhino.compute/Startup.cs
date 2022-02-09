@@ -10,6 +10,14 @@
     {
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(
+                    builder =>
+                    {
+                        builder.AllowAnyOrigin().AllowAnyHeader();
+                    });
+            });
             services.AddHealthChecks();
             services.AddCarter();
         }
@@ -18,6 +26,7 @@
         {
             app.UseSerilogRequestLogging();
             app.UseRouting();
+            app.UseCors();
             if (!String.IsNullOrEmpty(Config.ApiKey))
                 app.UseMiddleware<ApiKeyMiddleware>();
             app.UseEndpoints(builder =>
