@@ -213,6 +213,9 @@ namespace Hops
                     var bytes = System.IO.File.ReadAllBytes(address);
                     schema.Algo = Convert.ToBase64String(bytes);
                 }
+                schema.AbsoluteTolerance = GetDocumentTolerance();
+                schema.AngleTolerance = GetDocumentAngleTolerance();
+                schema.ModelUnits = GetDocumentUnits();
                 string inputJson = JsonConvert.SerializeObject(schema);
                 _lastIORequest = "{";
                 _lastIORequest += "\"URL\": \"" + postUrl + "\"," + Environment.NewLine;
@@ -356,6 +359,25 @@ namespace Hops
                     return 0;  //method cannot be found, return zero
                 else
                     return (double)method.Invoke(null, null);  //method exists so call function to get current default tolerance
+            }
+        }
+
+        private string GetDocumentUnits()
+        {
+            var rhinoDoc = Rhino.RhinoDoc.ActiveDoc;
+            if (rhinoDoc != null)  //if the rhino document exists, then return the current document units
+                return rhinoDoc.ModelUnitSystem.ToString();
+            else
+            {
+                //rhino document is null
+                var utilityType = typeof(Grasshopper.Utility);
+                if (utilityType == null)
+                    return "";  //utility class cannot be found, return nothing
+                var method = utilityType.GetMethod("DocumentUnits", BindingFlags.Public | BindingFlags.Static);
+                if (method == null)
+                    return "";  //method cannot be found, return zero
+                else
+                    return (string)method.Invoke(null, null);  //method exists so call function to get current model units
             }
         }
 
@@ -862,6 +884,7 @@ namespace Hops
             schema.RecursionLevel = recursionLevel;
             schema.AbsoluteTolerance = GetDocumentTolerance();
             schema.AngleTolerance = GetDocumentAngleTolerance();
+            schema.ModelUnits = GetDocumentUnits();
 
             schema.CacheSolve = cacheSolveOnServer;
             var inputs = GetInputParams();
