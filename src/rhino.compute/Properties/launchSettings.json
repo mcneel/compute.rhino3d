@@ -10,7 +10,7 @@
   "profiles": {
     "rhino.compute": {
       "commandName": "Project",
-      "commandLineArgs": "--port 6500 --childcount 1"
+      "commandLineArgs": "--port 6500 --childcount 1 --spawn-on-startup"
     },
     "IIS_Debug": {
       "commandName": "IIS",

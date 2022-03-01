@@ -193,6 +193,22 @@ class _GHParam:
 
     def from_result(self, value):
         """Serialize parameter with given value for output"""
+        if self.access == HopsParamAccess.TREE and isinstance(value, dict):
+            tree = {}
+            for key in value.keys():
+                branch_data = [
+                    {
+                        "type": self.result_type,
+                        "data": RHINO_TOJSON(v)
+                    } for v in value[key]
+                ]
+                tree[key] = branch_data
+            output = {
+                "ParamName": self.name,
+                "InnerTree": tree,
+            }
+            return output
+        
         if not isinstance(value, tuple) and not isinstance(value, list):
             value = (value,)
 
