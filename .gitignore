@@ -38,3 +38,6 @@ RhinoCompute.cs
 *.pubxml
 *.pubxml.user
 *.publishproj
+
+# Log files created from Rhino.Compute
+/src/rhino.compute/logs/

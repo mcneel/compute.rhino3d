@@ -160,7 +160,7 @@ namespace compute.geometry
             {
                 rc.HasErrors = true;
                 string msg = "Multiple input parameters with the same name were detected. Parameter names must be unique.";
-                rc._errorMessages.Add(msg);
+                rc.ErrorMessages.Add(msg);
                 LogError(msg);
             }   
             else
@@ -172,7 +172,7 @@ namespace compute.geometry
             {
                 rc.HasErrors = true;
                 string msg = "Multiple output parameters with the same name were detected. Parameter names must be unique.";
-                rc._errorMessages.Add(msg);
+                rc.ErrorMessages.Add(msg);
                 LogError(msg);
             }  
             else
@@ -300,7 +300,7 @@ namespace compute.geometry
         GH_Component _singularComponent;
         Dictionary<string, InputGroup> _input = new Dictionary<string, InputGroup>();
         Dictionary<string, IGH_Param> _output = new Dictionary<string, IGH_Param>();
-        List<string> _errorMessages = new List<string>();
+        public List<string> ErrorMessages = new List<string>();
 
         public void SetInputs(List<DataTree<ResthopperObject>> values)
         {
@@ -746,7 +746,7 @@ namespace compute.geometry
             Definition.Enabled = true;
             Definition.NewSolution(false, GH_SolutionMode.CommandLine);
 
-            foreach(string msg in _errorMessages)
+            foreach(string msg in ErrorMessages)
             {
                 outputSchema.Errors.Add(msg);
             }
