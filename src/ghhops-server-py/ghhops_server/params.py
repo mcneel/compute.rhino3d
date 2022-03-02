@@ -261,11 +261,9 @@ class HopsCircle(_GHParam):
 
     @staticmethod
     def _make_circle(p, r):
-        if RHINO_GEOM.__name__ == "rhino3dm":
-            raise NotImplementedError("Can't create plane-aligned circle "
-                                      "using rhino3dm due to missing "
-                                      "implementation!")
-        return RHINO_GEOM.Circle(p, r)
+        circle = RHINO_GEOM.Circle(r)
+        circle.Plane = p
+        return circle
 
 
 class HopsCurve(_GHParam):
