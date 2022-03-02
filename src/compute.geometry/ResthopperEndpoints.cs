@@ -203,6 +203,10 @@ namespace compute.geometry
             var responseSchema = definition.GetInputsAndOutputs();
             responseSchema.CacheKey = definition.CacheKey;
             responseSchema.Icon = definition.GetIconAsString();
+            foreach (var error in definition.ErrorMessages)
+            {
+                responseSchema.Errors.Add(error);
+            }
             string jsonResponse = JsonConvert.SerializeObject(responseSchema);
 
             Response res = jsonResponse;

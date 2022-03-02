@@ -33,35 +33,13 @@ namespace Hops
         string _cacheKey = null;
         const string _apiKeyName = "RhinoComputeKey";
         PathType? _pathType;
-        static string _lastIORequest = "";
-        static string _lastIOResponse = "";
-        static string _lastSolveRequest = "";
-        static string _lastSolveResponse = "";
+        static LastHTTP _lastHTTP = new LastHTTP();
 
-        public static string LastIORequest
+        public static LastHTTP LastHTTP
         {
-            get { return _lastIORequest; }
-            set { _lastIORequest = value; }
+            get { return _lastHTTP; }
+            set { _lastHTTP = value; }
         }
-
-        public static string LastIOResponse
-        {
-            get { return _lastIOResponse; }
-            set { _lastIOResponse = value; }
-        }
-
-        public static string LastSolveRequest
-        {
-            get { return _lastSolveRequest; }
-            set { _lastSolveRequest = value; }
-        }
-
-        public static string LastSolveResponse
-        {
-            get { return _lastSolveResponse; }
-            set { _lastSolveResponse = value; }
-        }
-
         public static RemoteDefinition Create(string path, HopsComponent parentComponent)
         {
             var rc = new RemoteDefinition(path, parentComponent);
@@ -217,20 +195,22 @@ namespace Hops
                 schema.AngleTolerance = GetDocumentAngleTolerance();
                 schema.ModelUnits = GetDocumentUnits();
                 string inputJson = JsonConvert.SerializeObject(schema);
-                _lastIORequest = "{";
-                _lastIORequest += "\"URL\": \"" + postUrl + "\"," + Environment.NewLine;
-                _lastIORequest += "\"content\": " + inputJson  + Environment.NewLine;
-                _lastIORequest += "}";
+                string requestContent = "{";
+                requestContent += "\"URL\": \"" + postUrl + "\"," + Environment.NewLine;
+                requestContent += "\"content\": " + inputJson  + Environment.NewLine;
+                requestContent += "}";
+                LastHTTP.IORequest = requestContent;
                 var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
                 HttpClient client = new HttpClient();
                 if(!String.IsNullOrEmpty(HopsAppSettings.APIKey))
                     client.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
                 responseTask = client.PostAsync(postUrl, content);
+                LastHTTP.Schema = schema;
                 contentToDispose = content;
             }
             else
             {
-                _lastIORequest = "Address: " + address + Environment.NewLine;
+                LastHTTP.IORequest = "Address: " + address + Environment.NewLine;
                 responseTask = HttpClient.GetAsync(address);
             }
 
@@ -242,13 +222,14 @@ namespace Hops
                 if (string.IsNullOrEmpty(stringResult))
                 {
                     _pathType = PathType.InvalidUrl; // Looks like a valid but not related URL
-                    _lastIOResponse = "Invalid URL";
+                    LastHTTP.IOResponse = "Invalid URL";
                 }
                 else
                 {
-                    _lastIOResponse = stringResult;
+                    LastHTTP.IOResponse = stringResult;
                     responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(stringResult);
                     _cacheKey = responseSchema.CacheKey;
+                    LastHTTP.IOResponseSchema = responseSchema;
                 }
             }
 
@@ -321,6 +302,7 @@ namespace Hops
                     }
                     _outputParams[outputParamName] = ParamFromIoResponseSchema(output);
                 }
+                LastHTTP.IOResponseSchema = responseSchema;
             }
         }
 
@@ -434,12 +416,11 @@ namespace Hops
                     return cachedResults;
                 }
             }
-
-            _lastSolveRequest = "{";
-            _lastSolveRequest += "\"URL\": \"" + solveUrl + "\"," + Environment.NewLine;
-            _lastSolveRequest += "\"content\": " + inputJson + Environment.NewLine;
-            _lastSolveRequest += "}";
-
+            string requestContent = "{";
+            requestContent += "\"URL\": \"" + solveUrl + "\"," + Environment.NewLine;
+            requestContent += "\"content\": " + inputJson + Environment.NewLine;
+            requestContent += "}";
+            LastHTTP.SolveRequest = requestContent;
             using (var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json"))
             {
                 HttpClient client = new HttpClient();
@@ -449,7 +430,7 @@ namespace Hops
                 var responseMessage = postTask.Result;
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-                _lastSolveResponse = stringResult;
+                LastHTTP.SolveResponse = stringResult;
                 Schema schema = SafeSchemaDeserialize(stringResult);
 
                 if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
@@ -461,10 +442,11 @@ namespace Hops
                         string base64 = Convert.ToBase64String(bytes);
                         inputSchema.Algo = base64;
                         inputJson = JsonConvert.SerializeObject(inputSchema);
-                        _lastSolveRequest = "{";
-                        _lastSolveRequest += "\"URL\": \"" + solveUrl + "\"," + Environment.NewLine;
-                        _lastSolveRequest += "\"content\":" + inputJson + Environment.NewLine;
-                        _lastSolveRequest += "}";
+                        requestContent = "{";
+                        requestContent += "\"URL\": \"" + solveUrl + "\"," + Environment.NewLine;
+                        requestContent += "\"content\":" + inputJson + Environment.NewLine;
+                        requestContent += "}";
+                        LastHTTP.SolveRequest = requestContent;
                         var content2 = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
                         HttpClient client2 = new HttpClient();
                         if (!String.IsNullOrEmpty(HopsAppSettings.APIKey))
@@ -473,12 +455,13 @@ namespace Hops
                         responseMessage = postTask.Result;
                         remoteSolvedData = responseMessage.Content;
                         stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-                        _lastSolveResponse = stringResult;
+                        LastHTTP.SolveResponse = stringResult;
                         schema = SafeSchemaDeserialize(stringResult);
                         if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
                         {
                             var badSchema = new Schema();
                             badSchema.Errors.Add("Unable to solve on compute");
+                            LastHTTP.Schema = badSchema;
                             return badSchema;
                         }
                     }
@@ -488,6 +471,7 @@ namespace Hops
                         {
                             var badSchema = new Schema();
                             badSchema.Errors.Add($"Unable to find file: {Path}");
+                            LastHTTP.Schema = badSchema;
                             return badSchema;
                         }
                     }
@@ -497,6 +481,7 @@ namespace Hops
                 {
                     var badSchema = new Schema();
                     badSchema.Errors.Add($"Request timeout: {Path}");
+                    LastHTTP.Schema = badSchema;
                     return badSchema;
                 }
 
@@ -1030,6 +1015,7 @@ namespace Hops
                 string definition = Path.Substring(Path.LastIndexOf('/') + 1);
                 schema.Pointer = definition;
             }
+            LastHTTP.Schema = schema;
             return schema;
         }
     }

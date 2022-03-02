@@ -575,65 +575,61 @@ for value in values:
 
         void ExportLastIORequest()
         {
-            if (_lastCreatedSchema == null)
+            if (String.IsNullOrEmpty(RemoteDefinition.LastHTTP.IORequest))
             {
-                Eto.Forms.MessageBox.Show("No API request has been made. Run this component at least once", Eto.Forms.MessageBoxType.Error);
+                Eto.Forms.MessageBox.Show("No IO request has been made. Run this component at least once", Eto.Forms.MessageBoxType.Error);
                 return;
             }
             var dlg = new Eto.Forms.SaveFileDialog();
             dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
             if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
             {
-                if (!String.IsNullOrEmpty(RemoteDefinition.LastIORequest))
-                    System.IO.File.WriteAllText(dlg.FileName, RemoteDefinition.LastIORequest);
+                System.IO.File.WriteAllText(dlg.FileName, RemoteDefinition.LastHTTP.IORequest);
             }
         }
 
         void ExportLastIOResponse()
         {
-            if (_lastCreatedSchema == null)
+            if (String.IsNullOrEmpty(RemoteDefinition.LastHTTP.IOResponse))
             {
-                Eto.Forms.MessageBox.Show("No API response has been received. Run this component at least once", Eto.Forms.MessageBoxType.Error);
+                Eto.Forms.MessageBox.Show("No IO response has been received. Run this component at least once", Eto.Forms.MessageBoxType.Error);
                 return;
             }
             var dlg = new Eto.Forms.SaveFileDialog();
             dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
             if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
             {
-                if (!String.IsNullOrEmpty(RemoteDefinition.LastIOResponse))
-                    System.IO.File.WriteAllText(dlg.FileName, RemoteDefinition.LastIOResponse);
+                System.IO.File.WriteAllText(dlg.FileName, RemoteDefinition.LastHTTP.IOResponse);
             }
         }
 
         void ExportLastSolveRequest()
         {
-            if (_lastCreatedSchema == null)
+            if (String.IsNullOrEmpty(RemoteDefinition.LastHTTP.SolveRequest))
             {
-                Eto.Forms.MessageBox.Show("No API request has been made. Run this component at least once", Eto.Forms.MessageBoxType.Error);
+                Eto.Forms.MessageBox.Show("No solve request has been made. Run this component at least once", Eto.Forms.MessageBoxType.Error);
                 return;
             }
             var dlg = new Eto.Forms.SaveFileDialog();
             dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
             if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
             {
-                if (!String.IsNullOrEmpty(RemoteDefinition.LastSolveRequest))
-                    System.IO.File.WriteAllText(dlg.FileName, RemoteDefinition.LastSolveRequest);
+                System.IO.File.WriteAllText(dlg.FileName, RemoteDefinition.LastHTTP.SolveRequest);
             }
         }
 
         void ExportLastSolveResponse()
         {
-            if (_lastCreatedSchema == null)
+            if (String.IsNullOrEmpty(RemoteDefinition.LastHTTP.SolveResponse))
             {
-                Eto.Forms.MessageBox.Show("No API response has been received. Run this component at least once", Eto.Forms.MessageBoxType.Error);
+                Eto.Forms.MessageBox.Show("No solve response has been received. Run this component at least once", Eto.Forms.MessageBoxType.Error);
                 return;
             }
             var dlg = new Eto.Forms.SaveFileDialog();
             dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
             if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
             {
-                if (!String.IsNullOrEmpty(RemoteDefinition.LastSolveResponse))
-                    System.IO.File.WriteAllText(dlg.FileName, RemoteDefinition.LastSolveResponse);
+                System.IO.File.WriteAllText(dlg.FileName, RemoteDefinition.LastHTTP.SolveResponse);
             }
         }
 
@@ -722,6 +718,15 @@ for value in values:
                     AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Path appears valid, but to something that is not Hops related");
                     Grasshopper.Instances.ActiveCanvas?.Invalidate();
                     return;
+                }
+                if(RemoteDefinition.LastHTTP.IOResponseSchema.Errors.Count > 0)
+                {
+                    foreach(var error in RemoteDefinition.LastHTTP.IOResponseSchema.Errors)
+                    {
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
+                        Grasshopper.Instances.ActiveCanvas?.Invalidate();
+                        return;
+                    }
                 }
 
                 if (!string.IsNullOrWhiteSpace(description) && !Description.Equals(description))
