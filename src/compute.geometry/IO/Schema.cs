@@ -14,6 +14,9 @@ namespace Resthopper.IO
         [JsonProperty(PropertyName = "angletolerance")]
         public double AngleTolerance { get; set; } = 0;
 
+        [JsonProperty(PropertyName = "modelunits")]
+        public string ModelUnits { get; set; } = Rhino.UnitSystem.Millimeters.ToString();
+
         [JsonProperty(PropertyName = "algo")]
         public string Algo { get; set; }
 

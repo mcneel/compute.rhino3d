@@ -75,6 +75,22 @@ namespace compute.geometry
             }         
         }
 
+        static void SetDefaultUnits(string modelUnits)
+        {
+            if (String.IsNullOrEmpty(modelUnits))
+                return;
+
+            var utilityType = typeof(Grasshopper.Utility);
+            if (utilityType != null)
+            {
+                var method = utilityType.GetMethod("SetDefaultUnits", BindingFlags.Public | BindingFlags.Static);
+                if (method != null)
+                {
+                    method.Invoke(null, new object[] { modelUnits });
+                }
+            }
+        }
+
         static object _ghsolvelock = new object();
 
         static Response GrasshopperSolveHelper(Schema input, string body, System.Diagnostics.Stopwatch stopwatch)
@@ -89,6 +105,7 @@ namespace compute.geometry
                 throw new Exception("Unable to load grasshopper definition");
 
             SetDefaultTolerances(input.AbsoluteTolerance, input.AngleTolerance);
+            SetDefaultUnits(input.ModelUnits);
 
             int recursionLevel = input.RecursionLevel + 1;
             definition.Definition.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(recursionLevel));
