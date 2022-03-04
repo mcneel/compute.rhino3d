@@ -9,6 +9,8 @@ namespace compute.geometry
     static class Logging
     {
         static bool _enabled = false;
+        public static List<string> Warnings { get; set; }
+        public static List<string> Errors { get; set; }
 
         /// <summary>
         /// Initialises globally-shared logger.
@@ -17,6 +19,10 @@ namespace compute.geometry
         {
             if (_enabled)
                 return;
+            if (Warnings == null)
+                Warnings = new List<string>();
+            if (Errors == null)
+                Errors = new List<string>();
 
             var path = Path.Combine(Config.LogPath, "log-compute-geometry-.txt"); // log-geometry-20180925.txt, etc.
             var limit = Config.LogRetainDays;
@@ -43,6 +49,8 @@ namespace compute.geometry
 
         internal static void LogExceptionData(System.Exception ex)
         {
+            if (Errors != null)
+                Errors.Add(ex.Message);
             //if (!Config.Debug)
             //    return;
             if (ex?.Data != null)

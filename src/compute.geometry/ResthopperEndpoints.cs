@@ -207,10 +207,16 @@ namespace compute.geometry
             {
                 responseSchema.Errors.Add(error);
             }
+            foreach (var error in Logging.Errors)
+            {
+                responseSchema.Errors.Add(error);
+            }
             string jsonResponse = JsonConvert.SerializeObject(responseSchema);
 
             Response res = jsonResponse;
             res.ContentType = "application/json";
+            Logging.Warnings.Clear();
+            Logging.Errors.Clear();
             return res;
         }
 

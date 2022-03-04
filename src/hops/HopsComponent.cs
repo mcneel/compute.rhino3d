@@ -728,6 +728,13 @@ for value in values:
                         return;
                     }
                 }
+                if (RemoteDefinition.LastHTTP.IOResponseSchema.Warnings.Count > 0)
+                {
+                    foreach (var warning in RemoteDefinition.LastHTTP.IOResponseSchema.Warnings)
+                    {
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
+                    }
+                }
 
                 if (!string.IsNullOrWhiteSpace(description) && !Description.Equals(description))
                 {
