@@ -3,6 +3,9 @@ $websiteName = "Rhino.Compute"
 $physicalPathRoot = "C:\inetpub\wwwroot\aspnet_client\system_web\4_0_30319"
 $rhinoComputePath = "$physicalPathRoot\rhino.compute"
 $computeGeometryPath = "$physicalPathRoot\compute.geometry"
+$rhinoPackagesPath = "C:\ProgramData\McNeel\Rhinoceros\packages"
+$userPackagesPath = "C:\Users\$env:UserName\AppData\Roaming\McNeel\Rhinoceros\packages"
+$appPoolPackagesPath = "C:\Users\RhinoComputeAppPool\AppData\Roaming\McNeel\Rhinoceros"
 
 Import-Module WebAdministration
 
@@ -39,6 +42,7 @@ Write-Step "Creating application pool"
 CreateAppPool $appPoolName
 Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "managedRuntimeVersion" -Value ""
 Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "processModel.loadUserProfile" -Value "True"
+Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "processModel.setProfileEnvironment" -Value "True"
 
 $node = Select-XML -Path "$rhinoComputePath\web.config" -XPath "//aspNetCore" | Select -ExpandProperty Node
 $arguments = $node.arguments
@@ -80,10 +84,28 @@ If((Test-Path $rhinoComputePath))
 }
 
 Write-Step "Granting application pool permissions on compute directories" 
-cmd /c icacls $rhinoComputePath /grant ("IIS AppPool\$appPoolName" + ':(OI)(CI)M') /t /c /q
-cmd /c icacls $computeGeometryPath /grant ("IIS AppPool\$appPoolName"+ ':(OI)(CI)M') /t /c /q
+cmd /c icacls $rhinoComputePath /grant ("IIS AppPool\$appPoolName" + ':(OI)(CI)F') /t /c /q 
+cmd /c icacls $computeGeometryPath /grant ("IIS AppPool\$appPoolName"+ ':(OI)(CI)F') /t /c /q 
+
+Write-Step "Creating symbolic link for 3rd party plugins"
+
+#$rhinoPackagesPath = "C:\ProgramData\McNeel\Rhinoceros\packages"
+#$userPackagesPath = "C:\Users\$env:UserName\AppData\Roaming\McNeel\Rhinoceros\packages"
+#$appPoolPackagesPath = "C:\Users\RhinoComputeAppPool\AppData\Roaming\McNeel\Rhinoceros"
+
+#New-Item -ItemType directory -Path $appPoolPackagesPath
+#New-Item -ItemType directory -Path $userPackagesPath 
+ 
+#New-Item -ItemType SymbolicLink -Path "$appPoolPackagesPath\packages" -Target $userPackagesPath
+#New-Item -ItemType SymbolicLink -Path $rhinoPackagesPath -Target $userPackagesPath
+
+#cmd /c icacls $rhinoPackagesPath /grant ("IIS AppPool\$appPoolName"+ ':(OI)(CI)F') /t /c /q
+#cmd /c icacls $userPackagesPath /grant ("IIS AppPool\$appPoolName"+ '(OI)(CI):F') /t /c /q /l
+#cmd /c icacls "$appPoolPackagesPath\packages" /grant ("IIS AppPool\$appPoolName"+ '(OI)(CI):F') /t /c /q /l
+
+Write-Step "Setting environment variable for log paths"
+SetEnvVar 'RHINO_COMPUTE_LOG_PATH' "$rhinoComputePath\logs"
 
 Write-Step "Starting rhino.compute site" 
 Start-IISSite -Name $websiteName
 
-SetEnvVar 'RHINO_COMPUTE_LOG_PATH' "$rhinoComputePath\logs"
