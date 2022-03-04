@@ -113,8 +113,8 @@ namespace compute.geometry
 
             Rhino.Runtime.HostUtils.OnExceptionReport += (source, ex) => {
                 Log.Error(ex, "An exception occurred while processing request");
-                if (Config.Debug)
-                    Logging.LogExceptionData(ex);
+                //if (Config.Debug)
+                Logging.LogExceptionData(ex);
             };
 
             StartOptions options = new StartOptions();

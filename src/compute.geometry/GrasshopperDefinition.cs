@@ -68,7 +68,7 @@ namespace compute.geometry
         }
 
         static void LogDebug(string message) { Serilog.Log.Debug(message); }
-        static void LogError(string messge)  { Serilog.Log.Error(messge); }
+        static void LogError(string message) { Serilog.Log.Error(message); }
 
         public static GrasshopperDefinition FromUrl(string url, bool cache)
         {
@@ -158,8 +158,8 @@ namespace compute.geometry
         {
             if (rc._input.ContainsKey(name))
             {
-                rc.HasErrors = true;
                 string msg = "Multiple input parameters with the same name were detected. Parameter names must be unique.";
+                rc.HasErrors = true;
                 rc.ErrorMessages.Add(msg);
                 LogError(msg);
             }   
@@ -170,8 +170,8 @@ namespace compute.geometry
         {
             if (rc._output.ContainsKey(name))
             {
-                rc.HasErrors = true;
                 string msg = "Multiple output parameters with the same name were detected. Parameter names must be unique.";
+                rc.HasErrors = true;
                 rc.ErrorMessages.Add(msg);
                 LogError(msg);
             }  
@@ -893,7 +893,7 @@ namespace compute.geometry
             {
                 foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Error))
                 {
-                    string errorMsg = $"{msg}: component \"{obj.NickName}\" ({obj.InstanceGuid})";
+                    string errorMsg = $"{msg}: component \"{obj.Name}\" ({obj.InstanceGuid})";
                     LogError(errorMsg);
                     schema.Errors.Add(errorMsg);
                     HasErrors = true;
@@ -902,13 +902,13 @@ namespace compute.geometry
                 {
                     foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Warning))
                     {
-                        string warningMsg = $"{msg}: component \"{obj.NickName}\" ({obj.InstanceGuid})";
+                        string warningMsg = $"{msg}: component \"{obj.Name}\" ({obj.InstanceGuid})";
                         LogDebug(warningMsg);
                         schema.Warnings.Add(warningMsg);
                     }
                     foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Remark))
                     {
-                        LogDebug($"Remark in grasshopper component: \"{obj.NickName}\" ({obj.InstanceGuid}): {msg}");
+                        LogDebug($"Remark in grasshopper component: \"{obj.Name}\" ({obj.InstanceGuid}): {msg}");
                     }
                 }
             }
