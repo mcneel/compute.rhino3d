@@ -24,6 +24,7 @@ namespace rhino.compute
 
             _client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
             _client.DefaultRequestHeaders.Add("User-Agent", $"compute.rhino3d-proxy/1.0.0");
+            _client.Timeout = TimeSpan.FromSeconds(Config.ReverseProxyRequestTimeout);
 
             // Launch child processes on start. Getting the base url is enough to get things rolling
             if (ComputeChildren.SpawnOnStartup)

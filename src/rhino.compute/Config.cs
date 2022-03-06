@@ -12,17 +12,21 @@ namespace rhino.compute
         /// </summary>
         public static string ApiKey { get; private set; }
 
+        public static int ReverseProxyRequestTimeout { get; private set; }
+
         /// <summary>
         /// Loads config from environment variables (or uses defaults).
         /// </summary>
         public static void Load()
         {
             ApiKey = GetEnvironmentVariable<string>(RHINO_COMPUTE_KEY, null);
+            ReverseProxyRequestTimeout = GetEnvironmentVariable<int>(RHINO_COMPUTE_TIMEOUT, 100);
         }
 
         #region private
         // environment variables
         const string RHINO_COMPUTE_KEY = "RHINO_COMPUTE_KEY";
+        const string RHINO_COMPUTE_TIMEOUT = "RHINO_COMPUTE_TIMEOUT";
 
         readonly static List<string> _warnings = new List<string>();
 
