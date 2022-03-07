@@ -35,4 +35,3 @@ Write-Host "Root Script Path:" $PSScriptRoot
 & "$PSScriptRoot\module_hostingbundle.ps1"
 & "$PSScriptRoot\module_iis_configure.ps1"
 
-Write-Host "Congratulations! All components have now been installed."

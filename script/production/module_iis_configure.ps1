@@ -3,6 +3,10 @@ $websiteName = "Rhino.Compute"
 $physicalPathRoot = "C:\inetpub\wwwroot\aspnet_client\system_web\4_0_30319"
 $rhinoComputePath = "$physicalPathRoot\rhino.compute"
 $computeGeometryPath = "$physicalPathRoot\compute.geometry"
+$rhinoPackagesPath = "C:\ProgramData\McNeel\Rhinoceros\packages"
+$userPackagesPath = "C:\Users\$env:UserName\AppData\Roaming\McNeel\Rhinoceros\packages"
+$appPoolPackagesPath = "C:\Users\RhinoComputeAppPool\AppData\Roaming\McNeel\Rhinoceros"
+$localUserName = "RhinoComputeUser"
 
 Import-Module WebAdministration
 
@@ -33,12 +37,52 @@ function SetEnvVar {
     Write-Host "Setting environment variable: $name=$print"
     [System.Environment]::SetEnvironmentVariable($name, $value, "Machine")
 }
+function New-RandomPassword {
+    param(
+        [Parameter()]
+        [int]$MinimumPasswordLength = 12,
+        [Parameter()]
+        [int]$MaximumPasswordLength = 16,
+        [Parameter()]
+        [int]$NumberOfAlphaNumericCharacters = 10,
+        [Parameter()]
+        [switch]$ConvertToSecureString
+    )
+    
+    Add-Type -AssemblyName 'System.Web'
+    $length = Get-Random -Minimum $MinimumPasswordLength -Maximum $MaximumPasswordLength
+    $password = [System.Web.Security.Membership]::GeneratePassword($length,$NumberOfAlphaNumericCharacters)
+    if ($ConvertToSecureString.IsPresent) {
+        ConvertTo-SecureString -String $password -AsPlainText -Force
+    } else {
+        $password
+    }
+}
 #EndRegion funcs
+
+Write-Step "Creating a new user identity"
+$securePassword = New-RandomPassword -MinimumPasswordLength 10 -MaximumPasswordLength 15 -NumberOfAlphaNumericCharacters 6 -ConvertToSecureString
+$localUserAccount = @{
+   Name = $localUserName
+   Password = $securePassword
+   Description = 'User identity passed to IIS RhinoComputeAppPool'
+   AccountNeverExpires = $true
+   PasswordNeverExpires = $true
+   Verbose = $true
+}
+New-LocalUser @localUserAccount
+
+Write-Step "Adding user to RDP user group"
+Add-LocalGroupMember -Group "Remote Desktop Users" -Member $localUserName
+
+$localUserPassword = (New-Object PSCredential $localUserName,$securePassword).GetNetworkCredential().Password
 
 Write-Step "Creating application pool"
 CreateAppPool $appPoolName
 Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "managedRuntimeVersion" -Value ""
 Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "processModel.loadUserProfile" -Value "True"
+Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "processModel.setProfileEnvironment" -Value "True"
+Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "processModel" -value @{userName = $localUserName; password = $localUserPassword; identitytype = 3}
 
 $node = Select-XML -Path "$rhinoComputePath\web.config" -XPath "//aspNetCore" | Select -ExpandProperty Node
 $arguments = $node.arguments
@@ -80,10 +124,23 @@ If((Test-Path $rhinoComputePath))
 }
 
 Write-Step "Granting application pool permissions on compute directories" 
-cmd /c icacls $rhinoComputePath /grant ("IIS AppPool\$appPoolName" + ':(OI)(CI)M') /t /c /q
-cmd /c icacls $computeGeometryPath /grant ("IIS AppPool\$appPoolName"+ ':(OI)(CI)M') /t /c /q
+cmd /c icacls $rhinoComputePath /grant ("IIS AppPool\$appPoolName" + ':(OI)(CI)F') /t /c /q 
+cmd /c icacls $computeGeometryPath /grant ("IIS AppPool\$appPoolName"+ ':(OI)(CI)F') /t /c /q 
+
+Write-Step "Setting environment variable for log paths"
+SetEnvVar 'RHINO_COMPUTE_LOG_PATH' "$rhinoComputePath\logs"
 
 Write-Step "Starting rhino.compute site" 
 Start-IISSite -Name $websiteName
 
-SetEnvVar 'RHINO_COMPUTE_LOG_PATH' "$rhinoComputePath\logs"
+Write-Host "Congratulations! All components have now been installed."
+Write-Host
+Write-Host "To install third party plugins follow these steps"
+Write-Host "  1) Log into your VM using these credentials (write these down)"
+Write-Host "     User Name: $localUserName"
+Write-Host "     Password: $localUserPassword"
+Write-Host "  2) Install plugins using the Rhino package manager or"
+Write-Host "  3) Copy/paste plugin files to C:\Users\$localUserName\AppData\Roaming\Grasshopper\Libraries"
+Write-Host "  4) Restart the VM"
+Write-Host
+Write-Host "Please save the User Name and Password above for your records!"
