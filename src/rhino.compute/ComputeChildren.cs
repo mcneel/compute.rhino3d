@@ -113,7 +113,7 @@ namespace rhino.compute
                 }
             }
 
-            Log.Information($"Started child process at http://localhost:{activePort} at {DateTime.Now.ToLocalTime()}");
+            //Log.Information($"Started child process at http://localhost:{activePort} at {DateTime.Now.ToLocalTime()}");
             return ($"http://localhost:{activePort}", activePort);
         }
 
