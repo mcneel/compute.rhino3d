@@ -154,6 +154,7 @@ namespace compute.geometry
             }
             return rc;
         }
+
         private static void AddInput(IGH_Param param, string name, ref GrasshopperDefinition rc)
         {
             if (rc._input.ContainsKey(name))
