@@ -110,7 +110,7 @@ namespace compute.geometry
             int recursionLevel = input.RecursionLevel + 1;
             definition.GH_Document.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(recursionLevel));
 
-            definition.SetInputs(input.Values);
+            definition.AssignData(input.Values);
             long decodeTime = stopwatch.ElapsedMilliseconds;
             stopwatch.Restart();
             var output = definition.Solve();

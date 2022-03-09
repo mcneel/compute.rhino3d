@@ -125,7 +125,7 @@ namespace compute.geometry
             return true;
         }
 
-        public void SetInputs(List<DataTree<ResthopperObject>> values)
+        public void AssignData(List<DataTree<ResthopperObject>> values)
         {
             InputGroup inputGroup = null;
 
