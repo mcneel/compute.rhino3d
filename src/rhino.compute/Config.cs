@@ -12,6 +12,9 @@ namespace rhino.compute
         /// </summary>
         public static string ApiKey { get; private set; }
 
+        /// <summary>
+        /// RHINO_COMPUTE_TIMEOUT: time in seconds for a time out from the client
+        /// </summary>
         public static int ReverseProxyRequestTimeout { get; private set; }
 
         /// <summary>
