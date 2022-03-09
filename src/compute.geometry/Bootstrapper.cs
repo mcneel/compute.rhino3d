@@ -24,13 +24,13 @@ namespace compute.geometry
                 sendToConsole.SetValue(null, true);
             else
                 Rhino.RhinoApp.CommandWindowCaptureEnabled = true;
+
             // Load GH at startup so it can get initialized on the main thread
             Log.Information("(1/2) Loading grasshopper");
             var pluginObject = Rhino.RhinoApp.GetPlugInObject("Grasshopper");
             var runheadless = pluginObject?.GetType().GetMethod("RunHeadless");
             if (runheadless != null)
                 runheadless.Invoke(pluginObject, null);
-
 
             if (sendToConsole != null)
                 sendToConsole.SetValue(null, false);
@@ -46,6 +46,7 @@ namespace compute.geometry
                 }
                 Rhino.RhinoApp.CommandWindowCaptureEnabled = false;
             }
+
             Log.Information("(2/2) Loading compute plug-ins");
             var loadComputePlugins = typeof(Rhino.PlugIns.PlugIn).GetMethod("LoadComputeExtensionPlugins");
             if (loadComputePlugins != null)
