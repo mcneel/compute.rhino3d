@@ -108,7 +108,7 @@ namespace compute.geometry
             SetDefaultUnits(input.ModelUnits);
 
             int recursionLevel = input.RecursionLevel + 1;
-            definition.Definition.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(recursionLevel));
+            definition.GH_Document.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(recursionLevel));
 
             definition.SetInputs(input.Values);
             long decodeTime = stopwatch.ElapsedMilliseconds;
@@ -202,7 +202,7 @@ namespace compute.geometry
 
             var responseSchema = definition.GetInputsAndOutputs();
             responseSchema.CacheKey = definition.CacheKey;
-            responseSchema.Icon = definition.GetIconAsString();
+            responseSchema.Icon = definition.IconBitmapString();
             foreach (var error in definition.ErrorMessages)
             {
                 responseSchema.Errors.Add(error);

@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <RootNamespace>BH.Engine.RemoteCompute.RhinoCompute</RootNamespace>
+    <AssemblyName>BH.Engine.RemoteCompute.RhinoCompute</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="BHoM">
+      <HintPath>..\..\..\..\..\..\ProgramData\BHoM\Assemblies\BHoM.dll</HintPath>
+    </Reference>
+    <Reference Include="BHoM_Engine">
+      <HintPath>..\..\..\..\..\..\ProgramData\BHoM\Assemblies\BHoM_Engine.dll</HintPath>
+    </Reference>
+    <Reference Include="RemoteCompute_Engine">
+      <HintPath>..\..\..\..\..\..\ProgramData\BHoM\Assemblies\RemoteCompute_Engine.dll</HintPath>
+    </Reference>
+    <Reference Include="RemoteCompute_oM">
+      <HintPath>..\..\..\..\..\..\ProgramData\BHoM\Assemblies\RemoteCompute_oM.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

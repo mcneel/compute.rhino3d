@@ -48,6 +48,10 @@
   <ItemGroup>
     <Folder Include="Logging\" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BH.Engine.RemoteCompute.RhinoCompute\RhinoCompute_Engine.csproj" />
+    <ProjectReference Include="..\BH.oM.RemoteCompute.RhinoCompute\RhinoCompute_oM.csproj" />
+  </ItemGroup>
   <Target Name="AfterBuild">
     <ItemGroup>
       <FilesToDelete Include="$(TargetDir)\*.so" />
