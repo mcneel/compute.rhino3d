@@ -44,7 +44,8 @@ namespace compute.geometry
                 {
                     Config.Urls = new string[] { address };
                 });
-                x.AddCommandLineDefinition("port", port => {
+                x.AddCommandLineDefinition("port", port =>
+                {
                     int p = int.Parse(port);
                     Config.Urls = new string[] { $"http://localhost:{p}" };
                 });
@@ -107,11 +108,22 @@ namespace compute.geometry
         {
             Log.Debug("Rhino system directory: {Path}", RhinoInside.Resolver.RhinoSystemDirectory);
             Log.Information("Launching RhinoCore library as {User}", Environment.UserName);
-            Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
+            try
+            {
+                Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error launching Rhino instance.");
+                if (Config.Debug)
+                    Logging.LogExceptionData(ex);
+            }
+
 
             Environment.SetEnvironmentVariable("RHINO_TOKEN", null, EnvironmentVariableTarget.Process);
 
-            Rhino.Runtime.HostUtils.OnExceptionReport += (source, ex) => {
+            Rhino.Runtime.HostUtils.OnExceptionReport += (source, ex) =>
+            {
                 Log.Error(ex, "An exception occurred while processing request");
                 //if (Config.Debug)
                 Logging.LogExceptionData(ex);
@@ -155,7 +167,7 @@ namespace compute.geometry
 
             if (Shutdown.ParentProcesses == null)
                 Log.Information("Listening on {Urls}", _bind);
-                    
+
             // when running in a console (not as a service), i.e. when launched as a child process of hops
             // update console title to differentiate windows (ports) and start parent process shutdown timer
             if (hctrl is Topshelf.Hosts.ConsoleRunHost)
@@ -203,7 +215,7 @@ namespace compute.geometry
                 return result.ToString();
             };
 
-            foreach(var endpoint in GeometryEndPoint.AllEndPoints)
+            foreach (var endpoint in GeometryEndPoint.AllEndPoints)
             {
                 string key = endpoint.PathURL;
                 Get[key] = _ => endpoint.Get(Context);
