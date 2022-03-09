@@ -25,11 +25,11 @@ namespace compute.geometry
     {
         private static GrasshopperDefinition Construct(Guid componentId)
         {
-            var component = Grasshopper.Instances.ComponentServer.EmitObject(componentId) as GH_Component;
+            GH_Component component = Grasshopper.Instances.ComponentServer.EmitObject(componentId) as GH_Component;
             if (component == null)
                 return null;
 
-            var gh_document = new GH_Document();
+            GH_Document gh_document = new GH_Document();
             gh_document.AddObject(component, false);
 
             try
@@ -42,7 +42,7 @@ namespace compute.geometry
                 Log.Error(e, "Exception in DocumentAdded event handler");
             }
 
-            GrasshopperDefinition rc = new GrasshopperDefinition(gh_document, null);
+            GrasshopperDefinition rc = new GrasshopperDefinition(gh_document);
             rc._singularComponent = component;
 
             foreach (var input in component.Params.Input)
@@ -77,90 +77,24 @@ namespace compute.geometry
                 }
             }
 
-            var definition = new GH_Document();
-            if (!archive.ExtractObject(definition, "Definition"))
+            GH_Document ghDocument = new GH_Document();
+            if (!archive.ExtractObject(ghDocument, "Definition"))
                 throw new Exception("Unable to extract definition from archive");
 
             try
             {
                 // raise DocumentServer.DocumentAdded event (used by some plug-ins)
-                Grasshopper.Instances.DocumentServer.AddDocument(definition);
+                Grasshopper.Instances.DocumentServer.AddDocument(ghDocument);
             }
             catch (Exception e)
             {
                 Log.Error(e, "Exception in DocumentAdded event handler");
             }
 
-            GrasshopperDefinition rc = new GrasshopperDefinition(definition, icon);
-            foreach (var obj in definition.Objects)
-            {
-                IGH_ContextualParameter contextualParam = obj as IGH_ContextualParameter;
-                if (contextualParam != null)
-                {
-                    IGH_Param param = obj as IGH_Param;
-                    if (param != null)
-                    {
-                        AddInput(rc, param, param.NickName);
-                    }
-                    continue;
-                }
+            GrasshopperDefinition rc = new GrasshopperDefinition(ghDocument, icon);
 
+            SetIOFromGHDocumentObjects(rc, ghDocument.Objects);
 
-                Type objectClass = obj.GetType();
-                var className = objectClass.Name;
-                if (className == "ContextBakeComponent")
-                {
-                    var contextBaker = obj as GH_Component;
-                    IGH_Param param = contextBaker.Params.Input[0];
-                    AddOutput(ref rc, param, param.NickName);
-                }
-
-                if (className == "ContextPrintComponent")
-                {
-                    var contextPrinter = obj as GH_Component;
-                    IGH_Param param = contextPrinter.Params.Input[0];
-                    AddOutput(ref rc, param, param.NickName);
-                }
-
-                var group = obj as GH_Group;
-                if (group == null)
-                    continue;
-
-                string nickname = group.NickName;
-                var groupObjects = group.Objects();
-                if (nickname.Contains("RH_IN") && groupObjects.Count > 0)
-                {
-                    var param = groupObjects[0] as IGH_Param;
-                    if (param != null)
-                    {
-                        AddInput(rc, param, nickname);
-                    }
-                }
-
-                if (nickname.Contains("RH_OUT") && groupObjects.Count > 0)
-                {
-                    if (groupObjects[0] is IGH_Param param)
-                    {
-                        AddOutput(rc, param, nickname);
-                    }
-                    else if (groupObjects[0] is GH_Component component)
-                    {
-                        int outputCount = component.Params.Output.Count;
-                        for (int i = 0; i < outputCount; i++)
-                        {
-                            if (1 == outputCount)
-                            {
-                                AddOutput(rc, component.Params.Output[i], nickname);
-                            }
-                            else
-                            {
-                                string itemName = $"{nickname} ({component.Params.Output[i].NickName})";
-                                AddOutput(rc, component.Params.Output[i], itemName);
-                            }
-                        }
-                    }
-                }
-            }
             return rc;
         }
     }

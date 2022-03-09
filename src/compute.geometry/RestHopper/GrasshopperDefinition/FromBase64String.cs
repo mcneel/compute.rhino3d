@@ -36,7 +36,7 @@ namespace compute.geometry
                 if (cache)
                 {
                     DataCache.SetCachedDefinition(rc.CacheKey, rc, data);
-                    rc.InDataCache = true;
+                    rc.FoundInDataCache = true;
                 }
             }
             return rc;

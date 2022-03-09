@@ -25,6 +25,7 @@ namespace compute.geometry
     {
         class InputGroup
         {
+            DataTree<ResthopperObject> _tree;
             object _default = null;
             public IGH_Param Param { get; }
 
@@ -65,12 +66,13 @@ namespace compute.geometry
             public int GetAtMost()
             {
                 IGH_ContextualParameter contextualParameter = Param as IGH_ContextualParameter;
+
                 if (contextualParameter != null)
-                {
                     return contextualParameter.AtMost;
-                }
+
                 if (Param is GH_NumberSlider)
                     return 1;
+
                 return int.MaxValue;
             }
 
@@ -95,10 +97,9 @@ namespace compute.geometry
             public object GetMaximum()
             {
                 var p = Param;
+
                 if (p is IGH_ContextualParameter && p.Sources.Count == 1)
-                {
                     p = p.Sources[0];
-                }
 
                 if (p is GH_NumberSlider paramSlider)
                     return paramSlider.Slider.Maximum;
@@ -106,7 +107,7 @@ namespace compute.geometry
                 return null;
             }
 
-            public bool AlreadySet(DataTree<ResthopperObject> tree)
+            public bool IsAlreadySet(DataTree<ResthopperObject> tree)
             {
                 if (_tree == null)
                     return false;
@@ -115,9 +116,7 @@ namespace compute.geometry
                 var newDictionary = tree.InnerTree;
 
                 if (!oldDictionary.Keys.SequenceEqual(newDictionary.Keys))
-                {
                     return false;
-                }
 
                 foreach (var kvp in oldDictionary)
                 {
@@ -126,20 +125,17 @@ namespace compute.geometry
                         return false;
 
                     if (!newValue.SequenceEqual(oldValue))
-                    {
                         return false;
-                    }
                 }
 
                 return true;
             }
 
-            public void CacheTree(DataTree<ResthopperObject> tree)
+            public void StoreTree(DataTree<ResthopperObject> tree)
             {
                 _tree = tree;
             }
 
-            DataTree<ResthopperObject> _tree;
         }
     }
 }

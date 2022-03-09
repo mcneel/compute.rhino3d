@@ -23,27 +23,114 @@ namespace compute.geometry
 {
     partial class GrasshopperDefinition
     {
-        public void SetInputs(List<DataTree<ResthopperObject>> values)
+        public void AssignContextualData<T>(IGH_ContextualParameter contextualParameter, DataTree<ResthopperObject> tree)
         {
-            foreach (var tree in values)
+            foreach (KeyValuePair<string, List<ResthopperObject>> entry in tree)
             {
-                if (!_input.TryGetValue(tree.ParamName, out var inputGroup))
+                T[] values = new T[entry.Value.Count];
+                for (int i = 0; i < values.Length; i++)
                 {
-                    continue;
+                    ResthopperObject restobj = entry.Value[i];
+                    values[i] = JsonConvert.DeserializeObject<T>(restobj.Data);
                 }
 
-                if (inputGroup.AlreadySet(tree))
+                contextualParameter.AssignContextualData(values);
+            }
+        }
+
+        public bool AssignContextualData(IGH_Param ighParam, DataTree<ResthopperObject> tree)
+        {
+            IGH_ContextualParameter contextualParameter = ighParam as IGH_ContextualParameter;
+            if (ighParam == null)
+                return false;
+
+            switch (ighParam.ParamTypeName())
+            {
+                case "Boolean":
+                    AssignContextualData<bool>(contextualParameter, tree);
+                    break;
+                case "Number":
+                    AssignContextualData<double>(contextualParameter, tree);
+                    break;
+                case "Integer":
+                    AssignContextualData<int>(contextualParameter, tree);
+                    break;
+                case "Point":
+                    AssignContextualData<Point3d>(contextualParameter, tree);
+                    break;
+                case "Line":
+                    AssignContextualData<Line>(contextualParameter, tree);
+                    break;
+                case "Text":
+                    {
+                        foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
+                        {
+                            string[] strings = new string[entree.Value.Count];
+                            for (int i = 0; i < entree.Value.Count; i++)
+                            {
+                                ResthopperObject restobj = entree.Value[i];
+                                // 2 July 2021 S. Baer (Github issue #394)
+                                // This is pretty hacky and I wish I understood json.net a bit more
+                                // to figure out why it is throwing exceptions in certain cases.
+                                // I'm hoping to support both embedded json inside of other json as
+                                // well as plain strings.
+                                try
+                                {
+                                    // Use JsonConvert to properly unescape the string
+                                    strings[i] = JsonConvert.DeserializeObject<string>(restobj.Data);
+                                }
+                                catch (Exception)
+                                {
+                                    strings[i] = System.Text.RegularExpressions.Regex.Unescape(restobj.Data);
+                                }
+                            }
+                            contextualParameter.AssignContextualData(strings);
+                            break;
+                        }
+                    }
+                    break;
+                case "Geometry":
+                    {
+                        foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
+                        {
+                            GeometryBase[] geometries = new GeometryBase[entree.Value.Count];
+                            for (int i = 0; i < entree.Value.Count; i++)
+                            {
+                                ResthopperObject restobj = entree.Value[i];
+                                var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(restobj.Data);
+                                geometries[i] = Rhino.Runtime.CommonObject.FromJSON(dict) as GeometryBase;
+                            }
+                            contextualParameter.AssignContextualData(geometries);
+                            break;
+                        }
+                    }
+                    break;
+            }
+
+            return true;
+        }
+
+        public void SetInputs(List<DataTree<ResthopperObject>> values)
+        {
+            InputGroup inputGroup = null;
+
+            foreach (DataTree<ResthopperObject> tree in values)
+            {
+                if (!_input.TryGetValue(tree.ParamName, out inputGroup))
+                    continue;
+
+                if (inputGroup.IsAlreadySet(tree))
                 {
                     LogDebug("Skipping input tree... same input");
                     continue;
                 }
 
-                inputGroup.CacheTree(tree);
+                inputGroup.StoreTree(tree);
 
                 IGH_ContextualParameter contextualParameter = inputGroup.Param as IGH_ContextualParameter;
                 if (contextualParameter != null)
                 {
-                    switch (ParamTypeName(inputGroup.Param))
+                    switch (inputGroup.Param.ParamTypeName())
                     {
                         case "Boolean":
                             {

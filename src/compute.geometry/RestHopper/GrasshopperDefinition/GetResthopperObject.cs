@@ -23,17 +23,13 @@ namespace compute.geometry
 {
     partial class GrasshopperDefinition
     {
-        private static void AddInput(GrasshopperDefinition rc, IGH_Param param, string name)
+        static ResthopperObject GetResthopperObject<T>(object goo)
         {
-            if (rc._input.ContainsKey(name))
-            {
-                string msg = "Multiple input parameters with the same name were detected. Parameter names must be unique.";
-                rc.HasErrors = true;
-                rc.ErrorMessages.Add(msg);
-                LogError(msg);
-            }
-            else
-                rc._input[name] = new InputGroup(param);
+            var v = (T)goo;
+            ResthopperObject rhObj = new ResthopperObject();
+            rhObj.Type = goo.GetType().FullName;
+            rhObj.Data = JsonConvert.SerializeObject(v, GeometryResolver.Settings);
+            return rhObj;
         }
     }
 }

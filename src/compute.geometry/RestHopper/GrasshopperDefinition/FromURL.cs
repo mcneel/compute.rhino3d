@@ -54,7 +54,7 @@ namespace compute.geometry
             if (cache)
             {
                 DataCache.SetCachedDefinition(url, rc, null);
-                rc.InDataCache = true;
+                rc.FoundInDataCache = true;
             }
             return rc;
         }

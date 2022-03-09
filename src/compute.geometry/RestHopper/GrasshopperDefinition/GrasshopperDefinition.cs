@@ -22,18 +22,30 @@ namespace compute.geometry
 {
     partial class GrasshopperDefinition
     {
-        private GrasshopperDefinition(GH_Document gh_document, string icon)
+        private GrasshopperDefinition(GH_Document gh_document)
         {
             GH_Document = gh_document;
-            _iconString = icon;
             FileRuntimeCacheSerialNumber = _watchedFileRuntimeSerialNumber;
         }
 
+        private GrasshopperDefinition(GH_Document gh_document, string icon) : this(gh_document)
+        {
+            _iconString = icon;
+        }
+
         public GH_Document GH_Document { get; }
-        public bool InDataCache { get; set; }
-        public bool HasErrors { get; private set; } // default: false
-        public bool IsLocalFileDefinition { get; set; } // default: false
-        public uint FileRuntimeCacheSerialNumber { get; private set; }
+
+        public bool FoundInDataCache { get; set; }
+        public bool HasErrors { get; private set; } = false;
+        public bool IsLocalFileDefinition { get; set; } = false;
+
+        public uint FileRuntimeCacheSerialNumber { get; private set; } = _watchedFileRuntimeSerialNumber;
+        public static uint WatchedFileRuntimeSerialNumber { get { return _watchedFileRuntimeSerialNumber; } }
+
+        static Dictionary<string, FileSystemWatcher> _filewatchers;
+        static HashSet<string> _watchedFiles = new HashSet<string>();
+        static uint _watchedFileRuntimeSerialNumber = 1;
+
         public string CacheKey { get; set; }
         string _iconString;
         GH_Component _singularComponent;

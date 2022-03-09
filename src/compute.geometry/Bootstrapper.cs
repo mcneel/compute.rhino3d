@@ -28,6 +28,7 @@ namespace compute.geometry
             // Load GH at startup so it can get initialized on the main thread
             Log.Information("(1/2) Loading grasshopper");
             var pluginObject = Rhino.RhinoApp.GetPlugInObject("Grasshopper");
+
             var runheadless = pluginObject?.GetType().GetMethod("RunHeadless");
             if (runheadless != null)
                 runheadless.Invoke(pluginObject, null);
@@ -97,6 +98,7 @@ namespace compute.geometry
                 Log.Error(ex, msg + " \"{RequestId}\"", id);
             else
                 Log.Error(ex, msg);
+
             return null;
         }
     }

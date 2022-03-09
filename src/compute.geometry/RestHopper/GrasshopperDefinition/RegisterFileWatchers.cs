@@ -23,12 +23,6 @@ namespace compute.geometry
 {
     partial class GrasshopperDefinition
     {
-        static Dictionary<string, FileSystemWatcher> _filewatchers;
-        static HashSet<string> _watchedFiles = new HashSet<string>();
-        static uint _watchedFileRuntimeSerialNumber = 1;
-
-        public static uint WatchedFileRuntimeSerialNumber { get { return _watchedFileRuntimeSerialNumber; } }
-
         static void RegisterFileWatcher(string path)
         {
             if (_filewatchers == null)

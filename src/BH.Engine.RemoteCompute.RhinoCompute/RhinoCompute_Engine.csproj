@@ -66,6 +66,9 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Modify\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\RhinoCommon.7.0.20314.3001\build\RhinoCommon.targets" Condition="Exists('..\packages\RhinoCommon.7.0.20314.3001\build\RhinoCommon.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
