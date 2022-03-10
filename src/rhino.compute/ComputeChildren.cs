@@ -192,7 +192,7 @@ namespace rhino.compute
             string commandLineArgs = $"-port:{port} -childof:{rhinoProcess.Id}";
             if (!string.IsNullOrEmpty(RhinoSysDir))
             {
-                commandLineArgs += $" -rhinoSysDir \"{RhinoSysDir}\"";
+                commandLineArgs += $" -rhinosysdir \"{RhinoSysDir}\"";
             }
             if (ParentPort > 0 && ChildIdleSpan.TotalSeconds > 1.0)
             {
