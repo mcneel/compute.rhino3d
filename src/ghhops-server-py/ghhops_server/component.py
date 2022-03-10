@@ -42,6 +42,8 @@ class HopsComponent:
     def encode(self):
         """Serializer"""
         metadata = {
+            "Name": self.name,
+            "NickName": self.nickname,
             "Description": self.description,
             "Inputs": self.inputs,
             "Outputs": self.outputs,
