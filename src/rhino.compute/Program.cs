@@ -104,15 +104,12 @@ requests while the child processes are launching.")]
 
                 }).Build();
 
-            if(_parentProcess != null)
+            if(_parentProcess?.MainModule != null)
             {
-                if(_parentProcess.MainModule != null)
+                var parentPath = _parentProcess.MainModule.FileName;
+                if (Path.GetFileName(parentPath) == "Rhino.exe")
                 {
-                    var parentPath = _parentProcess.MainModule.FileName;
-                    if (Path.GetFileName(parentPath) == "Rhino.exe")
-                    {
-                        ComputeChildren.RhinoSysDir = Directory.GetParent(parentPath).FullName;
-                    }
+                    ComputeChildren.RhinoSysDir = Directory.GetParent(parentPath).FullName;
                 }
             }
 

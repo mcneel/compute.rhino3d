@@ -83,18 +83,6 @@ namespace compute.geometry
             var exitCode = (int)Convert.ChangeType(rc, rc.GetTypeCode());
             Environment.ExitCode = exitCode;
         }
-
-        public static void LogVersions()
-        {
-            string compute_version = null, rhino_version = null;
-            try
-            {
-                compute_version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
-                rhino_version = typeof(Rhino.RhinoApp).Assembly.GetName().Version.ToString();
-            }
-            catch { }
-            Log.Information("Compute {ComputeVersion}, Rhino {RhinoVersion}", compute_version, rhino_version);
-        }
     }
 
     internal class OwinSelfHost : ServiceControl
@@ -107,9 +95,21 @@ namespace compute.geometry
             _bind = Config.Urls;
         }
 
+        private static void LogVersions()
+        {
+            string compute_version = null, rhino_version = null;
+            try
+            {
+                compute_version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
+                rhino_version = typeof(Rhino.RhinoApp).Assembly.GetName().Version.ToString();
+            }
+            catch { }
+            Log.Information("Compute {ComputeVersion}, Rhino {RhinoVersion}", compute_version, rhino_version);
+        }
+
         public bool Start(HostControl hctrl)
         {
-            Program.LogVersions();
+            LogVersions();
             Log.Debug("Rhino system directory: {Path}", RhinoInside.Resolver.RhinoSystemDirectory);
             Log.Information("Launching RhinoCore library as {User}", Environment.UserName);
             Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
@@ -118,7 +118,6 @@ namespace compute.geometry
 
             Rhino.Runtime.HostUtils.OnExceptionReport += (source, ex) => {
                 Log.Error(ex, "An exception occurred while processing request");
-                //if (Config.Debug)
                 Logging.LogExceptionData(ex);
             };
 
