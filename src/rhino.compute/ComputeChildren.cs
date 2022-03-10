@@ -190,7 +190,7 @@ namespace rhino.compute
             var startInfo = new ProcessStartInfo(pathToCompute);
             var rhinoProcess = Process.GetCurrentProcess();
             string commandLineArgs = $"-port:{port} -childof:{rhinoProcess.Id}";
-            if(RhinoSysDir != null && !String.IsNullOrEmpty(RhinoSysDir))
+            if (!string.IsNullOrEmpty(RhinoSysDir))
             {
                 commandLineArgs += $" -rhinoSysDir \"{RhinoSysDir}\"";
             }
