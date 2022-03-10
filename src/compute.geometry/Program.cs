@@ -63,7 +63,8 @@ namespace compute.geometry
                     int spanSeconds = int.Parse(span);
                     Shutdown.RegisterIdleSpan(spanSeconds);
                 });
-                x.AddCommandLineDefinition("rhinoSysDir", dir =>
+                x.AddCommandLineDefinition("rhinosysdir", dir =>
+
                 {
                     RhinoInside.Resolver.RhinoSystemDirectory = dir;
                 });
