@@ -7,7 +7,6 @@ using System;
 using System.Net;
 using System.Reflection;
 using System.Text;
-using System.Diagnostics;
 using Topshelf;
 
 namespace compute.geometry
