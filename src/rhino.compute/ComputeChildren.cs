@@ -35,6 +35,10 @@ namespace rhino.compute
         /// <summary>Port that rhino.compute is running on</summary>
         public static int ParentPort { get; set; } = 5000;
         /// <summary>
+        /// The system directory for the Rhino executable
+        /// </summary>
+        public static string RhinoSysDir { get; set; } 
+        /// <summary>
         /// Length of time (in seconds) since rhino.compute last made a call
         /// to a child process. The child processes use this information to
         /// figure out if they should exit.
@@ -50,7 +54,6 @@ namespace rhino.compute
             var span = DateTime.Now - _lastCall;
             return (int)span.TotalSeconds;
         }
-
         /// <summary>
         /// Total number of compute.geometry processes being run
         /// </summary>
@@ -185,8 +188,12 @@ namespace rhino.compute
             }
 
             var startInfo = new ProcessStartInfo(pathToCompute);
-
-            string commandLineArgs = $"-port:{port} -childof:{Process.GetCurrentProcess().Id}";
+            var rhinoProcess = Process.GetCurrentProcess();
+            string commandLineArgs = $"-port:{port} -childof:{rhinoProcess.Id}";
+            if (!string.IsNullOrEmpty(RhinoSysDir))
+            {
+                commandLineArgs += $" -rhinosysdir \"{RhinoSysDir}\"";
+            }
             if (ParentPort > 0 && ChildIdleSpan.TotalSeconds > 1.0)
             {
                 int seconds = (int)ChildIdleSpan.TotalSeconds;
@@ -229,7 +236,6 @@ namespace rhino.compute
                 processQueue.Enqueue(Tuple.Create(process, port));
             }
         }
-
 
         static bool IsPortOpen(string host, int port, TimeSpan timeout)
         {

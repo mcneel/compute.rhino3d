@@ -30,10 +30,9 @@ namespace compute.geometry
 
             //string rhinoSystemDir = @"C:\dev\github\mcneel\rhino7\src4\bin\Debug";
             //if (System.IO.File.Exists(rhinoSystemDir + "\\Rhino.exe"))
-            //RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
+                //RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
 
 #endif
-            LogVersions();
             StartTime = DateTime.Now;
             Shutdown.RegisterStartTime(StartTime);
             Log.Information($"Child process started at " + StartTime.ToLocalTime().ToString());
@@ -63,6 +62,11 @@ namespace compute.geometry
                     int spanSeconds = int.Parse(span);
                     Shutdown.RegisterIdleSpan(spanSeconds);
                 });
+                x.AddCommandLineDefinition("rhinosysdir", dir =>
+
+                {
+                    RhinoInside.Resolver.RhinoSystemDirectory = dir;
+                });
                 x.UseSerilog();
                 x.ApplyCommandLine();
                 x.SetStartTimeout(TimeSpan.FromMinutes(1));
@@ -80,7 +84,7 @@ namespace compute.geometry
             Environment.ExitCode = exitCode;
         }
 
-        private static void LogVersions()
+        public static void LogVersions()
         {
             string compute_version = null, rhino_version = null;
             try
@@ -105,6 +109,7 @@ namespace compute.geometry
 
         public bool Start(HostControl hctrl)
         {
+            Program.LogVersions();
             Log.Debug("Rhino system directory: {Path}", RhinoInside.Resolver.RhinoSystemDirectory);
             Log.Information("Launching RhinoCore library as {User}", Environment.UserName);
             Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
