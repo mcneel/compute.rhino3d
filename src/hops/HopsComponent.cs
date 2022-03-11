@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 using Rhino.Geometry;
 using System.Threading.Tasks;
 using System.Linq;
+using Rhino;
 
 namespace Hops
 {
@@ -51,6 +52,12 @@ namespace Hops
             {
                 Servers.StartServerOnLaunch();
             }
+            Grasshopper.Instances.CanvasCreated += Grasshopper_CanvasCreated;
+        }
+
+        private static void Grasshopper_CanvasCreated(GH_Canvas canvas)
+        {
+            HopsFunctionMgr.AddFunctionMgrControl();
         }
 
         public HopsComponent()

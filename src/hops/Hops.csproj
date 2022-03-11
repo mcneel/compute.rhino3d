@@ -24,6 +24,10 @@
     <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="resources\Hops_Function_Mgr_24x24.png" />
+    <None Remove="resources\Hops_Function_Mgr_48x48.png" />
+  </ItemGroup>
+  <ItemGroup>
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Runtime.Caching" />
     <Reference Include="System.Web" />
@@ -53,6 +57,8 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="resources\Hops_48x48.png" />
+    <EmbeddedResource Include="resources\Hops_Function_Mgr_24x24.png" />
+    <EmbeddedResource Include="resources\Hops_Function_Mgr_48x48.png" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="manifest.yml" Condition="'$(Configuration)' == 'Release'">
