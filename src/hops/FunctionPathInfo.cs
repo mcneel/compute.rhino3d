@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using System.Windows.Input;
 using System.IO;
 
 namespace Hops
@@ -56,12 +57,12 @@ namespace Hops
 
         public List<FunctionPathInfo> Paths = new List<FunctionPathInfo>();
 
-        public void BuildMenus(ToolStripMenuItem ti, EventHandler ev)
+        public void BuildMenus(ToolStripMenuItem ti, MouseEventHandler ev)
         {
             if (Paths.Count == 0)
             {
                 ToolStripItem item = ti.DropDownItems.Add(FileName);
-                item.Click += ev;
+                item.MouseDown += ev;
                 item.Name = FullPath;
             }
             else

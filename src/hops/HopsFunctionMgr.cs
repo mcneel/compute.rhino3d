@@ -10,6 +10,7 @@ using System.Drawing;
 using System.Reflection;
 using Grasshopper;
 using System.IO;
+using Grasshopper.Kernel;
 
 namespace Hops
 {
@@ -35,10 +36,7 @@ namespace Hops
                         var menuItem = CreateMenuDropDown();
                         toolstrip.Items.Add(menuItem);
                     }
-                    catch(Exception ex)
-                    {
-
-                    }
+                    catch(Exception ex) { }
                 }
             }
         }
@@ -69,7 +67,7 @@ namespace Hops
                 SeekFunctionMenuDirs(functionPaths);
                 if (functionPaths.Paths.Count != 0)
                 {
-                    functionPaths.BuildMenus(menu, new EventHandler(tsm_Click));
+                    functionPaths.BuildMenus(menu, new MouseEventHandler(tsm_Click));
                 }
             }
         }
@@ -95,13 +93,47 @@ namespace Hops
             }
         }
 
-        static void tsm_Click(object sender, EventArgs e)
+        static void tsm_Click(object sender, MouseEventArgs e)
         {
             if (!(sender is ToolStripItem))
                 return;
             ToolStripItem ti = sender as ToolStripItem;
 
-            string filename = Path.GetFileNameWithoutExtension(ti.Name);
+            if (Instances.ActiveCanvas != null && !String.IsNullOrEmpty(ti.Name))
+            {
+                Grasshopper.Kernel.GH_Document doc;
+                if (Instances.ActiveCanvas.Document == null)
+                {
+                    doc = Instances.DocumentServer.AddNewDocument();
+                    Instances.ActiveCanvas.Document = doc;
+                }
+                else
+                    doc = Instances.ActiveCanvas.Document;
+
+                switch (e.Button)
+                {
+                    case MouseButtons.Left:
+                        HopsComponent hops = new HopsComponent();
+
+                        RectangleF boxTarget = Instances.ActiveCanvas.Viewport.VisibleRegion;
+                        PointF pointTarget = new PointF(boxTarget.X + 0.5f * boxTarget.Width, boxTarget.Y + 0.5f * boxTarget.Height);
+                        hops.Attributes.Pivot = pointTarget;
+                        hops.RemoteDefinitionLocation = ti.Name;
+
+                        doc.AddObject(hops, true);
+                        doc.ExpireSolution();
+                        doc.UndoUtil.RecordAddObjectEvent("Hops", hops);
+
+                        break;
+                    case MouseButtons.Right:
+                        try
+                        { 
+                            Instances.DocumentEditor.ScriptAccess_OpenDocument(ti.Name);
+                        }
+                        catch(Exception ex) { }
+                        break;
+                }
+            }
         }
 
         static Image _funcMgr24Icon;
