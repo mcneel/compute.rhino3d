@@ -59,15 +59,16 @@ namespace Hops
 
         private static void GenerateFunctionPathMenu(ToolStripMenuItem menu)
         {
-            if (!String.IsNullOrEmpty(_rootDir))
+            if (!String.IsNullOrEmpty(HopsAppSettings.FunctionManagerRootPath))
             {
-                FunctionPathInfo functionPaths = new FunctionPathInfo(_rootDir, true);
+                FunctionPathInfo functionPaths = new FunctionPathInfo(HopsAppSettings.FunctionManagerRootPath, true);
                 functionPaths.isRoot = true;
 
                 SeekFunctionMenuDirs(functionPaths);
                 if (functionPaths.Paths.Count != 0)
                 {
-                    functionPaths.BuildMenus(menu, new MouseEventHandler(tsm_Click));
+                    functionPaths.BuildMenus(menu, new MouseEventHandler(tsm_Click), new EventHandler(tsm_Hover));
+                    functionPaths.RemoveEmptyMenuItems(menu, tsm_Click, tsm_Hover);
                 }
             }
         }
@@ -91,6 +92,13 @@ namespace Hops
                 path.Paths.Add(subDirPath);
                 SeekFunctionMenuDirs(subDirPath);
             }
+        }
+
+        static void tsm_Hover(object sender, EventArgs e)
+        {
+            if (!(sender is ToolStripItem))
+                return;
+            ToolStripItem ti = sender as ToolStripItem;
         }
 
         static void tsm_Click(object sender, MouseEventArgs e)

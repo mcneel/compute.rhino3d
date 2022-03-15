@@ -8,6 +8,8 @@ namespace Hops
         public HopsAppSettingsUserControl()
         {
             InitializeComponent();
+            _pathBrowser.Path = HopsAppSettings.FunctionManagerRootPath;
+            _pathBrowser.PathChanged += _pathBrowser_PathChanged;
             _serversTextBox.Lines = HopsAppSettings.Servers;
             _serversTextBox.TextChanged += ServersTextboxChanged;
             _apiKeyTextbox.Text = HopsAppSettings.APIKey;
@@ -64,6 +66,11 @@ namespace Hops
                 };
                 toolTip1.SetToolTip(_updateChildCountButton, "Click to force Rhino.Compute to update");
             }
+        }
+
+        private void _pathBrowser_PathChanged(Grasshopper.GUI.GH_FolderPathBrowser sender, string nPath)
+        {
+            HopsAppSettings.FunctionManagerRootPath = sender.Path;
         }
 
         private void ServersTextboxChanged(object sender, EventArgs e)

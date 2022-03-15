@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Windows.Forms;
 using Grasshopper.GUI;
 
@@ -15,6 +16,7 @@ namespace Hops
         //const string SYNCHRONOUS_WAIT_TIME = "Hops:SynchronousWaitTime";
         const string MAX_CONCURRENT_REQUESTS = "Hops:MaxConcurrentRequests";
         const string RECURSION_LIMIT = "Hops:RecursionLimit";
+        const string HOPS_FUNCTION_MGR_PATH = "Hops:FunctionManagerPath";
 
         public static string[] Servers
         {
@@ -69,7 +71,36 @@ namespace Hops
                 {
                     Grasshopper.Instances.Settings.SetValue(HOPS_APIKEY, value);
                 }
-                Hops.Servers.SettingsChanged();
+            }
+        }
+
+        public static string GetDefaultPath()
+        {
+            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Roaming", "Hops", "Functions");
+            if(!Directory.Exists(path))
+                Directory.CreateDirectory(path);
+            return path;
+        }
+
+        public static string FunctionManagerRootPath
+        {
+            get
+            {
+                string path = Grasshopper.Instances.Settings.GetValue(HOPS_FUNCTION_MGR_PATH, GetDefaultPath());
+                if (string.IsNullOrWhiteSpace(path))
+                    return String.Empty;
+                return path;
+            }
+            set
+            {
+                if (value == null)
+                {
+                    Grasshopper.Instances.Settings.SetValue(HOPS_FUNCTION_MGR_PATH, "");
+                }
+                else
+                {
+                    Grasshopper.Instances.Settings.SetValue(HOPS_FUNCTION_MGR_PATH, value);
+                }
             }
         }
 
