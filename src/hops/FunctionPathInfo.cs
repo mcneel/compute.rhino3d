@@ -57,7 +57,7 @@ namespace Hops
 
         public List<FunctionPathInfo> Paths = new List<FunctionPathInfo>();
 
-        public void BuildMenus(ToolStripMenuItem ti, MouseEventHandler click_ev, EventHandler hover_ev)
+        public void BuildMenus(ToolStripMenuItem ti, MouseEventHandler click_ev, EventHandler hoverEnter_ev, EventHandler hoverLeave_ev)
         {
             if (Paths.Count == 0)
             {
@@ -65,7 +65,8 @@ namespace Hops
                 {
                     ToolStripItem item = ti.DropDownItems.Add(FileName);
                     item.MouseDown += click_ev;
-                    item.MouseHover += hover_ev;
+                    item.MouseEnter += hoverEnter_ev;
+                    item.MouseLeave += hoverLeave_ev;
                     item.Name = FullPath;
                 }
             }
@@ -82,12 +83,12 @@ namespace Hops
                 }
                 foreach (FunctionPathInfo p in Paths)
                 {
-                    p.BuildMenus(item, click_ev, hover_ev);
+                    p.BuildMenus(item, click_ev, hoverEnter_ev, hoverLeave_ev);
                 }
             }
         }
 
-        public void RemoveEmptyMenuItems(ToolStripMenuItem ti, MouseEventHandler click_ev, EventHandler hover_ev)
+        public void RemoveEmptyMenuItems(ToolStripMenuItem ti, MouseEventHandler click_ev, EventHandler hoverEnter_ev, EventHandler hoverLeave_ev)
         {
             List<int> indices = new List<int>();
             foreach(ToolStripMenuItem item in ti.DropDownItems)
@@ -96,7 +97,8 @@ namespace Hops
                 {
                     int index = (item.OwnerItem as ToolStripMenuItem).DropDownItems.IndexOf(item);
                     item.MouseDown -= click_ev;
-                    item.MouseHover -= hover_ev;
+                    item.MouseEnter -= hoverEnter_ev;
+                    item.MouseLeave -= hoverLeave_ev;
                     indices.Add(index);
                 }
             }

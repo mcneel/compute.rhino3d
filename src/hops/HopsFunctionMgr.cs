@@ -16,8 +16,7 @@ namespace Hops
 {
     public static class HopsFunctionMgr
     {
-        static string _rootDir = @"C:\Users\andyo\AppData\Roaming\Hops\Functions";
-
+        static ThumbnailViewer Viewer { get; set; }
         public static void AddFunctionMgrControl()
         {
             Type editorType = typeof(Grasshopper.GUI.GH_DocumentEditor);
@@ -30,15 +29,25 @@ namespace Hops
                     try
                     {
                         object fieldInstance = field.GetValue(Instances.DocumentEditor);
-                        ToolStrip toolstrip = fieldInstance as ToolStrip;
-                        if (toolstrip == null)
+                        ToolStrip canvasToolbar = fieldInstance as ToolStrip;
+                        if (canvasToolbar == null)
                             return;
                         var menuItem = CreateMenuDropDown();
-                        toolstrip.Items.Add(menuItem);
+                        canvasToolbar.Items.Add(menuItem);
+                        InitThumbnailViewer();
+                        Viewer.Location = new Point(canvasToolbar.Location.X, canvasToolbar.Location.Y + 24);
                     }
                     catch(Exception ex) { }
                 }
             }
+        }
+
+        private static void InitThumbnailViewer()
+        {
+            if (Viewer == null)
+                Viewer = new ThumbnailViewer();
+            Viewer.Owner = Instances.DocumentEditor;
+            Viewer.Visible = false;
         }
 
         private static ToolStripItem CreateMenuDropDown()
@@ -67,8 +76,8 @@ namespace Hops
                 SeekFunctionMenuDirs(functionPaths);
                 if (functionPaths.Paths.Count != 0)
                 {
-                    functionPaths.BuildMenus(menu, new MouseEventHandler(tsm_Click), new EventHandler(tsm_Hover));
-                    functionPaths.RemoveEmptyMenuItems(menu, tsm_Click, tsm_Hover);
+                    functionPaths.BuildMenus(menu, new MouseEventHandler(tsm_Click), new EventHandler(tsm_HoverEnter), new EventHandler(tsm_HoverExit));
+                    functionPaths.RemoveEmptyMenuItems(menu, tsm_Click, tsm_HoverEnter, tsm_HoverExit);
                 }
             }
         }
@@ -94,11 +103,40 @@ namespace Hops
             }
         }
 
-        static void tsm_Hover(object sender, EventArgs e)
+        static void tsm_HoverEnter(object sender, EventArgs e)
         {
-            if (!(sender is ToolStripItem))
+            if (!(sender is ToolStripMenuItem))
                 return;
-            ToolStripItem ti = sender as ToolStripItem;
+            ToolStripMenuItem ti = sender as ToolStripMenuItem;
+            ToolStrip parent = ti.GetCurrentParent();
+            var editor = Instances.DocumentEditor;
+            Control canvasToolbar = null;
+            foreach(Control control in editor.Controls)
+            {
+                if (control.Name == "Panel1")
+                {
+                    canvasToolbar = control;
+                    break;
+                }   
+            }
+   
+            var thumbnail = GH_DocumentIO.GetDocumentThumbnail(ti.Name);
+            Size offset = new Size(156, 32);
+            if (Viewer != null && thumbnail != null && canvasToolbar != null)
+            {
+                var point = canvasToolbar.PointToScreen(new Point(offset.Width, offset.Height));
+                Viewer.Location = point;
+                Viewer.pictureBox.Image = thumbnail;
+                Viewer.Show();
+            }
+        }
+
+        static void tsm_HoverExit(object sender, EventArgs e)
+        {
+            if (Viewer != null && Viewer.Visible)
+            {
+                Viewer.Hide();
+            }
         }
 
         static void tsm_Click(object sender, MouseEventArgs e)
