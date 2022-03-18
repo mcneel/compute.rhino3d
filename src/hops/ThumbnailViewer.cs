@@ -16,6 +16,13 @@ namespace Hops
         {
             InitializeComponent();
         }
+        protected override bool CanRaiseEvents
+        {
+            get
+            {
+                return false;
+            }
+        }
         protected override bool ShowWithoutActivation
         {
             get

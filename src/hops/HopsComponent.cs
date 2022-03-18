@@ -52,13 +52,13 @@ namespace Hops
             {
                 Servers.StartServerOnLaunch();
             }
-            Grasshopper.Instances.CanvasCreated += Grasshopper_CanvasCreated;
+            //Grasshopper.Instances.CanvasCreated += Grasshopper_CanvasCreated;
         }
 
-        private static void Grasshopper_CanvasCreated(GH_Canvas canvas)
-        {
-            HopsFunctionMgr.AddFunctionMgrControl();
-        }
+        //private static void Grasshopper_CanvasCreated(GH_Canvas canvas)
+        //{
+        //    HopsFunctionMgr.AddFunctionMgrControl();
+        //}
 
         public HopsComponent()
           : base("Hops", "Hops", "Solve an external definition using Rhino Compute", "Params", "Util")
@@ -385,6 +385,9 @@ namespace Hops
             if (!_showPathInput)
                 tsi.Font = new System.Drawing.Font(tsi.Font, System.Drawing.FontStyle.Bold);
             tsi.Enabled = !_showPathInput;
+            menu.Items.Add(tsi);
+
+            tsi = HopsFunctionMgr.AddFunctionMgrControl(this);
             menu.Items.Add(tsi);
 
             tsi = new ToolStripMenuItem("Show Input: Path", null, (s, e) => {

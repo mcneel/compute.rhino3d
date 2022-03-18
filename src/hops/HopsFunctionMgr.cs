@@ -16,30 +16,16 @@ namespace Hops
 {
     public static class HopsFunctionMgr
     {
+        private static HopsComponent Parent { get; set; }
         static ThumbnailViewer Viewer { get; set; }
-        public static void AddFunctionMgrControl()
+        public static ToolStripMenuItem AddFunctionMgrControl(HopsComponent _parent)
         {
-            Type editorType = typeof(Grasshopper.GUI.GH_DocumentEditor);
-            if(editorType != null)
-            {
-                BindingFlags binding = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.GetField;
-                FieldInfo field = editorType.GetField("_CanvasToolbar", binding);
-                if(field != null && Instances.DocumentEditor != null)
-                {
-                    try
-                    {
-                        object fieldInstance = field.GetValue(Instances.DocumentEditor);
-                        ToolStrip canvasToolbar = fieldInstance as ToolStrip;
-                        if (canvasToolbar == null)
-                            return;
-                        var menuItem = CreateMenuDropDown();
-                        canvasToolbar.Items.Add(menuItem);
-                        InitThumbnailViewer();
-                        Viewer.Location = new Point(canvasToolbar.Location.X, canvasToolbar.Location.Y + 24);
-                    }
-                    catch(Exception ex) { }
-                }
-            }
+            Parent = _parent;
+            ToolStripMenuItem menuItem = new ToolStripMenuItem("Available Functions", null, null, "Available Functions");
+            menuItem.DropDownItems.Clear();
+            GenerateFunctionPathMenu(menuItem);
+            InitThumbnailViewer();
+            return menuItem;
         }
 
         private static void InitThumbnailViewer()
@@ -48,22 +34,6 @@ namespace Hops
                 Viewer = new ThumbnailViewer();
             Viewer.Owner = Instances.DocumentEditor;
             Viewer.Visible = false;
-        }
-
-        private static ToolStripItem CreateMenuDropDown()
-        {
-            ToolStripMenuItem fileMgr = new ToolStripMenuItem(null, FuncMgr24Icon(), DropDownItemClicked, "Functions");
-            return fileMgr;
-        }
-
-        private static void DropDownItemClicked(object sender, EventArgs e)
-        {
-            ToolStripMenuItem fileMgr = sender as ToolStripMenuItem;
-            if (fileMgr != null)
-            {
-                fileMgr.DropDownItems.Clear();
-                GenerateFunctionPathMenu(fileMgr);
-            }
         }
 
         private static void GenerateFunctionPathMenu(ToolStripMenuItem menu)
@@ -108,23 +78,12 @@ namespace Hops
             if (!(sender is ToolStripMenuItem))
                 return;
             ToolStripMenuItem ti = sender as ToolStripMenuItem;
-            ToolStrip parent = ti.GetCurrentParent();
-            var editor = Instances.DocumentEditor;
-            Control canvasToolbar = null;
-            foreach(Control control in editor.Controls)
-            {
-                if (control.Name == "Panel1")
-                {
-                    canvasToolbar = control;
-                    break;
-                }   
-            }
-   
+
             var thumbnail = GH_DocumentIO.GetDocumentThumbnail(ti.Name);
-            Size offset = new Size(156, 32);
-            if (Viewer != null && thumbnail != null && canvasToolbar != null)
+
+            if (Viewer != null && thumbnail != null && ti.Owner != null)
             {
-                var point = canvasToolbar.PointToScreen(new Point(offset.Width, offset.Height));
+                var point = ti.Owner.PointToScreen(new Point(ti.Width + 4, 0));
                 Viewer.Location = point;
                 Viewer.pictureBox.Image = thumbnail;
                 Viewer.Show();
@@ -144,39 +103,22 @@ namespace Hops
             if (!(sender is ToolStripItem))
                 return;
             ToolStripItem ti = sender as ToolStripItem;
-
-            if (Instances.ActiveCanvas != null && !String.IsNullOrEmpty(ti.Name))
+            
+            if(Parent != null)
             {
-                Grasshopper.Kernel.GH_Document doc;
-                if (Instances.ActiveCanvas.Document == null)
-                {
-                    doc = Instances.DocumentServer.AddNewDocument();
-                    Instances.ActiveCanvas.Document = doc;
-                }
-                else
-                    doc = Instances.ActiveCanvas.Document;
-
                 switch (e.Button)
                 {
                     case MouseButtons.Left:
-                        HopsComponent hops = new HopsComponent();
-
-                        RectangleF boxTarget = Instances.ActiveCanvas.Viewport.VisibleRegion;
-                        PointF pointTarget = new PointF(boxTarget.X + 0.5f * boxTarget.Width, boxTarget.Y + 0.5f * boxTarget.Height);
-                        hops.Attributes.Pivot = pointTarget;
-                        hops.RemoteDefinitionLocation = ti.Name;
-
-                        doc.AddObject(hops, true);
-                        doc.ExpireSolution();
-                        doc.UndoUtil.RecordAddObjectEvent("Hops", hops);
-
+                        Parent.RemoteDefinitionLocation = ti.Name;
+                        if (Instances.ActiveCanvas.Document != null)
+                            Instances.ActiveCanvas.Document.ExpireSolution();
                         break;
                     case MouseButtons.Right:
                         try
-                        { 
+                        {
                             Instances.DocumentEditor.ScriptAccess_OpenDocument(ti.Name);
                         }
-                        catch(Exception ex) { }
+                        catch (Exception ex) { }
                         break;
                 }
             }
