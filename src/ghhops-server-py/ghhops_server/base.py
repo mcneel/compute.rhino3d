@@ -27,14 +27,20 @@ class HopsBase:
 
     def query(self, uri) -> Tuple[bool, str]:
         """Get information on given uri"""
-        if uri == "/":
+        # try to find a component registered for this uri
+        # returns one object {}
+        comp = self._components.get(uri, None)
+        if comp:
+            hlogger.debug("Getting component metadata: %s", comp)
+            return True, self._get_comp_data(comp)
+
+        # try to find a collection of components in this uri
+        # returns list of objects [{},{},...]
+        comps = [c for c in self._components.values() if c.uri.startswith(uri)]
+        if comps:
             hlogger.debug("Getting a list of all registered components")
-            return True, self._get_comps_data()
-        else:
-            comp = self._components.get(uri, None)
-            if comp:
-                hlogger.debug("Getting component metadata: %s", comp)
-                return True, self._get_comp_data(comp)
+            return True, self._get_comps_data(comps)
+
         return False, self._return_with_err("Unknown Hops url")
 
     def solve(self, uri, payload) -> Tuple[bool, str]:
@@ -73,9 +79,13 @@ class HopsBase:
 
         return json.dumps(err_res, cls=_HopsEncoder)
 
-    def _get_comps_data(self):
+    def _get_all_comps_data(self):
         # return json formatted string of all components metadata
         return json.dumps(list(self._components.values()), cls=_HopsEncoder)
+
+    def _get_comps_data(self, comps):
+        # return json formatted string of all components metadata
+        return json.dumps(comps, cls=_HopsEncoder)
 
     def _get_comp_data(self, comp):
         # return json formatted string of component metadata
@@ -147,7 +157,7 @@ class HopsBase:
         if len(comp.inputs) != len(param_values):
             return (
                 False,
-                "Input count does not match number of inputs for component"
+                "Input count does not match number of inputs for component",
             )
 
         return True, inputs
