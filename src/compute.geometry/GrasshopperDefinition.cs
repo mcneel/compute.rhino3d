@@ -16,6 +16,7 @@ using Resthopper.IO;
 using Newtonsoft.Json;
 using System.Linq;
 using Serilog;
+using System.Reflection;
 
 namespace compute.geometry
 {
@@ -67,7 +68,7 @@ namespace compute.geometry
         }
 
         static void LogDebug(string message) { Serilog.Log.Debug(message); }
-        static void LogError(string messge)  { Serilog.Log.Error(messge); }
+        static void LogError(string message) { Serilog.Log.Error(message); }
 
         public static GrasshopperDefinition FromUrl(string url, bool cache)
         {
@@ -153,6 +154,30 @@ namespace compute.geometry
             }
             return rc;
         }
+        private static void AddInput(IGH_Param param, string name, ref GrasshopperDefinition rc)
+        {
+            if (rc._input.ContainsKey(name))
+            {
+                string msg = "Multiple input parameters with the same name were detected. Parameter names must be unique.";
+                rc.HasErrors = true;
+                rc.ErrorMessages.Add(msg);
+                LogError(msg);
+            }   
+            else
+                rc._input[name] = new InputGroup(param);
+        }
+        private static void AddOutput(IGH_Param param, string name, ref GrasshopperDefinition rc)
+        {
+            if (rc._output.ContainsKey(name))
+            {
+                string msg = "Multiple output parameters with the same name were detected. Parameter names must be unique.";
+                rc.HasErrors = true;
+                rc.ErrorMessages.Add(msg);
+                LogError(msg);
+            }  
+            else
+                rc._output[name] = param;
+        }
 
         private static GrasshopperDefinition Construct(GH_Archive archive)
         {
@@ -194,9 +219,26 @@ namespace compute.geometry
                     IGH_Param param = obj as IGH_Param;
                     if (param != null)
                     {
-                        rc._input[param.NickName] = new InputGroup(param);
+                        AddInput(param, param.NickName, ref rc);
                     }
                     continue;
+                }
+
+
+                Type objectClass = obj.GetType();
+                var className = objectClass.Name;
+                if (className == "ContextBakeComponent")
+                {
+                    var contextBaker = obj as GH_Component;
+                    IGH_Param param = contextBaker.Params.Input[0];
+                    AddOutput(param, param.NickName, ref rc);
+                }
+
+                if (className == "ContextPrintComponent")
+                {
+                    var contextPrinter = obj as GH_Component;
+                    IGH_Param param = contextPrinter.Params.Input[0];
+                    AddOutput(param, param.NickName, ref rc);
                 }
 
                 var group = obj as GH_Group;
@@ -210,7 +252,7 @@ namespace compute.geometry
                     var param = groupObjects[0] as IGH_Param;
                     if (param != null)
                     {
-                        rc._input[nickname] = new InputGroup(param);
+                        AddInput(param, nickname, ref rc);
                     }
                 }
 
@@ -218,7 +260,7 @@ namespace compute.geometry
                 {
                     if (groupObjects[0] is IGH_Param param)
                     {
-                        rc._output[nickname] = param;
+                        AddOutput(param, nickname, ref rc);
                     }
                     else if(groupObjects[0] is GH_Component component)
                     {
@@ -227,12 +269,12 @@ namespace compute.geometry
                         {
                             if(1==outputCount)
                             {
-                                rc._output[nickname] = component.Params.Output[i];
+                                AddOutput(component.Params.Output[i], nickname, ref rc);
                             }
                             else
                             {
                                 string itemName = $"{nickname} ({component.Params.Output[i].NickName})";
-                                rc._output[itemName] = component.Params.Output[i];
+                                AddOutput(component.Params.Output[i], itemName, ref rc);
                             }
                         }
                     }
@@ -258,6 +300,7 @@ namespace compute.geometry
         GH_Component _singularComponent;
         Dictionary<string, InputGroup> _input = new Dictionary<string, InputGroup>();
         Dictionary<string, IGH_Param> _output = new Dictionary<string, IGH_Param>();
+        public List<string> ErrorMessages = new List<string>();
 
         public void SetInputs(List<DataTree<ResthopperObject>> values)
         {
@@ -281,6 +324,21 @@ namespace compute.geometry
                 {
                     switch (ParamTypeName(inputGroup.Param))
                     {
+                        case "Boolean":
+                            {
+                                foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
+                                {
+                                    bool[] booleans = new bool[entree.Value.Count];
+                                    for (int i = 0; i < booleans.Length; i++)
+                                    {
+                                        ResthopperObject restobj = entree.Value[i];
+                                        booleans[i] = JsonConvert.DeserializeObject<bool>(restobj.Data);
+                                    }
+                                    contextualParameter.AssignContextualData(booleans);
+                                    break;
+                                }
+                            }
+                            break;
                         case "Number":
                             {
                                 foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
@@ -688,6 +746,11 @@ namespace compute.geometry
             Definition.Enabled = true;
             Definition.NewSolution(false, GH_SolutionMode.CommandLine);
 
+            foreach(string msg in ErrorMessages)
+            {
+                outputSchema.Errors.Add(msg);
+            }
+
             LogRuntimeMessages(Definition.ActiveObjects(), outputSchema);
 
             foreach (var kvp in _output)
@@ -830,7 +893,7 @@ namespace compute.geometry
             {
                 foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Error))
                 {
-                    string errorMsg = $"{msg}: component \"{obj.NickName}\" ({obj.InstanceGuid})";
+                    string errorMsg = $"{msg}: component \"{obj.Name}\" ({obj.InstanceGuid})";
                     LogError(errorMsg);
                     schema.Errors.Add(errorMsg);
                     HasErrors = true;
@@ -839,13 +902,13 @@ namespace compute.geometry
                 {
                     foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Warning))
                     {
-                        string warningMsg = $"{msg}: component \"{obj.NickName}\" ({obj.InstanceGuid})";
+                        string warningMsg = $"{msg}: component \"{obj.Name}\" ({obj.InstanceGuid})";
                         LogDebug(warningMsg);
                         schema.Warnings.Add(warningMsg);
                     }
                     foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Remark))
                     {
-                        LogDebug($"Remark in grasshopper component: \"{obj.NickName}\" ({obj.InstanceGuid}): {msg}");
+                        LogDebug($"Remark in grasshopper component: \"{obj.Name}\" ({obj.InstanceGuid}): {msg}");
                     }
                 }
             }
@@ -895,7 +958,10 @@ namespace compute.geometry
             var inputs = new List<InputParamSchema>();
             var outputs = new List<IoParamSchema>();
 
-            foreach (var i in _input)
+            var sortedInputs = from x in _input orderby x.Value.Param.Attributes.Pivot.Y select x;
+            var sortedOutputs = from x in _output orderby x.Value.Attributes.Pivot.Y select x;
+
+            foreach (var i in sortedInputs)
             {
                 inputNames.Add(i.Key);
                 var inputSchema = new InputParamSchema
@@ -920,7 +986,7 @@ namespace compute.geometry
                 inputs.Add(inputSchema);
             }
 
-            foreach (var o in _output)
+            foreach (var o in sortedOutputs)
             {
                 outputNames.Add(o.Key);
                 outputs.Add(new IoParamSchema
@@ -1037,6 +1103,14 @@ namespace compute.geometry
             {
                 Param = param;
                 _default = GetDefaultValueHelper(param, 0);
+                if (_default is GH_Number ghNumber)
+                {
+                    _default = ghNumber.Value;
+                }
+                else if(_default is GH_Boolean ghBoolean)
+                {
+                    _default = ghBoolean.Value;
+                }
             }
 
             object GetDefaultValueHelper(IGH_Param param, int depth)
@@ -1129,7 +1203,9 @@ namespace compute.geometry
                     case Grasshopper.Kernel.Parameters.Param_Rectangle _:
                         break;
                     //case Grasshopper.Kernel.Parameters.Param_ScriptVariable _:
-                    case Grasshopper.Kernel.Parameters.Param_String _:
+                    case Grasshopper.Kernel.Parameters.Param_String paramString:
+                        if (paramString.PersistentDataCount == 1)
+                            return paramString.PersistentData[0][0].Value;
                         break;
                     case Grasshopper.Kernel.Parameters.Param_StructurePath _:
                         break;
@@ -1149,6 +1225,8 @@ namespace compute.geometry
                         return paramSlider.CurrentValue;
                     case Grasshopper.Kernel.Special.GH_Panel paramPanel:
                         return paramPanel.UserText;
+                    case Grasshopper.Kernel.Special.GH_ValueList paramValueList:
+                        return paramValueList.FirstSelectedItem.Value;
                 }
                 return null;
             }

@@ -8,6 +8,15 @@ namespace Resthopper.IO
     {
         public Schema() {}
 
+        [JsonProperty(PropertyName = "absolutetolerance")]
+        public double AbsoluteTolerance { get; set; } = 0;
+
+        [JsonProperty(PropertyName = "angletolerance")]
+        public double AngleTolerance { get; set; } = 0;
+
+        [JsonProperty(PropertyName = "modelunits")]
+        public string ModelUnits { get; set; } = Rhino.UnitSystem.Millimeters.ToString();
+
         [JsonProperty(PropertyName = "algo")]
         public string Algo { get; set; }
 
@@ -68,6 +77,18 @@ namespace Resthopper.IO
         public string Icon { get; set; }
         public List<InputParamSchema> Inputs { get; set; }
         public List<IoParamSchema> Outputs { get; set; }
+        public List<string> Warnings { get; set; } = new List<string>();
+        public List<string> Errors { get; set; } = new List<string>();
+    }
+
+    public class LastHTTP
+    {
+        public string IORequest { get; set; }
+        public string IOResponse { get; set; }
+        public string SolveRequest { get; set; }
+        public string SolveResponse { get; set; }
+        public Schema Schema { get; set; }
+        public IoResponseSchema IOResponseSchema { get; set; }
     }
 
     public class ResthopperObject : IEquatable<ResthopperObject>

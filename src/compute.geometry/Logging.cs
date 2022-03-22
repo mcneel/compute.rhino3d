@@ -9,6 +9,8 @@ namespace compute.geometry
     static class Logging
     {
         static bool _enabled = false;
+        public static List<string> Warnings { get; set; }
+        public static List<string> Errors { get; set; }
 
         /// <summary>
         /// Initialises globally-shared logger.
@@ -17,16 +19,21 @@ namespace compute.geometry
         {
             if (_enabled)
                 return;
+            if (Warnings == null)
+                Warnings = new List<string>();
+            if (Errors == null)
+                Errors = new List<string>();
 
-            var path = Path.Combine(Config.LogPath, "log-geometry-.txt"); // log-geometry-20180925.txt, etc.
+            var path = Path.Combine(Config.LogPath, "log-compute-geometry-.txt"); // log-geometry-20180925.txt, etc.
             var limit = Config.LogRetainDays;
             var level = Config.Debug ? LogEventLevel.Debug : LogEventLevel.Information;
 
             var logger = new LoggerConfiguration()
                 .MinimumLevel.Is(level)
+                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+                .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico']")
                 .Enrich.FromLogContext()
-                //.Enrich.WithProperty("Source", "geometry")
-                .WriteTo.Console()
+                .WriteTo.Console(outputTemplate: "CG {Port} [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
                 .WriteTo.File(new JsonFormatter(renderMessage: true), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
 
             Log.Logger = logger.CreateLogger();
@@ -42,6 +49,8 @@ namespace compute.geometry
 
         internal static void LogExceptionData(System.Exception ex)
         {
+            if (Errors != null)
+                Errors.Add(ex.Message);
             //if (!Config.Debug)
             //    return;
             if (ex?.Data != null)

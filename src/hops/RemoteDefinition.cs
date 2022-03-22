@@ -7,6 +7,9 @@ using Rhino.Geometry;
 using Newtonsoft.Json;
 using Resthopper.IO;
 using System.IO;
+using System.Reflection;
+using System.Linq;
+using System.Net.Http;
 
 namespace Hops
 {
@@ -28,8 +31,15 @@ namespace Hops
         System.Drawing.Bitmap _customIcon = null;
         string _path = null;
         string _cacheKey = null;
+        const string _apiKeyName = "RhinoComputeKey";
         PathType? _pathType;
+        static LastHTTP _lastHTTP = new LastHTTP();
 
+        public static LastHTTP LastHTTP
+        {
+            get { return _lastHTTP; }
+            set { _lastHTTP = value; }
+        }
         public static RemoteDefinition Create(string path, HopsComponent parentComponent)
         {
             var rc = new RemoteDefinition(path, parentComponent);
@@ -181,13 +191,26 @@ namespace Hops
                     var bytes = System.IO.File.ReadAllBytes(address);
                     schema.Algo = Convert.ToBase64String(bytes);
                 }
+                schema.AbsoluteTolerance = GetDocumentTolerance();
+                schema.AngleTolerance = GetDocumentAngleTolerance();
+                schema.ModelUnits = GetDocumentUnits();
                 string inputJson = JsonConvert.SerializeObject(schema);
+                string requestContent = "{";
+                requestContent += "\"URL\": \"" + postUrl + "\"," + Environment.NewLine;
+                requestContent += "\"content\": " + inputJson  + Environment.NewLine;
+                requestContent += "}";
+                LastHTTP.IORequest = requestContent;
                 var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
-                responseTask = HttpClient.PostAsync(postUrl, content);
+                HttpClient client = new HttpClient();
+                if(!String.IsNullOrEmpty(HopsAppSettings.APIKey))
+                    client.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
+                responseTask = client.PostAsync(postUrl, content);
+                LastHTTP.Schema = schema;
                 contentToDispose = content;
             }
             else
             {
+                LastHTTP.IORequest = "Address: " + address + Environment.NewLine;
                 responseTask = HttpClient.GetAsync(address);
             }
 
@@ -199,11 +222,14 @@ namespace Hops
                 if (string.IsNullOrEmpty(stringResult))
                 {
                     _pathType = PathType.InvalidUrl; // Looks like a valid but not related URL
+                    LastHTTP.IOResponse = "Invalid URL";
                 }
                 else
                 {
+                    LastHTTP.IOResponse = stringResult;
                     responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(stringResult);
                     _cacheKey = responseSchema.CacheKey;
+                    LastHTTP.IOResponseSchema = responseSchema;
                 }
             }
 
@@ -276,6 +302,64 @@ namespace Hops
                     }
                     _outputParams[outputParamName] = ParamFromIoResponseSchema(output);
                 }
+                LastHTTP.IOResponseSchema = responseSchema;
+            }
+        }
+
+        private double GetDocumentTolerance()
+        {
+            var rhinoDoc = Rhino.RhinoDoc.ActiveDoc;
+            if (rhinoDoc != null)  //if the rhino document exists, then return the current document tolerance setting
+                return rhinoDoc.ModelAbsoluteTolerance;
+            else
+            {
+                //rhino document is null
+                var utilityType = typeof(Grasshopper.Utility);
+                if (utilityType == null)
+                    return 0;  //utility class cannot be found, return zero
+                var method = utilityType.GetMethod("DocumentTolerance", BindingFlags.Public | BindingFlags.Static);
+                if (method == null)
+                    return 0;  //method cannot be found, return zero
+                else
+                    return (double)method.Invoke(null, null);  //method exists so call function to get current default tolerance
+            }
+        }
+
+        private double GetDocumentAngleTolerance()
+        {
+            var rhinoDoc = Rhino.RhinoDoc.ActiveDoc;
+            if (rhinoDoc != null)  //if the rhino document exists, then return the current document tolerance setting in degrees
+                return rhinoDoc.ModelAngleToleranceDegrees;
+            else
+            {
+                //rhino document is null
+                var utilityType = typeof(Grasshopper.Utility);
+                if (utilityType == null)
+                    return 0;  //utility class cannot be found, return zero
+                var method = utilityType.GetMethod("DocumentAngleTolerance", BindingFlags.Public | BindingFlags.Static);
+                if (method == null)
+                    return 0;  //method cannot be found, return zero
+                else
+                    return (double)method.Invoke(null, null);  //method exists so call function to get current default tolerance
+            }
+        }
+
+        private string GetDocumentUnits()
+        {
+            var rhinoDoc = Rhino.RhinoDoc.ActiveDoc;
+            if (rhinoDoc != null)  //if the rhino document exists, then return the current document units
+                return rhinoDoc.ModelUnitSystem.ToString();
+            else
+            {
+                //rhino document is null
+                var utilityType = typeof(Grasshopper.Utility);
+                if (utilityType == null)
+                    return "";  //utility class cannot be found, return nothing
+                var method = utilityType.GetMethod("DocumentUnits", BindingFlags.Public | BindingFlags.Static);
+                if (method == null)
+                    return "";  //method cannot be found, return zero
+                else
+                    return (string)method.Invoke(null, null);  //method exists so call function to get current model units
             }
         }
 
@@ -332,13 +416,21 @@ namespace Hops
                     return cachedResults;
                 }
             }
-
+            string requestContent = "{";
+            requestContent += "\"URL\": \"" + solveUrl + "\"," + Environment.NewLine;
+            requestContent += "\"content\": " + inputJson + Environment.NewLine;
+            requestContent += "}";
+            LastHTTP.SolveRequest = requestContent;
             using (var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json"))
             {
-                var postTask = HttpClient.PostAsync(solveUrl, content);
+                HttpClient client = new HttpClient();
+                if (!String.IsNullOrEmpty(HopsAppSettings.APIKey))
+                    client.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
+                var postTask = client.PostAsync(solveUrl, content);
                 var responseMessage = postTask.Result;
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
+                LastHTTP.SolveResponse = stringResult;
                 Schema schema = SafeSchemaDeserialize(stringResult);
 
                 if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
@@ -350,16 +442,26 @@ namespace Hops
                         string base64 = Convert.ToBase64String(bytes);
                         inputSchema.Algo = base64;
                         inputJson = JsonConvert.SerializeObject(inputSchema);
+                        requestContent = "{";
+                        requestContent += "\"URL\": \"" + solveUrl + "\"," + Environment.NewLine;
+                        requestContent += "\"content\":" + inputJson + Environment.NewLine;
+                        requestContent += "}";
+                        LastHTTP.SolveRequest = requestContent;
                         var content2 = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
-                        postTask = HttpClient.PostAsync(solveUrl, content2);
+                        HttpClient client2 = new HttpClient();
+                        if (!String.IsNullOrEmpty(HopsAppSettings.APIKey))
+                            client2.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
+                        postTask = client.PostAsync(solveUrl, content2);
                         responseMessage = postTask.Result;
                         remoteSolvedData = responseMessage.Content;
                         stringResult = remoteSolvedData.ReadAsStringAsync().Result;
+                        LastHTTP.SolveResponse = stringResult;
                         schema = SafeSchemaDeserialize(stringResult);
                         if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
                         {
                             var badSchema = new Schema();
                             badSchema.Errors.Add("Unable to solve on compute");
+                            LastHTTP.Schema = badSchema;
                             return badSchema;
                         }
                     }
@@ -369,6 +471,7 @@ namespace Hops
                         {
                             var badSchema = new Schema();
                             badSchema.Errors.Add($"Unable to find file: {Path}");
+                            LastHTTP.Schema = badSchema;
                             return badSchema;
                         }
                     }
@@ -378,6 +481,7 @@ namespace Hops
                 {
                     var badSchema = new Schema();
                     badSchema.Errors.Add($"Request timeout: {Path}");
+                    LastHTTP.Schema = badSchema;
                     return badSchema;
                 }
 
@@ -763,6 +867,9 @@ namespace Hops
             warnings = new List<string>();
             var schema = new Resthopper.IO.Schema();
             schema.RecursionLevel = recursionLevel;
+            schema.AbsoluteTolerance = GetDocumentTolerance();
+            schema.AngleTolerance = GetDocumentAngleTolerance();
+            schema.ModelUnits = GetDocumentUnits();
 
             schema.CacheSolve = cacheSolveOnServer;
             var inputs = GetInputParams();
@@ -908,6 +1015,7 @@ namespace Hops
                 string definition = Path.Substring(Path.LastIndexOf('/') + 1);
                 schema.Pointer = definition;
             }
+            LastHTTP.Schema = schema;
             return schema;
         }
     }

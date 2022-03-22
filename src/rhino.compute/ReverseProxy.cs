@@ -1,7 +1,9 @@
-﻿using System.Net.Http;
+﻿using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace rhino.compute
 {
@@ -17,10 +19,22 @@ namespace rhino.compute
                 return;
             _initCalled = true;
 
+            Log.Information($"Initiliazing reverse proxy at {DateTime.Now.ToLocalTime()}");
+            Log.Information($"Spawn children at startup is set to {ComputeChildren.SpawnOnStartup}");
+
             _client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
             _client.DefaultRequestHeaders.Add("User-Agent", $"compute.rhino3d-proxy/1.0.0");
+            _client.Timeout = TimeSpan.FromSeconds(Config.ReverseProxyRequestTimeout);
 
             // Launch child processes on start. Getting the base url is enough to get things rolling
+            if (ComputeChildren.SpawnOnStartup)
+            {
+                InitializeChildren();
+            }
+        }
+
+        static void InitializeChildren()
+        {
             ComputeChildren.UpdateLastCall();
             _initTask = Task.Run(() =>
             {
@@ -46,7 +60,7 @@ namespace rhino.compute
                 _activeConcurrentRequests--;
             }
         }
-        public static void InitializeConcurrentRequestLogging(ILogger logger)
+        public static void InitializeConcurrentRequestLogging(Microsoft.Extensions.Logging.ILogger logger)
         {
             // log once per minute
             var span = new System.TimeSpan(0, 1, 0);
@@ -62,11 +76,12 @@ namespace rhino.compute
 
         public ReverseProxyModule()
         {
-            Get("/healthcheck", async (req, res) => await res.WriteAsync("healthy"));
             Get("/robots.txt", async (req, res) => await res.WriteAsync("User-agent: *\nDisallow: / "));
             Get("/idlespan", async (req, res) => await res.WriteAsync($"{ComputeChildren.IdleSpan()}"));
-            Get("/", async (req, res) => await res.WriteAsync("compute.rhino3d"));
+            Get("/", async (req, res) => { InitializeChildren(); await res.WriteAsync("compute.rhino3d"); });
+            Get("/activechildren", async (req, res) => { InitializeChildren(); await res.WriteAsync($"{ComputeChildren.ActiveComputeCount}"); });
             Get("/launch", LaunchChildren);
+            Get("/favicon.ico", async (req, res) => await res.WriteAsync("Handled"));
 
             // routes that are proxied to compute.geometry
             Get("/{*uri}", ReverseProxyGet);

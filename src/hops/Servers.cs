@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Reflection;
 
 namespace Hops
 {
@@ -206,7 +208,7 @@ namespace Hops
             if (childCount < 1)
                 childCount = 1;
             int thisProc = Process.GetCurrentProcess().Id;
-            startInfo.Arguments = $"--childof {thisProc} --childcount {childCount} --port {RhinoComputePort}";
+            startInfo.Arguments = $"--childof {thisProc} --childcount {childCount} --port {RhinoComputePort} --spawn-on-startup";
             startInfo.WindowStyle = Hops.HopsAppSettings.HideWorkerWindows ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Minimized;
             // uncomment next line to ease debugging
             // startInfo.WindowStyle = ProcessWindowStyle.Normal;
@@ -218,6 +220,9 @@ namespace Hops
             // set to false.
             startInfo.UseShellExecute = true;
             startInfo.CreateNoWindow = Hops.HopsAppSettings.HideWorkerWindows;
+            string assemblyPath = Assembly.GetExecutingAssembly().Location;
+            string parentPath = Path.GetDirectoryName(assemblyPath);
+            startInfo.WorkingDirectory = Path.Combine(parentPath, "rhino.compute");
             var process = Process.Start(startInfo);
             var start = DateTime.Now;
 

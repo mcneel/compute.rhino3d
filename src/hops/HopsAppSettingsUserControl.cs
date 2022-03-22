@@ -10,6 +10,8 @@ namespace Hops
             InitializeComponent();
             _serversTextBox.Lines = HopsAppSettings.Servers;
             _serversTextBox.TextChanged += ServersTextboxChanged;
+            _apiKeyTextbox.Text = HopsAppSettings.APIKey;
+            _apiKeyTextbox.TextChanged += APIKeyTextboxChanged;
             _maxConcurrentRequestsTextbox.Text = HopsAppSettings.MaxConcurrentRequests.ToString();
             _maxConcurrentRequestsTextbox.KeyPress += (s, e) =>
             {
@@ -68,6 +70,11 @@ namespace Hops
         {
             string[] lines = _serversTextBox.Lines;
             HopsAppSettings.Servers = lines;
+        }
+
+        private void APIKeyTextboxChanged(object sender, EventArgs e)
+        {
+            HopsAppSettings.APIKey = _apiKeyTextbox.Text;
         }
     }
 }

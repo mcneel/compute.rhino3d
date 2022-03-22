@@ -2,6 +2,7 @@
 using Nancy;
 using Nancy.Routing;
 using Serilog;
+using Serilog.Context;
 using System;
 using System.Net;
 using System.Reflection;
@@ -13,6 +14,7 @@ namespace compute.geometry
     class Program
     {
         public static IDisposable RhinoCore { get; set; }
+        public static DateTime StartTime { get; set; }
 
         static void Main(string[] args)
         {
@@ -25,14 +27,16 @@ namespace compute.geometry
             // tells compute to use a different RhinoCore than what RhinoInside thinks
             // should use.
             // (for McNeel devs only and only those devs who use the same path as Steve)
-            /*
-            string rhinoSystemDir = @"C:\dev\github\mcneel\rhino\src4\bin\Debug";
-            if (System.IO.File.Exists(rhinoSystemDir + "\\Rhino.exe"))
-                RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
-            */
-#endif
 
-            LogVersions();
+            //string rhinoSystemDir = @"C:\dev\github\mcneel\rhino7\src4\bin\Debug";
+            //if (System.IO.File.Exists(rhinoSystemDir + "\\Rhino.exe"))
+                //RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
+
+#endif
+            StartTime = DateTime.Now;
+            Shutdown.RegisterStartTime(StartTime);
+            Log.Information($"Child process started at " + StartTime.ToLocalTime().ToString());
+
             var rc = Topshelf.HostFactory.Run(x =>
             {
                 x.AddCommandLineDefinition("address", address =>
@@ -58,6 +62,11 @@ namespace compute.geometry
                     int spanSeconds = int.Parse(span);
                     Shutdown.RegisterIdleSpan(spanSeconds);
                 });
+                x.AddCommandLineDefinition("rhinosysdir", dir =>
+
+                {
+                    RhinoInside.Resolver.RhinoSystemDirectory = dir;
+                });
                 x.UseSerilog();
                 x.ApplyCommandLine();
                 x.SetStartTimeout(TimeSpan.FromMinutes(1));
@@ -74,18 +83,6 @@ namespace compute.geometry
             var exitCode = (int)Convert.ChangeType(rc, rc.GetTypeCode());
             Environment.ExitCode = exitCode;
         }
-
-        private static void LogVersions()
-        {
-            string compute_version = null, rhino_version = null;
-            try
-            {
-                compute_version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
-                rhino_version = typeof(Rhino.RhinoApp).Assembly.GetName().Version.ToString();
-            }
-            catch { }
-            Log.Information("Compute {ComputeVersion}, Rhino {RhinoVersion}", compute_version, rhino_version);
-        }
     }
 
     internal class OwinSelfHost : ServiceControl
@@ -98,8 +95,21 @@ namespace compute.geometry
             _bind = Config.Urls;
         }
 
+        private static void LogVersions()
+        {
+            string compute_version = null, rhino_version = null;
+            try
+            {
+                compute_version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
+                rhino_version = typeof(Rhino.RhinoApp).Assembly.GetName().Version.ToString();
+            }
+            catch { }
+            Log.Information("Compute {ComputeVersion}, Rhino {RhinoVersion}", compute_version, rhino_version);
+        }
+
         public bool Start(HostControl hctrl)
         {
+            LogVersions();
             Log.Debug("Rhino system directory: {Path}", RhinoInside.Resolver.RhinoSystemDirectory);
             Log.Information("Launching RhinoCore library as {User}", Environment.UserName);
             Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
@@ -108,14 +118,22 @@ namespace compute.geometry
 
             Rhino.Runtime.HostUtils.OnExceptionReport += (source, ex) => {
                 Log.Error(ex, "An exception occurred while processing request");
-                if (Config.Debug)
-                    Logging.LogExceptionData(ex);
+                Logging.LogExceptionData(ex);
             };
 
             StartOptions options = new StartOptions();
             foreach (var url in _bind)
             {
                 options.Urls.Add(url);
+
+                string[] parts = url.Split(':');
+                if (parts.Length != 3)
+                {
+                    throw new ArgumentException("Invalid host:port format");
+                }
+                string port = parts[2];
+
+                LogContext.PushProperty("Port", port);
             }
 
             // Don't log listener urls when this is a child process. It is confusing
@@ -141,7 +159,7 @@ namespace compute.geometry
 
             if (Shutdown.ParentProcesses == null)
                 Log.Information("Listening on {Urls}", _bind);
-
+                    
             // when running in a console (not as a service), i.e. when launched as a child process of hops
             // update console title to differentiate windows (ports) and start parent process shutdown timer
             if (hctrl is Topshelf.Hosts.ConsoleRunHost)

@@ -13,6 +13,8 @@ using Grasshopper.Kernel.Special;
 using Rhino.Geometry;
 using System.Net;
 using Nancy.Extensions;
+using System.Reflection;
+using System.Linq;
 
 namespace compute.geometry
 {
@@ -57,6 +59,38 @@ namespace compute.geometry
             return null;
         }
 
+        static void SetDefaultTolerances(double absoluteTolerance, double angleToleranceDegrees)
+        {
+            if (absoluteTolerance <= 0 || angleToleranceDegrees <= 0)
+                return;
+ 
+            var utilityType = typeof(Grasshopper.Utility);
+            if (utilityType != null)
+            {
+                var method = utilityType.GetMethod("SetDefaultTolerances", BindingFlags.Public | BindingFlags.Static);
+                if (method != null)
+                {
+                    method.Invoke(null, new object[] { absoluteTolerance, angleToleranceDegrees });
+                }
+            }         
+        }
+
+        static void SetDefaultUnits(string modelUnits)
+        {
+            if (String.IsNullOrEmpty(modelUnits))
+                return;
+
+            var utilityType = typeof(Grasshopper.Utility);
+            if (utilityType != null)
+            {
+                var method = utilityType.GetMethod("SetDefaultUnits", BindingFlags.Public | BindingFlags.Static);
+                if (method != null)
+                {
+                    method.Invoke(null, new object[] { modelUnits });
+                }
+            }
+        }
+
         static object _ghsolvelock = new object();
 
         static Response GrasshopperSolveHelper(Schema input, string body, System.Diagnostics.Stopwatch stopwatch)
@@ -69,6 +103,9 @@ namespace compute.geometry
             }
             if (definition == null)
                 throw new Exception("Unable to load grasshopper definition");
+
+            SetDefaultTolerances(input.AbsoluteTolerance, input.AngleTolerance);
+            SetDefaultUnits(input.ModelUnits);
 
             int recursionLevel = input.RecursionLevel + 1;
             definition.Definition.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(recursionLevel));
@@ -104,7 +141,7 @@ namespace compute.geometry
             if (body.StartsWith("[") && body.EndsWith("]"))
                 body = body.Substring(1, body.Length - 2);
             Schema input = JsonConvert.DeserializeObject<Schema>(body);
-
+           
             if (input.CacheSolve)
             {
                 // look in the cache to see if this has already been solved
@@ -166,10 +203,20 @@ namespace compute.geometry
             var responseSchema = definition.GetInputsAndOutputs();
             responseSchema.CacheKey = definition.CacheKey;
             responseSchema.Icon = definition.GetIconAsString();
+            foreach (var error in definition.ErrorMessages)
+            {
+                responseSchema.Errors.Add(error);
+            }
+            foreach (var error in Logging.Errors)
+            {
+                responseSchema.Errors.Add(error);
+            }
             string jsonResponse = JsonConvert.SerializeObject(responseSchema);
 
             Response res = jsonResponse;
             res.ContentType = "application/json";
+            Logging.Warnings.Clear();
+            Logging.Errors.Clear();
             return res;
         }
 
