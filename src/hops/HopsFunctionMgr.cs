@@ -33,6 +33,7 @@ namespace Hops
             if (Viewer == null)
                 Viewer = new ThumbnailViewer();
             Viewer.Owner = Instances.DocumentEditor;
+            Viewer.StartPosition = FormStartPosition.Manual;
             Viewer.Visible = false;
         }
 
