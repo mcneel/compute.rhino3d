@@ -45,7 +45,7 @@ def pointat(curve, t=0.0):
     name="PointsAt",
     nickname="PtsAt",
     description="Get points along curve",
-    icon="examples/pointat.png",
+    icon="pointat.png",
     inputs=[
         hs.HopsCurve("Curve", "C", "Curve to evaluate"),
         hs.HopsNumber("t", "t", "Parameters on Curve to evaluate", hs.HopsParamAccess.LIST),
