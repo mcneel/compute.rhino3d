@@ -10,9 +10,7 @@ namespace Hops
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
-
-        GH_FolderPathBrowser _pathBrowser;
-
+        
         /// <summary> 
         /// Clean up any resources being used.
         /// </summary>
@@ -35,7 +33,6 @@ namespace Hops
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            this._pathBrowser = new Grasshopper.GUI.GH_FolderPathBrowser();
             this._serversTextBox = new System.Windows.Forms.TextBox();
             this._hideWorkerWindows = new System.Windows.Forms.CheckBox();
             this._launchWorkerAtStart = new System.Windows.Forms.CheckBox();
@@ -49,27 +46,14 @@ namespace Hops
             this.label2 = new System.Windows.Forms.Label();
             this._apiKeyTextbox = new System.Windows.Forms.TextBox();
             this._gpboxFunctionMgr = new System.Windows.Forms.GroupBox();
+            this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this._lblFunctionMgr = new System.Windows.Forms.Label();
-            this._panelPathBrowser = new System.Windows.Forms.Panel();
+            this._functionPathTextbox = new System.Windows.Forms.TextBox();
+            this._fileDialogBtn = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this._childComputeCount)).BeginInit();
             this._gpboxFunctionMgr.SuspendLayout();
-            this._panelPathBrowser.SuspendLayout();
+            this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
-            // 
-            // _pathBrowser
-            // 
-            this._pathBrowser.BackColor = System.Drawing.SystemColors.Window;
-            this._pathBrowser.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this._pathBrowser.BrowseText = "";
-            this._pathBrowser.Dock = System.Windows.Forms.DockStyle.Fill;
-            this._pathBrowser.Filter = null;
-            this._pathBrowser.Location = new System.Drawing.Point(3, 0);
-            this._pathBrowser.Margin = new System.Windows.Forms.Padding(0);
-            this._pathBrowser.Name = "_pathBrowser";
-            this._pathBrowser.Path = "";
-            this._pathBrowser.RequireExisting = true;
-            this._pathBrowser.Size = new System.Drawing.Size(290, 22);
-            this._pathBrowser.TabIndex = 14;
             // 
             // _serversTextBox
             // 
@@ -184,34 +168,64 @@ namespace Hops
             // 
             this._gpboxFunctionMgr.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this._gpboxFunctionMgr.Controls.Add(this._lblFunctionMgr);
-            this._gpboxFunctionMgr.Controls.Add(this._panelPathBrowser);
-            this._gpboxFunctionMgr.Location = new System.Drawing.Point(0, 199);
+            this._gpboxFunctionMgr.Controls.Add(this.tableLayoutPanel1);
+            this._gpboxFunctionMgr.Location = new System.Drawing.Point(0, 197);
             this._gpboxFunctionMgr.Name = "_gpboxFunctionMgr";
-            this._gpboxFunctionMgr.Size = new System.Drawing.Size(300, 65);
+            this._gpboxFunctionMgr.Size = new System.Drawing.Size(300, 68);
             this._gpboxFunctionMgr.TabIndex = 12;
             this._gpboxFunctionMgr.TabStop = false;
             this._gpboxFunctionMgr.Text = "Function Manager";
             // 
+            // tableLayoutPanel1
+            // 
+            this.tableLayoutPanel1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.tableLayoutPanel1.ColumnCount = 2;
+            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 40F));
+            this.tableLayoutPanel1.Controls.Add(this._lblFunctionMgr, 0, 0);
+            this.tableLayoutPanel1.Controls.Add(this._fileDialogBtn, 1, 1);
+            this.tableLayoutPanel1.Controls.Add(this._functionPathTextbox, 0, 1);
+            this.tableLayoutPanel1.Location = new System.Drawing.Point(5, 16);
+            this.tableLayoutPanel1.Name = "tableLayoutPanel1";
+            this.tableLayoutPanel1.RowCount = 2;
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 44.68085F));
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 55.31915F));
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(291, 50);
+            this.tableLayoutPanel1.TabIndex = 14;
+            // 
             // _lblFunctionMgr
             // 
             this._lblFunctionMgr.AutoSize = true;
-            this._lblFunctionMgr.Location = new System.Drawing.Point(7, 18);
+            this._lblFunctionMgr.Location = new System.Drawing.Point(3, 6);
+            this._lblFunctionMgr.Margin = new System.Windows.Forms.Padding(3, 6, 3, 3);
             this._lblFunctionMgr.Name = "_lblFunctionMgr";
             this._lblFunctionMgr.Size = new System.Drawing.Size(233, 13);
-            this._lblFunctionMgr.TabIndex = 13;
+            this._lblFunctionMgr.TabIndex = 14;
             this._lblFunctionMgr.Text = "Location to retrieve and/or save Hops functions";
+            this._lblFunctionMgr.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
-            // _panelPathBrowser
+            // _functionPathTextbox
             // 
-            this._panelPathBrowser.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this._functionPathTextbox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this._panelPathBrowser.Controls.Add(this._pathBrowser);
-            this._panelPathBrowser.Location = new System.Drawing.Point(2, 37);
-            this._panelPathBrowser.Name = "_panelPathBrowser";
-            this._panelPathBrowser.Padding = new System.Windows.Forms.Padding(3, 0, 3, 0);
-            this._panelPathBrowser.Size = new System.Drawing.Size(296, 22);
-            this._panelPathBrowser.TabIndex = 15;
+            this._functionPathTextbox.Location = new System.Drawing.Point(3, 24);
+            this._functionPathTextbox.Margin = new System.Windows.Forms.Padding(3, 2, 0, 3);
+            this._functionPathTextbox.Name = "_functionPathTextbox";
+            this._functionPathTextbox.Size = new System.Drawing.Size(248, 20);
+            this._functionPathTextbox.TabIndex = 15;
+            // 
+            // _fileDialogBtn
+            // 
+            this._fileDialogBtn.Location = new System.Drawing.Point(253, 23);
+            this._fileDialogBtn.Margin = new System.Windows.Forms.Padding(2, 1, 3, 3);
+            this._fileDialogBtn.Name = "_fileDialogBtn";
+            this._fileDialogBtn.Size = new System.Drawing.Size(35, 23);
+            this._fileDialogBtn.TabIndex = 16;
+            this._fileDialogBtn.Text = "...";
+            this._fileDialogBtn.UseVisualStyleBackColor = true;
+            this._fileDialogBtn.Click += new System.EventHandler(this._fileDialogBtn_Click);
             // 
             // HopsAppSettingsUserControl
             // 
@@ -234,8 +248,8 @@ namespace Hops
             this.Size = new System.Drawing.Size(300, 267);
             ((System.ComponentModel.ISupportInitialize)(this._childComputeCount)).EndInit();
             this._gpboxFunctionMgr.ResumeLayout(false);
-            this._gpboxFunctionMgr.PerformLayout();
-            this._panelPathBrowser.ResumeLayout(false);
+            this.tableLayoutPanel1.ResumeLayout(false);
+            this.tableLayoutPanel1.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -255,7 +269,9 @@ namespace Hops
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.TextBox _apiKeyTextbox;
         private System.Windows.Forms.GroupBox _gpboxFunctionMgr;
-        private System.Windows.Forms.Label _lblFunctionMgr;
-        private Panel _panelPathBrowser;
+        private TableLayoutPanel tableLayoutPanel1;
+        private Label _lblFunctionMgr;
+        private TextBox _functionPathTextbox;
+        private Button _fileDialogBtn;
     }
 }

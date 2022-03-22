@@ -5,11 +5,14 @@ namespace Hops
 {
     partial class HopsAppSettingsUserControl : UserControl
     {
+        private FolderBrowserDialog _folderBrowserDlg;
         public HopsAppSettingsUserControl()
         {
             InitializeComponent();
-            _pathBrowser.Path = HopsAppSettings.FunctionManagerRootPath;
-            _pathBrowser.PathChanged += _pathBrowser_PathChanged;
+            _folderBrowserDlg = new FolderBrowserDialog();
+            _folderBrowserDlg.SelectedPath = HopsAppSettings.FunctionManagerRootPath;
+            _functionPathTextbox.Text = HopsAppSettings.FunctionManagerRootPath;
+            _functionPathTextbox.TextChanged += _functionPathTextbox_TextChanged;
             _serversTextBox.Lines = HopsAppSettings.Servers;
             _serversTextBox.TextChanged += ServersTextboxChanged;
             _apiKeyTextbox.Text = HopsAppSettings.APIKey;
@@ -68,6 +71,19 @@ namespace Hops
             }
         }
 
+        private void _functionPathTextbox_TextChanged(object sender, EventArgs e)
+        {
+            var TextBox = sender as TextBox;
+            if (TextBox == null)
+                return;
+            if (TextBox.Text == HopsAppSettings.FunctionManagerRootPath)
+                return;
+            else
+            {
+                HopsAppSettings.FunctionManagerRootPath = TextBox.Text;
+            }
+        }
+
         private void _pathBrowser_PathChanged(Grasshopper.GUI.GH_FolderPathBrowser sender, string nPath)
         {
             HopsAppSettings.FunctionManagerRootPath = sender.Path;
@@ -82,6 +98,17 @@ namespace Hops
         private void APIKeyTextboxChanged(object sender, EventArgs e)
         {
             HopsAppSettings.APIKey = _apiKeyTextbox.Text;
+        }
+
+        private void _fileDialogBtn_Click(object sender, EventArgs e)
+        {
+            DialogResult result = _folderBrowserDlg.ShowDialog();
+
+            if (result == DialogResult.OK && !string.IsNullOrWhiteSpace(_folderBrowserDlg.SelectedPath))
+            {
+                HopsAppSettings.FunctionManagerRootPath = _folderBrowserDlg.SelectedPath;
+                _functionPathTextbox.Text = _folderBrowserDlg.SelectedPath;
+            }
         }
     }
 }

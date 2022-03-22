@@ -38,7 +38,7 @@ namespace Hops
 
         private static void GenerateFunctionPathMenu(ToolStripMenuItem menu)
         {
-            if (!String.IsNullOrEmpty(HopsAppSettings.FunctionManagerRootPath))
+            if (!String.IsNullOrEmpty(HopsAppSettings.FunctionManagerRootPath) && Directory.Exists(HopsAppSettings.FunctionManagerRootPath))
             {
                 FunctionPathInfo functionPaths = new FunctionPathInfo(HopsAppSettings.FunctionManagerRootPath, true);
                 functionPaths.isRoot = true;

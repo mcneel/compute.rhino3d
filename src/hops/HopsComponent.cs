@@ -388,7 +388,8 @@ namespace Hops
             menu.Items.Add(tsi);
 
             tsi = HopsFunctionMgr.AddFunctionMgrControl(this);
-            menu.Items.Add(tsi);
+            if(tsi.DropDownItems.Count > 0)
+                menu.Items.Add(tsi);
 
             tsi = new ToolStripMenuItem("Show Input: Path", null, (s, e) => {
                 _showPathInput = !_showPathInput;
