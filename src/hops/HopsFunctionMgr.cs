@@ -11,6 +11,7 @@ using System.Reflection;
 using Grasshopper;
 using System.IO;
 using Grasshopper.Kernel;
+using Newtonsoft.Json;
 
 namespace Hops
 {
@@ -39,7 +40,46 @@ namespace Hops
 
         private static void GenerateFunctionPathMenu(ToolStripMenuItem menu)
         {
-            if (!String.IsNullOrEmpty(HopsAppSettings.FunctionManagerRootPath) && Directory.Exists(HopsAppSettings.FunctionManagerRootPath))
+            if (String.IsNullOrEmpty(HopsAppSettings.FunctionManagerRootPath)) 
+                return;
+            if (HopsAppSettings.FunctionManagerRootPath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var getTask = HttpClient.GetAsync(HopsAppSettings.FunctionManagerRootPath);
+                    if (getTask != null)
+                    {
+                        var responseMessage = getTask.Result;
+                        var remoteSolvedData = responseMessage.Content;
+                        var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
+                        if (string.IsNullOrEmpty(stringResult))
+                        {
+                            //invalid URL
+                            return;
+                        }
+                        else
+                        {
+                            var response = JsonConvert.DeserializeObject<FunctionMgr_Schema[]>(stringResult);
+                            UriFunctionPathInfo functionPaths = new UriFunctionPathInfo(HopsAppSettings.FunctionManagerRootPath, true);
+                            functionPaths.isRoot = true;
+                            functionPaths.RootURL = HopsAppSettings.FunctionManagerRootPath;
+                            foreach(FunctionMgr_Schema obj in response)
+                            {
+                                SeekFunctionMenuDirs(functionPaths, obj.Uri, obj.Uri);
+                            }
+                            
+                            if (functionPaths.Paths.Count != 0)
+                            {
+                                functionPaths.BuildMenus(menu, new MouseEventHandler(tsm_UriClick));
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                }
+            }
+            else if (Directory.Exists(HopsAppSettings.FunctionManagerRootPath))
             {
                 FunctionPathInfo functionPaths = new FunctionPathInfo(HopsAppSettings.FunctionManagerRootPath, true);
                 functionPaths.isRoot = true;
@@ -47,8 +87,36 @@ namespace Hops
                 SeekFunctionMenuDirs(functionPaths);
                 if (functionPaths.Paths.Count != 0)
                 {
-                    functionPaths.BuildMenus(menu, new MouseEventHandler(tsm_Click), new EventHandler(tsm_HoverEnter), new EventHandler(tsm_HoverExit));
-                    functionPaths.RemoveEmptyMenuItems(menu, tsm_Click, tsm_HoverEnter, tsm_HoverExit);
+                    functionPaths.BuildMenus(menu, new MouseEventHandler(tsm_FileClick), new EventHandler(tsm_HoverEnter), new EventHandler(tsm_HoverExit));
+                    functionPaths.RemoveEmptyMenuItems(menu, tsm_FileClick, tsm_HoverEnter, tsm_HoverExit);
+                }
+            }
+        }
+
+        public static void SeekFunctionMenuDirs(UriFunctionPathInfo path, string uri, string fullpath)
+        {
+            if (path == null)
+                return;
+
+            if (String.IsNullOrEmpty(uri))
+                return;
+
+            var endpoints = uri.Split(new[] { '/' }, 2);
+
+            if (!String.IsNullOrEmpty(endpoints[1]))
+            {
+                if (endpoints[1].Contains("/"))
+                {
+                    var subendpoints = endpoints[1].Split(new[] { '/' }, 2);
+                    UriFunctionPathInfo functionPath = new UriFunctionPathInfo("/" + subendpoints[0], true);
+                    path.Paths.Add(functionPath);
+                    SeekFunctionMenuDirs(functionPath, "/" + subendpoints[1], fullpath);
+                }
+                else
+                {
+                    UriFunctionPathInfo functionPath = new UriFunctionPathInfo("/" + endpoints[1], false);
+                    functionPath.FullPath = fullpath;
+                    path.Paths.Add(functionPath);
                 }
             }
         }
@@ -99,7 +167,7 @@ namespace Hops
             }
         }
 
-        static void tsm_Click(object sender, MouseEventArgs e)
+        static void tsm_FileClick(object sender, MouseEventArgs e)
         {
             if (!(sender is ToolStripItem))
                 return;
@@ -119,9 +187,33 @@ namespace Hops
                         {
                             Instances.DocumentEditor.ScriptAccess_OpenDocument(ti.Name);
                         }
-                        catch (Exception ex) { }
+                        catch (Exception) { }
                         break;
                 }
+            }
+        }
+
+        static void tsm_UriClick(object sender, MouseEventArgs e)
+        {
+            if (!(sender is ToolStripItem))
+                return;
+            ToolStripItem ti = sender as ToolStripItem;
+
+            if (Parent != null)
+            {
+                string rootUrl = HopsAppSettings.FunctionManagerRootPath;
+                string endpoint = ti.Tag as string;
+
+                if (rootUrl.EndsWith("/"))
+                    rootUrl = rootUrl.TrimEnd(new[] { '/' });
+   
+                if (!endpoint.StartsWith("/"))
+                    endpoint = endpoint.Insert(0, "/");
+
+                string fullPath = rootUrl + endpoint;
+                Parent.RemoteDefinitionLocation = fullPath;
+                if (Instances.ActiveCanvas.Document != null)
+                    Instances.ActiveCanvas.Document.ExpireSolution();
             }
         }
 
@@ -144,6 +236,18 @@ namespace Hops
                 _funcMgr48Icon = Image.FromStream(stream);
             }
             return _funcMgr48Icon;
+        }
+        static System.Net.Http.HttpClient _httpClient = null;
+        public static System.Net.Http.HttpClient HttpClient
+        {
+            get
+            {
+                if (_httpClient == null)
+                {
+                    _httpClient = new System.Net.Http.HttpClient();
+                }
+                return _httpClient;
+            }
         }
     }
 }

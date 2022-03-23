@@ -108,5 +108,71 @@ namespace Hops
             }
         }
     }
-    
+
+    public class UriFunctionPathInfo
+    {
+        public UriFunctionPathInfo(string _endpoint, bool _isfolder)
+        {
+            EndPoint = _endpoint;
+            IsFolder = _isfolder;
+        }
+
+        public string EndPoint { get; set; }
+        public string FullPath { get; set; }
+        public bool IsFolder { get; set; } = false;
+        public bool isRoot { get; set; } = false;
+        public string RootURL { get; set; }
+
+
+        public List<UriFunctionPathInfo> Paths = new List<UriFunctionPathInfo>();
+
+        public void BuildMenus(ToolStripMenuItem ti, MouseEventHandler click_ev)
+        {
+            if (Paths.Count == 0)
+            {
+                ToolStripItem item = ti.DropDownItems.Add(EndPoint);
+                item.MouseDown += click_ev;
+                item.Tag = FullPath;
+            }
+            else
+            {
+                ToolStripMenuItem item;
+
+                if (isRoot)
+                    item = ti;
+                else
+                {
+                    item = new ToolStripMenuItem(EndPoint);
+                    ti.DropDownItems.Add(item);
+                }
+                foreach (UriFunctionPathInfo p in Paths)
+                {
+                    p.BuildMenus(item, click_ev);
+                }
+            }
+        }
+    }
+
+    public class FunctionMgr_ParamSchema
+    {
+        public string Name { get; set; }
+        public string Nickname { get; set; }
+        public string Description { get; set; }
+        public string ParamType { get; set; }
+        public string ResultType { get; set; }
+        public int AtLeast { get; set; }
+        public int AtMost { get; set; }
+    }
+    public class FunctionMgr_Schema
+    {
+        public string Uri { get; set; }
+        public string Name { get; set; }
+        public string Nickname { get; set; }
+        public string Description { get; set; }
+        public string Category { get; set; }
+        public string Subcategory { get; set; }
+        public FunctionMgr_ParamSchema[] Inputs { get; set; }
+        public FunctionMgr_ParamSchema[] Outputs { get; set; }
+        public string Icon { get; set; }
+    }
 }

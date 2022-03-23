@@ -404,7 +404,9 @@ namespace Hops
             else
             {
                 int index = Path.LastIndexOf('/');
-                solveUrl = Path.Substring(0, index + 1) + "solve";
+                var authority = new Uri(Path).Authority;
+                solveUrl = "http://" + authority + "/solve";
+                //solveUrl = Path.Substring(0, index + 1) + "solve";
             }
 
             string inputJson = JsonConvert.SerializeObject(inputSchema);
@@ -1012,8 +1014,8 @@ namespace Hops
             var pathType = GetPathType();
             if (pathType == PathType.Server)
             {
-                string definition = Path.Substring(Path.LastIndexOf('/') + 1);
-                schema.Pointer = definition;
+                var pointer = new Uri(Path).AbsolutePath;
+                schema.Pointer = pointer.Substring(1);
             }
             LastHTTP.Schema = schema;
             return schema;
