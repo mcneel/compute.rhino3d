@@ -52,9 +52,11 @@ class HopsBase:
         # FIXME: remove support for legacy solve behaviour
         elif uri == "/solve":
             data = json.loads(payload)
-            comp_name = data["pointer"]
+            comp_uri = data["pointer"]
+            if not comp_uri.startswith("/"):
+                comp_uri = "/" + comp_uri
             for comp in self._components.values():
-                if comp_name == comp.uri.replace("/", ""):
+                if comp_uri == comp.uri:
                     hlogger.info("Solving using legacy API: %s", comp)
                     return self._process_solve_request(comp, payload)
 
