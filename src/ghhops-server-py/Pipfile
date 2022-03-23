@@ -24,5 +24,8 @@ allow_prereleases = true
 hops_flask = "python examples/app.py"
 hops_http = "python examples/app_http.py"
 hops_rhinside = "python examples/app_rhinside.py"
+
 build = "python -m flit build"
 publish = "python -m flit publish"
+
+test_query = "python tests/app_query.py"
