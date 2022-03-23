@@ -95,14 +95,14 @@ namespace compute.geometry
 
         static Response GrasshopperSolveHelper(Schema input, string body, System.Diagnostics.Stopwatch stopwatch)
         {
-            // load grasshopper file
             GrasshopperDefinition definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
             if (definition == null && !string.IsNullOrWhiteSpace(input.Algo))
             {
                 definition = GrasshopperDefinition.FromBase64String(input.Algo, true);
             }
+
             if (definition == null)
-                throw new Exception("Unable to load grasshopper definition");
+                throw new Exception("Unable to convert Base-64 encoded Grasshopper script to a GrasshopperDefinition object.");
 
             SetDefaultTolerances(input.AbsoluteTolerance, input.AngleTolerance);
             SetDefaultUnits(input.ModelUnits);
@@ -111,6 +111,7 @@ namespace compute.geometry
             definition.GH_Document.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(recursionLevel));
 
             definition.AssignData(input.Values);
+
             long decodeTime = stopwatch.ElapsedMilliseconds;
             stopwatch.Restart();
             var output = definition.Solve();
@@ -123,7 +124,10 @@ namespace compute.geometry
             res.ContentType = "application/json";
             res = res.WithHeader("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
             if (definition.HasErrors)
+            {
                 res.StatusCode = Nancy.HttpStatusCode.InternalServerError;
+                res.ReasonPhrase = "Errors:\n\t" + string.Join("\n\t", definition.ErrorMessages);
+            }
             else
             {
                 if (input.CacheSolve)

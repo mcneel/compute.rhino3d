@@ -108,17 +108,23 @@ namespace compute.geometry
         {
             Log.Debug("Rhino system directory: {Path}", RhinoInside.Resolver.RhinoSystemDirectory);
             Log.Information("Launching RhinoCore library as {User}", Environment.UserName);
-            try
-            {
-                Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Error launching Rhino instance.");
-                if (Config.Debug)
-                    Logging.LogExceptionData(ex);
-            }
 
+            int retries = 1;
+
+            for (int i = 0; i <= retries; i++)
+            {
+                try
+                {
+                    Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Error launching Rhino instance.");
+                    if (Config.Debug)
+                        Logging.LogExceptionData(ex);
+                }
+            }
 
             Environment.SetEnvironmentVariable("RHINO_TOKEN", null, EnvironmentVariableTarget.Process);
 

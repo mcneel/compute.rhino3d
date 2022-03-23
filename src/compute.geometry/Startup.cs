@@ -32,17 +32,24 @@ namespace compute.geometry
         {
             IOwinRequest req = ctx.Request;
 
-            // invoke the next middleware in the pipeline
-            await Next.Invoke(ctx);
-
-            IOwinResponse res = ctx.Response;
-            string contentLength = res.ContentLength > -1 ? res.ContentLength.ToString() : "-";
-
-            if (req.Uri.AbsolutePath != "/healthcheck" || req.Uri.AbsolutePath != "/favicon.ico")
+            try
             {
-                // log request in apache format
-                string msg = $"{req.RemoteIpAddress} - [{DateTime.Now:o}] \"{req.Method} {req.Uri.AbsolutePath} {req.Protocol}\" {res.StatusCode} {contentLength}";
-                Serilog.Log.Information(msg);
+                // invoke the next middleware in the pipeline
+                await Next.Invoke(ctx);
+
+                IOwinResponse res = ctx.Response;
+                string contentLength = res.ContentLength > -1 ? res.ContentLength.ToString() : "-";
+
+                if (req.Uri.AbsolutePath != "/healthcheck" || req.Uri.AbsolutePath != "/favicon.ico")
+                {
+                    // log request in apache format
+                    string msg = $"{req.RemoteIpAddress} - [{DateTime.Now:o}] \"{req.Method} {req.Uri.AbsolutePath} {req.Protocol}\" {res.StatusCode} {contentLength}";
+                    Serilog.Log.Information(msg);
+                }
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine($"Error:\n\t{e.Message}");
             }
         }
     }
