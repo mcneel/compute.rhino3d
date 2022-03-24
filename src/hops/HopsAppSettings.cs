@@ -76,7 +76,7 @@ namespace Hops
 
         public static string GetDefaultPath()
         {
-            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Roaming", "Hops", "Functions");
+            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Roaming","McNeel", "Hops", "Functions");
             if(!Directory.Exists(path))
                 Directory.CreateDirectory(path);
             return path;
