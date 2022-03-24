@@ -61,7 +61,7 @@ namespace Hops
         {
             if (Paths.Count == 0)
             {
-                if(Extension == ".gh")
+                if(Extension == ".gh" || Extension == ".ghx")
                 {
                     ToolStripItem item = ti.DropDownItems.Add(FileName);
                     item.MouseDown += click_ev;
