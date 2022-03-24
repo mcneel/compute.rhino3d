@@ -60,17 +60,29 @@ namespace Hops
                         else
                         {
                             var response = JsonConvert.DeserializeObject<FunctionMgr_Schema[]>(stringResult);
-                            UriFunctionPathInfo functionPaths = new UriFunctionPathInfo(HopsAppSettings.FunctionManagerRootPath, true);
-                            functionPaths.isRoot = true;
-                            functionPaths.RootURL = HopsAppSettings.FunctionManagerRootPath;
-                            foreach(FunctionMgr_Schema obj in response)
+                            if(response != null)
                             {
-                                SeekFunctionMenuDirs(functionPaths, obj.Uri, obj.Uri);
-                            }
-                            
-                            if (functionPaths.Paths.Count != 0)
-                            {
-                                functionPaths.BuildMenus(menu, new MouseEventHandler(tsm_UriClick));
+                                UriFunctionPathInfo functionPaths = new UriFunctionPathInfo(HopsAppSettings.FunctionManagerRootPath, true);
+                                functionPaths.isRoot = true;
+                                functionPaths.RootURL = HopsAppSettings.FunctionManagerRootPath;
+                                if (!String.IsNullOrEmpty(response[0].Uri))
+                                {
+                                    //If the Schema Uri exists, then the response is likely from the ghhops_server.
+                                    //Otherwise, let's assume the response is from the appserver
+                                    foreach (FunctionMgr_Schema obj in response)
+                                    {
+                                        SeekFunctionMenuDirs(functionPaths, obj.Uri, obj.Uri);
+                                    }
+                                }
+                                else if(!String.IsNullOrEmpty(response[0].Name))
+                                {
+                                    foreach (FunctionMgr_Schema obj in response)
+                                    {
+                                        SeekFunctionMenuDirs(functionPaths, "/" + obj.Name, "/" + obj.Name);
+                                    }
+                                }
+                                if (functionPaths.Paths.Count != 0)
+                                    functionPaths.BuildMenus(menu, new MouseEventHandler(tsm_UriClick));
                             }
                         }
                     }

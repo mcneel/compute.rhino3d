@@ -130,7 +130,11 @@ namespace Hops
         {
             if (Paths.Count == 0)
             {
-                ToolStripItem item = ti.DropDownItems.Add(EndPoint);
+                var ep = EndPoint;
+                if (ep.StartsWith("/"))
+                    ep = ep.Substring(1);
+                
+                ToolStripItem item = ti.DropDownItems.Add(ep);
                 item.MouseDown += click_ev;
                 item.Tag = FullPath;
             }
@@ -142,7 +146,11 @@ namespace Hops
                     item = ti;
                 else
                 {
-                    item = new ToolStripMenuItem(EndPoint);
+                    var ep = EndPoint;
+                    if (ep.StartsWith("/"))
+                        ep = ep.Substring(1);
+
+                    item = new ToolStripMenuItem(ep);
                     ti.DropDownItems.Add(item);
                 }
                 foreach (UriFunctionPathInfo p in Paths)
