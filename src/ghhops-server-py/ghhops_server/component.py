@@ -43,11 +43,11 @@ class HopsComponent:
         """Serializer"""
         metadata = {
             "Uri": self.solve_uri,
-            "Name": self.description,
-            "Nickname": self.description,
+            "Name": self.name,
+            "Nickname": self.nickname,
             "Description": self.description,
-            "Category": self.description,
-            "Subcategory": self.description,
+            "Category": self.category,
+            "Subcategory": self.subcategory,
             "Inputs": self.inputs,
             "Outputs": self.outputs,
         }
