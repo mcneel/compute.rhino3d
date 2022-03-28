@@ -161,8 +161,7 @@ namespace Hops
             ToolStripMenuItem ti = sender as ToolStripMenuItem;
 
             var thumbnail = GH_DocumentIO.GetDocumentThumbnail(ti.Name);
-
-            if (Viewer != null && thumbnail != null && ti.Owner != null)
+            if (Viewer != null && thumbnail != null && ti.Owner != null && Rhino.Runtime.HostUtils.RunningOnWindows)
             {
                 var point = ti.Owner.PointToScreen(new Point(ti.Width + 4, 0));
                 Viewer.Location = point;

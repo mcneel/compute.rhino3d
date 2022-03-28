@@ -76,7 +76,12 @@ namespace Hops
 
         public static string GetDefaultPath()
         {
-            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Roaming","McNeel", "Hops", "Functions");
+            string path = "";
+            if (Rhino.Runtime.HostUtils.RunningOnWindows)
+                path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Roaming","McNeel", "Hops", "Functions");
+            else
+                path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Library", "Application Support", "McNeel", "Rhinoceros", "Hops", "Functions");
+            
             if(!Directory.Exists(path))
                 Directory.CreateDirectory(path);
             return path;

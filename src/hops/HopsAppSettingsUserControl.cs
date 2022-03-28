@@ -24,7 +24,7 @@ namespace Hops
             };
             _maxConcurrentRequestsTextbox.TextChanged += (s, e) =>
             {
-                if (int.TryParse(_maxConcurrentRequestsTextbox.Text, out int result) && result>0)
+                if (int.TryParse(_maxConcurrentRequestsTextbox.Text, out int result) && result > 0)
                 {
                     HopsAppSettings.MaxConcurrentRequests = result;
                 }
@@ -43,7 +43,8 @@ namespace Hops
                 _launchWorkerAtStart.Visible = false;
                 _childComputeCount.Visible = false;
                 _updateChildCountButton.Visible = false;
-                Size = new System.Drawing.Size(Size.Width, _btnClearMemCache.Bottom + 4);
+                _gpboxFunctionMgr.Top -= 74;
+                Size = new System.Drawing.Size(Size.Width, _gpboxFunctionMgr.Bottom + 4);
             }
             else
             {

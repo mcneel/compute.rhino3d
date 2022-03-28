@@ -48,8 +48,8 @@ namespace Hops
             this._gpboxFunctionMgr = new System.Windows.Forms.GroupBox();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this._lblFunctionMgr = new System.Windows.Forms.Label();
-            this._functionPathTextbox = new System.Windows.Forms.TextBox();
             this._fileDialogBtn = new System.Windows.Forms.Button();
+            this._functionPathTextbox = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this._childComputeCount)).BeginInit();
             this._gpboxFunctionMgr.SuspendLayout();
             this.tableLayoutPanel1.SuspendLayout();
@@ -178,47 +178,37 @@ namespace Hops
             // 
             // tableLayoutPanel1
             // 
-            this.tableLayoutPanel1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
             this.tableLayoutPanel1.ColumnCount = 2;
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 40F));
             this.tableLayoutPanel1.Controls.Add(this._lblFunctionMgr, 0, 0);
             this.tableLayoutPanel1.Controls.Add(this._fileDialogBtn, 1, 1);
             this.tableLayoutPanel1.Controls.Add(this._functionPathTextbox, 0, 1);
-            this.tableLayoutPanel1.Location = new System.Drawing.Point(5, 16);
+            this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tableLayoutPanel1.Location = new System.Drawing.Point(3, 16);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
             this.tableLayoutPanel1.RowCount = 2;
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 44.68085F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 55.31915F));
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(291, 50);
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(294, 49);
             this.tableLayoutPanel1.TabIndex = 14;
             // 
             // _lblFunctionMgr
             // 
-            this._lblFunctionMgr.AutoSize = true;
+            this._lblFunctionMgr.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this._lblFunctionMgr.Location = new System.Drawing.Point(3, 6);
             this._lblFunctionMgr.Margin = new System.Windows.Forms.Padding(3, 6, 3, 3);
             this._lblFunctionMgr.Name = "_lblFunctionMgr";
-            this._lblFunctionMgr.Size = new System.Drawing.Size(233, 13);
+            this._lblFunctionMgr.Size = new System.Drawing.Size(248, 12);
             this._lblFunctionMgr.TabIndex = 14;
             this._lblFunctionMgr.Text = "Location to retrieve and/or save Hops functions";
             this._lblFunctionMgr.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
-            // _functionPathTextbox
-            // 
-            this._functionPathTextbox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this._functionPathTextbox.Location = new System.Drawing.Point(3, 24);
-            this._functionPathTextbox.Margin = new System.Windows.Forms.Padding(3, 2, 0, 3);
-            this._functionPathTextbox.Name = "_functionPathTextbox";
-            this._functionPathTextbox.Size = new System.Drawing.Size(248, 20);
-            this._functionPathTextbox.TabIndex = 15;
-            // 
             // _fileDialogBtn
             // 
-            this._fileDialogBtn.Location = new System.Drawing.Point(253, 23);
+            this._fileDialogBtn.Location = new System.Drawing.Point(256, 22);
             this._fileDialogBtn.Margin = new System.Windows.Forms.Padding(2, 1, 3, 3);
             this._fileDialogBtn.Name = "_fileDialogBtn";
             this._fileDialogBtn.Size = new System.Drawing.Size(35, 23);
@@ -226,6 +216,16 @@ namespace Hops
             this._fileDialogBtn.Text = "...";
             this._fileDialogBtn.UseVisualStyleBackColor = true;
             this._fileDialogBtn.Click += new System.EventHandler(this._fileDialogBtn_Click);
+            // 
+            // _functionPathTextbox
+            // 
+            this._functionPathTextbox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this._functionPathTextbox.Location = new System.Drawing.Point(3, 23);
+            this._functionPathTextbox.Margin = new System.Windows.Forms.Padding(3, 2, 0, 3);
+            this._functionPathTextbox.Name = "_functionPathTextbox";
+            this._functionPathTextbox.Size = new System.Drawing.Size(251, 20);
+            this._functionPathTextbox.TabIndex = 15;
             // 
             // HopsAppSettingsUserControl
             // 
