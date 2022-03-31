@@ -17,6 +17,8 @@ namespace Hops
         const string MAX_CONCURRENT_REQUESTS = "Hops:MaxConcurrentRequests";
         const string RECURSION_LIMIT = "Hops:RecursionLimit";
         const string HOPS_FUNCTION_MGR_PATH = "Hops:FunctionManagerPath";
+        public static bool HasSourceRows { get; set; } = false;
+        public static List<FunctionSourceRow> FunctionSources { get; set; } = new List<FunctionSourceRow>();
 
         public static string[] Servers
         {

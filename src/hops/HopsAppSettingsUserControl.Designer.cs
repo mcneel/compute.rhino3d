@@ -10,7 +10,7 @@ namespace Hops
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
-        
+ 
         /// <summary> 
         /// Clean up any resources being used.
         /// </summary>
@@ -46,13 +46,13 @@ namespace Hops
             this.label2 = new System.Windows.Forms.Label();
             this._apiKeyTextbox = new System.Windows.Forms.TextBox();
             this._gpboxFunctionMgr = new System.Windows.Forms.GroupBox();
-            this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
-            this._lblFunctionMgr = new System.Windows.Forms.Label();
-            this._fileDialogBtn = new System.Windows.Forms.Button();
-            this._functionPathTextbox = new System.Windows.Forms.TextBox();
+            this.testPanel = new System.Windows.Forms.TableLayoutPanel();
+            this.toolStrip1 = new System.Windows.Forms.ToolStrip();
+            this._addFunctionSourceButton = new System.Windows.Forms.ToolStripButton();
+            this._deleteFunctionSourceButton = new System.Windows.Forms.ToolStripButton();
             ((System.ComponentModel.ISupportInitialize)(this._childComputeCount)).BeginInit();
             this._gpboxFunctionMgr.SuspendLayout();
-            this.tableLayoutPanel1.SuspendLayout();
+            this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
             // _serversTextBox
@@ -168,64 +168,65 @@ namespace Hops
             // 
             this._gpboxFunctionMgr.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this._gpboxFunctionMgr.Controls.Add(this.tableLayoutPanel1);
+            this._gpboxFunctionMgr.Controls.Add(this.testPanel);
+            this._gpboxFunctionMgr.Controls.Add(this.toolStrip1);
             this._gpboxFunctionMgr.Location = new System.Drawing.Point(0, 197);
             this._gpboxFunctionMgr.Name = "_gpboxFunctionMgr";
-            this._gpboxFunctionMgr.Size = new System.Drawing.Size(300, 68);
+            this._gpboxFunctionMgr.Size = new System.Drawing.Size(300, 73);
             this._gpboxFunctionMgr.TabIndex = 12;
             this._gpboxFunctionMgr.TabStop = false;
-            this._gpboxFunctionMgr.Text = "Function Manager";
+            this._gpboxFunctionMgr.Text = "Hops Function Sources";
             // 
-            // tableLayoutPanel1
+            // testPanel
             // 
-            this.tableLayoutPanel1.ColumnCount = 2;
-            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 40F));
-            this.tableLayoutPanel1.Controls.Add(this._lblFunctionMgr, 0, 0);
-            this.tableLayoutPanel1.Controls.Add(this._fileDialogBtn, 1, 1);
-            this.tableLayoutPanel1.Controls.Add(this._functionPathTextbox, 0, 1);
-            this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tableLayoutPanel1.Location = new System.Drawing.Point(3, 16);
-            this.tableLayoutPanel1.Name = "tableLayoutPanel1";
-            this.tableLayoutPanel1.RowCount = 2;
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 44.68085F));
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 55.31915F));
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(294, 49);
-            this.tableLayoutPanel1.TabIndex = 14;
-            // 
-            // _lblFunctionMgr
-            // 
-            this._lblFunctionMgr.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
+            this.testPanel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this._lblFunctionMgr.Location = new System.Drawing.Point(3, 6);
-            this._lblFunctionMgr.Margin = new System.Windows.Forms.Padding(3, 6, 3, 3);
-            this._lblFunctionMgr.Name = "_lblFunctionMgr";
-            this._lblFunctionMgr.Size = new System.Drawing.Size(248, 12);
-            this._lblFunctionMgr.TabIndex = 14;
-            this._lblFunctionMgr.Text = "Location to retrieve and/or save Hops functions";
-            this._lblFunctionMgr.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.testPanel.BackColor = System.Drawing.Color.Transparent;
+            this.testPanel.ColumnCount = 1;
+            this.testPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.testPanel.Location = new System.Drawing.Point(6, 46);
+            this.testPanel.Name = "testPanel";
+            this.testPanel.RowCount = 1;
+            this.testPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.testPanel.Size = new System.Drawing.Size(291, 22);
+            this.testPanel.TabIndex = 16;
             // 
-            // _fileDialogBtn
+            // toolStrip1
             // 
-            this._fileDialogBtn.Location = new System.Drawing.Point(256, 22);
-            this._fileDialogBtn.Margin = new System.Windows.Forms.Padding(2, 1, 3, 3);
-            this._fileDialogBtn.Name = "_fileDialogBtn";
-            this._fileDialogBtn.Size = new System.Drawing.Size(35, 23);
-            this._fileDialogBtn.TabIndex = 16;
-            this._fileDialogBtn.Text = "...";
-            this._fileDialogBtn.UseVisualStyleBackColor = true;
-            this._fileDialogBtn.Click += new System.EventHandler(this._fileDialogBtn_Click);
+            this.toolStrip1.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
+            this.toolStrip1.ImageScalingSize = new System.Drawing.Size(32, 32);
+            this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this._addFunctionSourceButton,
+            this._deleteFunctionSourceButton});
+            this.toolStrip1.Location = new System.Drawing.Point(3, 16);
+            this.toolStrip1.Name = "toolStrip1";
+            this.toolStrip1.RenderMode = System.Windows.Forms.ToolStripRenderMode.System;
+            this.toolStrip1.Size = new System.Drawing.Size(294, 27);
+            this.toolStrip1.TabIndex = 15;
+            this.toolStrip1.Text = "toolStrip1";
             // 
-            // _functionPathTextbox
+            // _addFunctionSourceButton
             // 
-            this._functionPathTextbox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this._functionPathTextbox.Location = new System.Drawing.Point(3, 23);
-            this._functionPathTextbox.Margin = new System.Windows.Forms.Padding(3, 2, 0, 3);
-            this._functionPathTextbox.Name = "_functionPathTextbox";
-            this._functionPathTextbox.Size = new System.Drawing.Size(251, 20);
-            this._functionPathTextbox.TabIndex = 15;
+            this._addFunctionSourceButton.Image = global::Hops.Properties.Resources.Open_Toolbar_Active_20x20;
+            this._addFunctionSourceButton.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
+            this._addFunctionSourceButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this._addFunctionSourceButton.Name = "_addFunctionSourceButton";
+            this._addFunctionSourceButton.Size = new System.Drawing.Size(92, 24);
+            this._addFunctionSourceButton.Text = "Add Source";
+            this._addFunctionSourceButton.ToolTipText = "Add a new function source";
+            this._addFunctionSourceButton.Click += new System.EventHandler(this._addFunctionSourceButton_Click);
+            // 
+            // _deleteFunctionSourceButton
+            // 
+            this._deleteFunctionSourceButton.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
+            this._deleteFunctionSourceButton.Image = global::Hops.Properties.Resources.Close_Toolbar_Active_20x20;
+            this._deleteFunctionSourceButton.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
+            this._deleteFunctionSourceButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this._deleteFunctionSourceButton.Name = "_deleteFunctionSourceButton";
+            this._deleteFunctionSourceButton.Size = new System.Drawing.Size(111, 24);
+            this._deleteFunctionSourceButton.Text = "Delete Selected";
+            this._deleteFunctionSourceButton.ToolTipText = "Delete selected function sources";
+            this._deleteFunctionSourceButton.Click += new System.EventHandler(this._deleteFunctionSourceButton_Click);
             // 
             // HopsAppSettingsUserControl
             // 
@@ -245,11 +246,12 @@ namespace Hops
             this.Controls.Add(this._serversTextBox);
             this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "HopsAppSettingsUserControl";
-            this.Size = new System.Drawing.Size(300, 267);
+            this.Size = new System.Drawing.Size(300, 345);
             ((System.ComponentModel.ISupportInitialize)(this._childComputeCount)).EndInit();
             this._gpboxFunctionMgr.ResumeLayout(false);
-            this.tableLayoutPanel1.ResumeLayout(false);
-            this.tableLayoutPanel1.PerformLayout();
+            this._gpboxFunctionMgr.PerformLayout();
+            this.toolStrip1.ResumeLayout(false);
+            this.toolStrip1.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -269,9 +271,9 @@ namespace Hops
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.TextBox _apiKeyTextbox;
         private System.Windows.Forms.GroupBox _gpboxFunctionMgr;
-        private TableLayoutPanel tableLayoutPanel1;
-        private Label _lblFunctionMgr;
-        private TextBox _functionPathTextbox;
-        private Button _fileDialogBtn;
+        public ToolStrip toolStrip1;
+        public ToolStripButton _addFunctionSourceButton;
+        private ToolStripButton _deleteFunctionSourceButton;
+        private TableLayoutPanel testPanel;
     }
 }

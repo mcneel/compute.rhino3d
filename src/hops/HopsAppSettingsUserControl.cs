@@ -6,13 +6,16 @@ namespace Hops
     partial class HopsAppSettingsUserControl : UserControl
     {
         private FolderBrowserDialog _folderBrowserDlg;
+        
         public HopsAppSettingsUserControl()
         {
             InitializeComponent();
-            _folderBrowserDlg = new FolderBrowserDialog();
-            _folderBrowserDlg.SelectedPath = HopsAppSettings.FunctionManagerRootPath;
-            _functionPathTextbox.Text = HopsAppSettings.FunctionManagerRootPath;
-            _functionPathTextbox.TextChanged += _functionPathTextbox_TextChanged;
+            if (!HopsAppSettings.HasSourceRows)
+                _deleteFunctionSourceButton.Visible = false;
+            //_folderBrowserDlg = new FolderBrowserDialog();
+            //_folderBrowserDlg.SelectedPath = HopsAppSettings.FunctionManagerRootPath;
+            //_functionSourcePath.Text = HopsAppSettings.FunctionManagerRootPath;
+            //_functionSourcePath.TextChanged += _functionPathTextbox_TextChanged;
             _serversTextBox.Lines = HopsAppSettings.Servers;
             _serversTextBox.TextChanged += ServersTextboxChanged;
             _apiKeyTextbox.Text = HopsAppSettings.APIKey;
@@ -72,23 +75,23 @@ namespace Hops
             }
         }
 
-        private void _functionPathTextbox_TextChanged(object sender, EventArgs e)
-        {
-            var TextBox = sender as TextBox;
-            if (TextBox == null)
-                return;
-            if (TextBox.Text == HopsAppSettings.FunctionManagerRootPath)
-                return;
-            else
-            {
-                HopsAppSettings.FunctionManagerRootPath = TextBox.Text;
-            }
-        }
+        //private void _functionPathTextbox_TextChanged(object sender, EventArgs e)
+        //{
+        //    var TextBox = sender as TextBox;
+        //    if (TextBox == null)
+        //        return;
+        //    if (TextBox.Text == HopsAppSettings.FunctionManagerRootPath)
+        //        return;
+        //    else
+        //    {
+        //        HopsAppSettings.FunctionManagerRootPath = TextBox.Text;
+        //    }
+        //}
 
-        private void _pathBrowser_PathChanged(Grasshopper.GUI.GH_FolderPathBrowser sender, string nPath)
-        {
-            HopsAppSettings.FunctionManagerRootPath = sender.Path;
-        }
+        //private void _pathBrowser_PathChanged(Grasshopper.GUI.GH_FolderPathBrowser sender, string nPath)
+        //{
+        //    HopsAppSettings.FunctionManagerRootPath = sender.Path;
+        //}
 
         private void ServersTextboxChanged(object sender, EventArgs e)
         {
@@ -101,14 +104,52 @@ namespace Hops
             HopsAppSettings.APIKey = _apiKeyTextbox.Text;
         }
 
-        private void _fileDialogBtn_Click(object sender, EventArgs e)
-        {
-            DialogResult result = _folderBrowserDlg.ShowDialog();
+        //private void _fileDialogBtn_Click(object sender, EventArgs e)
+        //{
+        //    DialogResult result = _folderBrowserDlg.ShowDialog();
 
-            if (result == DialogResult.OK && !string.IsNullOrWhiteSpace(_folderBrowserDlg.SelectedPath))
+        //    if (result == DialogResult.OK && !string.IsNullOrWhiteSpace(_folderBrowserDlg.SelectedPath))
+        //    {
+        //        HopsAppSettings.FunctionManagerRootPath = _folderBrowserDlg.SelectedPath;
+        //        //_functionSourcePath.Text = _folderBrowserDlg.SelectedPath;
+        //    }
+        //}
+
+        private void _deleteFunctionSourceButton_Click(object sender, EventArgs e)
+        {
+            for(int i = HopsAppSettings.FunctionSources.Count - 1; i >= 0; i--)
             {
-                HopsAppSettings.FunctionManagerRootPath = _folderBrowserDlg.SelectedPath;
-                _functionPathTextbox.Text = _folderBrowserDlg.SelectedPath;
+                if (HopsAppSettings.FunctionSources[i].RowCheckbox.Checked)
+                {
+                    HopsUIHelper.RemoveArbitraryRow(testPanel, i);
+                    HopsAppSettings.FunctionSources.RemoveAt(i);
+                }
+            }
+            if (testPanel.RowCount == 0 && _deleteFunctionSourceButton.Visible)
+            {
+                _deleteFunctionSourceButton.Visible = false;
+                HopsAppSettings.HasSourceRows = false;
+                testPanel.RowCount++;
+                testPanel.RowStyles.Clear();
+                testPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize, 0.0F));
+            }
+        }
+
+        private void _addFunctionSourceButton_Click(object sender, EventArgs e)
+        {
+            string srcPath = "";
+            string srcName = "";
+            var form = new SetFunctionSourceForm(srcPath, srcName);
+            if (form.ShowModal(Grasshopper.Instances.EtoDocumentEditor))
+            {
+                srcPath = form.Path;
+                srcName = form.Name;
+                HopsUIHelper.AddRow(testPanel, srcName, srcPath);
+                if (testPanel.RowCount >= 1 && !_deleteFunctionSourceButton.Visible)
+                {
+                    _deleteFunctionSourceButton.Visible = true;
+                    HopsAppSettings.HasSourceRows = true;
+                }
             }
         }
     }
