@@ -67,6 +67,27 @@ namespace Hops
             }
         }
 
+        public static void AddRow(TableLayoutPanel panel, FunctionSourceRow row, bool update)
+        {
+            GroupBox groupBox = panel.Parent as GroupBox;
+
+            if (HopsAppSettings.HasSourceRows)
+            {
+                panel.RowCount++;
+                panel.Height += rowHeight;
+                groupBox.Height += rowHeight;
+                HopsAppSettings.HasSourceRows = true;
+            }
+            row.UpdateRow += UpdateRow;
+            panel.Controls.Add(row, 0, panel.RowCount - 1);
+
+            if (update)
+            {
+                HopsAppSettings.FunctionSources.Add(row);
+                UpdateFunctionSourceSettings();
+            }
+        }
+
         private static void UpdateRow(object sender, UpdateRowArgs e)
         {
             var newRow = sender as FunctionSourceRow;
@@ -86,13 +107,16 @@ namespace Hops
             int count = HopsAppSettings.FunctionSources.Count;
             string[] names = new string[count];
             string[] paths = new string[count];
+            string[] selections = new string[count];
             for (int i = 0; i < count; i++)
             {
                 names[i] = HopsAppSettings.FunctionSources[i].SourceName;
                 paths[i] = HopsAppSettings.FunctionSources[i].SourcePath;
+                selections[i] = HopsAppSettings.FunctionSources[i].RowCheckbox.Checked ? "True" : "False";
             }
             HopsAppSettings.FunctionSourceNames = names;
             HopsAppSettings.FunctionSourcePaths = paths;
+            HopsAppSettings.FunctionSourceSelectedStates = selections;
         }
     }
 }

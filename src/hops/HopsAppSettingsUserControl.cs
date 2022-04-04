@@ -5,18 +5,12 @@ namespace Hops
 {
     partial class HopsAppSettingsUserControl : UserControl
     {
-        //private FolderBrowserDialog _folderBrowserDlg;
-        
         public HopsAppSettingsUserControl()
         {
             InitializeComponent();
             HopsAppSettings.InitFunctionSources();
             if (!HopsAppSettings.HasSourceRows)
                 _deleteFunctionSourceButton.Visible = false;
-            //_folderBrowserDlg = new FolderBrowserDialog();
-            //_folderBrowserDlg.SelectedPath = HopsAppSettings.FunctionManagerRootPath;
-            //_functionSourcePath.Text = HopsAppSettings.FunctionManagerRootPath;
-            //_functionSourcePath.TextChanged += _functionPathTextbox_TextChanged;
             _serversTextBox.Lines = HopsAppSettings.Servers;
             _serversTextBox.TextChanged += ServersTextboxChanged;
             _apiKeyTextbox.Text = HopsAppSettings.APIKey;
@@ -26,7 +20,8 @@ namespace Hops
             {
                 foreach (var row in HopsAppSettings.FunctionSources)
                 {
-                    HopsUIHelper.AddRow(testPanel, row.SourceName, row.SourcePath, false);
+                    //HopsUIHelper.AddRow(testPanel, row.SourceName, row.SourcePath, false);
+                    HopsUIHelper.AddRow(testPanel, row, false);
                     if (testPanel.RowCount >= 1 && !_deleteFunctionSourceButton.Visible)
                     {
                         _deleteFunctionSourceButton.Visible = true;
@@ -88,24 +83,6 @@ namespace Hops
             }
         }
 
-        //private void _functionPathTextbox_TextChanged(object sender, EventArgs e)
-        //{
-        //    var TextBox = sender as TextBox;
-        //    if (TextBox == null)
-        //        return;
-        //    if (TextBox.Text == HopsAppSettings.FunctionManagerRootPath)
-        //        return;
-        //    else
-        //    {
-        //        HopsAppSettings.FunctionManagerRootPath = TextBox.Text;
-        //    }
-        //}
-
-        //private void _pathBrowser_PathChanged(Grasshopper.GUI.GH_FolderPathBrowser sender, string nPath)
-        //{
-        //    HopsAppSettings.FunctionManagerRootPath = sender.Path;
-        //}
-
         private void ServersTextboxChanged(object sender, EventArgs e)
         {
             string[] lines = _serversTextBox.Lines;
@@ -117,29 +94,17 @@ namespace Hops
             HopsAppSettings.APIKey = _apiKeyTextbox.Text;
         }
 
-        //private void _fileDialogBtn_Click(object sender, EventArgs e)
-        //{
-        //    DialogResult result = _folderBrowserDlg.ShowDialog();
-
-        //    if (result == DialogResult.OK && !string.IsNullOrWhiteSpace(_folderBrowserDlg.SelectedPath))
-        //    {
-        //        HopsAppSettings.FunctionManagerRootPath = _folderBrowserDlg.SelectedPath;
-        //        //_functionSourcePath.Text = _folderBrowserDlg.SelectedPath;
-        //    }
-        //}
-
         private void _deleteFunctionSourceButton_Click(object sender, EventArgs e)
         {
-            HopsAppSettings.FunctionSources[1].RowCheckbox.Checked = !HopsAppSettings.FunctionSources[1].RowCheckbox.Checked;
-            //for (int i = HopsAppSettings.FunctionSources.Count - 1; i >= 0; i--)
-            //{
-            //    if (HopsAppSettings.FunctionSources[i].RowCheckbox.Checked)
-            //    {
-            //        HopsUIHelper.RemoveRow(testPanel, i);
-            //        HopsAppSettings.FunctionSources.RemoveAt(i);
-            //    }
-            //}
-            //HopsUIHelper.UpdateFunctionSourceSettings();
+            for (int i = HopsAppSettings.FunctionSources.Count - 1; i >= 0; i--)
+            {
+                if (HopsAppSettings.FunctionSources[i].RowCheckbox.Checked)
+                {
+                    HopsUIHelper.RemoveRow(testPanel, i);
+                    HopsAppSettings.FunctionSources.RemoveAt(i);
+                }
+            }
+            HopsUIHelper.UpdateFunctionSourceSettings();
             if (testPanel.RowCount == 0 && _deleteFunctionSourceButton.Visible)
             {
                 _deleteFunctionSourceButton.Visible = false;

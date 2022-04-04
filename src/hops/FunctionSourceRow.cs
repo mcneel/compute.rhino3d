@@ -4,7 +4,7 @@ using System.Windows.Forms;
 
 namespace Hops
 {
-    class FunctionSourceRow : TableLayoutPanel
+    public class FunctionSourceRow : TableLayoutPanel
     {
         private FolderBrowserDialog _folderBrowserDlg;
         public string SourceName { get; set; }
@@ -46,7 +46,7 @@ namespace Hops
             Dock = DockStyle.Fill;
 
             EditButton = InitButton();
-            PathTextBox = InitTextBox(SourceName);
+            PathTextBox = InitTextBox(SourceName, SourcePath);
             RowCheckbox = InitCheckbox();
 
             EditButton.Click += (s, e) =>
@@ -59,6 +59,12 @@ namespace Hops
                     SourceName = form.Name;
                     OnUpdateRow(nameToUpdate);
                 }
+            };
+
+            RowCheckbox.CheckedChanged += (s, e) =>
+            {
+                string nameToUpdate = SourceName;
+                OnUpdateRow(nameToUpdate);
             };
 
             Controls.Add(RowCheckbox, 0, 0);
@@ -76,15 +82,28 @@ namespace Hops
             return btn;
         }
 
-        TextBox InitTextBox(string name)
+        TextBox InitTextBox(string name, string path)
         {
             TextBox txt = new TextBox();
             txt.Dock = DockStyle.Fill;
             txt.Margin = new Padding(1);
             txt.Name = "PathTextbox";
+            txt.ReadOnly = true;
+            txt.BackColor = System.Drawing.SystemColors.Window;
             txt.Text = name;
+            txt.MouseHover += Txt_MouseHover;
             return txt;
         }
+
+        private void Txt_MouseHover(object sender, EventArgs e)
+        {
+            TextBox textBox = (TextBox)sender;
+            int VisibleTime = 3000;
+
+            ToolTip toolTip = new ToolTip();
+            toolTip.Show(SourcePath, textBox, 24, -24, VisibleTime);
+        }
+
         CheckBox InitCheckbox()
         {
             CheckBox cb = new CheckBox();
