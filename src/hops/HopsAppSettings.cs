@@ -16,7 +16,8 @@ namespace Hops
         //const string SYNCHRONOUS_WAIT_TIME = "Hops:SynchronousWaitTime";
         const string MAX_CONCURRENT_REQUESTS = "Hops:MaxConcurrentRequests";
         const string RECURSION_LIMIT = "Hops:RecursionLimit";
-        const string HOPS_FUNCTION_MGR_PATH = "Hops:FunctionManagerPath";
+        const string HOPS_FUNCTION_PATHS = "Hops:FunctionPaths";
+        const string HOPS_FUNCTION_NAMES = "Hops:FunctionNames";
         public static bool HasSourceRows { get; set; } = false;
         public static List<FunctionSourceRow> FunctionSources { get; set; } = new List<FunctionSourceRow>();
 
@@ -78,7 +79,7 @@ namespace Hops
 
         public static string GetDefaultPath()
         {
-            string path = "";
+            string path;
             if (Rhino.Runtime.HostUtils.RunningOnWindows)
                 path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Roaming","McNeel", "Hops", "Functions");
             else
@@ -89,24 +90,90 @@ namespace Hops
             return path;
         }
 
-        public static string FunctionManagerRootPath
+        public static void InitFunctionSources()
+        {
+            if (FunctionSourcePaths.Length != FunctionSourceNames.Length)
+                return;
+            if(FunctionSources.Count > 0)
+                FunctionSources.Clear();
+            for(int i = 0; i < FunctionSourcePaths.Length; i++)
+            {
+                var row = new FunctionSourceRow(FunctionSourceNames[i].Trim(), FunctionSourcePaths[i].Trim());
+                FunctionSources.Add(row);
+            }
+        }
+
+        public static string[] FunctionSourcePaths
         {
             get
             {
-                string path = Grasshopper.Instances.Settings.GetValue(HOPS_FUNCTION_MGR_PATH, GetDefaultPath());
-                if (string.IsNullOrWhiteSpace(path))
-                    return String.Empty;
-                return path;
+                string pathSetting = Grasshopper.Instances.Settings.GetValue(HOPS_FUNCTION_PATHS, "");
+                if (string.IsNullOrWhiteSpace(pathSetting))
+                    return new string[0];
+                var paths = pathSetting.Split(new char[] { '\n' });
+                return paths;
+            }
+            set
+            {
+                //if (value == null)
+                //{
+                //    Grasshopper.Instances.Settings.SetValue(HOPS_FUNCTION_PATHS, "");
+                //}
+                //else
+                //{
+                //    Grasshopper.Instances.Settings.SetValue(HOPS_FUNCTION_PATHS, value);
+                //}
+
+                if (value == null)
+                {
+                    Grasshopper.Instances.Settings.SetValue(HOPS_FUNCTION_PATHS, "");
+                }
+                else
+                {
+                    var sb = new System.Text.StringBuilder();
+                    for (int i = 0; i < value.Length; i++)
+                    {
+                        string s = value[i].Trim();
+                        if (string.IsNullOrEmpty(s))
+                            continue;
+                        if (sb.Length > 0)
+                            sb.Append('\n');
+                        sb.Append(s);
+                    }
+                    Grasshopper.Instances.Settings.SetValue(HOPS_FUNCTION_PATHS, sb.ToString());
+                }
+            }
+        }
+
+        public static string[] FunctionSourceNames
+        {
+            get
+            {
+                string nameSetting = Grasshopper.Instances.Settings.GetValue(HOPS_FUNCTION_NAMES, "");
+                if (string.IsNullOrWhiteSpace(nameSetting))
+                    return new string[0];
+                var names = nameSetting.Split(new char[] { '\n' });
+                return names;
             }
             set
             {
                 if (value == null)
                 {
-                    Grasshopper.Instances.Settings.SetValue(HOPS_FUNCTION_MGR_PATH, "");
+                    Grasshopper.Instances.Settings.SetValue(HOPS_FUNCTION_NAMES, "");
                 }
                 else
                 {
-                    Grasshopper.Instances.Settings.SetValue(HOPS_FUNCTION_MGR_PATH, value);
+                    var sb = new System.Text.StringBuilder();
+                    for (int i = 0; i < value.Length; i++)
+                    {
+                        string s = value[i].Trim();
+                        if (string.IsNullOrEmpty(s))
+                            continue;
+                        if (sb.Length > 0)
+                            sb.Append('\n');
+                        sb.Append(s);
+                    }
+                    Grasshopper.Instances.Settings.SetValue(HOPS_FUNCTION_NAMES, sb.ToString());
                 }
             }
         }

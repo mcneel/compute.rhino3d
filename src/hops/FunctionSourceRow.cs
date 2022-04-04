@@ -6,11 +6,25 @@ namespace Hops
 {
     class FunctionSourceRow : TableLayoutPanel
     {
+        private FolderBrowserDialog _folderBrowserDlg;
         public string SourceName { get; set; }
         public string SourcePath { get; set; }
-        public Button SetPathButton { get; set; }
+        public Button EditButton { get; set; }
         public TextBox PathTextBox { get; set; }
         public CheckBox RowCheckbox { get; set; }
+
+        public event EventHandler<UpdateRowArgs> UpdateRow;
+
+ 
+        private void OnUpdateRow(string nameToUpdate)
+        {
+            if (UpdateRow != null)
+            {
+                PathTextBox.Text = SourceName;
+                UpdateRow(this, new UpdateRowArgs { RowName = nameToUpdate });
+            }
+        }
+
         public FunctionSourceRow(string name, string path)
         {
             if (String.IsNullOrEmpty(name) || String.IsNullOrEmpty(path))
@@ -28,16 +42,28 @@ namespace Hops
             Location = new System.Drawing.Point(0, 0);
             Name = "FunctionSourceRow";
             Margin = new Padding(0);
-            Size = new System.Drawing.Size(295, 24);
+            Size = new Size(295, 24);
             Dock = DockStyle.Fill;
 
-            SetPathButton = InitButton();
+            EditButton = InitButton();
             PathTextBox = InitTextBox(SourceName);
             RowCheckbox = InitCheckbox();
 
+            EditButton.Click += (s, e) =>
+            {
+                var form = new SetFunctionSourceForm(SourcePath.Trim(), SourceName.Trim());
+                if (form.ShowModal(Grasshopper.Instances.EtoDocumentEditor))
+                {
+                    string nameToUpdate = SourceName;
+                    SourcePath = form.Path;
+                    SourceName = form.Name;
+                    OnUpdateRow(nameToUpdate);
+                }
+            };
+
             Controls.Add(RowCheckbox, 0, 0);
             Controls.Add(PathTextBox, 1, 0);
-            Controls.Add(SetPathButton, 2, 0);
+            Controls.Add(EditButton, 2, 0);
         }
 
         Button InitButton()
@@ -66,7 +92,13 @@ namespace Hops
             cb.Anchor = AnchorStyles.Top;
             cb.Size = new Size(17, 24);
             cb.Margin = new Padding(-1);
+            cb.Name = "SourceCheckbox";
             return cb;
         }
     }
+    public class UpdateRowArgs : EventArgs
+    {
+        public string RowName { get; set; }
+    }
+
 }

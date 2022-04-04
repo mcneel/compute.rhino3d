@@ -5,11 +5,12 @@ namespace Hops
 {
     partial class HopsAppSettingsUserControl : UserControl
     {
-        private FolderBrowserDialog _folderBrowserDlg;
+        //private FolderBrowserDialog _folderBrowserDlg;
         
         public HopsAppSettingsUserControl()
         {
             InitializeComponent();
+            HopsAppSettings.InitFunctionSources();
             if (!HopsAppSettings.HasSourceRows)
                 _deleteFunctionSourceButton.Visible = false;
             //_folderBrowserDlg = new FolderBrowserDialog();
@@ -21,6 +22,18 @@ namespace Hops
             _apiKeyTextbox.Text = HopsAppSettings.APIKey;
             _apiKeyTextbox.TextChanged += APIKeyTextboxChanged;
             _maxConcurrentRequestsTextbox.Text = HopsAppSettings.MaxConcurrentRequests.ToString();
+            if (HopsAppSettings.FunctionSources.Count > 0)
+            {
+                foreach (var row in HopsAppSettings.FunctionSources)
+                {
+                    HopsUIHelper.AddRow(testPanel, row.SourceName, row.SourcePath, false);
+                    if (testPanel.RowCount >= 1 && !_deleteFunctionSourceButton.Visible)
+                    {
+                        _deleteFunctionSourceButton.Visible = true;
+                        HopsAppSettings.HasSourceRows = true;
+                    }
+                }
+            }
             _maxConcurrentRequestsTextbox.KeyPress += (s, e) =>
             {
                 e.Handled = !char.IsDigit(e.KeyChar) && !char.IsControl(e.KeyChar);
@@ -117,14 +130,16 @@ namespace Hops
 
         private void _deleteFunctionSourceButton_Click(object sender, EventArgs e)
         {
-            for(int i = HopsAppSettings.FunctionSources.Count - 1; i >= 0; i--)
-            {
-                if (HopsAppSettings.FunctionSources[i].RowCheckbox.Checked)
-                {
-                    HopsUIHelper.RemoveArbitraryRow(testPanel, i);
-                    HopsAppSettings.FunctionSources.RemoveAt(i);
-                }
-            }
+            HopsAppSettings.FunctionSources[1].RowCheckbox.Checked = !HopsAppSettings.FunctionSources[1].RowCheckbox.Checked;
+            //for (int i = HopsAppSettings.FunctionSources.Count - 1; i >= 0; i--)
+            //{
+            //    if (HopsAppSettings.FunctionSources[i].RowCheckbox.Checked)
+            //    {
+            //        HopsUIHelper.RemoveRow(testPanel, i);
+            //        HopsAppSettings.FunctionSources.RemoveAt(i);
+            //    }
+            //}
+            //HopsUIHelper.UpdateFunctionSourceSettings();
             if (testPanel.RowCount == 0 && _deleteFunctionSourceButton.Visible)
             {
                 _deleteFunctionSourceButton.Visible = false;
@@ -144,7 +159,7 @@ namespace Hops
             {
                 srcPath = form.Path;
                 srcName = form.Name;
-                HopsUIHelper.AddRow(testPanel, srcName, srcPath);
+                HopsUIHelper.AddRow(testPanel, srcName, srcPath, true);
                 if (testPanel.RowCount >= 1 && !_deleteFunctionSourceButton.Visible)
                 {
                     _deleteFunctionSourceButton.Visible = true;

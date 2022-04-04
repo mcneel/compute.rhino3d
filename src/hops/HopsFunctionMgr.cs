@@ -24,7 +24,7 @@ namespace Hops
             Parent = _parent;
             ToolStripMenuItem menuItem = new ToolStripMenuItem("Available Functions", null, null, "Available Functions");
             menuItem.DropDownItems.Clear();
-            GenerateFunctionPathMenu(menuItem);
+            //GenerateFunctionPathMenu(menuItem);
             InitThumbnailViewer();
             return menuItem;
         }
@@ -38,15 +38,15 @@ namespace Hops
             Viewer.Visible = false;
         }
 
-        private static void GenerateFunctionPathMenu(ToolStripMenuItem menu)
+        /*private static void GenerateFunctionPathMenu(ToolStripMenuItem menu)
         {
-            if (String.IsNullOrEmpty(HopsAppSettings.FunctionManagerRootPath)) 
+            if (String.IsNullOrEmpty(HopsAppSettings.FunctionSourcePaths)) 
                 return;
-            if (HopsAppSettings.FunctionManagerRootPath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            if (HopsAppSettings.FunctionSourcePaths.StartsWith("http", StringComparison.OrdinalIgnoreCase))
             {
                 try
                 {
-                    var getTask = HttpClient.GetAsync(HopsAppSettings.FunctionManagerRootPath);
+                    var getTask = HttpClient.GetAsync(HopsAppSettings.FunctionSourcePaths);
                     if (getTask != null)
                     {
                         var responseMessage = getTask.Result;
@@ -62,9 +62,9 @@ namespace Hops
                             var response = JsonConvert.DeserializeObject<FunctionMgr_Schema[]>(stringResult);
                             if(response != null)
                             {
-                                UriFunctionPathInfo functionPaths = new UriFunctionPathInfo(HopsAppSettings.FunctionManagerRootPath, true);
+                                UriFunctionPathInfo functionPaths = new UriFunctionPathInfo(HopsAppSettings.FunctionSourcePaths, true);
                                 functionPaths.isRoot = true;
-                                functionPaths.RootURL = HopsAppSettings.FunctionManagerRootPath;
+                                functionPaths.RootURL = HopsAppSettings.FunctionSourcePaths;
                                 if (!String.IsNullOrEmpty(response[0].Uri))
                                 {
                                     //If the Schema Uri exists, then the response is likely from the ghhops_server.
@@ -91,9 +91,9 @@ namespace Hops
                 {
                 }
             }
-            else if (Directory.Exists(HopsAppSettings.FunctionManagerRootPath))
+            else if (Directory.Exists(HopsAppSettings.FunctionSourcePaths))
             {
-                FunctionPathInfo functionPaths = new FunctionPathInfo(HopsAppSettings.FunctionManagerRootPath, true);
+                FunctionPathInfo functionPaths = new FunctionPathInfo(HopsAppSettings.FunctionSourcePaths, true);
                 functionPaths.isRoot = true;
 
                 SeekFunctionMenuDirs(functionPaths);
@@ -212,7 +212,7 @@ namespace Hops
 
             if (Parent != null)
             {
-                string rootUrl = HopsAppSettings.FunctionManagerRootPath;
+                string rootUrl = HopsAppSettings.FunctionSourcePaths;
                 string endpoint = ti.Tag as string;
 
                 if (rootUrl.EndsWith("/"))
@@ -226,7 +226,7 @@ namespace Hops
                 if (Instances.ActiveCanvas.Document != null)
                     Instances.ActiveCanvas.Document.ExpireSolution();
             }
-        }
+        }*/
 
         static Image _funcMgr24Icon;
         static Image _funcMgr48Icon;

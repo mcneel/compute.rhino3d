@@ -5,7 +5,7 @@ namespace Hops
     public static class HopsUIHelper
     {
         const int rowHeight = 24;
-        public static void RemoveArbitraryRow(TableLayoutPanel panel, int rowIndex)
+        public static void RemoveRow(TableLayoutPanel panel, int rowIndex)
         {
             if (rowIndex >= panel.RowCount)
             {
@@ -43,8 +43,9 @@ namespace Hops
             groupBox.Height -= rowHeight;
             if (groupBox.Height < 74)
                 groupBox.Height = 74;
+
         }
-        public static void AddRow(TableLayoutPanel panel, string name, string path)
+        public static void AddRow(TableLayoutPanel panel, string name, string path, bool update)
         {
             GroupBox groupBox = panel.Parent as GroupBox;
 
@@ -56,8 +57,42 @@ namespace Hops
                 HopsAppSettings.HasSourceRows = true;
             }
             FunctionSourceRow row = new FunctionSourceRow(name, path);
+            row.UpdateRow += UpdateRow;
             panel.Controls.Add(row, 0, panel.RowCount - 1);
-            HopsAppSettings.FunctionSources.Add(row);
+
+            if (update)
+            {
+                HopsAppSettings.FunctionSources.Add(row);
+                UpdateFunctionSourceSettings();
+            }
+        }
+
+        private static void UpdateRow(object sender, UpdateRowArgs e)
+        {
+            var newRow = sender as FunctionSourceRow;
+            for(int i = 0; i < HopsAppSettings.FunctionSources.Count; i++)
+            {
+                if (HopsAppSettings.FunctionSources[i].SourceName == e.RowName)
+                {
+                    HopsAppSettings.FunctionSources[i] = newRow;
+                    break;
+                }
+            }
+            UpdateFunctionSourceSettings();
+        }
+
+        public static void UpdateFunctionSourceSettings()
+        {
+            int count = HopsAppSettings.FunctionSources.Count;
+            string[] names = new string[count];
+            string[] paths = new string[count];
+            for (int i = 0; i < count; i++)
+            {
+                names[i] = HopsAppSettings.FunctionSources[i].SourceName;
+                paths[i] = HopsAppSettings.FunctionSources[i].SourcePath;
+            }
+            HopsAppSettings.FunctionSourceNames = names;
+            HopsAppSettings.FunctionSourcePaths = paths;
         }
     }
 }
