@@ -21,12 +21,20 @@ namespace Hops
         static ThumbnailViewer Viewer { get; set; }
         public static ToolStripMenuItem AddFunctionMgrControl(HopsComponent _parent)
         {
+            HopsAppSettings.InitFunctionSources();
+            if (HopsAppSettings.FunctionSources.Count <= 0)
+                return null;
             Parent = _parent;
-            ToolStripMenuItem menuItem = new ToolStripMenuItem("Available Functions", null, null, "Available Functions");
-            menuItem.DropDownItems.Clear();
-            //GenerateFunctionPathMenu(menuItem);
+            ToolStripMenuItem mainMenu = new ToolStripMenuItem("Available Functions", null, null, "Available Functions");
+            mainMenu.DropDownItems.Clear();
+            foreach(var row in HopsAppSettings.FunctionSources)
+            {
+                ToolStripMenuItem menuItem = new ToolStripMenuItem(row.SourceName, null, null, row.SourceName);
+                GenerateFunctionPathMenu(menuItem, row);
+                mainMenu.DropDownItems.Add(menuItem);
+            }
             InitThumbnailViewer();
-            return menuItem;
+            return mainMenu;
         }
 
         private static void InitThumbnailViewer()
@@ -38,15 +46,15 @@ namespace Hops
             Viewer.Visible = false;
         }
 
-        /*private static void GenerateFunctionPathMenu(ToolStripMenuItem menu)
+        private static void GenerateFunctionPathMenu(ToolStripMenuItem menu, FunctionSourceRow row)
         {
-            if (String.IsNullOrEmpty(HopsAppSettings.FunctionSourcePaths)) 
+            if (String.IsNullOrEmpty(row.SourceName) || String.IsNullOrEmpty(row.SourcePath)) 
                 return;
-            if (HopsAppSettings.FunctionSourcePaths.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            if (row.SourcePath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
             {
                 try
                 {
-                    var getTask = HttpClient.GetAsync(HopsAppSettings.FunctionSourcePaths);
+                    var getTask = HttpClient.GetAsync(row.SourcePath);
                     if (getTask != null)
                     {
                         var responseMessage = getTask.Result;
@@ -62,23 +70,23 @@ namespace Hops
                             var response = JsonConvert.DeserializeObject<FunctionMgr_Schema[]>(stringResult);
                             if(response != null)
                             {
-                                UriFunctionPathInfo functionPaths = new UriFunctionPathInfo(HopsAppSettings.FunctionSourcePaths, true);
+                                UriFunctionPathInfo functionPaths = new UriFunctionPathInfo(row.SourcePath, true);
                                 functionPaths.isRoot = true;
-                                functionPaths.RootURL = HopsAppSettings.FunctionSourcePaths;
+                                functionPaths.RootURL = row.SourcePath;
                                 if (!String.IsNullOrEmpty(response[0].Uri))
                                 {
                                     //If the Schema Uri exists, then the response is likely from the ghhops_server.
                                     //Otherwise, let's assume the response is from the appserver
                                     foreach (FunctionMgr_Schema obj in response)
                                     {
-                                        SeekFunctionMenuDirs(functionPaths, obj.Uri, obj.Uri);
+                                        SeekFunctionMenuDirs(functionPaths, obj.Uri, obj.Uri, row);
                                     }
                                 }
                                 else if(!String.IsNullOrEmpty(response[0].Name))
                                 {
                                     foreach (FunctionMgr_Schema obj in response)
                                     {
-                                        SeekFunctionMenuDirs(functionPaths, "/" + obj.Name, "/" + obj.Name);
+                                        SeekFunctionMenuDirs(functionPaths, "/" + obj.Name, "/" + obj.Name, row);
                                     }
                                 }
                                 if (functionPaths.Paths.Count != 0)
@@ -87,13 +95,13 @@ namespace Hops
                         }
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                 }
             }
-            else if (Directory.Exists(HopsAppSettings.FunctionSourcePaths))
+            else if (Directory.Exists(row.SourcePath))
             {
-                FunctionPathInfo functionPaths = new FunctionPathInfo(HopsAppSettings.FunctionSourcePaths, true);
+                FunctionPathInfo functionPaths = new FunctionPathInfo(row.SourcePath, true);
                 functionPaths.isRoot = true;
 
                 SeekFunctionMenuDirs(functionPaths);
@@ -105,7 +113,7 @@ namespace Hops
             }
         }
 
-        public static void SeekFunctionMenuDirs(UriFunctionPathInfo path, string uri, string fullpath)
+        public static void SeekFunctionMenuDirs(UriFunctionPathInfo path, string uri, string fullpath, FunctionSourceRow row)
         {
             if (path == null)
                 return;
@@ -121,12 +129,14 @@ namespace Hops
                 {
                     var subendpoints = endpoints[1].Split(new[] { '/' }, 2);
                     UriFunctionPathInfo functionPath = new UriFunctionPathInfo("/" + subendpoints[0], true);
+                    functionPath.RootURL = row.SourcePath;
                     path.Paths.Add(functionPath);
-                    SeekFunctionMenuDirs(functionPath, "/" + subendpoints[1], fullpath);
+                    SeekFunctionMenuDirs(functionPath, "/" + subendpoints[1], fullpath, row);
                 }
                 else
                 {
                     UriFunctionPathInfo functionPath = new UriFunctionPathInfo("/" + endpoints[1], false);
+                    functionPath.RootURL = row.SourcePath;
                     functionPath.FullPath = fullpath;
                     path.Paths.Add(functionPath);
                 }
@@ -212,21 +222,11 @@ namespace Hops
 
             if (Parent != null)
             {
-                string rootUrl = HopsAppSettings.FunctionSourcePaths;
-                string endpoint = ti.Tag as string;
-
-                if (rootUrl.EndsWith("/"))
-                    rootUrl = rootUrl.TrimEnd(new[] { '/' });
-   
-                if (!endpoint.StartsWith("/"))
-                    endpoint = endpoint.Insert(0, "/");
-
-                string fullPath = rootUrl + endpoint;
-                Parent.RemoteDefinitionLocation = fullPath;
+                Parent.RemoteDefinitionLocation = ti.Tag as string;
                 if (Instances.ActiveCanvas.Document != null)
                     Instances.ActiveCanvas.Document.ExpireSolution();
             }
-        }*/
+        }
 
         static Image _funcMgr24Icon;
         static Image _funcMgr48Icon;

@@ -136,7 +136,15 @@ namespace Hops
                 
                 ToolStripItem item = ti.DropDownItems.Add(ep);
                 item.MouseDown += click_ev;
-                item.Tag = FullPath;
+
+                if (RootURL.EndsWith("/"))
+                    RootURL = RootURL.TrimEnd(new[] { '/' });
+
+                if (!FullPath.StartsWith("/"))
+                    FullPath = FullPath.Insert(0, "/");
+
+                string fullURL = RootURL + FullPath;
+                item.Tag = fullURL;
             }
             else
             {
