@@ -9,8 +9,8 @@ namespace Hops
         {
             InitializeComponent();
             HopsAppSettings.InitFunctionSources();
-            if (!HopsAppSettings.HasSourceRows)
-                _deleteFunctionSourceButton.Visible = false;
+            HopsAppSettings.HasSourceRows = false;
+            _deleteFunctionSourceButton.Visible = false;
             _serversTextBox.Lines = HopsAppSettings.Servers;
             _serversTextBox.TextChanged += ServersTextboxChanged;
             _apiKeyTextbox.Text = HopsAppSettings.APIKey;
@@ -20,7 +20,6 @@ namespace Hops
             {
                 foreach (var row in HopsAppSettings.FunctionSources)
                 {
-                    //HopsUIHelper.AddRow(testPanel, row.SourceName, row.SourcePath, false);
                     HopsUIHelper.AddRow(testPanel, row, false);
                     if (testPanel.RowCount >= 1 && !_deleteFunctionSourceButton.Visible)
                     {

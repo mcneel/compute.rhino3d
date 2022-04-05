@@ -246,7 +246,7 @@ namespace Hops
             this.Controls.Add(this._serversTextBox);
             this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "HopsAppSettingsUserControl";
-            this.Size = new System.Drawing.Size(300, 345);
+            this.Size = new System.Drawing.Size(300, 275);
             ((System.ComponentModel.ISupportInitialize)(this._childComputeCount)).EndInit();
             this._gpboxFunctionMgr.ResumeLayout(false);
             this._gpboxFunctionMgr.PerformLayout();
