@@ -55,16 +55,16 @@ namespace Hops
             GroupBox groupBox = panel.Parent as GroupBox;
             HopsAppSettingsUserControl settingsPanel = groupBox.Parent as HopsAppSettingsUserControl;
             Control topControl = settingsPanel.Parent;
-            if (HopsAppSettings.HasSourceRows)
+            if (HopsAppSettings.UpdateRows)
             {
                 panel.RowCount++;
                 panel.Height += rowHeight;
                 groupBox.Height += rowHeight;
                 topControl.Height += rowHeight;
-                HopsAppSettings.HasSourceRows = true;
+                HopsAppSettings.UpdateRows = true;
             }
             FunctionSourceRow row = new FunctionSourceRow(name, path);
-            row.UpdateRow += UpdateRow;
+            row.ReplaceRow += UpdateRow;
             panel.Controls.Add(row, 0, panel.RowCount - 1);
 
             if (update)
@@ -78,15 +78,15 @@ namespace Hops
         {
             GroupBox groupBox = panel.Parent as GroupBox;
             UserControl mainControl = groupBox.Parent as UserControl;
-            if (HopsAppSettings.HasSourceRows)
+            if (HopsAppSettings.UpdateRows)
             {
                 panel.RowCount++;
                 panel.Height += rowHeight;
                 groupBox.Height += rowHeight;
                 mainControl.Height += rowHeight;
-                HopsAppSettings.HasSourceRows = true;
+                HopsAppSettings.UpdateRows = true;
             }
-            row.UpdateRow += UpdateRow;
+            row.ReplaceRow += UpdateRow;
             panel.Controls.Add(row, 0, panel.RowCount - 1);
 
             if (update)
@@ -96,7 +96,7 @@ namespace Hops
             }
         }
 
-        private static void UpdateRow(object sender, UpdateRowArgs e)
+        private static void UpdateRow(object sender, ReplaceRowArgs e)
         {
             var newRow = sender as FunctionSourceRow;
             for(int i = 0; i < HopsAppSettings.FunctionSources.Count; i++)

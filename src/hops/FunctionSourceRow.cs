@@ -6,21 +6,20 @@ namespace Hops
 {
     public class FunctionSourceRow : TableLayoutPanel
     {
-        private FolderBrowserDialog _folderBrowserDlg;
         public string SourceName { get; set; }
         public string SourcePath { get; set; }
         public Button EditButton { get; set; }
         public TextBox PathTextBox { get; set; }
         public CheckBox RowCheckbox { get; set; }
 
-        public event EventHandler<UpdateRowArgs> UpdateRow;
+        public event EventHandler<ReplaceRowArgs> ReplaceRow;
 
-        private void OnUpdateRow(string nameToUpdate)
+        private void OnReplaceRow(string rowToReplace)
         {
-            if (UpdateRow != null)
+            if (ReplaceRow != null)
             {
                 PathTextBox.Text = SourceName;
-                UpdateRow(this, new UpdateRowArgs { RowName = nameToUpdate });
+                ReplaceRow(this, new ReplaceRowArgs { RowName = rowToReplace });
             }
         }
 
@@ -53,17 +52,17 @@ namespace Hops
                 var form = new SetFunctionSourceForm(SourcePath.Trim(), SourceName.Trim());
                 if (form.ShowModal(Grasshopper.Instances.EtoDocumentEditor))
                 {
-                    string nameToUpdate = SourceName;
+                    string rowToUpdate = SourceName;
                     SourcePath = form.Path;
                     SourceName = form.Name;
-                    OnUpdateRow(nameToUpdate);
+                    OnReplaceRow(rowToUpdate);
                 }
             };
 
             RowCheckbox.CheckedChanged += (s, e) =>
             {
-                string nameToUpdate = SourceName;
-                OnUpdateRow(nameToUpdate);
+                string rowToUpdate = SourceName;
+                OnReplaceRow(rowToUpdate);
             };
 
             Controls.Add(RowCheckbox, 0, 0);
@@ -114,7 +113,7 @@ namespace Hops
             return cb;
         }
     }
-    public class UpdateRowArgs : EventArgs
+    public class ReplaceRowArgs : EventArgs
     {
         public string RowName { get; set; }
     }

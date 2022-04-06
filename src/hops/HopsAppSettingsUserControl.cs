@@ -9,7 +9,7 @@ namespace Hops
         {
             InitializeComponent();
             HopsAppSettings.InitFunctionSources();
-            HopsAppSettings.HasSourceRows = false;
+            HopsAppSettings.UpdateRows = false;
             _deleteFunctionSourceButton.Visible = false;
             _serversTextBox.Lines = HopsAppSettings.Servers;
             _serversTextBox.TextChanged += ServersTextboxChanged;
@@ -24,7 +24,7 @@ namespace Hops
                     if (testPanel.RowCount >= 1 && !_deleteFunctionSourceButton.Visible)
                     {
                         _deleteFunctionSourceButton.Visible = true;
-                        HopsAppSettings.HasSourceRows = true;
+                        HopsAppSettings.UpdateRows = true;
                     }
                 }
             }
@@ -107,7 +107,7 @@ namespace Hops
             if (testPanel.RowCount == 0 && _deleteFunctionSourceButton.Visible)
             {
                 _deleteFunctionSourceButton.Visible = false;
-                HopsAppSettings.HasSourceRows = false;
+                HopsAppSettings.UpdateRows = false;
                 testPanel.RowCount++;
                 testPanel.RowStyles.Clear();
                 testPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize, 0.0F));
@@ -127,7 +127,7 @@ namespace Hops
                 if (testPanel.RowCount >= 1 && !_deleteFunctionSourceButton.Visible)
                 {
                     _deleteFunctionSourceButton.Visible = true;
-                    HopsAppSettings.HasSourceRows = true;
+                    HopsAppSettings.UpdateRows = true;
                 }
             }
         }
