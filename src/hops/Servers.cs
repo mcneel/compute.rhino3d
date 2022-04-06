@@ -221,6 +221,13 @@ namespace Hops
             startInfo.UseShellExecute = true;
             startInfo.CreateNoWindow = Hops.HopsAppSettings.HideWorkerWindows;
             string assemblyPath = Assembly.GetExecutingAssembly().Location;
+            // 6 April 2022 - S. Baer (COMPUTE-241)
+            // When grasshopper memory loads assemblies, the above line results in an
+            // empty string. In this case use the assemblyinfo location property.
+            if (string.IsNullOrWhiteSpace(assemblyPath))
+            {
+                assemblyPath = GhaAssemblyInfo.TheAssemblyInfo.Location;
+            }
             string parentPath = Path.GetDirectoryName(assemblyPath);
             startInfo.WorkingDirectory = Path.Combine(parentPath, "rhino.compute");
             var process = Process.Start(startInfo);
