@@ -232,7 +232,10 @@ namespace Hops
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.Controls.Add(this._gpboxFunctionMgr);
+            if (Rhino.Runtime.HostUtils.RunningOnWindows)
+            {
+                this.Controls.Add(this._gpboxFunctionMgr);
+            }
             this.Controls.Add(this._apiKeyTextbox);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);

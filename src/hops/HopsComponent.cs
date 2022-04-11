@@ -381,10 +381,13 @@ namespace Hops
             tsi.Enabled = !_showPathInput;
             menu.Items.Add(tsi);
 
-            tsi = HopsFunctionMgr.AddFunctionMgrControl(this);
-            if(tsi != null && tsi.DropDownItems.Count > 0)
-                menu.Items.Add(tsi);
-
+            if (Rhino.Runtime.HostUtils.RunningOnWindows)
+            {
+                tsi = HopsFunctionMgr.AddFunctionMgrControl(this);
+                if (tsi != null && tsi.DropDownItems.Count > 0)
+                    menu.Items.Add(tsi);
+            }
+            
             tsi = new ToolStripMenuItem("Show Input: Path", null, (s, e) => {
                 _showPathInput = !_showPathInput;
                 DefineInputsAndOutputs();

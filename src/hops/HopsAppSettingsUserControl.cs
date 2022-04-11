@@ -53,8 +53,10 @@ namespace Hops
                 _launchWorkerAtStart.Visible = false;
                 _childComputeCount.Visible = false;
                 _updateChildCountButton.Visible = false;
-                _gpboxFunctionMgr.Top -= 74;
-                Size = new System.Drawing.Size(Size.Width, _gpboxFunctionMgr.Bottom + 4);
+                _gpboxFunctionMgr.Visible = false;
+                Size = new System.Drawing.Size(Size.Width, _btnClearMemCache.Bottom + 4);
+                //_gpboxFunctionMgr.Top -= 74;
+                //Size = new System.Drawing.Size(Size.Width, _gpboxFunctionMgr.Bottom + 4);
             }
             else
             {
