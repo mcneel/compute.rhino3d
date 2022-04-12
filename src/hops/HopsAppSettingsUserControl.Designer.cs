@@ -208,7 +208,7 @@ namespace Hops
             // 
             // _addFunctionSourceButton
             // 
-            this._addFunctionSourceButton.Image = global::Hops.Properties.Resources.Open_Toolbar_Active_20x20;
+            this._addFunctionSourceButton.Image = HopsFunctionMgr.AddIcon();
             this._addFunctionSourceButton.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
             this._addFunctionSourceButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this._addFunctionSourceButton.Name = "_addFunctionSourceButton";
@@ -220,7 +220,7 @@ namespace Hops
             // _deleteFunctionSourceButton
             // 
             this._deleteFunctionSourceButton.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
-            this._deleteFunctionSourceButton.Image = global::Hops.Properties.Resources.Close_Toolbar_Active_20x20;
+            this._deleteFunctionSourceButton.Image = HopsFunctionMgr.DeleteIcon();
             this._deleteFunctionSourceButton.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
             this._deleteFunctionSourceButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this._deleteFunctionSourceButton.Name = "_deleteFunctionSourceButton";

@@ -230,7 +230,11 @@ namespace Hops
 
         static Image _funcMgr24Icon;
         static Image _funcMgr48Icon;
-        static Image FuncMgr24Icon()
+        static Image _deleteIcon;
+        static Image _addIcon;
+        static Image _editIcon;
+
+        public static Image FuncMgr24Icon()
         {
             if (_funcMgr24Icon == null)
             {
@@ -239,7 +243,7 @@ namespace Hops
             }
             return _funcMgr24Icon;
         }
-        static Image FuncMgr48Icon()
+        public static Image FuncMgr48Icon()
         {
             if (_funcMgr48Icon == null)
             {
@@ -247,6 +251,33 @@ namespace Hops
                 _funcMgr48Icon = Image.FromStream(stream);
             }
             return _funcMgr48Icon;
+        }
+        public static Image DeleteIcon()
+        {
+            if (_deleteIcon == null)
+            {
+                var stream = typeof(HopsComponent).Assembly.GetManifestResourceStream("Hops.resources.Close_Toolbar_Active_20x20.png");
+                _deleteIcon = Image.FromStream(stream);
+            }
+            return _deleteIcon;
+        }
+        public static Image AddIcon()
+        {
+            if (_addIcon == null)
+            {
+                var stream = typeof(HopsComponent).Assembly.GetManifestResourceStream("Hops.resources.Open_Toolbar_Active_20x20.png");
+                _addIcon = Image.FromStream(stream);
+            }
+            return _addIcon;
+        }
+        public static Image EditIcon()
+        {
+            if (_editIcon == null)
+            {
+                var stream = typeof(HopsComponent).Assembly.GetManifestResourceStream("Hops.resources.edit_16x16.png");
+                _editIcon = Image.FromStream(stream);
+            }
+            return _editIcon;
         }
         static System.Net.Http.HttpClient _httpClient = null;
         public static System.Net.Http.HttpClient HttpClient
