@@ -75,7 +75,7 @@ namespace Hops
             Button btn = new Button();
             btn.Size = new Size(PathTextBox.Height, PathTextBox.Height);
             btn.Margin = new Padding(0);
-            btn.Image = Hops.Properties.Resources.edit_16x16;
+            btn.Image = HopsFunctionMgr.EditIcon();
             btn.Name = "EditRowButton";
             return btn;
         }

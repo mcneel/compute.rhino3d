@@ -24,8 +24,11 @@
     <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="resources\Close_Toolbar_Active_20x20.png" />
+    <None Remove="resources\edit_16x16.png" />
     <None Remove="resources\Hops_Function_Mgr_24x24.png" />
     <None Remove="resources\Hops_Function_Mgr_48x48.png" />
+    <None Remove="resources\Open_Toolbar_Active_20x20.png" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System.Net.Http" />
@@ -42,21 +45,17 @@
     <Compile Update="HopsAppSettingsUserControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
-    <Compile Update="Properties\Resources.Designer.cs">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Grasshopper">
       <Version>7.4.21067.13001</Version>
       <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="System.Resources.Extensions" Version="6.0.0" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="resources\Close_Toolbar_Active_20x20.png" />
     <EmbeddedResource Include="resources\ComputeLogo_24x24.png" />
+    <EmbeddedResource Include="resources\edit_16x16.png" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="resources\Hops_24x24.png" />
@@ -65,17 +64,12 @@
     <EmbeddedResource Include="resources\Hops_48x48.png" />
     <EmbeddedResource Include="resources\Hops_Function_Mgr_24x24.png" />
     <EmbeddedResource Include="resources\Hops_Function_Mgr_48x48.png" />
+    <EmbeddedResource Include="resources\Open_Toolbar_Active_20x20.png" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="manifest.yml" Condition="'$(Configuration)' == 'Release'">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Update="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
     <FallbackCulture>en-US</FallbackCulture>
