@@ -46,7 +46,7 @@ namespace Hops
             this.label2 = new System.Windows.Forms.Label();
             this._apiKeyTextbox = new System.Windows.Forms.TextBox();
             this._gpboxFunctionMgr = new System.Windows.Forms.GroupBox();
-            this.testPanel = new System.Windows.Forms.TableLayoutPanel();
+            this._functionSourceTable = new System.Windows.Forms.TableLayoutPanel();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this._addFunctionSourceButton = new System.Windows.Forms.ToolStripButton();
             this._deleteFunctionSourceButton = new System.Windows.Forms.ToolStripButton();
@@ -168,7 +168,7 @@ namespace Hops
             // 
             this._gpboxFunctionMgr.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this._gpboxFunctionMgr.Controls.Add(this.testPanel);
+            this._gpboxFunctionMgr.Controls.Add(this._functionSourceTable);
             this._gpboxFunctionMgr.Controls.Add(this.toolStrip1);
             this._gpboxFunctionMgr.Location = new System.Drawing.Point(0, 197);
             this._gpboxFunctionMgr.Name = "_gpboxFunctionMgr";
@@ -177,19 +177,20 @@ namespace Hops
             this._gpboxFunctionMgr.TabStop = false;
             this._gpboxFunctionMgr.Text = "Hops Function Sources";
             // 
-            // testPanel
+            // _functionSourceTable
             // 
-            this.testPanel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this._functionSourceTable.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.testPanel.BackColor = System.Drawing.Color.Transparent;
-            this.testPanel.ColumnCount = 1;
-            this.testPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.testPanel.Location = new System.Drawing.Point(6, 46);
-            this.testPanel.Name = "testPanel";
-            this.testPanel.RowCount = 1;
-            this.testPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.testPanel.Size = new System.Drawing.Size(291, 22);
-            this.testPanel.TabIndex = 16;
+            this._functionSourceTable.BackColor = System.Drawing.Color.Transparent;
+            this._functionSourceTable.ColumnCount = 1;
+            this._functionSourceTable.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this._functionSourceTable.Location = new System.Drawing.Point(5, 43);
+            this._functionSourceTable.Margin = new System.Windows.Forms.Padding(0);
+            this._functionSourceTable.Name = "_functionSourceTable";
+            this._functionSourceTable.RowCount = 1;
+            this._functionSourceTable.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 1F));
+            this._functionSourceTable.Size = new System.Drawing.Size(291, 26);
+            this._functionSourceTable.TabIndex = 16;
             // 
             // toolStrip1
             // 
@@ -232,10 +233,7 @@ namespace Hops
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            if (Rhino.Runtime.HostUtils.RunningOnWindows)
-            {
-                this.Controls.Add(this._gpboxFunctionMgr);
-            }
+            this.Controls.Add(this._gpboxFunctionMgr);
             this.Controls.Add(this._apiKeyTextbox);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
@@ -277,6 +275,6 @@ namespace Hops
         public ToolStrip toolStrip1;
         public ToolStripButton _addFunctionSourceButton;
         private ToolStripButton _deleteFunctionSourceButton;
-        private TableLayoutPanel testPanel;
+        private TableLayoutPanel _functionSourceTable;
     }
 }

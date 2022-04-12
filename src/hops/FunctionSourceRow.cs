@@ -34,18 +34,18 @@ namespace Hops
             RowCount = 1;
             ColumnCount = 3;
             RowStyles.Add(new RowStyle(SizeType.Percent, 1.0F));
-            ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 17));
-            ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 1.0F));
-            ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 24));
+            ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize, 0.05F));
+            ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 0.9F));
+            ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize, 0.05F));
             Location = new System.Drawing.Point(0, 0);
             Name = "FunctionSourceRow";
-            Margin = new Padding(0);
-            Size = new Size(295, 24);
-            Dock = DockStyle.Fill;
 
-            EditButton = InitButton();
             PathTextBox = InitTextBox(SourceName, SourcePath);
+            EditButton = InitButton();
             RowCheckbox = InitCheckbox();
+
+            Anchor = AnchorStyles.Left | AnchorStyles.Right;
+            Height = PathTextBox.Height;
 
             EditButton.Click += (s, e) =>
             {
@@ -73,8 +73,8 @@ namespace Hops
         Button InitButton()
         {
             Button btn = new Button();
-            btn.Size = new Size(22, 22);
-            btn.Margin = new Padding(0,0,0,1);
+            btn.Size = new Size(PathTextBox.Height, PathTextBox.Height);
+            btn.Margin = new Padding(0);
             btn.Image = Hops.Properties.Resources.edit_16x16;
             btn.Name = "EditRowButton";
             return btn;
@@ -84,7 +84,7 @@ namespace Hops
         {
             TextBox txt = new TextBox();
             txt.Dock = DockStyle.Fill;
-            txt.Margin = new Padding(1);
+            txt.Margin = new Padding(0);
             txt.Name = "NameTextbox";
             txt.ReadOnly = true;
             txt.BackColor = System.Drawing.SystemColors.Window;
@@ -106,8 +106,8 @@ namespace Hops
         {
             CheckBox cb = new CheckBox();
             cb.Checked = false;
-            cb.Anchor = AnchorStyles.Top;
-            cb.Size = new Size(17, 24);
+            cb.Size = new Size(PathTextBox.Height, PathTextBox.Height);
+            //cb.Size = new Size(17, 24);
             cb.Margin = new Padding(-1);
             cb.Name = "IsSelectedCheckbox";
             return cb;

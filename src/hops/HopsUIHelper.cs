@@ -4,7 +4,11 @@ namespace Hops
 {
     public static class HopsUIHelper
     {
-        const int rowHeight = 24;
+        public static bool UpdateRows { get; set; } = false;
+        public static int RowHeight { get; set; } = 22;
+        public static int MinGroupBoxHeight { get; set; } = 73;
+        public static int MinControlHeight { get; set; } = 300;
+
         public static void RemoveRow(TableLayoutPanel panel, int rowIndex)
         {
             if (rowIndex >= panel.RowCount)
@@ -42,28 +46,33 @@ namespace Hops
             GroupBox groupBox = panel.Parent as GroupBox;
             HopsAppSettingsUserControl settingsPanel = groupBox.Parent as HopsAppSettingsUserControl;
             Control topControl = settingsPanel.Parent;
-            groupBox.Height -= rowHeight;
-            topControl.Height -= rowHeight;
 
-            if (groupBox.Height < 74)
-                groupBox.Height = 74;
-            if (topControl.Height < 300)
-                topControl.Height = 300;
+            panel.Height -= RowHeight;
+            groupBox.Height -= RowHeight;
+            topControl.Height -= RowHeight;
+
+            HopsAppSettings.FunctionSources.RemoveAt(rowIndex);
+
+            if (groupBox.Height < MinGroupBoxHeight)
+                groupBox.Height = MinGroupBoxHeight;
+            if (topControl.Height < MinControlHeight)
+                topControl.Height = MinControlHeight;
         }
         public static void AddRow(TableLayoutPanel panel, string name, string path, bool update)
         {
+            FunctionSourceRow row = new FunctionSourceRow(name, path);
             GroupBox groupBox = panel.Parent as GroupBox;
             HopsAppSettingsUserControl settingsPanel = groupBox.Parent as HopsAppSettingsUserControl;
             Control topControl = settingsPanel.Parent;
-            if (HopsAppSettings.UpdateRows)
+            if (UpdateRows)
             {
                 panel.RowCount++;
-                panel.Height += rowHeight;
-                groupBox.Height += rowHeight;
-                topControl.Height += rowHeight;
-                HopsAppSettings.UpdateRows = true;
+                panel.Height += RowHeight;
+                groupBox.Height += RowHeight;
+                topControl.Height += RowHeight;
+                UpdateRows = true;
             }
-            FunctionSourceRow row = new FunctionSourceRow(name, path);
+            
             row.ReplaceRow += UpdateRow;
             panel.Controls.Add(row, 0, panel.RowCount - 1);
 
@@ -78,13 +87,13 @@ namespace Hops
         {
             GroupBox groupBox = panel.Parent as GroupBox;
             UserControl mainControl = groupBox.Parent as UserControl;
-            if (HopsAppSettings.UpdateRows)
+            if (UpdateRows)
             {
                 panel.RowCount++;
-                panel.Height += rowHeight;
-                groupBox.Height += rowHeight;
-                mainControl.Height += rowHeight;
-                HopsAppSettings.UpdateRows = true;
+                panel.Height += RowHeight;
+                groupBox.Height += RowHeight;
+                mainControl.Height += RowHeight;
+                UpdateRows = true;
             }
             row.ReplaceRow += UpdateRow;
             panel.Controls.Add(row, 0, panel.RowCount - 1);

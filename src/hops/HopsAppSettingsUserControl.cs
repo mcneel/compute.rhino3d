@@ -9,7 +9,10 @@ namespace Hops
         {
             InitializeComponent();
             HopsAppSettings.InitFunctionSources();
-            HopsAppSettings.UpdateRows = false;
+            HopsUIHelper.UpdateRows = false;
+            HopsUIHelper.RowHeight = (int)(_functionSourceTable.Height);
+            HopsUIHelper.MinGroupBoxHeight = (int)(_gpboxFunctionMgr.Height);
+            HopsUIHelper.MinControlHeight = (int)(_gpboxFunctionMgr.Parent.Height + (_functionSourceTable.Height * 0.8));
             _deleteFunctionSourceButton.Visible = false;
             _serversTextBox.Lines = HopsAppSettings.Servers;
             _serversTextBox.TextChanged += ServersTextboxChanged;
@@ -20,11 +23,11 @@ namespace Hops
             {
                 foreach (var row in HopsAppSettings.FunctionSources)
                 {
-                    HopsUIHelper.AddRow(testPanel, row, false);
-                    if (testPanel.RowCount >= 1 && !_deleteFunctionSourceButton.Visible)
+                    HopsUIHelper.AddRow(_functionSourceTable, row, false);
+                    if (_functionSourceTable.RowCount >= 1 && !_deleteFunctionSourceButton.Visible)
                     {
                         _deleteFunctionSourceButton.Visible = true;
-                        HopsAppSettings.UpdateRows = true;
+                        HopsUIHelper.UpdateRows = true;
                     }
                 }
             }
@@ -101,18 +104,18 @@ namespace Hops
             {
                 if (HopsAppSettings.FunctionSources[i].RowCheckbox.Checked)
                 {
-                    HopsUIHelper.RemoveRow(testPanel, i);
-                    HopsAppSettings.FunctionSources.RemoveAt(i);
+                    HopsUIHelper.RemoveRow(_functionSourceTable, i);
                 }
             }
             HopsUIHelper.UpdateFunctionSourceSettings();
-            if (testPanel.RowCount == 0 && _deleteFunctionSourceButton.Visible)
+            if (_functionSourceTable.RowCount == 0 && _deleteFunctionSourceButton.Visible)
             {
                 _deleteFunctionSourceButton.Visible = false;
-                HopsAppSettings.UpdateRows = false;
-                testPanel.RowCount++;
-                testPanel.RowStyles.Clear();
-                testPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize, 0.0F));
+                HopsUIHelper.UpdateRows = false;
+                _functionSourceTable.RowCount++;
+                _functionSourceTable.Height = HopsUIHelper.RowHeight;
+                _functionSourceTable.RowStyles.Clear();
+                _functionSourceTable.RowStyles.Add(new RowStyle(SizeType.Percent, 1.0F));
             }
         }
 
@@ -125,11 +128,11 @@ namespace Hops
             {
                 srcPath = form.Path;
                 srcName = form.Name;
-                HopsUIHelper.AddRow(testPanel, srcName, srcPath, true);
-                if (testPanel.RowCount >= 1 && !_deleteFunctionSourceButton.Visible)
+                HopsUIHelper.AddRow(_functionSourceTable, srcName, srcPath, true);
+                if (_functionSourceTable.RowCount >= 1 && !_deleteFunctionSourceButton.Visible)
                 {
                     _deleteFunctionSourceButton.Visible = true;
-                    HopsAppSettings.UpdateRows = true;
+                    HopsUIHelper.UpdateRows = true;
                 }
             }
         }

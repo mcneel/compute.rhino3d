@@ -19,7 +19,7 @@ namespace Hops
         const string HOPS_FUNCTION_PATHS = "Hops:FunctionPaths";
         const string HOPS_FUNCTION_NAMES = "Hops:FunctionNames";
         const string HOPS_FUNCTION_SELECTED_STATE = "Hops:FunctionSelectedState";
-        public static bool UpdateRows { get; set; } = false;
+        
         public static List<FunctionSourceRow> FunctionSources { get; set; } = new List<FunctionSourceRow>();
 
         public static string[] Servers
