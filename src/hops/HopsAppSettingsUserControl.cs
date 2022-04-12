@@ -8,18 +8,36 @@ namespace Hops
         public HopsAppSettingsUserControl()
         {
             InitializeComponent();
+            HopsAppSettings.InitFunctionSources();
+            HopsUIHelper.UpdateRows = false;
+            HopsUIHelper.RowHeight = (int)(_functionSourceTable.Height);
+            HopsUIHelper.MinGroupBoxHeight = (int)(_gpboxFunctionMgr.Height);
+            HopsUIHelper.MinControlHeight = (int)(_gpboxFunctionMgr.Parent.Height + (_functionSourceTable.Height * 0.8));
+            _deleteFunctionSourceButton.Visible = false;
             _serversTextBox.Lines = HopsAppSettings.Servers;
             _serversTextBox.TextChanged += ServersTextboxChanged;
             _apiKeyTextbox.Text = HopsAppSettings.APIKey;
             _apiKeyTextbox.TextChanged += APIKeyTextboxChanged;
             _maxConcurrentRequestsTextbox.Text = HopsAppSettings.MaxConcurrentRequests.ToString();
+            if (HopsAppSettings.FunctionSources.Count > 0)
+            {
+                foreach (var row in HopsAppSettings.FunctionSources)
+                {
+                    HopsUIHelper.AddRow(_functionSourceTable, row, false);
+                    if (_functionSourceTable.RowCount >= 1 && !_deleteFunctionSourceButton.Visible)
+                    {
+                        _deleteFunctionSourceButton.Visible = true;
+                        HopsUIHelper.UpdateRows = true;
+                    }
+                }
+            }
             _maxConcurrentRequestsTextbox.KeyPress += (s, e) =>
             {
                 e.Handled = !char.IsDigit(e.KeyChar) && !char.IsControl(e.KeyChar);
             };
             _maxConcurrentRequestsTextbox.TextChanged += (s, e) =>
             {
-                if (int.TryParse(_maxConcurrentRequestsTextbox.Text, out int result) && result>0)
+                if (int.TryParse(_maxConcurrentRequestsTextbox.Text, out int result) && result > 0)
                 {
                     HopsAppSettings.MaxConcurrentRequests = result;
                 }
@@ -38,7 +56,10 @@ namespace Hops
                 _launchWorkerAtStart.Visible = false;
                 _childComputeCount.Visible = false;
                 _updateChildCountButton.Visible = false;
+                _gpboxFunctionMgr.Visible = false;
                 Size = new System.Drawing.Size(Size.Width, _btnClearMemCache.Bottom + 4);
+                //_gpboxFunctionMgr.Top -= 74;
+                //Size = new System.Drawing.Size(Size.Width, _gpboxFunctionMgr.Bottom + 4);
             }
             else
             {
@@ -75,6 +96,45 @@ namespace Hops
         private void APIKeyTextboxChanged(object sender, EventArgs e)
         {
             HopsAppSettings.APIKey = _apiKeyTextbox.Text;
+        }
+
+        private void _deleteFunctionSourceButton_Click(object sender, EventArgs e)
+        {
+            for (int i = HopsAppSettings.FunctionSources.Count - 1; i >= 0; i--)
+            {
+                if (HopsAppSettings.FunctionSources[i].RowCheckbox.Checked)
+                {
+                    HopsUIHelper.RemoveRow(_functionSourceTable, i);
+                }
+            }
+            HopsUIHelper.UpdateFunctionSourceSettings();
+            if (_functionSourceTable.RowCount == 0 && _deleteFunctionSourceButton.Visible)
+            {
+                _deleteFunctionSourceButton.Visible = false;
+                HopsUIHelper.UpdateRows = false;
+                _functionSourceTable.RowCount++;
+                _functionSourceTable.Height = HopsUIHelper.RowHeight;
+                _functionSourceTable.RowStyles.Clear();
+                _functionSourceTable.RowStyles.Add(new RowStyle(SizeType.Percent, 1.0F));
+            }
+        }
+
+        private void _addFunctionSourceButton_Click(object sender, EventArgs e)
+        {
+            string srcPath = "";
+            string srcName = "";
+            var form = new SetFunctionSourceForm(srcPath, srcName);
+            if (form.ShowModal(Grasshopper.Instances.EtoDocumentEditor))
+            {
+                srcPath = form.Path;
+                srcName = form.Name;
+                HopsUIHelper.AddRow(_functionSourceTable, srcName, srcPath, true);
+                if (_functionSourceTable.RowCount >= 1 && !_deleteFunctionSourceButton.Visible)
+                {
+                    _deleteFunctionSourceButton.Visible = true;
+                    HopsUIHelper.UpdateRows = true;
+                }
+            }
         }
     }
 }

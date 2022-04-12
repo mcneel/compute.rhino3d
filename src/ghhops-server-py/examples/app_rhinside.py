@@ -37,7 +37,7 @@ def add(a, b):
     description="Get point along curve",
     category="Curve",
     subcategory="Analysis",
-    icon="examples/pointat.png",
+    icon="pointat.png",
     inputs=[
         hs.HopsCurve("Curve", "C", "Curve to evaluate"),
         hs.HopsNumber("t", "t", "Parameter on Curve to evaluate"),

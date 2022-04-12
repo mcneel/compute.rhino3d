@@ -1,4 +1,7 @@
-﻿
+﻿using Grasshopper.GUI;
+using System.Drawing;
+using System.Windows.Forms;
+
 namespace Hops
 {
     partial class HopsAppSettingsUserControl
@@ -7,7 +10,7 @@ namespace Hops
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
-
+ 
         /// <summary> 
         /// Clean up any resources being used.
         /// </summary>
@@ -42,7 +45,14 @@ namespace Hops
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this._apiKeyTextbox = new System.Windows.Forms.TextBox();
+            this._gpboxFunctionMgr = new System.Windows.Forms.GroupBox();
+            this._functionSourceTable = new System.Windows.Forms.TableLayoutPanel();
+            this.toolStrip1 = new System.Windows.Forms.ToolStrip();
+            this._addFunctionSourceButton = new System.Windows.Forms.ToolStripButton();
+            this._deleteFunctionSourceButton = new System.Windows.Forms.ToolStripButton();
             ((System.ComponentModel.ISupportInitialize)(this._childComputeCount)).BeginInit();
+            this._gpboxFunctionMgr.SuspendLayout();
+            this.toolStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
             // _serversTextBox
@@ -131,7 +141,7 @@ namespace Hops
             this.label1.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(130, 13);
-            this.label1.TabIndex = 10;
+            this.label1.TabIndex = 11;
             this.label1.Text = "Max Concurrent Requests";
             // 
             // label2
@@ -141,7 +151,7 @@ namespace Hops
             this.label2.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(45, 13);
-            this.label2.TabIndex = 9;
+            this.label2.TabIndex = 10;
             this.label2.Text = "API Key";
             // 
             // _apiKeyTextbox
@@ -154,10 +164,76 @@ namespace Hops
             this._apiKeyTextbox.Size = new System.Drawing.Size(246, 20);
             this._apiKeyTextbox.TabIndex = 2;
             // 
+            // _gpboxFunctionMgr
+            // 
+            this._gpboxFunctionMgr.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this._gpboxFunctionMgr.Controls.Add(this._functionSourceTable);
+            this._gpboxFunctionMgr.Controls.Add(this.toolStrip1);
+            this._gpboxFunctionMgr.Location = new System.Drawing.Point(0, 197);
+            this._gpboxFunctionMgr.Name = "_gpboxFunctionMgr";
+            this._gpboxFunctionMgr.Size = new System.Drawing.Size(300, 73);
+            this._gpboxFunctionMgr.TabIndex = 12;
+            this._gpboxFunctionMgr.TabStop = false;
+            this._gpboxFunctionMgr.Text = "Hops Function Sources";
+            // 
+            // _functionSourceTable
+            // 
+            this._functionSourceTable.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this._functionSourceTable.BackColor = System.Drawing.Color.Transparent;
+            this._functionSourceTable.ColumnCount = 1;
+            this._functionSourceTable.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this._functionSourceTable.Location = new System.Drawing.Point(5, 43);
+            this._functionSourceTable.Margin = new System.Windows.Forms.Padding(0);
+            this._functionSourceTable.Name = "_functionSourceTable";
+            this._functionSourceTable.RowCount = 1;
+            this._functionSourceTable.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 1F));
+            this._functionSourceTable.Size = new System.Drawing.Size(291, 26);
+            this._functionSourceTable.TabIndex = 16;
+            // 
+            // toolStrip1
+            // 
+            this.toolStrip1.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
+            this.toolStrip1.ImageScalingSize = new System.Drawing.Size(32, 32);
+            this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this._addFunctionSourceButton,
+            this._deleteFunctionSourceButton});
+            this.toolStrip1.Location = new System.Drawing.Point(3, 16);
+            this.toolStrip1.Name = "toolStrip1";
+            this.toolStrip1.RenderMode = System.Windows.Forms.ToolStripRenderMode.System;
+            this.toolStrip1.Size = new System.Drawing.Size(294, 27);
+            this.toolStrip1.TabIndex = 15;
+            this.toolStrip1.Text = "toolStrip1";
+            // 
+            // _addFunctionSourceButton
+            // 
+            this._addFunctionSourceButton.Image = global::Hops.Properties.Resources.Open_Toolbar_Active_20x20;
+            this._addFunctionSourceButton.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
+            this._addFunctionSourceButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this._addFunctionSourceButton.Name = "_addFunctionSourceButton";
+            this._addFunctionSourceButton.Size = new System.Drawing.Size(92, 24);
+            this._addFunctionSourceButton.Text = "Add Source";
+            this._addFunctionSourceButton.ToolTipText = "Add a new function source";
+            this._addFunctionSourceButton.Click += new System.EventHandler(this._addFunctionSourceButton_Click);
+            // 
+            // _deleteFunctionSourceButton
+            // 
+            this._deleteFunctionSourceButton.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
+            this._deleteFunctionSourceButton.Image = global::Hops.Properties.Resources.Close_Toolbar_Active_20x20;
+            this._deleteFunctionSourceButton.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
+            this._deleteFunctionSourceButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this._deleteFunctionSourceButton.Name = "_deleteFunctionSourceButton";
+            this._deleteFunctionSourceButton.Size = new System.Drawing.Size(111, 24);
+            this._deleteFunctionSourceButton.Text = "Delete Selected";
+            this._deleteFunctionSourceButton.ToolTipText = "Delete selected function sources";
+            this._deleteFunctionSourceButton.Click += new System.EventHandler(this._deleteFunctionSourceButton_Click);
+            // 
             // HopsAppSettingsUserControl
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Controls.Add(this._gpboxFunctionMgr);
             this.Controls.Add(this._apiKeyTextbox);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
@@ -171,8 +247,12 @@ namespace Hops
             this.Controls.Add(this._serversTextBox);
             this.Margin = new System.Windows.Forms.Padding(2);
             this.Name = "HopsAppSettingsUserControl";
-            this.Size = new System.Drawing.Size(300, 202);
+            this.Size = new System.Drawing.Size(300, 275);
             ((System.ComponentModel.ISupportInitialize)(this._childComputeCount)).EndInit();
+            this._gpboxFunctionMgr.ResumeLayout(false);
+            this._gpboxFunctionMgr.PerformLayout();
+            this.toolStrip1.ResumeLayout(false);
+            this.toolStrip1.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -191,5 +271,10 @@ namespace Hops
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.TextBox _apiKeyTextbox;
+        private System.Windows.Forms.GroupBox _gpboxFunctionMgr;
+        public ToolStrip toolStrip1;
+        public ToolStripButton _addFunctionSourceButton;
+        private ToolStripButton _deleteFunctionSourceButton;
+        private TableLayoutPanel _functionSourceTable;
     }
 }

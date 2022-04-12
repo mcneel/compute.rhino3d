@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Windows.Forms;
 using Grasshopper.GUI;
 
@@ -15,6 +16,11 @@ namespace Hops
         //const string SYNCHRONOUS_WAIT_TIME = "Hops:SynchronousWaitTime";
         const string MAX_CONCURRENT_REQUESTS = "Hops:MaxConcurrentRequests";
         const string RECURSION_LIMIT = "Hops:RecursionLimit";
+        const string HOPS_FUNCTION_PATHS = "Hops:FunctionPaths";
+        const string HOPS_FUNCTION_NAMES = "Hops:FunctionNames";
+        const string HOPS_FUNCTION_SELECTED_STATE = "Hops:FunctionSelectedState";
+        
+        public static List<FunctionSourceRow> FunctionSources { get; set; } = new List<FunctionSourceRow>();
 
         public static string[] Servers
         {
@@ -69,7 +75,123 @@ namespace Hops
                 {
                     Grasshopper.Instances.Settings.SetValue(HOPS_APIKEY, value);
                 }
-                Hops.Servers.SettingsChanged();
+            }
+        }
+
+        public static void InitFunctionSources()
+        {
+            if (FunctionSourcePaths.Length != FunctionSourceNames.Length && FunctionSourcePaths.Length != FunctionSourceSelectedStates.Length)
+                return;
+            if (FunctionSources == null)
+                FunctionSources = new List<FunctionSourceRow>();
+            if(FunctionSources.Count > 0)
+                FunctionSources.Clear();
+            for(int i = 0; i < FunctionSourcePaths.Length; i++)
+            {
+                var row = new FunctionSourceRow(FunctionSourceNames[i].Trim(), FunctionSourcePaths[i].Trim());
+                FunctionSources.Add(row);
+                bool isChecked;
+                if (Boolean.TryParse(FunctionSourceSelectedStates[i], out isChecked))
+                    FunctionSources[i].RowCheckbox.Checked = isChecked;
+            }
+        }
+
+        public static string[] FunctionSourcePaths
+        {
+            get
+            {
+                string pathSetting = Grasshopper.Instances.Settings.GetValue(HOPS_FUNCTION_PATHS, "");
+                if (string.IsNullOrWhiteSpace(pathSetting))
+                    return new string[0];
+                var paths = pathSetting.Split(new char[] { '\n' });
+                return paths;
+            }
+            set
+            {
+                if (value == null)
+                {
+                    Grasshopper.Instances.Settings.SetValue(HOPS_FUNCTION_PATHS, "");
+                }
+                else
+                {
+                    var sb = new System.Text.StringBuilder();
+                    for (int i = 0; i < value.Length; i++)
+                    {
+                        string s = value[i].Trim();
+                        if (string.IsNullOrEmpty(s))
+                            continue;
+                        if (sb.Length > 0)
+                            sb.Append('\n');
+                        sb.Append(s);
+                    }
+                    Grasshopper.Instances.Settings.SetValue(HOPS_FUNCTION_PATHS, sb.ToString());
+                }
+            }
+        }
+
+        public static string[] FunctionSourceNames
+        {
+            get
+            {
+                string nameSetting = Grasshopper.Instances.Settings.GetValue(HOPS_FUNCTION_NAMES, "");
+                if (string.IsNullOrWhiteSpace(nameSetting))
+                    return new string[0];
+                var names = nameSetting.Split(new char[] { '\n' });
+                return names;
+            }
+            set
+            {
+                if (value == null)
+                {
+                    Grasshopper.Instances.Settings.SetValue(HOPS_FUNCTION_NAMES, "");
+                }
+                else
+                {
+                    var sb = new System.Text.StringBuilder();
+                    for (int i = 0; i < value.Length; i++)
+                    {
+                        string s = value[i].Trim();
+                        if (string.IsNullOrEmpty(s))
+                            continue;
+                        if (sb.Length > 0)
+                            sb.Append('\n');
+                        sb.Append(s);
+                    }
+                    Grasshopper.Instances.Settings.SetValue(HOPS_FUNCTION_NAMES, sb.ToString());
+                }
+            }
+        }
+
+        public static string[] FunctionSourceSelectedStates
+        {
+            get
+            {
+                string selectedSetting = Grasshopper.Instances.Settings.GetValue(HOPS_FUNCTION_SELECTED_STATE, "");
+                if (string.IsNullOrWhiteSpace(selectedSetting))
+                    return new string[0];
+                var selections = selectedSetting.Split(new char[] { '\n' });
+                return selections;
+            }
+            set
+            {
+                if (value == null)
+                {
+                    Grasshopper.Instances.Settings.SetValue(HOPS_FUNCTION_SELECTED_STATE, "");
+                }
+                else
+                {
+                    var sb = new System.Text.StringBuilder();
+                    for (int i = 0; i < value.Length; i++)
+                    {
+                        string s = value[i].Trim();
+                        if (string.IsNullOrEmpty(s))
+                            continue;
+                        if (sb.Length > 0)
+                            sb.Append('\n');
+                        sb.Append(s);
+                    }
+                    Grasshopper.Instances.Settings.SetValue(HOPS_FUNCTION_SELECTED_STATE, sb.ToString());
+                }
             }
         }
 
