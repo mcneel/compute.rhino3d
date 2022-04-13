@@ -31,7 +31,8 @@ namespace Hops
             {
                 ToolStripMenuItem menuItem = new ToolStripMenuItem(row.SourceName, null, null, row.SourceName);
                 GenerateFunctionPathMenu(menuItem, row);
-                mainMenu.DropDownItems.Add(menuItem);
+                if(menuItem.DropDownItems.Count > 0)
+                    mainMenu.DropDownItems.Add(menuItem);
             }
             InitThumbnailViewer();
             return mainMenu;
