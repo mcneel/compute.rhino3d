@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.13.0] - 2022-04-12
+## [0.13.1] - 2022-04-13
 ### Added
 - A function manager was added to the Hops preferenced UI. This interface allows you to add function sources (ie. local folder, localhost, and remote server locations). Once a valid source is added to the Hops preferences, a new menu item will be added to the Hops component. This menu item will enumerate valid functions (either grasshopper files or function endpoints). Right-clicking on a menu item will open the file while left-clicking will reference the file in the Hops component (ie. like setting the path). For  now, this feature is only available when running Grasshopper for Windows.
 
