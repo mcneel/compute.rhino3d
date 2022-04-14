@@ -33,7 +33,7 @@ namespace Hops
         string _cacheKey = null;
         const string _apiKeyName = "RhinoComputeKey";
         PathType? _pathType;
-        static LastHTTP _lastHTTP = new LastHTTP();
+        static LastHTTP _lastHTTP = null;
 
         public static LastHTTP LastHTTP
         {
@@ -44,6 +44,8 @@ namespace Hops
         {
             var rc = new RemoteDefinition(path, parentComponent);
             RemoteDefinitionCache.Add(rc);
+            if (LastHTTP == null)
+                LastHTTP = new LastHTTP();
             return rc;
         }
 
@@ -197,7 +199,8 @@ namespace Hops
                 string inputJson = JsonConvert.SerializeObject(schema);
                 string requestContent = "{";
                 requestContent += "\"URL\": \"" + postUrl + "\"," + Environment.NewLine;
-                requestContent += "\"content\": " + inputJson  + Environment.NewLine;
+                requestContent += "\"Method\": \"POST" + "\"," + Environment.NewLine;
+                requestContent += "\"Content\": " + inputJson  + Environment.NewLine;
                 requestContent += "}";
                 LastHTTP.IORequest = requestContent;
                 var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
@@ -210,10 +213,13 @@ namespace Hops
             }
             else
             {
-                LastHTTP.IORequest = "Address: " + address + Environment.NewLine;
+                string requestContent = "{";
+                requestContent += "\"URL\": \"" + address + "\"," + Environment.NewLine;
+                requestContent += "\"Method\": \"GET" + "\"" + Environment.NewLine;
+                requestContent += "}";
+                LastHTTP.IORequest = requestContent;
                 responseTask = HttpClient.GetAsync(address);
             }
-
             if (responseTask != null)
             {
                 var responseMessage = responseTask.Result;
