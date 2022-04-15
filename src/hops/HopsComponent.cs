@@ -11,7 +11,7 @@ using Resthopper.IO;
 using Newtonsoft.Json;
 using Rhino.Geometry;
 using System.Threading.Tasks;
-using System.Linq;
+using System.IO;
 using Rhino;
 
 namespace Hops
@@ -272,7 +272,16 @@ namespace Hops
         }
         public override bool Read(GH_IReader reader)
         {
-            bool rc = base.Read(reader);
+            bool rc = false;
+            try
+            {
+                rc = base.Read(reader);
+            }
+            catch(Exception ex)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, ex.Message);
+            }
+            
             if (rc)
             {
                 var version = reader.GetVersion(TagVersion);
@@ -304,7 +313,25 @@ namespace Hops
                 // previous values to define inputs and outputs
                 try
                 {
-                    RemoteDefinitionLocation = path;
+                    if(path != null && File.Exists(path))
+                        RemoteDefinitionLocation = path;
+                    else
+                    {
+                        var item = reader.FindItem("RemoteDefinitionLocation");
+                        if (item != null)
+                        {
+                            if (!File.Exists(item.InternalData.ToString()))
+                            {
+                                string parentDirectory = Path.GetDirectoryName(reader.ArchiveLocation);
+                                string remoteFileName = Path.GetFileName(item.InternalData.ToString());
+                                string filePath = Path.Combine(parentDirectory, remoteFileName);
+                                if (File.Exists(filePath))
+                                {
+                                    RemoteDefinitionLocation = filePath;
+                                }
+                            }
+                        }
+                    }
                 }
                 catch (System.Net.WebException)
                 {
@@ -727,7 +754,7 @@ for value in values:
                     Grasshopper.Instances.ActiveCanvas?.Invalidate();
                     return;
                 }
-                if(RemoteDefinition.LastHTTP.IOResponseSchema.Errors.Count > 0)
+                if(RemoteDefinition.LastHTTP.IOResponseSchema != null && RemoteDefinition.LastHTTP.IOResponseSchema.Errors.Count > 0)
                 {
                     foreach(var error in RemoteDefinition.LastHTTP.IOResponseSchema.Errors)
                     {
@@ -736,7 +763,7 @@ for value in values:
                         return;
                     }
                 }
-                if (RemoteDefinition.LastHTTP.IOResponseSchema.Warnings.Count > 0)
+                if(RemoteDefinition.LastHTTP.IOResponseSchema != null && RemoteDefinition.LastHTTP.IOResponseSchema.Warnings.Count > 0)
                 {
                     foreach (var warning in RemoteDefinition.LastHTTP.IOResponseSchema.Warnings)
                     {
