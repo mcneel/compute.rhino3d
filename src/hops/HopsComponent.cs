@@ -272,7 +272,16 @@ namespace Hops
         }
         public override bool Read(GH_IReader reader)
         {
-            bool rc = base.Read(reader);
+            bool rc = false;
+            try
+            { 
+                rc = base.Read(reader); 
+            }
+            catch(Exception ex)
+            {
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, ex.Message);
+            }
+            
             if (rc)
             {
                 var version = reader.GetVersion(TagVersion);
@@ -727,7 +736,7 @@ for value in values:
                     Grasshopper.Instances.ActiveCanvas?.Invalidate();
                     return;
                 }
-                if(RemoteDefinition.LastHTTP.IOResponseSchema.Errors.Count > 0)
+                if(RemoteDefinition.LastHTTP.IOResponseSchema != null && RemoteDefinition.LastHTTP.IOResponseSchema.Errors.Count > 0)
                 {
                     foreach(var error in RemoteDefinition.LastHTTP.IOResponseSchema.Errors)
                     {
@@ -736,7 +745,7 @@ for value in values:
                         return;
                     }
                 }
-                if (RemoteDefinition.LastHTTP.IOResponseSchema.Warnings.Count > 0)
+                if(RemoteDefinition.LastHTTP.IOResponseSchema != null && RemoteDefinition.LastHTTP.IOResponseSchema.Warnings.Count > 0)
                 {
                     foreach (var warning in RemoteDefinition.LastHTTP.IOResponseSchema.Warnings)
                     {
