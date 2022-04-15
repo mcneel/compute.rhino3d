@@ -107,8 +107,6 @@ namespace Hops
             CheckBox cb = new CheckBox();
             cb.Checked = false;
             cb.Size = new Size(PathTextBox.Height, PathTextBox.Height);
-            //cb.Size = new Size(17, 24);
-            cb.Margin = new Padding(-1);
             cb.Name = "IsSelectedCheckbox";
             return cb;
         }
