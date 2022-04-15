@@ -11,7 +11,7 @@ using Resthopper.IO;
 using Newtonsoft.Json;
 using Rhino.Geometry;
 using System.Threading.Tasks;
-using System.Linq;
+using System.IO;
 using Rhino;
 
 namespace Hops
@@ -274,8 +274,8 @@ namespace Hops
         {
             bool rc = false;
             try
-            { 
-                rc = base.Read(reader); 
+            {
+                rc = base.Read(reader);
             }
             catch(Exception ex)
             {
@@ -313,7 +313,25 @@ namespace Hops
                 // previous values to define inputs and outputs
                 try
                 {
-                    RemoteDefinitionLocation = path;
+                    if(path != null && File.Exists(path))
+                        RemoteDefinitionLocation = path;
+                    else
+                    {
+                        var item = reader.FindItem("RemoteDefinitionLocation");
+                        if (item != null)
+                        {
+                            if (!File.Exists(item.InternalData.ToString()))
+                            {
+                                string parentDirectory = Path.GetDirectoryName(reader.ArchiveLocation);
+                                string remoteFileName = Path.GetFileName(item.InternalData.ToString());
+                                string filePath = Path.Combine(parentDirectory, remoteFileName);
+                                if (File.Exists(filePath))
+                                {
+                                    RemoteDefinitionLocation = filePath;
+                                }
+                            }
+                        }
+                    }
                 }
                 catch (System.Net.WebException)
                 {
