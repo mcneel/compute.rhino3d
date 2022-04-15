@@ -8,13 +8,19 @@ using Newtonsoft.Json;
 using Resthopper.IO;
 using System.IO;
 using System.Reflection;
-using System.Linq;
 using System.Net.Http;
 
 namespace Hops
 {
+    /// <summary>
+    /// RemoteDefinition represents a specific "definition" or "function" that hops will call.
+    /// </summary>
     class RemoteDefinition : IDisposable
     {
+        /// <summary>
+        /// A path string can represent a path to a specific file, a URL for an endpoint on
+        /// a hops compatible server, or a Guid representing a single GH component
+        /// </summary>
         public enum PathType
         {
             GrasshopperDefinition,
@@ -32,7 +38,7 @@ namespace Hops
         string _path = null;
         string _cacheKey = null;
         const string _apiKeyName = "RhinoComputeKey";
-        static PathType? _pathType;
+        PathType? _pathType;
         static LastHTTP _lastHTTP = null;
 
         public static LastHTTP LastHTTP
@@ -63,13 +69,13 @@ namespace Hops
 
         public bool IsNotResponingUrl()
         {
-            var pathtype = GetPathType(_path);
+            var pathtype = GetPathType();
             return pathtype == PathType.NonresponsiveUrl;
         }
 
         public bool IsInvalidUrl()
         {
-            var pathtype = GetPathType(_path);
+            var pathtype = GetPathType();
             return pathtype == PathType.InvalidUrl;
         }
 
@@ -78,35 +84,39 @@ namespace Hops
             _pathType = null;
         }
 
-        public static PathType GetPathType(string path)
+        PathType GetPathType()
         {
             if (!_pathType.HasValue)
             {
-                if (Guid.TryParse(path, out Guid id))
-                {
-                    _pathType = PathType.ComponentGuid;
-                }
-                else
-                {
-                    _pathType = PathType.GrasshopperDefinition;
-                    if (path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
-                    {
-                        try
-                        {
-                            var getTask = HttpClient.GetAsync(path);
-                            var response = getTask.Result;
-                            string mediaType = response.Content.Headers.ContentType.MediaType.ToLowerInvariant();
-                            if (mediaType.Contains("json"))
-                                _pathType = PathType.Server;
-                        }
-                        catch (Exception)
-                        {
-                            _pathType = PathType.NonresponsiveUrl;
-                        }
-                    }
-                }
+                _pathType = GetPathType(_path);
             }
             return _pathType.Value;
+        }
+
+        public static PathType GetPathType(string path)
+        {
+            if (Guid.TryParse(path, out Guid id))
+            {
+                return PathType.ComponentGuid;
+            }
+
+            PathType rc = PathType.GrasshopperDefinition;
+            if (path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var getTask = HttpClient.GetAsync(path);
+                    var response = getTask.Result;
+                    string mediaType = response.Content.Headers.ContentType.MediaType.ToLowerInvariant();
+                    if (mediaType.Contains("json"))
+                        rc = PathType.Server;
+                }
+                catch (Exception)
+                {
+                    rc = PathType.NonresponsiveUrl;
+                }
+            }
+            return rc;
         }
 
         public string Path { get { return _path; } }
@@ -152,7 +162,7 @@ namespace Hops
             bool performPost = false;
 
             string address = null;
-            var pathType = GetPathType(_path);
+            var pathType = GetPathType();
             switch (pathType)
             {
                 case PathType.GrasshopperDefinition:
@@ -397,7 +407,7 @@ namespace Hops
         public Schema Solve(Schema inputSchema, bool useMemoryCache)
         {
             string solveUrl;
-            var pathType = GetPathType(_path);
+            var pathType = GetPathType();
             if (pathType == PathType.NonresponsiveUrl)
                 return null;
 
@@ -475,7 +485,7 @@ namespace Hops
                     }
                     else
                     {
-                        if (!fileExists && string.IsNullOrEmpty(inputSchema.Algo) && GetPathType(_path) == PathType.GrasshopperDefinition)
+                        if (!fileExists && string.IsNullOrEmpty(inputSchema.Algo) && GetPathType() == PathType.GrasshopperDefinition)
                         {
                             var badSchema = new Schema();
                             badSchema.Errors.Add($"Unable to find file: {Path}");
@@ -1017,7 +1027,7 @@ namespace Hops
             }
             schema.Pointer = Path;
 
-            var pathType = GetPathType(_path);
+            var pathType = GetPathType();
             if (pathType == PathType.Server)
             {
                 var pointer = new Uri(Path).AbsolutePath;
