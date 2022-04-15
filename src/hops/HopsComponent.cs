@@ -272,16 +272,7 @@ namespace Hops
         }
         public override bool Read(GH_IReader reader)
         {
-            bool rc = false;
-            try
-            {
-                rc = base.Read(reader);
-            }
-            catch(Exception ex)
-            {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, ex.Message);
-            }
-            
+            bool rc = base.Read(reader);
             if (rc)
             {
                 var version = reader.GetVersion(TagVersion);
@@ -313,25 +304,20 @@ namespace Hops
                 // previous values to define inputs and outputs
                 try
                 {
-                    if(path != null && File.Exists(path))
-                        RemoteDefinitionLocation = path;
-                    else
+                    var pathType = RemoteDefinition.GetPathType(path);
+                    if(pathType == RemoteDefinition.PathType.GrasshopperDefinition)
                     {
-                        var item = reader.FindItem("RemoteDefinitionLocation");
-                        if (item != null)
+                        if (path != null && File.Exists(path))
+                            RemoteDefinitionLocation = path;
+                        else
                         {
-                            if (!File.Exists(item.InternalData.ToString()))
-                            {
-                                string parentDirectory = Path.GetDirectoryName(reader.ArchiveLocation);
-                                string remoteFileName = Path.GetFileName(item.InternalData.ToString());
-                                string filePath = Path.Combine(parentDirectory, remoteFileName);
-                                if (File.Exists(filePath))
-                                {
-                                    RemoteDefinitionLocation = filePath;
-                                }
-                            }
+                            string parentDirectory = Path.GetDirectoryName(reader.ArchiveLocation);
+                            string remoteFileName = Path.GetFileName(path);
+                            string filePath = Path.Combine(parentDirectory, remoteFileName);
+                            if (File.Exists(filePath))
+                                RemoteDefinitionLocation = filePath;
                         }
-                    }
+                    }    
                 }
                 catch (System.Net.WebException)
                 {
