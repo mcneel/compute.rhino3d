@@ -11,7 +11,7 @@ using Resthopper.IO;
 using Newtonsoft.Json;
 using Rhino.Geometry;
 using System.Threading.Tasks;
-using System.Linq;
+using System.IO;
 using Rhino;
 
 namespace Hops
@@ -304,6 +304,22 @@ namespace Hops
                 // previous values to define inputs and outputs
                 try
                 {
+                    var pathType = RemoteDefinition.GetPathType(path);
+                    if(pathType == RemoteDefinition.PathType.GrasshopperDefinition)
+                    {
+                        if (!File.Exists(path))
+                        {
+                            // See if the file is in the same directoy as this definition. If it
+                            // is then use that file. NOTE: This will change the saved path for
+                            // for this component when we save the GH definition again. That may or
+                            // may not be a problem; I'm not sure yet.
+                            string parentDirectory = Path.GetDirectoryName(reader.ArchiveLocation);
+                            string remoteFileName = Path.GetFileName(path);
+                            string filePath = Path.Combine(parentDirectory, remoteFileName);
+                            if (File.Exists(filePath))
+                                path = filePath;
+                        }
+                    }
                     RemoteDefinitionLocation = path;
                 }
                 catch (System.Net.WebException)
@@ -724,7 +740,7 @@ for value in values:
                     Grasshopper.Instances.ActiveCanvas?.Invalidate();
                     return;
                 }
-                if(RemoteDefinition.LastHTTP.IOResponseSchema.Errors.Count > 0)
+                if(RemoteDefinition.LastHTTP.IOResponseSchema != null && RemoteDefinition.LastHTTP.IOResponseSchema.Errors.Count > 0)
                 {
                     foreach(var error in RemoteDefinition.LastHTTP.IOResponseSchema.Errors)
                     {
@@ -733,7 +749,7 @@ for value in values:
                         return;
                     }
                 }
-                if (RemoteDefinition.LastHTTP.IOResponseSchema.Warnings.Count > 0)
+                if(RemoteDefinition.LastHTTP.IOResponseSchema != null && RemoteDefinition.LastHTTP.IOResponseSchema.Warnings.Count > 0)
                 {
                     foreach (var warning in RemoteDefinition.LastHTTP.IOResponseSchema.Warnings)
                     {

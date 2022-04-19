@@ -8,14 +8,20 @@ using Newtonsoft.Json;
 using Resthopper.IO;
 using System.IO;
 using System.Reflection;
-using System.Linq;
 using System.Net.Http;
 
 namespace Hops
 {
+    /// <summary>
+    /// RemoteDefinition represents a specific "definition" or "function" that hops will call.
+    /// </summary>
     class RemoteDefinition : IDisposable
     {
-        enum PathType
+        /// <summary>
+        /// A path string can represent a path to a specific file, a URL for an endpoint on
+        /// a hops compatible server, or a Guid representing a single GH component
+        /// </summary>
+        public enum PathType
         {
             GrasshopperDefinition,
             ComponentGuid,
@@ -33,7 +39,7 @@ namespace Hops
         string _cacheKey = null;
         const string _apiKeyName = "RhinoComputeKey";
         PathType? _pathType;
-        static LastHTTP _lastHTTP = new LastHTTP();
+        static LastHTTP _lastHTTP = null;
 
         public static LastHTTP LastHTTP
         {
@@ -44,6 +50,8 @@ namespace Hops
         {
             var rc = new RemoteDefinition(path, parentComponent);
             RemoteDefinitionCache.Add(rc);
+            if (LastHTTP == null)
+                LastHTTP = new LastHTTP();
             return rc;
         }
 
@@ -80,31 +88,35 @@ namespace Hops
         {
             if (!_pathType.HasValue)
             {
-                if (Guid.TryParse(_path, out Guid id))
-                {
-                    _pathType = PathType.ComponentGuid;
-                }
-                else
-                {
-                    _pathType = PathType.GrasshopperDefinition;
-                    if (_path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
-                    {
-                        try
-                        {
-                            var getTask = HttpClient.GetAsync(_path);
-                            var response = getTask.Result;
-                            string mediaType = response.Content.Headers.ContentType.MediaType.ToLowerInvariant();
-                            if (mediaType.Contains("json"))
-                                _pathType = PathType.Server;
-                        }
-                        catch (Exception)
-                        {
-                            _pathType = PathType.NonresponsiveUrl;
-                        }
-                    }
-                }
+                _pathType = GetPathType(_path);
             }
             return _pathType.Value;
+        }
+
+        public static PathType GetPathType(string path)
+        {
+            if (Guid.TryParse(path, out Guid id))
+            {
+                return PathType.ComponentGuid;
+            }
+
+            PathType rc = PathType.GrasshopperDefinition;
+            if (path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var getTask = HttpClient.GetAsync(path);
+                    var response = getTask.Result;
+                    string mediaType = response.Content.Headers.ContentType.MediaType.ToLowerInvariant();
+                    if (mediaType.Contains("json"))
+                        rc = PathType.Server;
+                }
+                catch (Exception)
+                {
+                    rc = PathType.NonresponsiveUrl;
+                }
+            }
+            return rc;
         }
 
         public string Path { get { return _path; } }
@@ -197,7 +209,8 @@ namespace Hops
                 string inputJson = JsonConvert.SerializeObject(schema);
                 string requestContent = "{";
                 requestContent += "\"URL\": \"" + postUrl + "\"," + Environment.NewLine;
-                requestContent += "\"content\": " + inputJson  + Environment.NewLine;
+                requestContent += "\"Method\": \"POST" + "\"," + Environment.NewLine;
+                requestContent += "\"Content\": " + inputJson  + Environment.NewLine;
                 requestContent += "}";
                 LastHTTP.IORequest = requestContent;
                 var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
@@ -210,10 +223,13 @@ namespace Hops
             }
             else
             {
-                LastHTTP.IORequest = "Address: " + address + Environment.NewLine;
+                string requestContent = "{";
+                requestContent += "\"URL\": \"" + address + "\"," + Environment.NewLine;
+                requestContent += "\"Method\": \"GET" + "\"" + Environment.NewLine;
+                requestContent += "}";
+                LastHTTP.IORequest = requestContent;
                 responseTask = HttpClient.GetAsync(address);
             }
-
             if (responseTask != null)
             {
                 var responseMessage = responseTask.Result;
