@@ -115,13 +115,16 @@ namespace Hops
         }
 
         public int SolveSerialNumber => _solveSerialNumber;
-
+        public HTTPRecord HTTPRecord;
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             if (!_enabledThisSolve)
                 return;
             _iteration++;
+
+            if (HTTPRecord == null)
+                HTTPRecord = new HTTPRecord();
 
             // Limit recursive calls on compute
             if (_isHeadless && _solveRecursionLevel > HopsAppSettings.RecursionLimit)
@@ -596,7 +599,7 @@ for value in values:
 
         void ExportLastIORequest()
         {
-            if (String.IsNullOrEmpty(RemoteDefinition.LastHTTP.IORequest))
+            if (String.IsNullOrEmpty(HTTPRecord.IORequest))
             {
                 Eto.Forms.MessageBox.Show("No IO request has been made. Run this component at least once", Eto.Forms.MessageBoxType.Error);
                 return;
@@ -605,13 +608,13 @@ for value in values:
             dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
             if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
             {
-                System.IO.File.WriteAllText(dlg.FileName, RemoteDefinition.LastHTTP.IORequest);
+                System.IO.File.WriteAllText(dlg.FileName, HTTPRecord.IORequest);
             }
         }
 
         void ExportLastIOResponse()
         {
-            if (String.IsNullOrEmpty(RemoteDefinition.LastHTTP.IOResponse))
+            if (String.IsNullOrEmpty(HTTPRecord.IOResponse))
             {
                 Eto.Forms.MessageBox.Show("No IO response has been received. Run this component at least once", Eto.Forms.MessageBoxType.Error);
                 return;
@@ -620,13 +623,13 @@ for value in values:
             dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
             if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
             {
-                System.IO.File.WriteAllText(dlg.FileName, RemoteDefinition.LastHTTP.IOResponse);
+                System.IO.File.WriteAllText(dlg.FileName, HTTPRecord.IOResponse);
             }
         }
 
         void ExportLastSolveRequest()
         {
-            if (String.IsNullOrEmpty(RemoteDefinition.LastHTTP.SolveRequest))
+            if (String.IsNullOrEmpty(HTTPRecord.SolveRequest))
             {
                 Eto.Forms.MessageBox.Show("No solve request has been made. Run this component at least once", Eto.Forms.MessageBoxType.Error);
                 return;
@@ -635,13 +638,13 @@ for value in values:
             dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
             if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
             {
-                System.IO.File.WriteAllText(dlg.FileName, RemoteDefinition.LastHTTP.SolveRequest);
+                System.IO.File.WriteAllText(dlg.FileName, HTTPRecord.SolveRequest);
             }
         }
 
         void ExportLastSolveResponse()
         {
-            if (String.IsNullOrEmpty(RemoteDefinition.LastHTTP.SolveResponse))
+            if (String.IsNullOrEmpty(HTTPRecord.SolveResponse))
             {
                 Eto.Forms.MessageBox.Show("No solve response has been received. Run this component at least once", Eto.Forms.MessageBoxType.Error);
                 return;
@@ -650,7 +653,7 @@ for value in values:
             dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
             if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
             {
-                System.IO.File.WriteAllText(dlg.FileName, RemoteDefinition.LastHTTP.SolveResponse);
+                System.IO.File.WriteAllText(dlg.FileName, HTTPRecord.SolveResponse);
             }
         }
 
@@ -740,18 +743,18 @@ for value in values:
                     Grasshopper.Instances.ActiveCanvas?.Invalidate();
                     return;
                 }
-                if(RemoteDefinition.LastHTTP.IOResponseSchema != null && RemoteDefinition.LastHTTP.IOResponseSchema.Errors.Count > 0)
+                if(HTTPRecord.IOResponseSchema != null && HTTPRecord.IOResponseSchema.Errors.Count > 0)
                 {
-                    foreach(var error in RemoteDefinition.LastHTTP.IOResponseSchema.Errors)
+                    foreach(var error in HTTPRecord.IOResponseSchema.Errors)
                     {
                         AddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
                         Grasshopper.Instances.ActiveCanvas?.Invalidate();
                         return;
                     }
                 }
-                if(RemoteDefinition.LastHTTP.IOResponseSchema != null && RemoteDefinition.LastHTTP.IOResponseSchema.Warnings.Count > 0)
+                if(HTTPRecord.IOResponseSchema != null && HTTPRecord.IOResponseSchema.Warnings.Count > 0)
                 {
-                    foreach (var warning in RemoteDefinition.LastHTTP.IOResponseSchema.Warnings)
+                    foreach (var warning in HTTPRecord.IOResponseSchema.Warnings)
                     {
                         AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
                     }
