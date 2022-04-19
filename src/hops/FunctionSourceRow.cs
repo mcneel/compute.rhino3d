@@ -85,7 +85,7 @@ namespace Hops
             TextBox txt = new TextBox();
             txt.Dock = DockStyle.Fill;
             txt.Margin = new Padding(0);
-            txt.Name = "NameTextbox";
+            txt.Name = "Textbox";
             txt.ReadOnly = true;
             txt.BackColor = System.Drawing.SystemColors.Window;
             txt.Text = name;

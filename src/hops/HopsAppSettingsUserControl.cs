@@ -14,7 +14,7 @@ namespace Hops
             var tempRow = new FunctionSourceRow("a", "a");
             HopsUIHelper.RowHeight = (int)(tempRow.PreferredSize.Height + tempRow.Margin.Vertical / 2);
             HopsUIHelper.MinGroupBoxHeight = (int)(_gpboxFunctionMgr.Height);
-            HopsUIHelper.MinControlHeight = (int)(_gpboxFunctionMgr.Parent.Height + (_functionSourceTable.Height * 0.8));
+            HopsUIHelper.MinControlHeight = (int)(Height + (_functionSourceTable.Height * 0.8));
             _deleteFunctionSourceButton.Visible = false;
             _serversTextBox.Lines = HopsAppSettings.Servers;
             _serversTextBox.TextChanged += ServersTextboxChanged;
@@ -26,11 +26,11 @@ namespace Hops
             {
                 // group boxes on mac take up more space, so adjust for that
                 // (header is on a separate line, border is larger)
+                HopsUIHelper.MinControlHeight = Height;
                 var extraSpace = 19;
                 HopsUIHelper.MinGroupBoxHeight += extraSpace;
-                HopsUIHelper.MinControlHeight += extraSpace;
+                HopsUIHelper.MinControlHeight -= 32;
                 _gpboxFunctionMgr.Height += extraSpace;
-                Height += extraSpace;
             }
             if (HopsAppSettings.FunctionSources.Count > 0)
             {

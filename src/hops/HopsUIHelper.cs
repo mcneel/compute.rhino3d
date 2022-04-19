@@ -61,6 +61,10 @@ namespace Hops
         public static void AddRow(TableLayoutPanel panel, string name, string path, bool update)
         {
             FunctionSourceRow row = new FunctionSourceRow(name, path);
+            //checkbox margins are different on macOS. Adjust accordingly
+            if (Rhino.Runtime.HostUtils.RunningOnOSX)
+                row.RowCheckbox.Margin = new Padding(0, -2, 5, 0);
+            
             GroupBox groupBox = panel.Parent as GroupBox;
             HopsAppSettingsUserControl settingsPanel = groupBox.Parent as HopsAppSettingsUserControl;
             Control topControl = settingsPanel.Parent;
@@ -85,14 +89,17 @@ namespace Hops
 
         public static void AddRow(TableLayoutPanel panel, FunctionSourceRow row, bool update)
         {
+            //checkbox margins are different on macOS. Adjust accordingly
+            if (Rhino.Runtime.HostUtils.RunningOnOSX)
+                row.RowCheckbox.Margin = new Padding(0, -2, 5, 0);
             GroupBox groupBox = panel.Parent as GroupBox;
-            UserControl mainControl = groupBox.Parent as UserControl;
+            UserControl topControl = groupBox.Parent as UserControl;
             if (UpdateRows)
             {
                 panel.RowCount++;
                 panel.Height += RowHeight;
                 groupBox.Height += RowHeight;
-                mainControl.Height += RowHeight;
+                topControl.Height += RowHeight;
                 UpdateRows = true;
             }
             row.ReplaceRow += UpdateRow;
