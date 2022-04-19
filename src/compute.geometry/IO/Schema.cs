@@ -81,8 +81,12 @@ namespace Resthopper.IO
         public List<string> Errors { get; set; } = new List<string>();
     }
 
-    public class LastHTTP
+    public class HTTPRecord
     {
+        public HTTPRecord()
+        {
+
+        }
         public string IORequest { get; set; }
         public string IOResponse { get; set; }
         public string SolveRequest { get; set; }
