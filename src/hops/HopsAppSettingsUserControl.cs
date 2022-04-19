@@ -10,15 +10,28 @@ namespace Hops
             InitializeComponent();
             HopsAppSettings.InitFunctionSources();
             HopsUIHelper.UpdateRows = false;
-            HopsUIHelper.RowHeight = (int)(_functionSourceTable.Height);
+            // use row height/margin for row height, otherwise top row grows larger the more rows there are.
+            var tempRow = new FunctionSourceRow("a", "a");
+            HopsUIHelper.RowHeight = (int)(tempRow.PreferredSize.Height + tempRow.Margin.Vertical / 2);
             HopsUIHelper.MinGroupBoxHeight = (int)(_gpboxFunctionMgr.Height);
-            HopsUIHelper.MinControlHeight = (int)(_gpboxFunctionMgr.Parent.Height + (_functionSourceTable.Height * 0.8));
+            HopsUIHelper.MinControlHeight = (int)(Height + (_functionSourceTable.Height * 0.8));
             _deleteFunctionSourceButton.Visible = false;
             _serversTextBox.Lines = HopsAppSettings.Servers;
             _serversTextBox.TextChanged += ServersTextboxChanged;
             _apiKeyTextbox.Text = HopsAppSettings.APIKey;
             _apiKeyTextbox.TextChanged += APIKeyTextboxChanged;
             _maxConcurrentRequestsTextbox.Text = HopsAppSettings.MaxConcurrentRequests.ToString();
+
+            if (Rhino.Runtime.HostUtils.RunningOnOSX)
+            {
+                // group boxes on mac take up more space, so adjust for that
+                // (header is on a separate line, border is larger)
+                HopsUIHelper.MinControlHeight = Height;
+                var extraSpace = 19;
+                HopsUIHelper.MinGroupBoxHeight += extraSpace;
+                HopsUIHelper.MinControlHeight -= 32;
+                _gpboxFunctionMgr.Height += extraSpace;
+            }
             if (HopsAppSettings.FunctionSources.Count > 0)
             {
                 foreach (var row in HopsAppSettings.FunctionSources)
@@ -56,10 +69,10 @@ namespace Hops
                 _launchWorkerAtStart.Visible = false;
                 _childComputeCount.Visible = false;
                 _updateChildCountButton.Visible = false;
-                _gpboxFunctionMgr.Visible = false;
-                Size = new System.Drawing.Size(Size.Width, _btnClearMemCache.Bottom + 4);
-                //_gpboxFunctionMgr.Top -= 74;
-                //Size = new System.Drawing.Size(Size.Width, _gpboxFunctionMgr.Bottom + 4);
+                //_gpboxFunctionMgr.Visible = false;
+                //Size = new System.Drawing.Size(Size.Width, _btnClearMemCache.Bottom + 4);
+                _gpboxFunctionMgr.Top -= 74;
+                Size = new System.Drawing.Size(Size.Width, _gpboxFunctionMgr.Bottom + 4);
             }
             else
             {

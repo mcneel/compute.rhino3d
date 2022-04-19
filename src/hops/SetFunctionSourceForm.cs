@@ -19,6 +19,7 @@ namespace Hops
             {
                 srcName_Textbox.Text = Name;
             }
+            srcName_Textbox.Focus();
 
             var srcPath_Textbox = new TextBox();
             srcPath_Textbox.Size = new Eto.Drawing.Size(250, -1);

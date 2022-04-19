@@ -85,7 +85,7 @@ namespace Hops
             TextBox txt = new TextBox();
             txt.Dock = DockStyle.Fill;
             txt.Margin = new Padding(0);
-            txt.Name = "NameTextbox";
+            txt.Name = "Textbox";
             txt.ReadOnly = true;
             txt.BackColor = System.Drawing.SystemColors.Window;
             txt.Text = name;
@@ -107,8 +107,6 @@ namespace Hops
             CheckBox cb = new CheckBox();
             cb.Checked = false;
             cb.Size = new Size(PathTextBox.Height, PathTextBox.Height);
-            //cb.Size = new Size(17, 24);
-            cb.Margin = new Padding(-1);
             cb.Name = "IsSelectedCheckbox";
             return cb;
         }
