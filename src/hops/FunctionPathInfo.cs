@@ -178,6 +178,7 @@ namespace Hops
         public string ResultType { get; set; }
         public int AtLeast { get; set; }
         public int AtMost { get; set; }
+        public bool TreeAccess { get; set; }
     }
     public class FunctionMgr_Schema
     {
