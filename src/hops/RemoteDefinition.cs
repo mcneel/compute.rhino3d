@@ -9,6 +9,7 @@ using Resthopper.IO;
 using System.IO;
 using System.Reflection;
 using System.Net.Http;
+using Grasshopper.Kernel.Data;
 
 namespace Hops
 {
@@ -203,6 +204,8 @@ namespace Hops
                 requestContent += "\"Method\": \"POST" + "\"," + Environment.NewLine;
                 requestContent += "\"Content\": " + inputJson  + Environment.NewLine;
                 requestContent += "}";
+                if(_parentComponent.HTTPRecord == null)
+                    _parentComponent.HTTPRecord = new HTTPRecord();
                 _parentComponent.HTTPRecord.IORequest = requestContent;
                 var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
                 HttpClient client = new HttpClient();
@@ -863,11 +866,16 @@ namespace Hops
 
         internal static GH_ParamAccess AccessFromInput(InputParamSchema input)
         {
-            if (input.AtLeast == 1 && input.AtMost == 1)
-                return GH_ParamAccess.item;
-            if (input.AtLeast == -1 && input.AtMost == -1)
+            if (input.TreeAccess)
                 return GH_ParamAccess.tree;
-            return GH_ParamAccess.list;
+            else
+            {
+                if (input.AtLeast == 1 && input.AtMost == 1)
+                    return GH_ParamAccess.item;
+                if (input.AtLeast == -1 && input.AtMost == -1)
+                    return GH_ParamAccess.tree;
+                return GH_ParamAccess.list;
+            }
         }
 
         public Schema CreateSolveInput(IGH_DataAccess DA, bool cacheSolveOnServer, int recursionLevel,
@@ -933,6 +941,7 @@ namespace Hops
                         case Grasshopper.Kernel.Parameters.Param_GenericObject _:
                             throw new Exception("generic param not supported");
                         case Grasshopper.Kernel.Parameters.Param_Geometry _:
+                            //CollectDataHelper2<GeometryBase, GH_Goo<GeometryBase>>(DA, inputName, access, ref inputListCount, dataTree);
                             CollectDataHelper<IGH_GeometricGoo>(DA, inputName, access, ref inputListCount, dataTree, true);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Group _:

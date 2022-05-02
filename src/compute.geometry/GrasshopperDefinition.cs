@@ -365,7 +365,7 @@ namespace compute.geometry
                                         integers[i] = JsonConvert.DeserializeObject<int>(restobj.Data);
                                     }
                                     contextualParameter.AssignContextualData(integers);
-                                    break;
+                                    //break;
                                 }
                             }
                             break;
@@ -971,6 +971,7 @@ namespace compute.geometry
                     Description = i.Value.GetDescription(),
                     AtLeast = i.Value.GetAtLeast(),
                     AtMost = i.Value.GetAtMost(),
+                    TreeAccess = i.Value.GetTreeAccess(),
                     Default = i.Value.GetDefault(),
                     Minimum = i.Value.GetMinimum(),
                     Maximum = i.Value.GetMaximum(),
@@ -1264,7 +1265,19 @@ namespace compute.geometry
                     return 1;
                 return int.MaxValue;
             }
-            
+
+            public bool GetTreeAccess()
+            {
+                IGH_ContextualParameter contextualParameter = Param as IGH_ContextualParameter;
+                if (contextualParameter != null)
+                {
+                    var result = contextualParameter.GetType().GetProperty("TreeAccess")?.GetValue(contextualParameter, null);
+                    if(result != null)
+                        return (bool)result;
+                }
+                return false;
+            }
+
             public object GetDefault()
             {
                 return _default;
