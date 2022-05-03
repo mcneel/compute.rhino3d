@@ -863,6 +863,34 @@ namespace Hops
             }
         }
 
+        static void CollectDataHelperPoints<T>(IGH_DataAccess DA,
+            string inputName,
+            GH_ParamAccess access,
+            ref int inputCount,
+            DataTree<ResthopperObject> dataTree)
+        {
+            if (access == GH_ParamAccess.tree)
+            {
+                var tree = new Grasshopper.Kernel.Data.GH_Structure<GH_Point>();
+                if (DA.GetDataTree(inputName, out tree))
+                {
+                    foreach (var path in tree.Paths)
+                    {
+                        string pathString = path.ToString();
+                        var items = tree[path];
+                        foreach (var item in items)
+                        {
+                            dataTree.Append(new ResthopperObject(item.Value), pathString);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                CollectDataHelper<T>(DA, inputName, access, ref inputCount, dataTree);
+            }
+        }
+
 
         internal static GH_ParamAccess AccessFromInput(InputParamSchema input)
         {
@@ -983,8 +1011,7 @@ namespace Hops
                             CollectDataHelper2<Plane, GH_Plane>(DA, inputName, access, ref inputListCount, dataTree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Point _:
-                            // TODO: figure out how Point3d trees should be handled
-                            CollectDataHelper<Point3d>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelperPoints<Point3d>(DA, inputName, access, ref inputListCount, dataTree);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Rectangle _:
                             CollectDataHelper2<Rectangle3d, GH_Rectangle>(DA, inputName, access, ref inputListCount, dataTree);
