@@ -342,12 +342,11 @@ namespace compute.geometry
                                     foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                     {
                                         GH_Path path = GetPath(entree.Key);
-                                        GH_Boolean[] booleans = new GH_Boolean[entree.Value.Count];
-                                        for (int i = 0; i < booleans.Length; i++)
+                                        for (int i = 0; i < entree.Value.Count; i++)
                                         {
                                             ResthopperObject restobj = entree.Value[i];
-                                            booleans[i] = new GH_Boolean(JsonConvert.DeserializeObject<bool>(restobj.Data));
-                                            inputTree.Add(booleans[i], path);
+                                            var b = new GH_Boolean(JsonConvert.DeserializeObject<bool>(restobj.Data));
+                                            inputTree.Add(b, path);
                                         }
                                     }
                                     contextualParameter.GetType()
@@ -378,12 +377,11 @@ namespace compute.geometry
                                     foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                     {
                                         GH_Path path = GetPath(entree.Key);
-                                        GH_Number[] doubles = new GH_Number[entree.Value.Count];
-                                        for (int i = 0; i < doubles.Length; i++)
+                                        for (int i = 0; i < entree.Value.Count; i++)
                                         {
                                             ResthopperObject restobj = entree.Value[i];
-                                            doubles[i] = new GH_Number(JsonConvert.DeserializeObject<double>(restobj.Data));
-                                            inputTree.Add(doubles[i], path);
+                                            var d = new GH_Number(JsonConvert.DeserializeObject<double>(restobj.Data));
+                                            inputTree.Add(d, path);
                                         }
                                     }
                                     contextualParameter.GetType()
@@ -414,12 +412,11 @@ namespace compute.geometry
                                     foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                     {
                                         GH_Path path = GetPath(entree.Key);
-                                        GH_Integer[] integers = new GH_Integer[entree.Value.Count];
-                                        for (int i = 0; i < integers.Length; i++)
+                                        for (int i = 0; i < entree.Value.Count; i++)
                                         {
                                             ResthopperObject restobj = entree.Value[i];
-                                            integers[i] = new GH_Integer(JsonConvert.DeserializeObject<int>(restobj.Data));
-                                            inputTree.Add(integers[i], path);
+                                            var integer = new GH_Integer(JsonConvert.DeserializeObject<int>(restobj.Data));
+                                            inputTree.Add(integer, path);
                                         }
                                     }
                                     contextualParameter.GetType()
@@ -450,12 +447,11 @@ namespace compute.geometry
                                     foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                     {
                                         GH_Path path = GetPath(entree.Key);
-                                        GH_Point[] points = new GH_Point[entree.Value.Count];
-                                        for (int i = 0; i < points.Length; i++)
+                                        for (int i = 0; i < entree.Value.Count; i++)
                                         {
                                             ResthopperObject restobj = entree.Value[i];
-                                            points[i] = new GH_Point(JsonConvert.DeserializeObject<Rhino.Geometry.Point3d>(restobj.Data));
-                                            inputTree.Add(points[i], path);
+                                            var p = new GH_Point(JsonConvert.DeserializeObject<Rhino.Geometry.Point3d>(restobj.Data));
+                                            inputTree.Add(p, path);
                                         }
                                     }
                                     contextualParameter.GetType()
@@ -486,12 +482,11 @@ namespace compute.geometry
                                     foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                     {
                                         GH_Path path = GetPath(entree.Key);
-                                        GH_Line[] lines = new GH_Line[entree.Value.Count];
-                                        for (int i = 0; i < lines.Length; i++)
+                                        for (int i = 0; i < entree.Value.Count; i++)
                                         {
                                             ResthopperObject restobj = entree.Value[i];
-                                            lines[i] = new GH_Line(JsonConvert.DeserializeObject<Rhino.Geometry.Line>(restobj.Data));
-                                            inputTree.Add(lines[i], path);
+                                            var l = new GH_Line(JsonConvert.DeserializeObject<Rhino.Geometry.Line>(restobj.Data));
+                                            inputTree.Add(l, path);
                                         }
                                     }
                                     contextualParameter.GetType()
@@ -522,20 +517,20 @@ namespace compute.geometry
                                     foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                     {
                                         GH_Path path = GetPath(entree.Key);
-                                        GH_String[] strings = new GH_String[entree.Value.Count];
-                                        for (int i = 0; i < strings.Length; i++)
+                                        for (int i = 0; i < entree.Value.Count; i++)
                                         {
+                                            GH_String s;
                                             ResthopperObject restobj = entree.Value[i];
                                             try
                                             {
                                                 // Use JsonConvert to properly unescape the string
-                                                strings[i] = new GH_String(JsonConvert.DeserializeObject<string>(restobj.Data));
-                                                inputTree.Add(strings[i], path);
+                                                s = new GH_String(JsonConvert.DeserializeObject<string>(restobj.Data));
+                                                inputTree.Add(s, path);
                                             }
                                             catch (Exception)
                                             {
-                                                strings[i] = new GH_String(System.Text.RegularExpressions.Regex.Unescape(restobj.Data));
-                                                inputTree.Add(strings[i], path);
+                                                s = new GH_String(System.Text.RegularExpressions.Regex.Unescape(restobj.Data));
+                                                inputTree.Add(s, path);
                                             }
                                         }
                                     }
@@ -576,17 +571,17 @@ namespace compute.geometry
                             {
                                 if (treeAccess)
                                 {
-                                    Grasshopper.DataTree<GeometryBase> inputTree = new Grasshopper.DataTree<GeometryBase>();
+                                    Grasshopper.DataTree<IGH_GeometricGoo> inputTree = new Grasshopper.DataTree<IGH_GeometricGoo>();
                                     foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
                                     {
                                         GH_Path path = GetPath(entree.Key);
-                                        GeometryBase[] geometries = new GeometryBase[entree.Value.Count];
-                                        for (int i = 0; i < geometries.Length; i++)
+                                        for (int i = 0; i < entree.Value.Count; i++)
                                         {
                                             ResthopperObject restobj = entree.Value[i];
                                             var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(restobj.Data);
-                                            geometries[i] = Rhino.Runtime.CommonObject.FromJSON(dict) as GeometryBase;
-                                            inputTree.Add(geometries[i], path);
+                                            var gb = Rhino.Runtime.CommonObject.FromJSON(dict) as GeometryBase;
+                                            var goo = GH_Convert.ToGeometricGoo(gb);
+                                            inputTree.Add(goo, path);
                                         }
                                     }
                                     contextualParameter.GetType()
