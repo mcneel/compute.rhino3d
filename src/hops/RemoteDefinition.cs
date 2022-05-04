@@ -571,8 +571,6 @@ namespace Hops
                 }
                 if (structure.DataCount == 1)
                     DA.SetData(paramIndex, goo);
-                else if (structure.PathCount == 1)
-                    DA.SetDataList(paramIndex, structure.AllData(false)); // let grasshopper handle paths
                 else
                     DA.SetDataTree(paramIndex, structure);
             }
