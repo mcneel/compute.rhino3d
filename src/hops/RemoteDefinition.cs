@@ -891,6 +891,35 @@ namespace Hops
             }
         }
 
+        static void CollectDataHelperGeometryBase<T>(IGH_DataAccess DA,
+            string inputName,
+            GH_ParamAccess access,
+            ref int inputCount,
+            DataTree<ResthopperObject> dataTree)
+        {
+            if (access == GH_ParamAccess.tree)
+            {
+                var tree = new Grasshopper.Kernel.Data.GH_Structure<IGH_GeometricGoo>();
+                if (DA.GetDataTree(inputName, out tree))
+                {
+                    foreach (var path in tree.Paths)
+                    {
+                        string pathString = path.ToString();
+                        var items = tree[path];
+                        foreach (var item in items)
+                        {
+                            var gb = Grasshopper.Kernel.GH_Convert.ToGeometryBase(item);
+                            dataTree.Append(new ResthopperObject(gb), pathString);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                CollectDataHelper<T>(DA, inputName, access, ref inputCount, dataTree);
+            }
+        }
+
 
         internal static GH_ParamAccess AccessFromInput(InputParamSchema input)
         {
@@ -969,8 +998,8 @@ namespace Hops
                         case Grasshopper.Kernel.Parameters.Param_GenericObject _:
                             throw new Exception("generic param not supported");
                         case Grasshopper.Kernel.Parameters.Param_Geometry _:
-                            //CollectDataHelper2<GeometryBase, GH_Goo<GeometryBase>>(DA, inputName, access, ref inputListCount, dataTree);
-                            CollectDataHelper<IGH_GeometricGoo>(DA, inputName, access, ref inputListCount, dataTree, true);
+                            CollectDataHelperGeometryBase<IGH_GeometricGoo>(DA, inputName, access, ref inputListCount, dataTree);
+                            //CollectDataHelper<IGH_GeometricGoo>(DA, inputName, access, ref inputListCount, dataTree, true);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Group _:
                             throw new Exception("group param not supported");
