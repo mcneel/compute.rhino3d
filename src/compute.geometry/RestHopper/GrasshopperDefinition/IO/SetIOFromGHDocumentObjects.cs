@@ -22,13 +22,20 @@ namespace compute.geometry
 {
     partial class GrasshopperDefinition
     {
-        private static void SetIOFromGHDocumentObjects(GrasshopperDefinition rc, IList<IGH_DocumentObject> documentObjects)
+        private static void SetIO(GrasshopperDefinition rc)
         {
+            IList<IGH_DocumentObject> documentObjects = rc.GH_Document.Objects;
+
             foreach (IGH_DocumentObject docObj in documentObjects)
-                SetIOFromGHDocumentObject(rc, docObj);
+                SetIO(rc, docObj);
+
+            documentObjects.OfType<IGH_Param>().ToList().ForEach(p => AddInput(rc, p, p.NickName));
+
+            var bhomRemoteInputs = documentObjects.OfType<BH.UI.Grasshopper.Components.CreateObjectComponent>().Where(obj => obj.Name == "RemoteInput");
+            var bhomRemoteOutputs = documentObjects.OfType<BH.UI.Grasshopper.Components.CreateObjectComponent>().Where(obj => obj.Name == "RemoteOutput");
         }
 
-        private static void SetIOFromGHDocumentObject(GrasshopperDefinition rc, IGH_DocumentObject docObj)
+        private static void SetIO(GrasshopperDefinition rc, IGH_DocumentObject docObj)
         {
             IGH_ContextualParameter contextualParam = docObj as IGH_ContextualParameter;
             if (contextualParam != null)

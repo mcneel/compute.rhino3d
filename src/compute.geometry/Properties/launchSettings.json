@@ -3,6 +3,10 @@
     "compute.geometry": {
       "commandName": "Project",
       "nativeDebugging": true
+    },
+    "RhinoCompute.Server": {
+      "commandName": "Project",
+      "nativeDebugging": false
     }
   }
 }

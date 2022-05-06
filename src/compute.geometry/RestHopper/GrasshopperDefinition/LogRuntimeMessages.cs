@@ -23,13 +23,13 @@ namespace compute.geometry
 {
     partial class GrasshopperDefinition
     {
-        private void LogRuntimeMessages(IEnumerable<IGH_ActiveObject> objects, Schema schema)
+        private void LogRuntimeMessages(IEnumerable<IGH_ActiveObject> objects, FullRhinoComputeSchema schema)
         {
             foreach (var obj in objects)
                 LogRuntimeMessages(obj, schema);
         }
 
-        private void LogRuntimeMessages(IGH_ActiveObject obj, Schema schema)
+        private void LogRuntimeMessages(IGH_ActiveObject obj, FullRhinoComputeSchema schema)
         {
             foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Error))
             {

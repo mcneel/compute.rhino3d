@@ -18,14 +18,17 @@ using Newtonsoft.Json;
 using System.Linq;
 using Serilog;
 using System.Reflection;
+using BH.oM.RemoteCompute.RhinoCompute;
+using BH.oM.RemoteCompute;
+
 
 namespace compute.geometry
 {
     partial class GrasshopperDefinition
     {
-        class InputGroup
+        public class InputGroup
         {
-            DataTree<ResthopperObject> _tree;
+            public GrasshopperDataTree<ResthopperObject> DataTree { get; set; }
             object _default = null;
             public IGH_Param Param { get; }
 
@@ -107,12 +110,12 @@ namespace compute.geometry
                 return null;
             }
 
-            public bool IsAlreadySet(DataTree<ResthopperObject> tree)
+            public bool IsAlreadySet(GrasshopperDataTree<ResthopperObject> tree)
             {
-                if (_tree == null)
+                if (DataTree == null)
                     return false;
 
-                var oldDictionary = _tree.InnerTree;
+                var oldDictionary = DataTree.InnerTree;
                 var newDictionary = tree.InnerTree;
 
                 if (!oldDictionary.Keys.SequenceEqual(newDictionary.Keys))
@@ -130,12 +133,6 @@ namespace compute.geometry
 
                 return true;
             }
-
-            public void StoreTree(DataTree<ResthopperObject> tree)
-            {
-                _tree = tree;
-            }
-
         }
     }
 }

@@ -18,18 +18,57 @@ using Newtonsoft.Json;
 using System.Linq;
 using Serilog;
 using System.Reflection;
+using BH.Engine.RemoteCompute;
+using BH.oM.RemoteCompute;
 
 namespace compute.geometry
 {
     partial class GrasshopperDefinition
     {
-        static ResthopperObject GetResthopperObject<T>(object goo)
+        static ResthopperObject GetResthopperObject<T>(object gooValue)
         {
-            var v = (T)goo;
+            var castedGoo = (T)gooValue;
             ResthopperObject rhObj = new ResthopperObject();
-            rhObj.Type = goo.GetType().FullName;
-            rhObj.Data = JsonConvert.SerializeObject(v, GeometryResolver.Settings);
+            rhObj.Type = gooValue.GetType().FullName;
+            rhObj.Data = JsonConvert.SerializeObject(castedGoo, GeometryResolver.JsonSerializerSettings);
             return rhObj;
+        }
+
+        static ResthopperObject GetResthopperObject(object goo)
+        {
+            ResthopperObject result = new ResthopperObject();
+
+            Type gooType = goo.GetType();
+            result.Type = gooType.FullName;
+
+            dynamic gooValue = null;
+
+            try
+            {
+                gooValue = (goo as dynamic).Value;
+            }
+            catch
+            {
+                return result;
+            }
+
+            Type equivalentRhinoType = gooType.EquivalentRhinoType();
+
+            if (equivalentRhinoType != null)
+            {
+                // Serialize data with GeometryResolver settings
+                dynamic castedGooValue = BH.Engine.RemoteCompute.Modify.CastTo(gooValue, equivalentRhinoType);
+
+                result.Data = JsonConvert.SerializeObject(castedGooValue, GeometryResolver.JsonSerializerSettings);
+            }
+            else
+            {
+                // Serialize data with TypeNameHandling auto.
+                JsonSerializerSettings settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
+                result.Data = JsonConvert.SerializeObject(gooValue, settings);
+            }
+
+            return result;
         }
     }
 }

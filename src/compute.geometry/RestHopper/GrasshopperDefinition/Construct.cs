@@ -43,16 +43,16 @@ namespace compute.geometry
             }
 
             GrasshopperDefinition rc = new GrasshopperDefinition(gh_document);
-            rc._singularComponent = component;
+            rc.SingularComponent = component;
 
             foreach (var input in component.Params.Input)
             {
-                rc._input[input.NickName] = new InputGroup(input);
+                rc.Inputs[input.NickName] = new InputGroup(input);
             }
 
             foreach (var output in component.Params.Output)
             {
-                rc._output[output.NickName] = output;
+                rc.Outputs[output.NickName] = output;
             }
 
             return rc;
@@ -62,21 +62,6 @@ namespace compute.geometry
 
         private static GrasshopperDefinition Construct(GH_Archive archive)
         {
-            string icon = null;
-            var chunk = archive.GetRootNode.FindChunk("Definition");
-            if (chunk != null)
-            {
-                chunk = chunk.FindChunk("DefinitionProperties");
-                if (chunk != null)
-                {
-                    string s = String.Empty;
-                    if (chunk.TryGetString("IconImageData", ref s))
-                    {
-                        icon = s;
-                    }
-                }
-            }
-
             GH_Document ghDocument = new GH_Document();
             if (!archive.ExtractObject(ghDocument, "Definition"))
                 throw new Exception("Unable to extract definition from archive");
@@ -91,9 +76,20 @@ namespace compute.geometry
                 Log.Error(e, "Exception in DocumentAdded event handler");
             }
 
-            GrasshopperDefinition rc = new GrasshopperDefinition(ghDocument, icon);
+            GrasshopperDefinition rc = new GrasshopperDefinition(ghDocument);
 
-            SetIOFromGHDocumentObjects(rc, ghDocument.Objects);
+            SetIO(rc);
+
+            string iconImageData = null;
+            var chunk = archive.GetRootNode.FindChunk("Definition");
+            if (chunk != null)
+            {
+                chunk = chunk.FindChunk("DefinitionProperties");
+                if (chunk != null)
+                {
+                    chunk.TryGetString("IconImageData", ref iconImageData);
+                }
+            }
 
             return rc;
         }

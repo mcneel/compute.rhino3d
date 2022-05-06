@@ -4,10 +4,11 @@
     <TargetFramework>net48</TargetFramework>
     <PlatformTarget>x64</PlatformTarget>
     <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
-    <Copyright>Copyright © 2017-2021 Robert McNeel " Associates. All Rights Reserved.</Copyright>
+    <Copyright></Copyright>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <Platforms>x64</Platforms>
     <ApplicationIcon>favicon.ico</ApplicationIcon>
+    <AssemblyName>RhinoCompute.Server</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DefineConstants>TRACE;DEBUG;COMPUTE_CORE</DefineConstants>
@@ -31,6 +32,7 @@
     <EmbeddedResource Include="RhinoCompute.cs" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="BHoM.UI" Version="2.3.0-beta" />
     <PackageReference Include="Microsoft.Owin.Cors" Version="4.0.1" />
     <PackageReference Include="Microsoft.Owin.Host.HttpListener" Version=" 4.0.1" />
     <PackageReference Include="Microsoft.Owin.Hosting" Version="4.0.1" />
@@ -46,6 +48,18 @@
     <PackageReference Include="Topshelf.Serilog" Version="4.1.0" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="BH.UI.Grasshopper">
+      <HintPath>..\..\..\..\..\..\ProgramData\BHoM\Assemblies\BH.UI.Grasshopper.dll</HintPath>
+    </Reference>
+    <Reference Include="BHoM">
+      <HintPath>..\..\..\..\..\..\ProgramData\BHoM\Assemblies\BHoM.dll</HintPath>
+    </Reference>
+    <Reference Include="RemoteCompute_Engine">
+      <HintPath>..\..\..\..\..\..\ProgramData\BHoM\Assemblies\RemoteCompute_Engine.dll</HintPath>
+    </Reference>
+    <Reference Include="RemoteCompute_oM">
+      <HintPath>..\..\..\..\..\..\ProgramData\BHoM\Assemblies\RemoteCompute_oM.dll</HintPath>
+    </Reference>
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Runtime.Caching" />
     <Reference Include="System.Security" />

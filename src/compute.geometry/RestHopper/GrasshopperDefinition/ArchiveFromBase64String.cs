@@ -27,7 +27,7 @@ namespace compute.geometry
             if (string.IsNullOrWhiteSpace(blob))
                 return null;
 
-            byte[] byteArray = Convert.FromBase64String(blob);
+            byte[] byteArray = System.Convert.FromBase64String(blob);
             try
             {
                 var byteArchive = new GH_Archive();
