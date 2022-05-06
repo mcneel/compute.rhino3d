@@ -8,42 +8,11 @@ namespace Hops
         public HopsAppSettingsUserControl()
         {
             InitializeComponent();
-            HopsAppSettings.InitFunctionSources();
-            HopsUIHelper.UpdateRows = false;
-            // use row height/margin for row height, otherwise top row grows larger the more rows there are.
-            var tempRow = new FunctionSourceRow("a", "a");
-            HopsUIHelper.RowHeight = (int)(tempRow.PreferredSize.Height + tempRow.Margin.Vertical / 2);
-            HopsUIHelper.MinGroupBoxHeight = (int)(_gpboxFunctionMgr.Height);
-            HopsUIHelper.MinControlHeight = (int)(Height + (_functionSourceTable.Height * 0.8));
-            _deleteFunctionSourceButton.Visible = false;
             _serversTextBox.Lines = HopsAppSettings.Servers;
             _serversTextBox.TextChanged += ServersTextboxChanged;
             _apiKeyTextbox.Text = HopsAppSettings.APIKey;
             _apiKeyTextbox.TextChanged += APIKeyTextboxChanged;
             _maxConcurrentRequestsTextbox.Text = HopsAppSettings.MaxConcurrentRequests.ToString();
-
-            if (Rhino.Runtime.HostUtils.RunningOnOSX)
-            {
-                // group boxes on mac take up more space, so adjust for that
-                // (header is on a separate line, border is larger)
-                HopsUIHelper.MinControlHeight = Height;
-                var extraSpace = 19;
-                HopsUIHelper.MinGroupBoxHeight += extraSpace;
-                HopsUIHelper.MinControlHeight -= 32;
-                _gpboxFunctionMgr.Height += extraSpace;
-            }
-            if (HopsAppSettings.FunctionSources.Count > 0)
-            {
-                foreach (var row in HopsAppSettings.FunctionSources)
-                {
-                    HopsUIHelper.AddRow(_functionSourceTable, row, false);
-                    if (_functionSourceTable.RowCount >= 1 && !_deleteFunctionSourceButton.Visible)
-                    {
-                        _deleteFunctionSourceButton.Visible = true;
-                        HopsUIHelper.UpdateRows = true;
-                    }
-                }
-            }
             _maxConcurrentRequestsTextbox.KeyPress += (s, e) =>
             {
                 e.Handled = !char.IsDigit(e.KeyChar) && !char.IsControl(e.KeyChar);
@@ -62,19 +31,14 @@ namespace Hops
             };
             _lblCacheCount.Text = $"({Hops.MemoryCache.EntryCount} items in cache)";
 
-
-            if (!Rhino.Runtime.HostUtils.RunningOnWindows)
+            if (Rhino.Runtime.HostUtils.RunningOnOSX)
             {
                 _hideWorkerWindows.Visible = false;
                 _launchWorkerAtStart.Visible = false;
                 _childComputeCount.Visible = false;
                 _updateChildCountButton.Visible = false;
-                //_gpboxFunctionMgr.Visible = false;
-                //Size = new System.Drawing.Size(Size.Width, _btnClearMemCache.Bottom + 4);
-                _gpboxFunctionMgr.Top -= 74;
-                Size = new System.Drawing.Size(Size.Width, _gpboxFunctionMgr.Bottom + 4);
             }
-            else
+            else if (Rhino.Runtime.HostUtils.RunningOnWindows)
             {
                 _hideWorkerWindows.Checked = HopsAppSettings.HideWorkerWindows;
                 _hideWorkerWindows.CheckedChanged += (s, e) =>
@@ -97,6 +61,52 @@ namespace Hops
                     Servers.LaunchChildComputeGeometry(numberToLaunch);
                 };
                 toolTip1.SetToolTip(_updateChildCountButton, "Click to force Rhino.Compute to update");
+            }
+
+            // Check to see if the Function Manager should be displayed
+            HopsAppSettings.CheckFunctionManagerStatus();
+            if (HopsAppSettings.ShowFunctionManager)
+            {
+                HopsAppSettings.InitFunctionSources();
+                HopsUIHelper.UpdateRows = false;
+                // use row height/margin for row height, otherwise top row grows larger the more rows there are.
+                var tempRow = new FunctionSourceRow("a", "a");
+                HopsUIHelper.RowHeight = (int)(tempRow.PreferredSize.Height + tempRow.Margin.Vertical / 2);
+                HopsUIHelper.MinGroupBoxHeight = (int)(_gpboxFunctionMgr.Height);
+                HopsUIHelper.MinControlHeight = (int)(Height + (_functionSourceTable.Height * 0.8));
+                _deleteFunctionSourceButton.Visible = false;
+                if (Rhino.Runtime.HostUtils.RunningOnOSX)
+                {
+                    // group boxes on mac take up more space, so adjust for that
+                    // (header is on a separate line, border is larger)
+                    HopsUIHelper.MinControlHeight = Height;
+                    var extraSpace = 19;
+                    HopsUIHelper.MinGroupBoxHeight += extraSpace;
+                    HopsUIHelper.MinControlHeight -= 32;
+                    _gpboxFunctionMgr.Height += extraSpace;
+                    _gpboxFunctionMgr.Top -= 74;
+                    Size = new System.Drawing.Size(Size.Width, _gpboxFunctionMgr.Bottom + 4);
+                }
+                
+                if (HopsAppSettings.FunctionSources.Count > 0)
+                {
+                    foreach (var row in HopsAppSettings.FunctionSources)
+                    {
+                        HopsUIHelper.AddRow(_functionSourceTable, row, false);
+                        if (_functionSourceTable.RowCount >= 1 && !_deleteFunctionSourceButton.Visible)
+                        {
+                            _deleteFunctionSourceButton.Visible = true;
+                            HopsUIHelper.UpdateRows = true;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Hide Function Mgr on older version of Rhino for macOS because they do not 
+                // handle the TableLayoutPanel correctly.
+                _gpboxFunctionMgr.Visible = false;
+                Size = new System.Drawing.Size(Size.Width, _btnClearMemCache.Bottom + 4);
             }
         }
 

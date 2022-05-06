@@ -22,6 +22,25 @@ namespace Hops
         
         public static List<FunctionSourceRow> FunctionSources { get; set; } = new List<FunctionSourceRow>();
 
+        public static bool ShowFunctionManager { get; set; } = true;
+
+        public static void CheckFunctionManagerStatus()
+        {
+            var ver = typeof(Rhino.RhinoApp).Assembly.GetName().Version;
+            if (Rhino.Runtime.HostUtils.RunningOnOSX)
+            {
+                if (ver.Major >= 8 || (ver.Major == 7 && ver.Minor >= 18))
+                {
+                    ShowFunctionManager = true;
+                }
+                else
+                {
+                    ShowFunctionManager = false;
+                }
+            }
+            ShowFunctionManager = true;
+        }
+
         public static string[] Servers
         {
             get
