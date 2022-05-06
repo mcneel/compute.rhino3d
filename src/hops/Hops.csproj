@@ -8,6 +8,7 @@
     <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
     <TargetExt>.gha</TargetExt>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <PdbFile Condition="$([MSBuild]::IsOSPlatform(OSX))">obj\Hops.gha.pdb</PdbFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <OutputPath>..\bin\Debug\</OutputPath>
@@ -82,4 +83,5 @@
   <PropertyGroup>
     <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
   </PropertyGroup>
+
 </Project>
