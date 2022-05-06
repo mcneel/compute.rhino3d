@@ -61,27 +61,6 @@ namespace compute.geometry
             return null;
         }
 
-        static void SetDefaultTolerances(double absoluteTolerance, double angleToleranceDegrees)
-        {
-            if (absoluteTolerance <= 0 || angleToleranceDegrees <= 0)
-                return;
-
-            var setDefaultTolerancesMethod = typeof(Grasshopper.Utility).GetMethod("SetDefaultTolerances", BindingFlags.Public | BindingFlags.Static);
-            if (setDefaultTolerancesMethod != null)
-                setDefaultTolerancesMethod.Invoke(null, new object[] { absoluteTolerance, angleToleranceDegrees });
-        }
-
-        static void SetDefaultUnits(string modelUnits)
-        {
-            if (String.IsNullOrEmpty(modelUnits))
-                return;
-
-            var setDefaultUnitsMethod = typeof(Grasshopper.Utility).GetMethod("SetDefaultUnits", BindingFlags.Public | BindingFlags.Static);
-
-            if (setDefaultUnitsMethod != null)
-                setDefaultUnitsMethod.Invoke(null, new object[] { modelUnits });
-        }
-
         static Response GrasshopperEndpoint(NancyContext ctx)
         {
             var _stopwatch = System.Diagnostics.Stopwatch.StartNew();
