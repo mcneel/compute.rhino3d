@@ -29,7 +29,7 @@ namespace Hops
             var ver = typeof(Rhino.RhinoApp).Assembly.GetName().Version;
             if (Rhino.Runtime.HostUtils.RunningOnOSX)
             {
-                if (ver.Major >= 8 || (ver.Major == 7 && ver.Minor >= 18))
+                if (ver.Major >= 8 || (ver.Major == 7 && ver.Minor >= 19))
                 {
                     ShowFunctionManager = true;
                 }
