@@ -2,7 +2,7 @@
 using System.IO;
 using System.Net;
 using System.Collections.Generic;
-using BH.Engine.RemoteCompute.RhinoCompute;
+using BH.Engine.RhinoCompute;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
 using Resthopper.IO;
@@ -13,10 +13,10 @@ namespace compute.geometry
 {
     partial class GrasshopperDefinition
     {
-        public FullRhinoComputeSchema SolveDefinition()
+        public ResthopperOutput SolveDefinition()
         {
             HasErrors = false;
-            FullRhinoComputeSchema result = new FullRhinoComputeSchema();
+            ResthopperOutput result = new ResthopperOutput();
 
             // solve definition
             GH_Document.Enabled = true;
@@ -54,11 +54,11 @@ namespace compute.geometry
                     outputTree.Add(path.ToString(), resthopperObjectList);
                 }
 
-                result.Values.Add(outputTree);
+                result.Data.Add(outputTree);
             }
 
-            if (result.Values.Count < 1)
-                throw new Exception("Looks like you've missed something..."); // TODO
+            if (result.Data.Count < 1)
+                throw new Exception("No output was returned."); // TODO
 
             return result;
         }

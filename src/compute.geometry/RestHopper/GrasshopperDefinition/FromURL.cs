@@ -2,7 +2,7 @@
 using System.IO;
 using System.Net;
 using System.Collections.Generic;
-using BH.Engine.RemoteCompute.RhinoCompute;
+using BH.Engine.RhinoCompute;
 
 using Rhino.Geometry;
 
@@ -23,39 +23,42 @@ namespace compute.geometry
 {
     partial class GrasshopperDefinition
     {
-        public static GrasshopperDefinition FromUrl(string url, bool cache)
+        public static GrasshopperDefinition FromUrl(Uri scriptUrl, bool cache)
         {
-            if (string.IsNullOrWhiteSpace(url))
+            if (scriptUrl == null)
                 return null;
 
-            // First check if the definition has been downloaded previously and is present in cache.
-            GrasshopperDefinition rc = DataCache.GetCachedDefinition(url);
+            string urlString = scriptUrl.ToString();
 
-            if (rc != null)
+            // First check if the definition has been downloaded previously and is present in cache.
+            GrasshopperDefinition rc = null;
+            if (DataCache.TryGetCachedDefinition(urlString, out rc))
             {
                 LogDebug("Using cached definition");
                 return rc;
             }
 
-            if (Guid.TryParse(url, out Guid componentId))
-            {
-                rc = Construct(componentId);
-            }
-            else
-            {
-                var archive = ArchiveFromUrl(url);
-                if (archive == null)
-                    return null;
+            var archive = ArchiveFromUrl(scriptUrl);
+            if (archive == null)
+                return null;
 
-                rc = Construct(archive);
-                rc.CacheKey = url;
-                rc.IsLocalFileDefinition = !url.StartsWith("http", StringComparison.OrdinalIgnoreCase) && File.Exists(url);
-            }
+            rc = ConstructAndSetIo(archive);
+            rc.CacheKey = urlString;
+            rc.IsLocalFileDefinition = !urlString.StartsWith("http", StringComparison.OrdinalIgnoreCase) && File.Exists(urlString);
+
             if (cache)
-            {
-                DataCache.SetCachedDefinition(url, rc, null);
-                rc.FoundInDataCache = true;
-            }
+                rc.StoredInCache = DataCache.CacheInMemory(urlString, rc);
+
+            return rc;
+        }
+
+        public static GrasshopperDefinition FromSingleComponentGuid(Guid componentId, bool cache)
+        {
+            GrasshopperDefinition rc = Construct(componentId);
+
+            if (cache)
+                rc.StoredInCache = DataCache.CacheInMemory(componentId.ToString(), rc);
+
             return rc;
         }
 

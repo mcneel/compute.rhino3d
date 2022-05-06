@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("BH.Engine.RemoteCompute.RhinoCompute")]
+[assembly: AssemblyTitle("BH.Engine.RhinoCompute")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("BH.Engine.RemoteCompute.RhinoCompute")]
+[assembly: AssemblyProduct("BH.Engine.RhinoCompute")]
 [assembly: AssemblyCopyright("Copyright ©  2022")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

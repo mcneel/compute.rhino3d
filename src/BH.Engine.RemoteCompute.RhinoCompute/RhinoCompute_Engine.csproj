@@ -7,8 +7,8 @@
     <ProjectGuid>{AAAB403E-3A80-4408-9932-B7819FB81DDE}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>BH.Engine.RemoteCompute.RhinoCompute</RootNamespace>
-    <AssemblyName>BH.Engine.RemoteCompute.RhinoCompute</AssemblyName>
+    <RootNamespace>BH.Engine.RhinoCompute</RootNamespace>
+    <AssemblyName>BH.Engine.RhinoCompute</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -33,6 +33,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="BH.Engine.RemoteCompute.RhinoCompute">
+      <HintPath>..\..\..\..\..\..\ProgramData\BHoM\Assemblies\BH.Engine.RemoteCompute.RhinoCompute.dll</HintPath>
+    </Reference>
     <Reference Include="BHoM_Engine">
       <HintPath>..\..\..\..\..\..\ProgramData\BHoM\Assemblies\BHoM_Engine.dll</HintPath>
     </Reference>
@@ -68,6 +71,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Convert\ToCsType.cs" />
+    <Compile Include="Query\ArchiveFromBase64String.cs" />
     <Compile Include="Query\DefaultValue.cs" />
     <Compile Include="Query\CorrespondingType.cs" />
     <Compile Include="Query\EquivalentRhinoType.cs" />

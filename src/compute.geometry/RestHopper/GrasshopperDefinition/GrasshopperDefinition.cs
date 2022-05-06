@@ -2,7 +2,7 @@
 using System.IO;
 using System.Net;
 using System.Collections.Generic;
-using BH.Engine.RemoteCompute.RhinoCompute;
+using BH.Engine.RhinoCompute;
 using Rhino.Geometry;
 using Grasshopper.Kernel;
 using BH.oM.RemoteCompute;
@@ -30,7 +30,7 @@ namespace compute.geometry
         public static uint WatchedFileRuntimeSerialNumber { get { return _watchedFileRuntimeSerialNumber; } }
 
         public string CacheKey { get; set; }
-        public bool FoundInDataCache { get; set; }
+        public bool StoredInCache { get; set; }
         public bool IsLocalFileDefinition { get; set; } = false;
 
         public bool HasErrors { get; private set; } = false;

@@ -48,6 +48,9 @@
     <PackageReference Include="Topshelf.Serilog" Version="4.1.0" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="BH.Engine.RemoteCompute.RhinoCompute">
+      <HintPath>..\..\..\..\..\..\ProgramData\BHoM\Assemblies\BH.Engine.RemoteCompute.RhinoCompute.dll</HintPath>
+    </Reference>
     <Reference Include="BH.UI.Grasshopper">
       <HintPath>..\..\..\..\..\..\ProgramData\BHoM\Assemblies\BH.UI.Grasshopper.dll</HintPath>
     </Reference>

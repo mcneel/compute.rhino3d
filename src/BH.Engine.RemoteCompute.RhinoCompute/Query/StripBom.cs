@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Grasshopper.Kernel;
 
-namespace BH.Engine.RemoteCompute.RhinoCompute
+namespace BH.Engine.RhinoCompute
 {
     public static partial class Query
     {
