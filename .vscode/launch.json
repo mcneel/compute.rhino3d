@@ -13,6 +13,32 @@
             },
             "cwd": "${workspaceFolder}",
             "console": "internalConsole"
+        },
+        {
+            "name": "Launch Hops (v7.17)",
+            "type": "rhino",
+            "request": "launch",
+            "preLaunchTask": "Build Hops",
+            "program": "/Applications/Rhino 7.17.app/Contents/MacOS/Rhinoceros",
+            "args": [],
+            "env": {
+                "GRASSHOPPER_PLUGINS": "${workspaceFolder}/src/hops/bin/Debug/Hops.gha"
+            },
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole"
+        },
+        {
+            "name": "Launch Hops (v7)",
+            "type": "rhino",
+            "request": "launch",
+            "preLaunchTask": "Build Hops",
+            "program": "/Applications/Rhino 7.app/Contents/MacOS/Rhinoceros",
+            "args": [],
+            "env": {
+                "GRASSHOPPER_PLUGINS": "${workspaceFolder}/src/hops/bin/Debug/Hops.gha"
+            },
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole"
         }
     ],
     "compounds": []

@@ -36,6 +36,7 @@ namespace Hops
                 else
                 {
                     ShowFunctionManager = false;
+                    return;
                 }
             }
             ShowFunctionManager = true;
