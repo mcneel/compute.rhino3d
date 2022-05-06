@@ -109,9 +109,6 @@ namespace compute.geometry
             if (definition == null)
                 throw new Exception("Unable to convert Base-64 encoded Grasshopper script to a GrasshopperDefinition object.");
 
-            SetDefaultTolerances(receivedSchema.AbsoluteTolerance, receivedSchema.AngleTolerance);
-            SetDefaultUnits(receivedSchema.ModelUnits);
-
             int recursionLevel = receivedSchema.RecursionLevel + 1;
             definition.GH_Document.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(recursionLevel));
 
