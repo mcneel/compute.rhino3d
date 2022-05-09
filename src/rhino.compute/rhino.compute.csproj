@@ -3,7 +3,7 @@
     <TargetFramework>net5.0</TargetFramework>
     <AssemblyName>rhino.compute</AssemblyName>
     <OutputType>Exe</OutputType>
-    <Platforms>x64</Platforms>
+    <Platforms>x64;AnyCPU</Platforms>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <ApplicationIcon>favicon.ico</ApplicationIcon>
     <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
