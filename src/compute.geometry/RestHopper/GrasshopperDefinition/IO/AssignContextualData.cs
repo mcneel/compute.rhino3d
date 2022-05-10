@@ -1,31 +1,18 @@
 ﻿using System;
-using System.IO;
-using System.Net;
 using System.Collections.Generic;
-using BH.Engine.RhinoCompute;
 
 using Rhino.Geometry;
 
 using Grasshopper.Kernel;
-using Grasshopper.Kernel.Data;
-using Grasshopper.Kernel.Parameters;
-using Grasshopper.Kernel.Special;
-using Grasshopper.Kernel.Types;
-using GH_IO.Serialization;
-
-using Resthopper.IO;
 using Newtonsoft.Json;
-using System.Linq;
-using Serilog;
-using System.Reflection;
-using BH.oM.RemoteCompute.RhinoCompute;
 using BH.oM.RemoteCompute;
+using BH.Engine.RemoteCompute.RhinoCompute;
 
 namespace compute.geometry
 {
-    partial class GrasshopperDefinition
+    partial class GrasshopperDefinitionUtils
     {
-        public bool AssignContextualData(IGH_Param ighParam, GrasshopperDataTree<ResthopperObject> tree)
+        static public bool AssignContextualData(IGH_Param ighParam, GrasshopperDataTree<ResthopperObject> tree)
         {
             IGH_ContextualParameter contextualParameter = ighParam as IGH_ContextualParameter;
             if (ighParam == null)
@@ -97,7 +84,7 @@ namespace compute.geometry
             return true;
         }
 
-        public void AssignContextualData<T>(IGH_ContextualParameter contextualParameter, GrasshopperDataTree<ResthopperObject> tree)
+        public static void AssignContextualData<T>(IGH_ContextualParameter contextualParameter, GrasshopperDataTree<ResthopperObject> tree)
         {
             foreach (KeyValuePair<string, List<ResthopperObject>> entry in tree)
             {

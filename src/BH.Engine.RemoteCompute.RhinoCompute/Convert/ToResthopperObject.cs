@@ -1,40 +1,24 @@
 ﻿using System;
-using System.IO;
-using System.Net;
-using System.Collections.Generic;
-using BH.Engine.RhinoCompute;
-
-using Rhino.Geometry;
-
-using Grasshopper.Kernel;
-using Grasshopper.Kernel.Data;
-using Grasshopper.Kernel.Parameters;
-using Grasshopper.Kernel.Special;
-using Grasshopper.Kernel.Types;
-using GH_IO.Serialization;
-
-using Resthopper.IO;
-using Newtonsoft.Json;
-using System.Linq;
-using Serilog;
-using System.Reflection;
-using BH.Engine.RemoteCompute;
 using BH.oM.RemoteCompute;
+using BH.oM.RemoteCompute.RhinoCompute;
+using Newtonsoft.Json;
 
-namespace compute.geometry
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
-    partial class GrasshopperDefinition
+    public static partial class Convert
     {
-        static ResthopperObject GetResthopperObject<T>(object gooValue)
+        public static ResthopperObject ToResthopperObject<T>(object gooValue)
         {
             var castedGoo = (T)gooValue;
+
             ResthopperObject rhObj = new ResthopperObject();
             rhObj.Type = gooValue.GetType().FullName;
             rhObj.Data = JsonConvert.SerializeObject(castedGoo, GeometryResolver.JsonSerializerSettings);
+
             return rhObj;
         }
 
-        static ResthopperObject GetResthopperObject(object goo)
+        public static ResthopperObject ToResthopperObject(object goo)
         {
             ResthopperObject result = new ResthopperObject();
 

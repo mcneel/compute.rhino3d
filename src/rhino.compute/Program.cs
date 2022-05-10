@@ -7,7 +7,6 @@ namespace rhino.compute
     using Microsoft.Extensions.Logging;
     using CommandLine;
     using Serilog;
-    using Serilog.Events;
     using Microsoft.Extensions.Configuration;
     using System.IO;
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using GH_IO.Serialization;
+using System.IO;
+using BH.Engine.RemoteCompute.RhinoCompute.Objects;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -48,15 +49,15 @@ namespace compute.geometry
                 return false;
 
             // Check in-memory cache
-            var def = System.Runtime.Caching.MemoryCache.Default.Get(key) as CachedDefinition;
+            var cachedDef = System.Runtime.Caching.MemoryCache.Default.Get(key) as CachedDefinition;
 
-            if (def != null)
+            if (cachedDef != null)
             {
-                rc = def.Definition;
+                rc = cachedDef.Definition;
 
-                if (def.Definition.IsLocalFileDefinition)
+                if (File.Exists(cachedDef.Definition.CacheKey))
                 {
-                    if (def.WatchedFileRuntimeSerialNumber != GrasshopperDefinition.WatchedFileRuntimeSerialNumber)
+                    if (cachedDef.WatchedFileRuntimeSerialNumber != FileWatcher.WatchedFileRuntimeSerialNumber)
                     {
                         System.Runtime.Caching.MemoryCache.Default.Remove(key);
                     }
@@ -73,7 +74,7 @@ namespace compute.geometry
                 try
                 {
                     string data = System.IO.File.ReadAllText(filename);
-                    rc = GrasshopperDefinition.FromBase64String(data, true);
+                    rc = GrasshopperDefinitionUtils.FromBase64String(data);
                     return true;
                 }
                 catch (Exception ex)
@@ -131,7 +132,7 @@ namespace compute.geometry
 
             if (cache.Definition.IsLocalFileDefinition)
             {
-                if (cache.WatchedFileRuntimeSerialNumber != GrasshopperDefinition.WatchedFileRuntimeSerialNumber)
+                if (cache.WatchedFileRuntimeSerialNumber != FileWatcher.WatchedFileRuntimeSerialNumber)
                 {
                     System.Runtime.Caching.MemoryCache.Default.Remove(key);
                     return null;
@@ -149,7 +150,7 @@ namespace compute.geometry
             var cache = new CachedResults
             {
                 Definition = definition,
-                WatchedFileRuntimeSerialNumber = GrasshopperDefinition.WatchedFileRuntimeSerialNumber,
+                WatchedFileRuntimeSerialNumber = FileWatcher.WatchedFileRuntimeSerialNumber,
                 Json = jsonResults
             };
 

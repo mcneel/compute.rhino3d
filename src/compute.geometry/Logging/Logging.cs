@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using BH.Engine.RemoteCompute.RhinoCompute;
+using Grasshopper.Kernel;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Json;
@@ -51,8 +53,10 @@ namespace compute.geometry
         {
             if (Errors != null)
                 Errors.Add(ex.Message);
+
             //if (!Config.Debug)
             //    return;
+
             if (ex?.Data != null)
             {
                 // TODO: skip useless keys once we figure out what those are
@@ -61,6 +65,17 @@ namespace compute.geometry
                     Log.Debug($"{key} : {{Data}}", ex.Data[key]);
                 }
             }
+        }
+
+        private static void LogRuntimeMessages(GH_Document gH_Document)
+        {
+            List<string> errors, warnings, remarks = new List<string>();
+
+            gH_Document.RuntimeMessages(out errors, out warnings, out remarks);
+
+            errors.ForEach(m => Serilog.Log.Error(m));
+            warnings.ForEach(m => Serilog.Log.Warning(m));
+            remarks.ForEach(m => Serilog.Log.Information(m));
         }
     }
 }

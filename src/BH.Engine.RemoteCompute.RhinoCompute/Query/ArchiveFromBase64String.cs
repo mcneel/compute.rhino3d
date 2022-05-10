@@ -1,11 +1,7 @@
 ﻿
 using GH_IO.Serialization;
-using BH.Engine.RhinoCompute;
-using System.Linq;
-using System.Reflection;
-using BH.Engine.RemoteCompute.RhinoCompute;
 
-namespace compute.geometry
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Query
     {
@@ -16,7 +12,7 @@ namespace compute.geometry
 
             byte[] byteArray = System.Convert.FromBase64String(base64string);
 
-            return BH.Engine.RemoteCompute.RhinoCompute.Query.GHArchive(byteArray);
+            return GHArchive(byteArray);
         }
     }
 }

@@ -1,29 +1,15 @@
-﻿using System;
-using System.IO;
-using System.Net;
+﻿using System.IO;
 using System.Collections.Generic;
-using BH.Engine.RhinoCompute;
-
-using Rhino.Geometry;
-
-using Grasshopper.Kernel;
-using Grasshopper.Kernel.Data;
-using Grasshopper.Kernel.Parameters;
-using Grasshopper.Kernel.Special;
-using Grasshopper.Kernel.Types;
-using GH_IO.Serialization;
-
-using Resthopper.IO;
-using Newtonsoft.Json;
-using System.Linq;
-using Serilog;
-using System.Reflection;
 
 namespace compute.geometry
 {
-    partial class GrasshopperDefinition
+    public static class FileWatcher
     {
-        static void RegisterFileWatcher(string path)
+        static Dictionary<string, FileSystemWatcher> _filewatchers = new Dictionary<string, FileSystemWatcher>();
+        static HashSet<string> _watchedFiles = new HashSet<string>();
+        public static uint WatchedFileRuntimeSerialNumber { get; private set; } = 1;
+
+        public static void RegisterFileWatcher(string path)
         {
             if (_filewatchers == null)
                 _filewatchers = new Dictionary<string, FileSystemWatcher>();
@@ -57,7 +43,7 @@ namespace compute.geometry
         {
             string path = e.FullPath.ToLowerInvariant();
             if (_watchedFiles.Contains(path))
-                _watchedFileRuntimeSerialNumber++;
+                WatchedFileRuntimeSerialNumber++;
         }
     }
 }

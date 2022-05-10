@@ -1,36 +1,18 @@
-﻿using System;
-using System.IO;
-using System.Net;
-using System.Collections.Generic;
-using BH.Engine.RhinoCompute;
-
-using Rhino.Geometry;
-
+﻿using BH.Engine.RemoteCompute.RhinoCompute.Objects;
+using BH.oM.RemoteCompute.RhinoCompute;
 using Grasshopper.Kernel;
-using Grasshopper.Kernel.Data;
-using Grasshopper.Kernel.Parameters;
-using Grasshopper.Kernel.Special;
-using Grasshopper.Kernel.Types;
-using GH_IO.Serialization;
-
-using Resthopper.IO;
-using Newtonsoft.Json;
-using System.Linq;
-using Serilog;
-using System.Reflection;
 
 namespace compute.geometry
 {
-    partial class GrasshopperDefinition
+    static partial class GrasshopperDefinitionUtils
     {
         private static void AddInput(GrasshopperDefinition rc, IGH_Param param, string inputName)
         {
             if (rc.Inputs.ContainsKey(inputName))
             {
                 string msg = "Multiple input parameters with the same name were detected. Parameter names must be unique.";
-                rc.HasErrors = true;
-                rc.ErrorMessages.Add(msg);
-                LogError(msg);
+                rc.Remarks.Add(msg);
+                Serilog.Log.Error(msg);
             }
             else
                 rc.Inputs[inputName] = new InputGroup(param);

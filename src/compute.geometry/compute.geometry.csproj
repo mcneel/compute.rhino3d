@@ -20,11 +20,6 @@
     <PublishDir>..\dist\$(AssemblyName)</PublishDir>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="Logging\**" />
-    <EmbeddedResource Remove="Logging\**" />
-    <None Remove="Logging\**" />
-  </ItemGroup>
-  <ItemGroup>
     <Compile Remove="RhinoCompute.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -32,7 +27,6 @@
     <EmbeddedResource Include="RhinoCompute.cs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="BHoM.UI" Version="2.3.0-beta" />
     <PackageReference Include="Microsoft.Owin.Cors" Version="4.0.1" />
     <PackageReference Include="Microsoft.Owin.Host.HttpListener" Version=" 4.0.1" />
     <PackageReference Include="Microsoft.Owin.Hosting" Version="4.0.1" />
@@ -48,15 +42,6 @@
     <PackageReference Include="Topshelf.Serilog" Version="4.1.0" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="BH.Engine.RemoteCompute.RhinoCompute">
-      <HintPath>..\..\..\..\..\..\ProgramData\BHoM\Assemblies\BH.Engine.RemoteCompute.RhinoCompute.dll</HintPath>
-    </Reference>
-    <Reference Include="BH.UI.Grasshopper">
-      <HintPath>..\..\..\..\..\..\ProgramData\BHoM\Assemblies\BH.UI.Grasshopper.dll</HintPath>
-    </Reference>
-    <Reference Include="BHoM">
-      <HintPath>..\..\..\..\..\..\ProgramData\BHoM\Assemblies\BHoM.dll</HintPath>
-    </Reference>
     <Reference Include="RemoteCompute_Engine">
       <HintPath>..\..\..\..\..\..\ProgramData\BHoM\Assemblies\RemoteCompute_Engine.dll</HintPath>
     </Reference>

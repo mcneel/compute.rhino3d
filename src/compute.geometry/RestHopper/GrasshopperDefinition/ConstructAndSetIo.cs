@@ -1,41 +1,18 @@
 ﻿using System;
-using System.IO;
-using System.Net;
-using System.Collections.Generic;
-using BH.Engine.RhinoCompute;
-
-using Rhino.Geometry;
-
 using Grasshopper.Kernel;
-using Grasshopper.Kernel.Data;
-using Grasshopper.Kernel.Parameters;
-using Grasshopper.Kernel.Special;
-using Grasshopper.Kernel.Types;
 using GH_IO.Serialization;
-
-using Resthopper.IO;
-using Newtonsoft.Json;
-using System.Linq;
 using Serilog;
-using System.Reflection;
 using BH.Engine.RemoteCompute.RhinoCompute;
+using BH.Engine.RemoteCompute.RhinoCompute.Objects;
+using BH.oM.RemoteCompute.RhinoCompute;
 
 namespace compute.geometry
 {
-    partial class GrasshopperDefinition
+    partial class GrasshopperDefinitionUtils
     {
         private static GrasshopperDefinition ConstructAndSetIo(GH_Archive archive)
         {
             GH_Document ghDocument = archive.GHDocument();
-
-            asdasd
-                /* TODOS:
-                 * 1) Implement RemoteComputeInputs/Outputs extraction from deserialized GH_Document directly in RemoteCompute_Prototypes solution,
-                 *    so that we can reuse the same functionality to provide the User with needed inputs and expected outputs.
-                 * 2) Reference such functionality in compute.geometry solution
-                 * 3) Test I/O
-                */
-
 
             try
             {
@@ -52,23 +29,12 @@ namespace compute.geometry
             // Set inputs and outputs.
             SetIO(rc);
 
-            string iconImageData = null;
-            var chunk = archive.GetRootNode.FindChunk("Definition");
-            if (chunk != null)
-            {
-                chunk = chunk.FindChunk("DefinitionProperties");
-                if (chunk != null)
-                {
-                    chunk.TryGetString("IconImageData", ref iconImageData);
-                }
-            }
-
             return rc;
         }
 
         // --------------------------------------------------------------------- //
 
-        private static GrasshopperDefinition Construct(Guid componentId)
+        private static GrasshopperDefinition ConstructAndSetIo(Guid componentId)
         {
             GH_Component component = Grasshopper.Instances.ComponentServer.EmitObject(componentId) as GH_Component;
             if (component == null)

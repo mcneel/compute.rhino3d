@@ -1,4 +1,6 @@
-﻿namespace compute.geometry
+﻿using BH.Engine.RemoteCompute.RhinoCompute.Objects;
+
+namespace compute.geometry
 {
     class CachedDefinition
     {

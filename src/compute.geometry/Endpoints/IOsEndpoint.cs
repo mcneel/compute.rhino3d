@@ -1,24 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using Nancy;
-using GH_IO.Serialization;
 using Grasshopper.Kernel;
-using Grasshopper.Kernel.Types;
 using Newtonsoft.Json;
-using Grasshopper.Kernel.Data;
 using Resthopper.IO;
-using Grasshopper.Kernel.Parameters;
-using Grasshopper.Kernel.Special;
-using Rhino.Geometry;
-using System.Net;
 using Nancy.Extensions;
-using System.Reflection;
 using System.Linq;
-using BH.oM.RemoteCompute.RhinoCompute;
-using static compute.geometry.GrasshopperDefinition;
-using BH.Engine.RhinoCompute;
 using BH.oM.RemoteCompute;
+using BH.Engine.RemoteCompute.RhinoCompute;
+using BH.Engine.RemoteCompute.RhinoCompute.Objects;
+using BH.oM.RemoteCompute.RhinoCompute;
 
 namespace compute.geometry
 {
@@ -27,6 +18,7 @@ namespace compute.geometry
         Response IOsEndpoint(NancyContext ctx, bool asPost)
         {
             GrasshopperDefinition definition;
+
             if (asPost)
             {
                 string body = ctx.Request.Body.AsString();
@@ -36,14 +28,14 @@ namespace compute.geometry
                 ResthopperInput input = JsonConvert.DeserializeObject<ResthopperInput>(body);
 
                 // load grasshopper file
-                definition = GrasshopperDefinition.FromUrl(new Uri(input.Script), true);
+                definition = GrasshopperDefinitionUtils.FromUrl(new Uri(input.Script));
                 if (definition == null)
-                    definition = GrasshopperDefinition.FromBase64String(input.Script, true);
+                    definition = GrasshopperDefinitionUtils.FromBase64String(input.Script);
             }
             else
             {
                 string url = Request.Query[nameof(ResthopperInput.Script)].ToString();
-                definition = GrasshopperDefinition.FromUrl(new Uri(url), true);
+                definition = GrasshopperDefinitionUtils.FromUrl(new Uri(url));
             }
 
             if (definition == null)
@@ -52,7 +44,7 @@ namespace compute.geometry
             IoResponse ioResponse = IoResponse(definition);
             ioResponse.CacheKey = definition.CacheKey;
 
-            foreach (var error in definition.ErrorMessages)
+            foreach (var error in definition.Errors)
                 ioResponse.Errors.Add(error);
 
             foreach (var error in Logging.Errors)
@@ -61,6 +53,7 @@ namespace compute.geometry
             string ioResponse_json = JsonConvert.SerializeObject(ioResponse);
             Response ioResponse_json_nancy = ioResponse_json;
             ioResponse_json_nancy.ContentType = "application/json";
+
             Logging.Warnings.Clear();
             Logging.Errors.Clear();
 
@@ -86,10 +79,10 @@ namespace compute.geometry
                 {
                     Name = input.Key,
                     ParamTypeName = input.Value.Param.ParamTypeName(),
-                    Description = input.Value.GetDescription(),
+                    Description = input.Value.Description(),
                     AtLeast = input.Value.GetAtLeast(),
                     AtMost = input.Value.GetAtMost(),
-                    Default = input.Value.GetDefault(),
+                    Default = input.Value.DefaultValue(),
                     Minimum = input.Value.GetMinimum(),
                     Maximum = input.Value.GetMaximum(),
                 };

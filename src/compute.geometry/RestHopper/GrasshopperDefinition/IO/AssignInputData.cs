@@ -1,40 +1,32 @@
-﻿using System;
-using System.IO;
-using System.Net;
-using System.Collections.Generic;
-using BH.Engine.RhinoCompute;
+﻿using System.Collections.Generic;
 using Rhino.Geometry;
-using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
 using Grasshopper.Kernel.Parameters;
 using Grasshopper.Kernel.Special;
 using Grasshopper.Kernel.Types;
-using GH_IO.Serialization;
-using Resthopper.IO;
 using Newtonsoft.Json;
-using System.Linq;
-using Serilog;
-using System.Reflection;
-using BH.oM.RemoteCompute.RhinoCompute;
 using BH.oM.RemoteCompute;
+using BH.Engine.RemoteCompute.RhinoCompute.Objects;
+using BH.Engine.RemoteCompute.RhinoCompute;
+using BH.oM.RemoteCompute.RhinoCompute;
 
 namespace compute.geometry
 {
-    partial class GrasshopperDefinition
+    partial class GrasshopperDefinitionUtils
     {
-        public void AssignInputData(List<GrasshopperDataTree<ResthopperObject>> inputsListTrees)
+        public static void AssignInputData(this GrasshopperDefinition rc, List<GrasshopperDataTree<ResthopperObject>> inputsListTrees)
         {
             foreach (GrasshopperDataTree<ResthopperObject> tree in inputsListTrees)
             {
                 // Make sure the input has been created before populating it with data.
                 // This is done via AddInput().
                 InputGroup inputGroup = null;
-                if (!Inputs.TryGetValue(tree.ParamName, out inputGroup))
+                if (!rc.Inputs.TryGetValue(tree.ParamName, out inputGroup))
                     continue;
 
                 if (inputGroup.IsAlreadySet(tree))
                 {
-                    LogDebug("Skipping input tree... same input");
+                    Serilog.Log.Debug("Skipping input tree... same input");
                     continue;
                 }
 

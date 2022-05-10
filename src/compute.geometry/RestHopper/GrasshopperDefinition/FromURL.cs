@@ -1,29 +1,12 @@
 ﻿using System;
 using System.IO;
-using System.Net;
-using System.Collections.Generic;
-using BH.Engine.RhinoCompute;
-
-using Rhino.Geometry;
-
-using Grasshopper.Kernel;
-using Grasshopper.Kernel.Data;
-using Grasshopper.Kernel.Parameters;
-using Grasshopper.Kernel.Special;
-using Grasshopper.Kernel.Types;
-using GH_IO.Serialization;
-
-using Resthopper.IO;
-using Newtonsoft.Json;
-using System.Linq;
-using Serilog;
-using System.Reflection;
+using BH.Engine.RemoteCompute.RhinoCompute.Objects;
 
 namespace compute.geometry
 {
-    partial class GrasshopperDefinition
+    partial class GrasshopperDefinitionUtils
     {
-        public static GrasshopperDefinition FromUrl(Uri scriptUrl, bool cache)
+        public static GrasshopperDefinition FromUrl(Uri scriptUrl, bool storeInCache = true)
         {
             if (scriptUrl == null)
                 return null;
@@ -34,19 +17,18 @@ namespace compute.geometry
             GrasshopperDefinition rc = null;
             if (DataCache.TryGetCachedDefinition(urlString, out rc))
             {
-                LogDebug("Using cached definition");
+                Serilog.Log.Debug("Using cached definition");
                 return rc;
             }
 
-            var archive = ArchiveFromUrl(scriptUrl);
+            var archive = Compute.ArchiveFromUrl(scriptUrl);
             if (archive == null)
                 return null;
 
             rc = ConstructAndSetIo(archive);
             rc.CacheKey = urlString;
-            rc.IsLocalFileDefinition = !urlString.StartsWith("http", StringComparison.OrdinalIgnoreCase) && File.Exists(urlString);
 
-            if (cache)
+            if (storeInCache)
                 rc.StoredInCache = DataCache.CacheInMemory(urlString, rc);
 
             return rc;
@@ -54,7 +36,7 @@ namespace compute.geometry
 
         public static GrasshopperDefinition FromSingleComponentGuid(Guid componentId, bool cache)
         {
-            GrasshopperDefinition rc = Construct(componentId);
+            GrasshopperDefinition rc = ConstructAndSetIo(componentId);
 
             if (cache)
                 rc.StoredInCache = DataCache.CacheInMemory(componentId.ToString(), rc);
