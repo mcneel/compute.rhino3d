@@ -4,8 +4,8 @@ using Newtonsoft.Json;
 using Nancy.Extensions;
 using BH.oM.RemoteCompute;
 using System.Linq;
-using BH.Engine.RemoteCompute.RhinoCompute.Objects;
 using BH.oM.RemoteCompute.RhinoCompute;
+using BH.Engine.RemoteCompute.RhinoCompute;
 
 namespace compute.geometry
 {

@@ -1,5 +1,5 @@
 ﻿using BH.Engine.RemoteCompute.RhinoCompute;
-using BH.Engine.RemoteCompute.RhinoCompute.Objects;
+using BH.oM.RemoteCompute.RhinoCompute;
 
 namespace compute.geometry
 {

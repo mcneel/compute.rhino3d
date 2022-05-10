@@ -1,8 +1,6 @@
-﻿using BH.Engine.RemoteCompute.RhinoCompute.Objects;
+﻿using BH.oM.RemoteCompute.RhinoCompute;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Special;
-using Grasshopper.Kernel.Types;
-using BH.oM.RemoteCompute.RhinoCompute;
 
 
 namespace BH.Engine.RemoteCompute.RhinoCompute

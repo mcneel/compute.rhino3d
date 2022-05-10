@@ -1,23 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.Linq;
+using BH.oM.RemoteCompute.RhinoCompute;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Special;
-using System.Linq;
-using BH.Engine.RemoteCompute.RhinoCompute.Objects;
 
-namespace compute.geometry
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
-    partial class GrasshopperDefinitionUtils
+    public static partial class Modify
     {
-        private static void SetIO(GrasshopperDefinition rc)
+        public static void SetIO(this GrasshopperDefinition rc)
         {
             IList<IGH_DocumentObject> documentObjects = rc.GH_Document.Objects;
 
             foreach (IGH_DocumentObject docObj in documentObjects)
                 SetIO(rc, docObj);
 
-            documentObjects.OfType<IGH_Param>().ToList().ForEach(p => AddInput(rc, p, p.NickName));
+            documentObjects.OfType<IGH_Param>().ToList().ForEach(p => rc.AddInput(p, p.NickName));
 
             //var bhomRemoteInputs = documentObjects.OfType<BH.UI.Grasshopper.Components.CreateObjectComponent>().Where(obj => obj.Name == "RemoteInput");
             //var bhomRemoteOutputs = documentObjects.OfType<BH.UI.Grasshopper.Components.CreateObjectComponent>().Where(obj => obj.Name == "RemoteOutput");
@@ -30,7 +29,7 @@ namespace compute.geometry
             {
                 IGH_Param param = docObj as IGH_Param;
                 if (param != null)
-                    AddInput(rc, param, param.NickName);
+                    rc.AddInput(param, param.NickName);
 
                 return;
             }
@@ -61,9 +60,7 @@ namespace compute.geometry
             {
                 var param = groupObjects[0] as IGH_Param;
                 if (param != null)
-                {
-                    AddInput(rc, param, groupName);
-                }
+                    rc.AddInput(param, groupName);
             }
 
             if (groupName.Contains("RH_OUT") && groupObjects.Count > 0)

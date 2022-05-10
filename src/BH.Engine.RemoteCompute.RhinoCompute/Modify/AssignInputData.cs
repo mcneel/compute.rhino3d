@@ -1,18 +1,18 @@
-﻿using System.Collections.Generic;
-using Rhino.Geometry;
+﻿using System;
+using System.Collections.Generic;
+using BH.oM.RemoteCompute.RhinoCompute;
+using BH.oM.RemoteCompute;
+using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
 using Grasshopper.Kernel.Parameters;
 using Grasshopper.Kernel.Special;
 using Grasshopper.Kernel.Types;
 using Newtonsoft.Json;
-using BH.oM.RemoteCompute;
-using BH.Engine.RemoteCompute.RhinoCompute.Objects;
-using BH.Engine.RemoteCompute.RhinoCompute;
-using BH.oM.RemoteCompute.RhinoCompute;
+using Rhino.Geometry;
 
-namespace compute.geometry
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
-    partial class GrasshopperDefinitionUtils
+    public static partial class Modify
     {
         public static void AssignInputData(this GrasshopperDefinition rc, List<GrasshopperDataTree<ResthopperObject>> inputsListTrees)
         {
@@ -25,10 +25,7 @@ namespace compute.geometry
                     continue;
 
                 if (inputGroup.IsAlreadySet(tree))
-                {
-                    Serilog.Log.Debug("Skipping input tree... same input");
                     continue;
-                }
 
                 inputGroup.DataTree = tree;
 
@@ -154,6 +151,21 @@ namespace compute.geometry
                 {
                     AssignVolatileData<bool, GH_Boolean>(inputGroup.Param, tree, c => new GH_Boolean(c));
                     continue;
+                }
+            }
+        }
+
+        private static void AssignVolatileData<RType, GHType>(this IGH_Param gH_Param, GrasshopperDataTree<ResthopperObject> dataTree, Func<RType, GHType> ghTypeCtor)
+        {
+            foreach (KeyValuePair<string, List<ResthopperObject>> entry in dataTree)
+            {
+                GH_Path path = new GH_Path(GrasshopperPath.FromString(entry.Key));
+                for (int i = 0; i < entry.Value.Count; i++)
+                {
+                    ResthopperObject restobj = entry.Value[i];
+                    RType rhinoData = JsonConvert.DeserializeObject<RType>(restobj.Data);
+                    GHType grasshopperData = ghTypeCtor(rhinoData);
+                    gH_Param.AddVolatileData(path, i, grasshopperData);
                 }
             }
         }

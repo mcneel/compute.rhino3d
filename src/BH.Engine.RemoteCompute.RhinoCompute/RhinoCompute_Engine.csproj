@@ -84,7 +84,11 @@
     <Compile Include="Compute\SolveDefinition.cs" />
     <Compile Include="Convert\ToResthopperObject.cs" />
     <Compile Include="Convert\ToCsType.cs" />
-    <Compile Include="Objects\GrasshopperDefinition.cs" />
+    <Compile Include="Modify\AssignContextualData.cs" />
+    <Compile Include="Modify\AddOutput.cs" />
+    <Compile Include="Modify\AssignInputData.cs" />
+    <Compile Include="Modify\SetIO.cs" />
+    <Compile Include="Modify\AddInput.cs" />
     <Compile Include="Query\ArchiveFromBase64String.cs" />
     <Compile Include="Query\RuntimeMessages.cs" />
     <Compile Include="Query\GetMaximum.cs" />
@@ -109,9 +113,7 @@
     <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Modify\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <ProjectReference Include="..\BH.oM.RemoteCompute.RhinoCompute\RhinoCompute_oM.csproj">
       <Project>{56a5f5ad-a351-416f-a9ca-3850536bc267}</Project>

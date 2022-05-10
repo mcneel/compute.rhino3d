@@ -1,4 +1,6 @@
-﻿namespace compute.geometry
+﻿using BH.oM.RemoteCompute.RhinoCompute;
+
+namespace compute.geometry
 {
     class CachedResults
     {

@@ -1,9 +1,4 @@
-﻿using System.Collections.Generic;
-using Grasshopper.Kernel;
-using Grasshopper.Kernel.Special;
-using Grasshopper.Kernel.Types;
-using System.Linq;
-using BH.oM.RemoteCompute;
+﻿using Grasshopper.Kernel;
 
 namespace BH.oM.RemoteCompute.RhinoCompute
 {

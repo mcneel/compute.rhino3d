@@ -76,6 +76,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GrasshopperDefinition.cs" />
     <Compile Include="GrasshopperRhinoTypes.cs" />
     <Compile Include="IGrasshopperDefinition.cs" />
     <Compile Include="Model\InputGroup.cs" />

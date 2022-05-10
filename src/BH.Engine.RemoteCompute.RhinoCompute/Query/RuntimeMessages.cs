@@ -1,10 +1,5 @@
-﻿using BH.Engine.RemoteCompute.RhinoCompute.Objects;
-using Grasshopper.Kernel;
-using Grasshopper.Kernel.Types;
-using BH.oM.RemoteCompute.RhinoCompute;
-using BH.oM.RemoteCompute;
+﻿using Grasshopper.Kernel;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace BH.Engine.RemoteCompute.RhinoCompute
 {
@@ -36,12 +31,11 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             return allObjsMessages;
         }
 
-
         public static List<string> RuntimeMessages(IGH_ActiveObject obj, GH_RuntimeMessageLevel messageLevel)
         {
             List<string> runtimeMessages = new List<string>();
 
-            foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Error))
+            foreach (var msg in obj.RuntimeMessages(messageLevel))
                 runtimeMessages.Add($"{messageLevel} message from component \"{obj.Name}\" ({obj.InstanceGuid}):\n\t{msg}");
 
             return runtimeMessages;

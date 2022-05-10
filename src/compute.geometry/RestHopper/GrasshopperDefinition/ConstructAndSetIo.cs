@@ -3,7 +3,6 @@ using Grasshopper.Kernel;
 using GH_IO.Serialization;
 using Serilog;
 using BH.Engine.RemoteCompute.RhinoCompute;
-using BH.Engine.RemoteCompute.RhinoCompute.Objects;
 using BH.oM.RemoteCompute.RhinoCompute;
 
 namespace compute.geometry
@@ -27,7 +26,7 @@ namespace compute.geometry
             GrasshopperDefinition rc = new GrasshopperDefinition(ghDocument);
 
             // Set inputs and outputs.
-            SetIO(rc);
+            rc.SetIO();
 
             return rc;
         }

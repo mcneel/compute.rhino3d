@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using BH.Engine.RemoteCompute.RhinoCompute.Objects;
+using BH.oM.RemoteCompute.RhinoCompute;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -130,7 +130,7 @@ namespace compute.geometry
             if (cache == null)
                 return null;
 
-            if (cache.Definition.IsLocalFileDefinition)
+            if (File.Exists(cache.Definition.CacheKey))
             {
                 if (cache.WatchedFileRuntimeSerialNumber != FileWatcher.WatchedFileRuntimeSerialNumber)
                 {

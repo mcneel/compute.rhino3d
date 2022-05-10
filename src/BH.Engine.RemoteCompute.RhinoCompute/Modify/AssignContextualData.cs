@@ -1,18 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-
-using Rhino.Geometry;
-
+﻿using System.Collections.Generic;
+using BH.oM.RemoteCompute;
 using Grasshopper.Kernel;
 using Newtonsoft.Json;
-using BH.oM.RemoteCompute;
-using BH.Engine.RemoteCompute.RhinoCompute;
+using Rhino.Geometry;
 
-namespace compute.geometry
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
-    partial class GrasshopperDefinitionUtils
+    public static partial class Modify
     {
-        static public bool AssignContextualData(IGH_Param ighParam, GrasshopperDataTree<ResthopperObject> tree)
+        public static bool AssignContextualData(this IGH_Param ighParam, GrasshopperDataTree<ResthopperObject> data)
         {
             IGH_ContextualParameter contextualParameter = ighParam as IGH_ContextualParameter;
             if (ighParam == null)
@@ -21,23 +17,23 @@ namespace compute.geometry
             switch (ighParam.ParamTypeName())
             {
                 case "Boolean":
-                    AssignContextualData<bool>(contextualParameter, tree);
+                    AssignContextualData<bool>(contextualParameter, data);
                     break;
                 case "Number":
-                    AssignContextualData<double>(contextualParameter, tree);
+                    AssignContextualData<double>(contextualParameter, data);
                     break;
                 case "Integer":
-                    AssignContextualData<int>(contextualParameter, tree);
+                    AssignContextualData<int>(contextualParameter, data);
                     break;
                 case "Point":
-                    AssignContextualData<Point3d>(contextualParameter, tree);
+                    AssignContextualData<Point3d>(contextualParameter, data);
                     break;
                 case "Line":
-                    AssignContextualData<Line>(contextualParameter, tree);
+                    AssignContextualData<Line>(contextualParameter, data);
                     break;
                 case "Text":
                     {
-                        foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
+                        foreach (KeyValuePair<string, List<ResthopperObject>> entree in data)
                         {
                             string[] strings = new string[entree.Value.Count];
                             for (int i = 0; i < entree.Value.Count; i++)
@@ -53,7 +49,7 @@ namespace compute.geometry
                                     // Use JsonConvert to properly unescape the string
                                     strings[i] = JsonConvert.DeserializeObject<string>(restobj.Data);
                                 }
-                                catch (Exception)
+                                catch 
                                 {
                                     strings[i] = System.Text.RegularExpressions.Regex.Unescape(restobj.Data);
                                 }
@@ -65,7 +61,7 @@ namespace compute.geometry
                     break;
                 case "Geometry":
                     {
-                        foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
+                        foreach (KeyValuePair<string, List<ResthopperObject>> entree in data)
                         {
                             GeometryBase[] geometries = new GeometryBase[entree.Value.Count];
                             for (int i = 0; i < entree.Value.Count; i++)
@@ -84,9 +80,9 @@ namespace compute.geometry
             return true;
         }
 
-        public static void AssignContextualData<T>(IGH_ContextualParameter contextualParameter, GrasshopperDataTree<ResthopperObject> tree)
+        public static void AssignContextualData<T>(IGH_ContextualParameter contextualParameter, GrasshopperDataTree<ResthopperObject> data)
         {
-            foreach (KeyValuePair<string, List<ResthopperObject>> entry in tree)
+            foreach (KeyValuePair<string, List<ResthopperObject>> entry in data)
             {
                 T[] values = new T[entry.Value.Count];
                 for (int i = 0; i < values.Length; i++)
