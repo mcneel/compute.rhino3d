@@ -102,9 +102,10 @@ class HopsBase:
             possible_icon_paths.append(icon_file_path)
         else:
             process_icon_file_path = op.join(os.getcwd(), icon_file_path)
-            sidecar_icon_file_path = op.join(resource_path, icon_file_path)
             possible_icon_paths.append(process_icon_file_path)
-            possible_icon_paths.append(sidecar_icon_file_path)
+            if resource_path:
+                sidecar_icon_file_path = op.join(resource_path, icon_file_path)
+                possible_icon_paths.append(sidecar_icon_file_path)
 
         for icon_path in possible_icon_paths:
             if op.exists(icon_path):
