@@ -20,6 +20,7 @@
  * along with this code. If not, see <https://www.gnu.org/licenses/lgpl-3.0.html>.      
  */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Grasshopper.Kernel;
@@ -29,18 +30,30 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Query
     {
-        //public static List<CreateObjectComponent> RemoteInputComponents(this GH_Document ghDocument)
-        //{
-        //    List<CreateObjectComponent> bhomRemoteInputs = ghDocument.Objects.OfType<CreateObjectComponent>().Where(obj => obj.Name == "RemoteInput").ToList();
-
-        //    return bhomRemoteInputs; //[0].Params.Input[0].Sources[0].
-        //}
-
         public static List<IGH_DocumentObject> RemoteInputComponents(this GH_Document ghDocument)
         {
-            var bhomRemoteInputs = ghDocument.Objects.OfType<IGH_DocumentObject>().Where(obj => obj.Name == "RemoteInput").ToList();
+            var bhomRemoteInputs = ghDocument.Objects.OfType<IGH_DocumentObject>()
+                .Where(obj => obj.IsRemoteInput())
+                .ToList();
 
-            return bhomRemoteInputs; //[0].Params.Input[0].Sources[0].
+            return bhomRemoteInputs; 
+        }
+
+        public static bool IsRemoteInput(this IGH_DocumentObject obj)
+        {
+            return obj?.Category == "BHoM" && obj.Name == nameof(BH.Engine.RemoteCompute.Create.RemoteInput);
+        }
+
+        public static string RemoteInputName(this IGH_DocumentObject obj)
+        {
+            GH_Component component = obj as GH_Component;
+            if (component == null)
+                return null; // TODO: Add error
+
+            if (!obj.IsRemoteInput())
+                throw new ArgumentException($"Expected a `{nameof(BH.Engine.RemoteCompute.Create.RemoteInput)}` but got a `{obj.Name}` instead.");
+
+            return component.Params.Input.FirstOrDefault().NickName;
         }
     }
 }

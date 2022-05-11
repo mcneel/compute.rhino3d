@@ -20,6 +20,7 @@
  * along with this code. If not, see <https://www.gnu.org/licenses/lgpl-3.0.html>.      
  */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Grasshopper.Kernel;
@@ -31,9 +32,28 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
     {
         public static List<IGH_DocumentObject> RemoteOutputComponents(this GH_Document ghDocument)
         {
-            List<IGH_DocumentObject> bhomRemoteInputs = ghDocument.Objects.OfType<IGH_DocumentObject>().Where(obj => obj.Name == "RemoteOutput").ToList();
+            List<IGH_DocumentObject> bhomRemoteInputs = ghDocument.Objects.OfType<IGH_DocumentObject>()
+                .Where(obj => obj.IsRemoteOutput())
+                .ToList();
 
             return bhomRemoteInputs;
+        }
+
+        public static bool IsRemoteOutput(this IGH_DocumentObject obj)
+        {
+            return obj?.Category == "BHoM" && obj.Name == nameof(BH.Engine.RemoteCompute.Create.RemoteOutput);
+        }
+
+        public static string RemoteOutputName(this IGH_DocumentObject obj)
+        {
+            GH_Component component = obj as GH_Component;
+            if (component == null)
+                return null; // TODO: Add error
+
+            if (!obj.IsRemoteOutput())
+                throw new ArgumentException($"Expected a `{nameof(BH.Engine.RemoteCompute.Create.RemoteOutput)}` but got a `{obj.Name}` instead.");
+
+            return component.Params.Output.FirstOrDefault().NickName;
         }
     }
 }

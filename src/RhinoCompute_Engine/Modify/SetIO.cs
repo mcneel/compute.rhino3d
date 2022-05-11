@@ -15,15 +15,24 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
             foreach (IGH_DocumentObject docObj in documentObjects)
                 SetIO(rc, docObj);
-
-            documentObjects.OfType<IGH_Param>().ToList().ForEach(p => rc.AddInput(p, p.NickName));
-
-            //var bhomRemoteInputs = documentObjects.OfType<BH.UI.Grasshopper.Components.CreateObjectComponent>().Where(obj => obj.Name == "RemoteInput");
-            //var bhomRemoteOutputs = documentObjects.OfType<BH.UI.Grasshopper.Components.CreateObjectComponent>().Where(obj => obj.Name == "RemoteOutput");
         }
 
         private static void SetIO(GrasshopperDefinition rc, IGH_DocumentObject docObj)
         {
+            if (docObj.IsRemoteInput())
+            {
+                var contextBaker = docObj as GH_Component;
+                IGH_Param param = contextBaker.Params.Input[0];
+                rc.AddInput(param, docObj.RemoteInputName());
+            }
+
+            if (docObj.IsRemoteOutput())
+            {
+                var contextBaker = docObj as GH_Component;
+                IGH_Param param = contextBaker.Params.Output[0];
+                rc.AddOutput(param, docObj.RemoteOutputName());
+            }
+
             IGH_ContextualParameter contextualParam = docObj as IGH_ContextualParameter;
             if (contextualParam != null)
             {
@@ -36,18 +45,11 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
             Type docObjType = docObj.GetType();
             var className = docObjType.Name;
-            if (className == "ContextBakeComponent")
+            if (className == "ContextBakeComponent" || className == "ContextPrintComponent")
             {
                 var contextBaker = docObj as GH_Component;
                 IGH_Param param = contextBaker.Params.Input[0];
-                AddOutput(rc, param, param.NickName);
-            }
-
-            if (className == "ContextPrintComponent")
-            {
-                var contextPrinter = docObj as GH_Component;
-                IGH_Param param = contextPrinter.Params.Input[0];
-                AddOutput(rc, param, param.NickName);
+                rc.AddOutput(param, param.NickName);
             }
 
             GH_Group group = docObj as GH_Group;
@@ -67,7 +69,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             {
                 if (groupObjects[0] is IGH_Param param)
                 {
-                    AddOutput(rc, param, groupName);
+                    rc.AddOutput(param, groupName);
                 }
                 else if (groupObjects[0] is GH_Component component)
                 {
@@ -76,12 +78,12 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     {
                         if (1 == outputCount)
                         {
-                            AddOutput(rc, component.Params.Output[i], groupName);
+                            rc.AddOutput(component.Params.Output[i], groupName);
                         }
                         else
                         {
                             string itemName = $"{groupName} ({component.Params.Output[i].NickName})";
-                            AddOutput(rc, component.Params.Output[i], itemName);
+                            rc.AddOutput(component.Params.Output[i], itemName);
                         }
                     }
                 }

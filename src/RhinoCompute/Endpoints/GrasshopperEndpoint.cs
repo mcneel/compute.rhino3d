@@ -91,10 +91,10 @@ namespace compute.geometry
             outputSchema_nancy.ContentType = "application/json";
             outputSchema_nancy = outputSchema_nancy.WithHeader("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
 
-            if (definition.Remarks.Any())
+            if (definition.Remarks.Any()) // TODO: Errors should be here
             {
                 outputSchema_nancy.StatusCode = Nancy.HttpStatusCode.InternalServerError;
-                outputSchema_nancy.ReasonPhrase = "Errors:\n\t" + string.Join("\n\t", definition.Remarks);
+                outputSchema_nancy.ReasonPhrase = "Errors:\n\t" + string.Join("\n\t", definition.Remarks); // TODO: Errors should be here
             }
             else
                 if (resthopperInput.StoreOutputsInCache)

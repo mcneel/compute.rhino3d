@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using Nancy;
@@ -82,7 +83,11 @@ namespace compute.geometry
 
         private byte[] LoadFavIcon()
         {
-            using (var resourceStream = GetType().Assembly.GetManifestResourceStream("compute.geometry.favicon.ico"))
+            string iconResourceName = GetType().Assembly.GetManifestResourceNames().Where(r => r.EndsWith("favicon.ico")).FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(iconResourceName))
+                return null;
+
+            using (var resourceStream = GetType().Assembly.GetManifestResourceStream(iconResourceName))
             {
                 var memoryStream = new System.IO.MemoryStream();
                 resourceStream.CopyTo(memoryStream);

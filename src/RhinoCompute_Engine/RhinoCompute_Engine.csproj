@@ -115,7 +115,7 @@
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
-    <ProjectReference Include="..\BH.oM.RemoteCompute.RhinoCompute\RhinoCompute_oM.csproj">
+    <ProjectReference Include="..\RhinoCompute_oM\RhinoCompute_oM.csproj">
       <Project>{56a5f5ad-a351-416f-a9ca-3850536bc267}</Project>
       <Name>RhinoCompute_oM</Name>
     </ProjectReference>
