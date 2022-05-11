@@ -37,37 +37,37 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
                 if (inputGroup.Param is Param_Point)
                 {
-                    AssignVolatileData<Point3d, GH_Point>(inputGroup.Param, tree, c => new GH_Point(c));
+                    AssignVolatileData<Point3d, GH_Point>(inputGroup.Param, tree);
                     continue;
                 }
 
                 if (inputGroup.Param is Param_Vector)
                 {
-                    AssignVolatileData<Vector3d, GH_Vector>(inputGroup.Param, tree, c => new GH_Vector(c));
+                    AssignVolatileData<Vector3d, GH_Vector>(inputGroup.Param, tree);
                     continue;
                 }
 
                 if (inputGroup.Param is Param_Integer)
                 {
-                    AssignVolatileData<int, GH_Integer>(inputGroup.Param, tree, c => new GH_Integer(c));
+                    AssignVolatileData<int, GH_Integer>(inputGroup.Param, tree);
                     continue;
                 }
 
                 if (inputGroup.Param is Param_Number)
                 {
-                    AssignVolatileData<double, GH_Number>(inputGroup.Param, tree, c => new GH_Number(c));
+                    AssignVolatileData<double, GH_Number>(inputGroup.Param, tree);
                     continue;
                 }
 
                 if (inputGroup.Param is Param_String || inputGroup.Param is GH_Panel)
                 {
-                    AssignVolatileData<string, GH_String>(inputGroup.Param, tree, c => new GH_String(c));
+                    AssignVolatileData<string, GH_String>(inputGroup.Param, tree);
                     continue;
                 }
 
                 if (inputGroup.Param is Param_Line)
                 {
-                    AssignVolatileData<Line, GH_Line>(inputGroup.Param, tree, c => new GH_Line(c));
+                    AssignVolatileData<Line, GH_Line>(inputGroup.Param, tree);
                     continue;
                 }
 
@@ -100,62 +100,62 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
                 if (inputGroup.Param is Param_Circle)
                 {
-                    AssignVolatileData<Circle, GH_Circle>(inputGroup.Param, tree, c => new GH_Circle(c));
+                    AssignVolatileData<Circle, GH_Circle>(inputGroup.Param, tree);
                     continue;
                 }
 
                 if (inputGroup.Param is Param_Plane)
                 {
-                    AssignVolatileData<Plane, GH_Plane>(inputGroup.Param, tree, c => new GH_Plane(c));
+                    AssignVolatileData<Plane, GH_Plane>(inputGroup.Param, tree);
                     continue;
                 }
 
                 if (inputGroup.Param is Param_Rectangle)
                 {
-                    AssignVolatileData<Rectangle3d, GH_Rectangle>(inputGroup.Param, tree, c => new GH_Rectangle(c));
+                    AssignVolatileData<Rectangle3d, GH_Rectangle>(inputGroup.Param, tree);
                     continue;
                 }
 
                 if (inputGroup.Param is Param_Box)
                 {
-                    AssignVolatileData<Box, GH_Box>(inputGroup.Param, tree, c => new GH_Box(c));
+                    AssignVolatileData<Box, GH_Box>(inputGroup.Param, tree);
 
                     continue;
                 }
 
                 if (inputGroup.Param is Param_Surface)
                 {
-                    AssignVolatileData<Surface, GH_Surface>(inputGroup.Param, tree, c => new GH_Surface(c));
+                    AssignVolatileData<Surface, GH_Surface>(inputGroup.Param, tree);
                     continue;
                 }
 
                 if (inputGroup.Param is Param_Brep)
                 {
-                    AssignVolatileData<Brep, GH_Brep>(inputGroup.Param, tree, c => new GH_Brep(c));
+                    AssignVolatileData<Brep, GH_Brep>(inputGroup.Param, tree);
                     continue;
                 }
 
                 if (inputGroup.Param is Param_Mesh)
                 {
-                    AssignVolatileData<Mesh, GH_Mesh>(inputGroup.Param, tree, c => new GH_Mesh(c));
+                    AssignVolatileData<Mesh, GH_Mesh>(inputGroup.Param, tree);
                     continue;
                 }
 
                 if (inputGroup.Param is GH_NumberSlider)
                 {
-                    AssignVolatileData<double, GH_Number>(inputGroup.Param, tree, c => new GH_Number(c));
+                    AssignVolatileData<double, GH_Number>(inputGroup.Param, tree);
                     continue;
                 }
 
                 if (inputGroup.Param is Param_Boolean || inputGroup.Param is GH_BooleanToggle)
                 {
-                    AssignVolatileData<bool, GH_Boolean>(inputGroup.Param, tree, c => new GH_Boolean(c));
+                    AssignVolatileData<bool, GH_Boolean>(inputGroup.Param, tree);
                     continue;
                 }
             }
         }
 
-        private static void AssignVolatileData<RType, GHType>(this IGH_Param gH_Param, GrasshopperDataTree<ResthopperObject> dataTree, Func<RType, GHType> ghTypeCtor)
+        private static void AssignVolatileData<RType, GHType>(this IGH_Param gH_Param, GrasshopperDataTree<ResthopperObject> dataTree) where GHType : class
         {
             foreach (KeyValuePair<string, List<ResthopperObject>> entry in dataTree)
             {
@@ -164,7 +164,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 {
                     ResthopperObject restobj = entry.Value[i];
                     RType rhinoData = JsonConvert.DeserializeObject<RType>(restobj.Data);
-                    GHType grasshopperData = ghTypeCtor(rhinoData);
+                    GHType grasshopperData = Activator.CreateInstance(typeof(GHType), new object[] { rhinoData }) as GHType; // new GHType(rhinoData);
                     gH_Param.AddVolatileData(path, i, grasshopperData);
                 }
             }
