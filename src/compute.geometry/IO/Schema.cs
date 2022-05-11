@@ -63,6 +63,7 @@ namespace Resthopper.IO
         public string Description { get; set; }
         public int AtLeast { get; set; } = 1;
         public int AtMost { get; set; } = int.MaxValue;
+        public bool TreeAccess { get; set; } = false;
         public object Default { get; set; } = null;
         public object Minimum { get; set; } = null;
         public object Maximum { get; set; } = null;
@@ -81,8 +82,12 @@ namespace Resthopper.IO
         public List<string> Errors { get; set; } = new List<string>();
     }
 
-    public class LastHTTP
+    public class HTTPRecord
     {
+        public HTTPRecord()
+        {
+
+        }
         public string IORequest { get; set; }
         public string IOResponse { get; set; }
         public string SolveRequest { get; set; }

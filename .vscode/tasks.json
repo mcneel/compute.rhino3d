@@ -1,0 +1,17 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Hops",
+            "command": "dotnet build ${workspaceFolder}/src/hops/Hops.csproj",
+            "type": "shell",
+            "args": [],
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "reveal": "always",
+                "clear": true
+            },
+            "group": "build"
+        }
+    ]
+}

@@ -2,18 +2,19 @@
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
     <OutputType>Library</OutputType>
-    <Platforms>x64</Platforms>
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <UseWindowsForms>true</UseWindowsForms>
     <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
     <TargetExt>.gha</TargetExt>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <PdbFile Condition="$([MSBuild]::IsOSPlatform(OSX))">obj\Hops.gha.pdb</PdbFile>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
     <OutputPath>..\bin\Debug\</OutputPath>
     <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
     <OutputPath>..\bin\Release\</OutputPath>
     <PublishDir>..\dist\</PublishDir>
   </PropertyGroup>
@@ -23,6 +24,13 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
   </PropertyGroup>
+  <ItemGroup>
+    <None Remove="resources\Close_Toolbar_Active_20x20.png" />
+    <None Remove="resources\edit_16x16.png" />
+    <None Remove="resources\Hops_Function_Mgr_24x24.png" />
+    <None Remove="resources\Hops_Function_Mgr_48x48.png" />
+    <None Remove="resources\Open_Toolbar_Active_20x20.png" />
+  </ItemGroup>
   <ItemGroup>
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Runtime.Caching" />
@@ -46,13 +54,18 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="resources\Close_Toolbar_Active_20x20.png" />
     <EmbeddedResource Include="resources\ComputeLogo_24x24.png" />
+    <EmbeddedResource Include="resources\edit_16x16.png" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="resources\Hops_24x24.png" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="resources\Hops_48x48.png" />
+    <EmbeddedResource Include="resources\Hops_Function_Mgr_24x24.png" />
+    <EmbeddedResource Include="resources\Hops_Function_Mgr_48x48.png" />
+    <EmbeddedResource Include="resources\Open_Toolbar_Active_20x20.png" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="manifest.yml" Condition="'$(Configuration)' == 'Release'">
@@ -67,4 +80,8 @@
     <StartArguments></StartArguments>
     <StartAction>Program</StartAction>
   </PropertyGroup>
+  <PropertyGroup>
+    <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
+  </PropertyGroup>
+
 </Project>

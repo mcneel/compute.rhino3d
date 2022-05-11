@@ -249,7 +249,7 @@ namespace rhino.compute
                     return success;
                 }
             }
-            catch(Exception ex)
+            catch(Exception)
             {
                 return false;
             }
