@@ -1,6 +1,7 @@
 """Base types for Hops middleware"""
 import sys
 import traceback
+import os
 import os.path as op
 import inspect
 import json
@@ -93,14 +94,28 @@ class HopsBase:
         # return json formatted string of component metadata
         return json.dumps(comp, cls=_HopsEncoder)
 
-    def _prepare_icon(self, icon_file_path):
+    def _prepare_icon(self, resource_path, icon_file_path):
         # return icon data in base64 for embedding in http results
-        if not op.exists(icon_file_path):
-            hlogger.error("Can not find icon file at %s", icon_file_path)
+        # determine possible icon paths
+        possible_icon_paths = []
+        if op.isabs(icon_file_path) and op.exists(icon_file_path):
+            possible_icon_paths.append(icon_file_path)
         else:
-            with open(icon_file_path, "rb") as image_file:
-                base64_bytes = base64.b64encode(image_file.read())
-                return base64_bytes.decode("ascii")
+            process_icon_file_path = op.join(os.getcwd(), icon_file_path)
+            sidecar_icon_file_path = op.join(resource_path, icon_file_path)
+            possible_icon_paths.append(process_icon_file_path)
+            possible_icon_paths.append(sidecar_icon_file_path)
+
+        for icon_path in possible_icon_paths:
+            if op.exists(icon_path):
+                with open(icon_path, "rb") as image_file:
+                    base64_bytes = base64.b64encode(image_file.read())
+                    return base64_bytes.decode("ascii")
+
+        hlogger.error(
+            "Can not find icon file at %s",
+            ", ".join(possible_icon_paths)
+        )
 
     def _process_solve_request(self, comp, payload) -> Tuple[bool, str]:
         # parse payload for inputs
@@ -193,6 +208,14 @@ class HopsBase:
         """Decorator for Hops middleware"""
 
         def __func_wrapper__(comp_func):
+            # determine path of the caller file
+            # this is used for resource resolution
+            frame = inspect.stack()[1]
+            module = inspect.getmodule(frame[0])
+            resource_path = None
+            if module and module.__file__:
+                resource_path = op.dirname(module.__file__)
+
             # register python func as Hops component
             if inputs:
                 # inspect default parameters in function signature
@@ -221,7 +244,7 @@ class HopsBase:
                 desc=description or comp_func.__doc__,
                 cat=category or DEFAULT_CATEGORY,
                 subcat=subcategory or DEFAULT_SUBCATEGORY,
-                icon=self._prepare_icon(icon) if icon is not None else None,
+                icon=self._prepare_icon(resource_path, icon) if icon is not None else None,
                 inputs=inputs or [],
                 outputs=outputs or [],
                 handler=comp_func,
