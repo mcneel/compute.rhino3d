@@ -98,7 +98,7 @@ class HopsBase:
         # return icon data in base64 for embedding in http results
         # determine possible icon paths
         possible_icon_paths = []
-        if op.isabs(icon_file_path) and op.exists(icon_file_path):
+        if op.isabs(icon_file_path):
             possible_icon_paths.append(icon_file_path)
         else:
             process_icon_file_path = op.join(os.getcwd(), icon_file_path)
@@ -237,6 +237,10 @@ class HopsBase:
             # determine name, and uri
             comp_name = name or comp_func.__qualname__
             uri = rule or f"/{comp_name}"
+            # grab icon data
+            icon_data = None
+            if icon:
+                icon_data = self._prepare_icon(resource_path, icon)
             # create component instance
             comp = HopsComponent(
                 uri=uri,
@@ -245,7 +249,7 @@ class HopsBase:
                 desc=description or comp_func.__doc__,
                 cat=category or DEFAULT_CATEGORY,
                 subcat=subcategory or DEFAULT_SUBCATEGORY,
-                icon=self._prepare_icon(resource_path, icon) if icon is not None else None,
+                icon=icon_data,
                 inputs=inputs or [],
                 outputs=outputs or [],
                 handler=comp_func,
