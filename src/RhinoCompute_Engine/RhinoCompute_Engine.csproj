@@ -82,6 +82,8 @@
   <ItemGroup>
     <Compile Include="Compute\ArchiveFromUrl.cs" />
     <Compile Include="Compute\SolveDefinition.cs" />
+    <Compile Include="Convert\FromBHoM.cs" />
+    <Compile Include="Convert\ToBHoM.cs" />
     <Compile Include="Convert\ToResthopperObject.cs" />
     <Compile Include="Convert\ToCsType.cs" />
     <Compile Include="Modify\AssignContextualData.cs" />
@@ -90,6 +92,7 @@
     <Compile Include="Modify\SetIO.cs" />
     <Compile Include="Modify\AddInput.cs" />
     <Compile Include="Query\ArchiveFromBase64String.cs" />
+    <Compile Include="Query\IsNullOrEmpty.cs" />
     <Compile Include="Query\RuntimeMessages.cs" />
     <Compile Include="Query\GetMaximum.cs" />
     <Compile Include="Query\IsAlreadySet.cs" />

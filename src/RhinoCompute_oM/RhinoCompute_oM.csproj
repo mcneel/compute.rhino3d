@@ -79,6 +79,7 @@
     <Compile Include="GrasshopperDefinition.cs" />
     <Compile Include="GrasshopperRhinoTypes.cs" />
     <Compile Include="IGrasshopperDefinition.cs" />
+    <Compile Include="Model\FormerSchema.cs" />
     <Compile Include="Model\InputGroup.cs" />
     <Compile Include="Model\InputParam.cs" />
     <Compile Include="Model\IoParam.cs" />

@@ -36,7 +36,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return result;
             }
 
-            Type equivalentRhinoType = gooType.EquivalentRhinoType();
+            Type equivalentRhinoType = gooType.EquivalentRhinoType(false);
 
             if (equivalentRhinoType != null)
             {

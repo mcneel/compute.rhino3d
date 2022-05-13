@@ -19,6 +19,20 @@ namespace compute.geometry
 
             ResthopperInput input = JsonConvert.DeserializeObject<ResthopperInput>(body);
 
+            bool usingFormerSchema = false;
+            if (input.IsNullOrEmpty())
+            {
+                input = JsonConvert.DeserializeObject<FormerSchema>(body).ToBHoM();
+                usingFormerSchema = !input.IsNullOrEmpty();
+            }
+
+            if (input.IsNullOrEmpty())
+            {
+                Response errorResponse = new Response();
+                errorResponse.StatusCode = Nancy.HttpStatusCode.BadRequest;
+                errorResponse.ReasonPhrase = "Could not deserialize provided input.";
+            }
+
             if (input.StoreOutputsInCache)
             {
                 // look in the cache to see if this has already been solved
@@ -41,13 +55,13 @@ namespace compute.geometry
             if (input.RecursionLevel == 0)
                 lock (_ghsolvelock)
                 {
-                    return GrasshopperSolveHelper(input, body);
+                    return GrasshopperSolveHelper(input, body, usingFormerSchema);
                 }
             else
-                return GrasshopperSolveHelper(input, body); // we can't block on recursive calls
+                return GrasshopperSolveHelper(input, body, usingFormerSchema); // we can't block on recursive calls
         }
 
-        static Response GrasshopperSolveHelper(ResthopperInput resthopperInput, string body)
+        static Response GrasshopperSolveHelper(ResthopperInput resthopperInput, string body, bool usingFormerSchema = false)
         {
             GrasshopperDefinition definition = null;
 
@@ -83,7 +97,12 @@ namespace compute.geometry
             outputSchema.ScriptCacheKey = definition.CacheKey;
 
             // Serialize result.
-            string outputSchema_json = JsonConvert.SerializeObject(outputSchema, GeometryResolver.JsonSerializerSettings);
+            string outputSchema_json = "";
+            if (!usingFormerSchema)
+                outputSchema_json = JsonConvert.SerializeObject(outputSchema, GeometryResolver.JsonSerializerSettings);
+            else
+                outputSchema_json = JsonConvert.SerializeObject(outputSchema.FromBHoM(), GeometryResolver.JsonSerializerSettings);
+
             long encodeTime = _stopwatch.ElapsedMilliseconds;
 
             // Set up response.
@@ -91,13 +110,7 @@ namespace compute.geometry
             outputSchema_nancy.ContentType = "application/json";
             outputSchema_nancy = outputSchema_nancy.WithHeader("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
 
-            if (definition.Remarks.Any()) // TODO: Errors should be here
-            {
-                outputSchema_nancy.StatusCode = Nancy.HttpStatusCode.InternalServerError;
-                outputSchema_nancy.ReasonPhrase = "Errors:\n\t" + string.Join("\n\t", definition.Remarks); // TODO: Errors should be here
-            }
-            else
-                if (resthopperInput.StoreOutputsInCache)
+            if (resthopperInput.StoreOutputsInCache)
                 DataCache.SetCachedSolveResults(body, outputSchema_json, definition);
 
             return outputSchema_nancy;

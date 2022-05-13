@@ -164,7 +164,8 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 {
                     ResthopperObject restobj = entry.Value[i];
                     RType rhinoData = JsonConvert.DeserializeObject<RType>(restobj.Data);
-                    GHType grasshopperData = Activator.CreateInstance(typeof(GHType), new object[] { rhinoData }) as GHType; // new GHType(rhinoData);
+
+                    GHType grasshopperData = Activator.CreateInstance(typeof(GHType), new object[] { rhinoData }) as GHType;
                     gH_Param.AddVolatileData(path, i, grasshopperData);
                 }
             }
