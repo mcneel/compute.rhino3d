@@ -115,16 +115,23 @@ namespace Hops
         }
 
         public int SolveSerialNumber => _solveSerialNumber;
-        public HTTPRecord HTTPRecord;
+
+        HTTPRecord _httpRecord;
+        public HTTPRecord HTTPRecord
+        {
+            get
+            {
+                if (_httpRecord == null)
+                    _httpRecord = new HTTPRecord();
+                return _httpRecord; 
+            }
+        }
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             if (!_enabledThisSolve)
                 return;
             _iteration++;
-
-            if (HTTPRecord == null)
-                HTTPRecord = new HTTPRecord();
 
             // Limit recursive calls on compute
             if (_isHeadless && _solveRecursionLevel > HopsAppSettings.RecursionLimit)
