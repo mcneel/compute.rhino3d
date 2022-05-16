@@ -41,8 +41,6 @@ Write-Host "Root Script Path:" $PSScriptRoot
 & "$PSScriptRoot\module_rhino.ps1"
 & "$PSScriptRoot\module_firewall.ps1"
 & "$PSScriptRoot\module_iis_install.ps1"
-& "$PSScriptRoot\module_compute.ps1"
-& "$PSScriptRoot\module_hostingbundle.ps1"
 
 Write-Step 'Restart Windows to complete setup!'
 Write-Host 'Rebooting in 5 seconds...'
