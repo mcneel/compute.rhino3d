@@ -331,7 +331,7 @@ namespace compute.geometry
                 IGH_ContextualParameter contextualParameter = inputGroup.Param as IGH_ContextualParameter;
                 if(contextualParameter != null)
                 {
-                    var treeAccess = (bool)contextualParameter.GetType().GetProperty("TreeAccess")?.GetValue(contextualParameter, null);
+                    var treeAccess = Convert.ToBoolean(contextualParameter.GetType().GetProperty("TreeAccess")?.GetValue(contextualParameter, null));
                     if (contextualParameter != null)
                     {
                         switch (ParamTypeName(inputGroup.Param))
