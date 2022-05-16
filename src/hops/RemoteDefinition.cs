@@ -204,8 +204,6 @@ namespace Hops
                 requestContent += "\"Method\": \"POST" + "\"," + Environment.NewLine;
                 requestContent += "\"Content\": " + inputJson  + Environment.NewLine;
                 requestContent += "}";
-                if(_parentComponent.HTTPRecord == null)
-                    _parentComponent.HTTPRecord = new HTTPRecord();
                 _parentComponent.HTTPRecord.IORequest = requestContent;
                 var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
                 HttpClient client = new HttpClient();
