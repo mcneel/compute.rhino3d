@@ -23,6 +23,8 @@ Write-Host @"
   #                                       #
   #    B O O T S T R A P   S C R I P T    #
   #                                       #
+  #                STEP 2                 #
+  #                                       #
   # # # # # # # # # # # # # # # # # # # # #
 "@
 
