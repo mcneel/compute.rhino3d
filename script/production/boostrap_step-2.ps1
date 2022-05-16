@@ -38,5 +38,7 @@ if ($os -notlike '*server*') {
 Write-Host "Root Script Path:" $PSScriptRoot
 
 # These scripts should be run in this order
+& "$PSScriptRoot\module_compute.ps1"
+& "$PSScriptRoot\module_hostingbundle.ps1"
 & "$PSScriptRoot\module_iis_configure.ps1"
 
