@@ -2,10 +2,9 @@
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
 using BH.oM.RemoteCompute;
-using BH.Engine.RemoteCompute.RhinoCompute;
 using BH.oM.RemoteCompute.RhinoCompute;
 
-namespace compute.geometry
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Compute
     {

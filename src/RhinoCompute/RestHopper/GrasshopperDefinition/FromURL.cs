@@ -1,4 +1,6 @@
 ﻿using System;
+using BH.Engine.RemoteCompute;
+using BH.Engine.RemoteCompute.RhinoCompute;
 using BH.oM.RemoteCompute.RhinoCompute;
 
 namespace compute.geometry
@@ -20,7 +22,7 @@ namespace compute.geometry
                 return rc;
             }
 
-            var archive = Compute.ArchiveFromUrl(scriptUrl);
+            var archive = BH.Engine.RemoteCompute.RhinoCompute.Compute.GHArchiveFromUrl(scriptUrl);
             if (archive == null)
                 return null;
 

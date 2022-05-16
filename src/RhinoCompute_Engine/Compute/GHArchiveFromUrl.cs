@@ -4,14 +4,14 @@ using System.Net;
 using GH_IO.Serialization;
 using BH.Engine.RemoteCompute.RhinoCompute;
 
-namespace compute.geometry
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Compute
     {
         /// <summary>
         /// Performs a GET request to the specified url, then tries to decompress and deserialize the response.
         /// </summary>
-        public static GH_Archive ArchiveFromUrl(Uri uri)
+        public static GH_Archive GHArchiveFromUrl(Uri uri)
         {
             string url = uri.ToString();
             if (url == null || !url.StartsWith("http", StringComparison.OrdinalIgnoreCase))

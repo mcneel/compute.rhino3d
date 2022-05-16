@@ -7,7 +7,7 @@ namespace compute.geometry
     {
         public static GrasshopperDefinition FromBase64String(string base64string, bool cacheToDisk = true)
         {
-            var archive = base64string.ArchiveFromBase64String();
+            var archive = base64string.GHArchiveFromBase64String();
             if (archive == null)
                 return null;
 
