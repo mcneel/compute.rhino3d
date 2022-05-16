@@ -885,7 +885,7 @@ namespace Hops
             }
             else
             {
-                CollectDataHelper<T>(DA, inputName, access, ref inputCount, dataTree);
+                CollectDataHelper<T>(DA, inputName, access, ref inputCount, dataTree, true);
             }
         }
 
@@ -914,7 +914,7 @@ namespace Hops
             }
             else
             {
-                CollectDataHelper<T>(DA, inputName, access, ref inputCount, dataTree);
+                CollectDataHelper<T>(DA, inputName, access, ref inputCount, dataTree, true);
             }
         }
 
