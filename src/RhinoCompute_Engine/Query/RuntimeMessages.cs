@@ -31,12 +31,28 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             return allObjsMessages;
         }
 
-        public static List<string> RuntimeMessages(IGH_ActiveObject obj, GH_RuntimeMessageLevel messageLevel)
+        public static List<string> RuntimeMessages(IGH_ActiveObject obj, GH_RuntimeMessageLevel messageLevel, bool skipFirstNullErrorForBHoMComponents = true)
         {
             List<string> runtimeMessages = new List<string>();
 
-            foreach (var msg in obj.RuntimeMessages(messageLevel))
-                runtimeMessages.Add($"{messageLevel} message from component \"{obj.Name}\" ({obj.InstanceGuid}):\n\t{msg}");
+            IList<string> messages = obj.RuntimeMessages(messageLevel);
+
+            // For some reason, all BHoM components return the following error, even if their computation works.
+            // For now, we avoid reporting the first occurrence of this error on BHoM components. 
+            // This obviously brings risks as we could miss to report true positives.
+            // TODO: discover why.
+            string nullErrorText = "Solution exception:Object reference not set to an instance of an object.";
+
+            foreach (var msg in messages)
+            {
+                if (skipFirstNullErrorForBHoMComponents && obj.GetType().FullName.StartsWith("BH.UI") && msg == nullErrorText)
+                {
+                    skipFirstNullErrorForBHoMComponents = false;
+                    continue;
+                }
+
+                runtimeMessages.Add($"{messageLevel} message from component named `{obj.Name}`, instance GUID `{obj.InstanceGuid}`, type {obj.GetType().FullName}:\n\t{msg}");
+            }
 
             return runtimeMessages;
         }
