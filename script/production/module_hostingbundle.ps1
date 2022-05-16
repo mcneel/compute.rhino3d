@@ -37,9 +37,6 @@ $result = Start-Process -FilePath $hb_installer_filepath -ArgumentList '/repair'
 If($result.Exitcode -Eq 0)
 {
     Write-Output "$hb_intaller_filename installed"
-    Write-Step 'Restarting IIS services'
-    net stop was /y
-    net start w3svc
 }
 else {
     Write-Output "Something went wrong with the installation. Errorlevel: ${result.ExitCode}"
