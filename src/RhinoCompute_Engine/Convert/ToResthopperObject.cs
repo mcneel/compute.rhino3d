@@ -25,6 +25,9 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             Type gooType = goo.GetType();
             result.Type = gooType.FullName;
 
+            if (result.Type.StartsWith("BH.UI"))
+                result.Type = (goo as dynamic).Value.GetType().AssemblyQualifiedName;
+
             dynamic gooValue = null;
 
             try
