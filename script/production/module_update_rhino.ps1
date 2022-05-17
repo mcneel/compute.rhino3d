@@ -1,6 +1,3 @@
-# Setup/Install script for installing Rhino
-#Requires -RunAsAdministrator
-
 param (
     [Parameter(Mandatory=$true)][string] $EmailAddress
 )
