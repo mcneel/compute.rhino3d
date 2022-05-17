@@ -865,26 +865,42 @@ namespace Hops
             ref int inputCount,
             DataTree<ResthopperObject> dataTree)
         {
-            if (access == GH_ParamAccess.tree)
+            var tree = new Grasshopper.Kernel.Data.GH_Structure<GH_Point>();
+            switch (access)
             {
-                var tree = new Grasshopper.Kernel.Data.GH_Structure<GH_Point>();
-                if (DA.GetDataTree(inputName, out tree))
-                {
-                    foreach (var path in tree.Paths)
+                case GH_ParamAccess.item:
+                    GH_Point t = default(GH_Point);
+                    if (DA.GetData(inputName, ref t))
                     {
-                        string pathString = path.ToString();
-                        var items = tree[path];
-                        foreach (var item in items)
+                        dataTree.Append(new ResthopperObject(t.Value), "0");
+                    }
+                    break;
+                case GH_ParamAccess.list:
+                    List<GH_Point> list = new List<GH_Point>();
+                    if (DA.GetDataList(inputName, list))
+                    {
+                        foreach (var item in list)
                         {
-                            dataTree.Append(new ResthopperObject(item.Value), pathString);
+                            dataTree.Append(new ResthopperObject(item.Value), "0");
                         }
                     }
-                }
+                    break;
+                case GH_ParamAccess.tree:
+                    if (DA.GetDataTree(inputName, out tree))
+                    {
+                        foreach (var path in tree.Paths)
+                        {
+                            string pathString = path.ToString();
+                            var items = tree[path];
+                            foreach (var item in items)
+                            {
+                                dataTree.Append(new ResthopperObject(item.Value), pathString);
+                            }
+                        }
+                    }
+                    break;
             }
-            else
-            {
-                CollectDataHelper<T>(DA, inputName, access, ref inputCount, dataTree, true);
-            }
+
         }
 
         static void CollectDataHelperGeometryBase<T>(IGH_DataAccess DA,
@@ -893,26 +909,43 @@ namespace Hops
             ref int inputCount,
             DataTree<ResthopperObject> dataTree)
         {
-            if (access == GH_ParamAccess.tree)
+            var tree = new Grasshopper.Kernel.Data.GH_Structure<IGH_GeometricGoo>();
+            switch (access)
             {
-                var tree = new Grasshopper.Kernel.Data.GH_Structure<IGH_GeometricGoo>();
-                if (DA.GetDataTree(inputName, out tree))
-                {
-                    foreach (var path in tree.Paths)
+                case GH_ParamAccess.item:
+                    IGH_GeometricGoo t = default(IGH_GeometricGoo);
+                    if (DA.GetData(inputName, ref t))
                     {
-                        string pathString = path.ToString();
-                        var items = tree[path];
-                        foreach (var item in items)
+                        var gb = Grasshopper.Kernel.GH_Convert.ToGeometryBase(t);
+                        dataTree.Append(new ResthopperObject(gb), "0");
+                    }
+                    break;
+                case GH_ParamAccess.list:
+                    List<IGH_GeometricGoo> list = new List<IGH_GeometricGoo>();
+                    if (DA.GetDataList(inputName, list))
+                    {
+                        foreach (var item in list)
                         {
                             var gb = Grasshopper.Kernel.GH_Convert.ToGeometryBase(item);
-                            dataTree.Append(new ResthopperObject(gb), pathString);
+                            dataTree.Append(new ResthopperObject(gb), "0");
                         }
                     }
-                }
-            }
-            else
-            {
-                CollectDataHelper<T>(DA, inputName, access, ref inputCount, dataTree, true);
+                    break;
+                case GH_ParamAccess.tree:
+                    if (DA.GetDataTree(inputName, out tree))
+                    {
+                        foreach (var path in tree.Paths)
+                        {
+                            string pathString = path.ToString();
+                            var items = tree[path];
+                            foreach (var item in items)
+                            {
+                                var gb = Grasshopper.Kernel.GH_Convert.ToGeometryBase(item);
+                                dataTree.Append(new ResthopperObject(gb), pathString);
+                            }
+                        }
+                    }
+                    break;
             }
         }
 
