@@ -49,11 +49,11 @@ $latest = $artifacts[0]
 $artifactID = $latest.id
 $downloadurl = "$nightlyPrefix/$actionurl/$artifactID.zip"
 
-if (-Not (Test-Path -Path $appDirectory)){
-    New-Item $appDirectory -ItemType Directory
+if (-Not (Test-Path -Path $physicalPathRoot)){
+    New-Item $physicalPathRoot -ItemType Directory
 }
 
-if ((Test-Path $appDirectory)) {
+if ((Test-Path $physicalPathRoot)) {
     Write-Step "Download and unzip latest build of compute from $downloadurl"
     Download $downloadurl "$physicalPathRoot/compute.zip"
     Expand-Archive "$physicalPathRoot/compute.zip" -DestinationPath $physicalPathRoot
