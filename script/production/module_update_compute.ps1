@@ -4,6 +4,7 @@
 $physicalPathRoot = "C:\inetpub\wwwroot\aspnet_client\system_web\4_0_30319"
 $rhinoComputePath = "$physicalPathRoot\rhino.compute"
 $computeGeometryPath = "$physicalPathRoot\compute.geometry"
+$websiteName = "Rhino.Compute"
 
 #Region funcs
 function Write-Step { 
@@ -35,8 +36,10 @@ Write-Host @"
 Write-Step "Stopping any IIS services that are running"
 net stop was /y
 
-Write-Step "Removing any existing Rhino.Compute build directories"
-Remove-Item -LiteralPath $physicalPathRoot -Force -Recurse
+if ((Test-Path -Path $physicalPathRoot)) {
+    Write-Step "Removing any existing Rhino.Compute build directories"
+    Remove-Item -LiteralPath $physicalPathRoot -Force -Recurse
+}
 
 $gitPrefix = 'https://api.github.com/repos'
 $nightlyPrefix = 'https://nightly.link'
@@ -53,9 +56,13 @@ if (-Not (Test-Path -Path $physicalPathRoot)){
     New-Item $physicalPathRoot -ItemType Directory
 }
 
-if ((Test-Path $physicalPathRoot)) {
+if ((Test-Path -Path $physicalPathRoot)) {
     Write-Step "Download and unzip latest build of compute from $downloadurl"
     Download $downloadurl "$physicalPathRoot/compute.zip"
     Expand-Archive "$physicalPathRoot/compute.zip" -DestinationPath $physicalPathRoot
     Remove-Item "$physicalPathRoot/compute.zip"
 }
+
+Write-Step "Starting the IIS Service"
+net start w3svc
+Start-IISSite -Name $websiteName
