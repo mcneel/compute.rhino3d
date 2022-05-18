@@ -16,7 +16,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Modify
     {
-        public static void AssignInputData(this GrasshopperDefinition rc, List<GrasshopperDataTree<ResthopperObject>> inputsListTrees)
+        public static void AssignInputData(this GrasshopperDefinition rc, List<ResthopperInputTree> inputsListTrees)
         {
             if (inputsListTrees == null)
                 return;
@@ -25,7 +25,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             {
                 GrasshopperDataTree<ResthopperObject> tree = inputsListTrees[i];
                 if (!rc.AssignInputData(tree))
-                    Log.RecordError($"Could not assign the input named `{tree.ParamName}` at input list index {i}.");
+                    Log.RecordError($"Could not assign the input named `{tree.ParamName}` from input list, index {i}.", false, true);
             }
         }
 
@@ -36,7 +36,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             InputGroup inputGroup = null;
             if (!rc.Inputs.TryGetValue(tree.ParamName, out inputGroup))
             {
-                Log.RecordError($"Input `{tree.ParamName}` does not appear to exist in this script. Check the spelling.");
+                Log.RecordError($"Input `{tree.ParamName}` does not appear to exist in this script. Check the spelling and the names of the available inputs for this script.");
                 return false;
             }
 

@@ -41,7 +41,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
         public static bool IsRemoteOutput(this IGH_DocumentObject obj)
         {
-            return obj?.Category == "BHoM" && obj.Name == nameof(BH.Engine.RemoteCompute.Create.RemoteOutput);
+            return obj?.Category == "BHoM" && obj.Name == nameof(BH.Engine.RemoteCompute.Create.RemoteOUT);
         }
 
         public static string RemoteOutputName(this IGH_DocumentObject obj)
@@ -51,7 +51,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return null; // TODO: Add error
 
             if (!obj.IsRemoteOutput())
-                throw new ArgumentException($"Expected a `{nameof(BH.Engine.RemoteCompute.Create.RemoteOutput)}` but got a `{obj.Name}` instead.");
+                throw new ArgumentException($"Expected a `{nameof(BH.Engine.RemoteCompute.Create.RemoteOUT)}` but got a `{obj.Name}` instead.");
 
             return component.Params.Output.FirstOrDefault().NickName;
         }

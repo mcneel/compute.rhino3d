@@ -1,4 +1,5 @@
-﻿using BH.oM.RemoteCompute;
+﻿using System.Linq;
+using BH.oM.RemoteCompute;
 using BH.oM.RemoteCompute.RhinoCompute;
 
 namespace BH.Engine.RemoteCompute.RhinoCompute
@@ -12,7 +13,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
             ResthopperInput result = new ResthopperInput()
             {
-                Data = formerSchema.Values,
+                Data = formerSchema.Values.Select(v => new ResthopperInputTree() { InnerTree = v.InnerTree, ParamName = v.ParamName }).ToList(),
                 RecursionLevel = formerSchema.RecursionLevel,
                 Script = string.IsNullOrWhiteSpace(formerSchema.Pointer) ? formerSchema.Algo : formerSchema.Pointer,
                 StoreOutputsInCache = formerSchema.CacheSolve

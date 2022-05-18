@@ -41,7 +41,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
         public static bool IsRemoteInput(this IGH_DocumentObject obj)
         {
-            return obj?.Category == "BHoM" && obj.Name == nameof(BH.Engine.RemoteCompute.Create.RemoteInput);
+            return obj?.Category == "BHoM" && obj.Name == nameof(BH.Engine.RemoteCompute.Create.RemoteIN);
         }
 
         public static string RemoteInputName(this IGH_DocumentObject obj)
@@ -51,7 +51,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return null; // TODO: Add error
 
             if (!obj.IsRemoteInput())
-                throw new ArgumentException($"Expected a `{nameof(BH.Engine.RemoteCompute.Create.RemoteInput)}` but got a `{obj.Name}` instead.");
+                throw new ArgumentException($"Expected a `{nameof(BH.Engine.RemoteCompute.Create.RemoteIN)}` but got a `{obj.Name}` instead.");
 
             return component.Params.Input.FirstOrDefault().NickName;
         }
