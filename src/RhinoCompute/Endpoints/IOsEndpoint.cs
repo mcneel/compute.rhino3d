@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Nancy;
 using Grasshopper.Kernel;
 using Newtonsoft.Json;
-using Resthopper.IO;
 using Nancy.Extensions;
 using System.Linq;
 using BH.oM.RemoteCompute;
@@ -24,12 +23,10 @@ namespace compute.geometry
                 if (body.StartsWith("[") && body.EndsWith("]"))
                     body = body.Substring(1, body.Length - 2);
 
-                ResthopperInput input = JsonConvert.DeserializeObject<ResthopperInput>(body);
+                ResthopperInput resthopperInput = JsonConvert.DeserializeObject<ResthopperInput>(body);
 
-                // load grasshopper file
-                definition = GrasshopperDefinitionUtils.FromUrl(new Uri(input.Script));
-                if (definition == null)
-                    definition = GrasshopperDefinitionUtils.FromBase64String(input.Script);
+                if (!resthopperInput.TryCreateGrasshopperDefinition(out definition))
+                    return null;
             }
             else
             {

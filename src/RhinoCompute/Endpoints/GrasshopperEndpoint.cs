@@ -64,21 +64,8 @@ namespace compute.geometry
         static Response GrasshopperSolveHelper(ResthopperInput resthopperInput, string body, bool usingFormerSchema = false)
         {
             GrasshopperDefinition definition = null;
-
-            if (string.IsNullOrWhiteSpace(resthopperInput.Script))
-                throw new Exception("Missing script input.");
-
-            Uri scriptUrl = null;
-            if (Uri.TryCreate(resthopperInput.Script, UriKind.Absolute, out scriptUrl))
-                definition = GrasshopperDefinitionUtils.FromUrl(scriptUrl);
-
-            if (definition == null)
-            {
-                definition = GrasshopperDefinitionUtils.FromBase64String(resthopperInput.Script);
-
-                if (definition == null)
-                    throw new Exception("Unable to convert Base-64 encoded Grasshopper script to a GrasshopperDefinition object.");
-            }
+            if (!resthopperInput.TryCreateGrasshopperDefinition(out definition))
+                return null;
 
             _stopwatch = System.Diagnostics.Stopwatch.StartNew();
             int recursionLevel = resthopperInput.RecursionLevel + 1;
