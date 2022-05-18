@@ -1448,29 +1448,53 @@ namespace compute.geometry
                 return _default;
             }
 
-            public object GetMinimum()
+            public double? GetMinimum()
             {
                 var p = Param;
-                if (p is IGH_ContextualParameter && p.Sources.Count == 1)
+                if (p is IGH_ContextualParameter)
                 {
-                    p = p.Sources[0];
+                    var par = p as IGH_ContextualParameter;
+                    var pType = par.GetType();
+                    var props = pType.GetProperties(BindingFlags.NonPublic | BindingFlags.Instance);
+                    var info = props.FirstOrDefault(x => x.Name == "Minimum");
+                    if(info != null)
+                    {
+                        var val = info.GetValue(par, null);
+                        if (val != null)
+                            return Convert.ToDouble(val);
+                    }
+
+                    if (p.Sources.Count == 1)
+                        p = p.Sources[0];
                 }
 
                 if (p is GH_NumberSlider paramSlider)
-                    return paramSlider.Slider.Minimum;
+                    return (double)paramSlider.Slider.Minimum;
                 return null;
             }
 
-            public object GetMaximum()
+            public double? GetMaximum()
             {
                 var p = Param;
-                if (p is IGH_ContextualParameter && p.Sources.Count == 1)
+                if (p is IGH_ContextualParameter)
                 {
-                    p = p.Sources[0];
+                    var par = p as IGH_ContextualParameter;
+                    var pType = par.GetType();
+                    var props = pType.GetProperties(BindingFlags.NonPublic | BindingFlags.Instance);
+                    var info = props.FirstOrDefault(x => x.Name == "Maximum");
+                    if(info != null)
+                    {
+                        var val = info.GetValue(par, null);
+                        if (val != null)
+                            return Convert.ToDouble(val);
+                    }
+
+                    if (p.Sources.Count == 1)
+                        p = p.Sources[0];
                 }
 
                 if (p is GH_NumberSlider paramSlider)
-                    return paramSlider.Slider.Maximum;
+                    return (double)paramSlider.Slider.Maximum;
 
                 return null;
             }
