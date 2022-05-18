@@ -84,6 +84,7 @@
     <Compile Include="Compute\GHArchiveFromUrl.cs" />
     <Compile Include="Compute\SolveDefinition.cs" />
     <Compile Include="Convert\FromBHoM\ResthopperOutput.cs" />
+    <Compile Include="Convert\GHParamToRhinoType.cs" />
     <Compile Include="Convert\ToBHoM\FormerSchema.cs" />
     <Compile Include="Convert\ToResthopperObject.cs" />
     <Compile Include="Modify\AssignContextualData.cs" />
@@ -102,8 +103,8 @@
     <Compile Include="Query\Description.cs" />
     <Compile Include="Query\DefaultValue.cs" />
     <Compile Include="Query\CorrespondingType.cs" />
-    <Compile Include="Query\EquivalentRhinoType.cs" />
-    <Compile Include="Query\EquivalentGrasshopperType.cs" />
+    <Compile Include="Convert\GHToRhinoType.cs" />
+    <Compile Include="Convert\RhinoToGHType.cs" />
     <Compile Include="Query\GHArchive.cs" />
     <Compile Include="Query\GHDocument.cs" />
     <Compile Include="Query\RemoteInputComponents.cs" />

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using BH.oM.RemoteCompute;
 using Grasshopper.Kernel;
 using Newtonsoft.Json;
@@ -8,90 +9,93 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Modify
     {
-        public static bool AssignContextualData(this IGH_Param ighParam, GrasshopperDataTree<ResthopperObject> data)
+        public static bool AssignContextualData(this IGH_ContextualParameter contextualParameter, string paramTypeName, GrasshopperDataTree<ResthopperObject> data)
         {
-            IGH_ContextualParameter contextualParameter = ighParam as IGH_ContextualParameter;
-            if (ighParam == null)
+            if (contextualParameter == null || string.IsNullOrEmpty(paramTypeName))
                 return false;
 
-            switch (ighParam.ParamTypeName())
+            switch (paramTypeName)
             {
                 case "Boolean":
-                    AssignContextualData<bool>(contextualParameter, data);
-                    break;
+                    return AssignContextualDataGeneric<bool>(contextualParameter, data);
                 case "Number":
-                    AssignContextualData<double>(contextualParameter, data);
-                    break;
+                    return AssignContextualDataGeneric<double>(contextualParameter, data);
                 case "Integer":
-                    AssignContextualData<int>(contextualParameter, data);
-                    break;
+                    return AssignContextualDataGeneric<int>(contextualParameter, data);
                 case "Point":
-                    AssignContextualData<Point3d>(contextualParameter, data);
-                    break;
+                    return AssignContextualDataGeneric<Point3d>(contextualParameter, data);
                 case "Line":
-                    AssignContextualData<Line>(contextualParameter, data);
-                    break;
+                    return AssignContextualDataGeneric<Line>(contextualParameter, data);
                 case "Text":
+                    foreach (KeyValuePair<string, List<ResthopperObject>> entry in data)
                     {
-                        foreach (KeyValuePair<string, List<ResthopperObject>> entree in data)
+                        string[] strings = new string[entry.Value.Count];
+                        for (int i = 0; i < entry.Value.Count; i++)
                         {
-                            string[] strings = new string[entree.Value.Count];
-                            for (int i = 0; i < entree.Value.Count; i++)
+                            ResthopperObject restobj = entry.Value[i];
+                            // 2 July 2021 S. Baer (Github issue #394)
+                            // This is pretty hacky and I wish I understood json.net a bit more
+                            // to figure out why it is throwing exceptions in certain cases.
+                            // I'm hoping to support both embedded json inside of other json as
+                            // well as plain strings.
+                            try
                             {
-                                ResthopperObject restobj = entree.Value[i];
-                                // 2 July 2021 S. Baer (Github issue #394)
-                                // This is pretty hacky and I wish I understood json.net a bit more
-                                // to figure out why it is throwing exceptions in certain cases.
-                                // I'm hoping to support both embedded json inside of other json as
-                                // well as plain strings.
-                                try
-                                {
-                                    // Use JsonConvert to properly unescape the string
-                                    strings[i] = JsonConvert.DeserializeObject<string>(restobj.Data);
-                                }
-                                catch 
-                                {
-                                    strings[i] = System.Text.RegularExpressions.Regex.Unescape(restobj.Data);
-                                }
+                                // Use JsonConvert to properly unescape the string
+                                strings[i] = JsonConvert.DeserializeObject<string>(restobj.Data);
                             }
-                            contextualParameter.AssignContextualData(strings);
-                            break;
+                            catch
+                            {
+                                strings[i] = System.Text.RegularExpressions.Regex.Unescape(restobj.Data);
+                            }
                         }
+                        contextualParameter.AssignContextualData(strings);
+                        break;
                     }
-                    break;
+                    return true;
                 case "Geometry":
+                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in data)
                     {
-                        foreach (KeyValuePair<string, List<ResthopperObject>> entree in data)
+                        GeometryBase[] geometries = new GeometryBase[entree.Value.Count];
+                        for (int i = 0; i < entree.Value.Count; i++)
                         {
-                            GeometryBase[] geometries = new GeometryBase[entree.Value.Count];
-                            for (int i = 0; i < entree.Value.Count; i++)
-                            {
-                                ResthopperObject restobj = entree.Value[i];
-                                var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(restobj.Data);
-                                geometries[i] = Rhino.Runtime.CommonObject.FromJSON(dict) as GeometryBase;
-                            }
-                            contextualParameter.AssignContextualData(geometries);
-                            break;
+                            ResthopperObject restobj = entree.Value[i];
+                            var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(restobj.Data);
+                            geometries[i] = Rhino.Runtime.CommonObject.FromJSON(dict) as GeometryBase;
                         }
+                        contextualParameter.AssignContextualData(geometries);
+                        break;
                     }
-                    break;
+                    return true;
             }
 
-            return true;
+            return false;
         }
 
-        public static void AssignContextualData<T>(IGH_ContextualParameter contextualParameter, GrasshopperDataTree<ResthopperObject> data)
+        public static bool AssignContextualDataGeneric<T>(IGH_ContextualParameter contextualParameter, GrasshopperDataTree<ResthopperObject> data)
         {
-            foreach (KeyValuePair<string, List<ResthopperObject>> entry in data)
+            if (contextualParameter == null)
+                return false;
+
+            try
             {
-                T[] values = new T[entry.Value.Count];
-                for (int i = 0; i < values.Length; i++)
+                foreach (KeyValuePair<string, List<ResthopperObject>> entry in data)
                 {
-                    ResthopperObject restobj = entry.Value[i];
-                    values[i] = JsonConvert.DeserializeObject<T>(restobj.Data);
+                    T[] values = new T[entry.Value.Count];
+                    for (int i = 0; i < values.Length; i++)
+                    {
+                        ResthopperObject restobj = entry.Value[i];
+                        values[i] = JsonConvert.DeserializeObject<T>(restobj.Data);
+                    }
+
+                    contextualParameter.AssignContextualData(values);
                 }
 
-                contextualParameter.AssignContextualData(values);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Log.RecordError(e.Message);
+                return false;
             }
         }
     }

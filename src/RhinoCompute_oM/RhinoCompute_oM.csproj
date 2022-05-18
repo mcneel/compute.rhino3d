@@ -77,7 +77,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GrasshopperDefinition.cs" />
-    <Compile Include="GrasshopperRhinoTypes.cs" />
+    <Compile Include="TypeConversions\GHParamToRhinoTypes.cs" />
+    <Compile Include="TypeConversions\GHToRhinoTypes.cs" />
     <Compile Include="IGrasshopperDefinition.cs" />
     <Compile Include="Model\FormerSchema.cs" />
     <Compile Include="Model\InputGroup.cs" />

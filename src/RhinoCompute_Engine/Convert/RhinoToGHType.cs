@@ -4,15 +4,15 @@ using log = BH.Engine.RemoteCompute.Log;
 
 namespace BH.Engine.RemoteCompute.RhinoCompute
 {
-    public static partial class Query
+    public static partial class Convert
     {
-        public static Type EquivalentGrasshopperType(this Type t, bool warningIfNotFound = true)
+        public static Type RhinoToGHType(this Type t, bool enableWarnings = true)
         {
             Type equivalentGrasshopperType = null;
-            if (GrasshopperRhinoTypes.RhinoToGrasshopperTypes.TryGetValue(t, out equivalentGrasshopperType))
+            if (TypeConversions.RhinoToGHTypes.TryGetValue(t, out equivalentGrasshopperType))
                 return equivalentGrasshopperType;
 
-            if (warningIfNotFound)
+            if (enableWarnings)
                 log.RecordWarning($"No equivalent Grasshopper type found for type: {t.FullName}");
 
             return null;

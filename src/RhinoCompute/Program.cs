@@ -66,7 +66,7 @@ namespace compute.geometry
                 });
                 x.UseSerilog();
                 x.ApplyCommandLine();
-                x.SetStartTimeout(TimeSpan.FromMinutes(1));
+                x.SetStartTimeout(TimeSpan.FromMinutes(5));
                 x.Service<OwinSelfHost>();
                 x.RunAsPrompt(); // prompt for user to run as
                 x.SetDisplayName("rhino.compute");

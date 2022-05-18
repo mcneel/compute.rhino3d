@@ -5,9 +5,9 @@ using Rhino.Geometry;
 
 namespace BH.oM.RemoteCompute.RhinoCompute
 {
-    public static class GrasshopperRhinoTypes
+    public static partial class TypeConversions
     {
-        public static Dictionary<Type, Type> GrasshopperToRhinoTypes { get; } = new Dictionary<Type, Type>()
+        public static Dictionary<Type, Type> GHToRhinoTypes { get; } = new Dictionary<Type, Type>()
         {
             { typeof(GH_Boolean), typeof(bool) },
             { typeof(GH_Point), typeof(Point3d) },
@@ -27,7 +27,7 @@ namespace BH.oM.RemoteCompute.RhinoCompute
             { typeof(GH_Mesh), typeof(Mesh) }
         };
 
-        public static Dictionary<Type, Type> RhinoToGrasshopperTypes { get; } = new Dictionary<Type, Type>()
+        public static Dictionary<Type, Type> RhinoToGHTypes { get; } = new Dictionary<Type, Type>()
         {
             { typeof(bool), typeof(GH_Boolean) },
             { typeof(Point3d), typeof(GH_Point) },
