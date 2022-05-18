@@ -16,34 +16,10 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Modify
     {
-        private static Assembly BHoMUIAssembly = null;
-        private static Type Param_Variable_type = null;
-        private static Type Param_BHoMGeometry_type = null;
-        private static Type Param_IObject_type = null;
-
-
         public static void AssignInputData(this GrasshopperDefinition rc, List<GrasshopperDataTree<ResthopperObject>> inputsListTrees)
         {
             if (inputsListTrees == null)
                 return;
-
-            if (BHoMUIAssembly == null)
-            {
-                var assemblies = AppDomain.CurrentDomain.GetAssemblies().ToList();
-
-                BHoMUIAssembly = assemblies.FirstOrDefault(a => a.FullName.Contains("BH.UI.Grasshopper"));
-                if (BHoMUIAssembly != null)
-                {
-                    if (Param_Variable_type == null)
-                        Param_Variable_type = BHoMUIAssembly.GetType("BH.UI.Grasshopper.Parameters.Param_Variable");
-
-                    if (Param_BHoMGeometry_type == null)
-                        Param_BHoMGeometry_type = BHoMUIAssembly.GetType("BH.UI.Grasshopper.Parameters.Param_BHoMGeometry");
-
-                    if (Param_BHoMGeometry_type == null)
-                        Param_IObject_type = BHoMUIAssembly.GetType("BH.UI.Grasshopper.Parameters.Param_IObject");
-                }
-            }
 
             for (int i = 0; i < inputsListTrees.Count; i++)
             {
@@ -82,7 +58,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
             // VOLATILE DATA ASSIGMENT
             inputGroup.Param.VolatileData.Clear();
-            inputGroup.Param.ExpireSolution(false); // mark param as expired but don't recompute just yet!
+            inputGroup.Param.ExpireSolution(false); // mark param as expired but don't recompute just yet
 
             inputGroup.DataTree = tree;
             Type paramType = inputGroup.Param.GetType();
@@ -100,14 +76,6 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
                         object data = JsonConvert.DeserializeObject(restobj.Data, t);
 
-                        object param_Variable_object = Param_Variable_type != null ? Activator.CreateInstance(Param_Variable_type) : null;
-                        object param_BHoMGeometry_object = Param_BHoMGeometry_type != null ? Activator.CreateInstance(Param_BHoMGeometry_type) : null;
-                        object param_IObject_object = Param_IObject_type != null ? Activator.CreateInstance(Param_IObject_type) : null;
-
-                        object context = param_Variable_object;
-
-                        (context as dynamic).AddVolatileData(path, i, data);
-
                         if (!inputGroup.Param.AddVolatileData(path, i, data))
                         {
                             Log.RecordError($"Could not assign the BHoM input data in {tree.ParamName} as Volatile Data.");
@@ -118,8 +86,6 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
                 return true;
             }
-
-
 
             // OTHER DATA ASSIGNMENT AS VOLATILE DATA
             if (inputGroup.Param is Param_Curve)
