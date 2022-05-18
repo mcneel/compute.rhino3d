@@ -82,10 +82,6 @@
     <Compile Include="IGrasshopperDefinition.cs" />
     <Compile Include="Model\FormerSchema.cs" />
     <Compile Include="Model\InputGroup.cs" />
-    <Compile Include="Model\InputParam.cs" />
-    <Compile Include="Model\IoParam.cs" />
-    <Compile Include="Model\IoQuery.cs" />
-    <Compile Include="Model\IoResponse.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Serialization\ArchivableDictionaryResolver.cs" />
     <Compile Include="Serialization\GeometryResolver.cs" />
