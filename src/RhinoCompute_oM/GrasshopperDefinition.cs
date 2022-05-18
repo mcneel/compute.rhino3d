@@ -18,9 +18,5 @@ namespace BH.oM.RemoteCompute.RhinoCompute
 
         public string CacheKey { get; set; }
         public bool StoredInCache { get; set; }
-
-        public List<string> Errors { get; set; } = new List<string>();
-        public List<string> Warnings { get; set; } = new List<string>();
-        public List<string> Remarks { get; set; } = new List<string>();
     }
 }

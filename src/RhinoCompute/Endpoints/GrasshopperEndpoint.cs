@@ -113,6 +113,9 @@ namespace compute.geometry
             if (resthopperInput.StoreOutputsInCache)
                 DataCache.SetCachedSolveResults(body, outputSchema_json, definition);
 
+            // Clean backend log.
+            BH.Engine.RemoteCompute.Log.Clean();
+
             return outputSchema_nancy;
         }
     }

@@ -51,7 +51,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     continue;
                 }
 
-                runtimeMessages.Add($"{messageLevel} message from component named `{obj.Name}`, instance GUID `{obj.InstanceGuid}`, type {obj.GetType().FullName}:\n\t{msg}");
+                runtimeMessages.Add($"{messageLevel} message from component named `{obj.Name}`:\n\t{msg}\nThe component that threw the {messageLevel} is of type {obj.GetType().FullName}, with instance GUID `{obj.InstanceGuid}`.");
             }
 
             return runtimeMessages;

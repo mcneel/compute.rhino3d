@@ -43,9 +43,6 @@ namespace compute.geometry
             IoResponse ioResponse = IoResponse(definition);
             ioResponse.CacheKey = definition.CacheKey;
 
-            foreach (var error in definition.Errors)
-                ioResponse.Errors.Add(error);
-
             foreach (var error in Logging.Errors)
                 ioResponse.Errors.Add(error);
 

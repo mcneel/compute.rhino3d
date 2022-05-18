@@ -4,6 +4,8 @@
     {
         public ResthopperEndpointsModule(Nancy.Routing.IRouteCacheProvider routeCacheProvider)
         {
+            BH.Engine.RemoteCompute.Log.Clean();
+
             Post["/grasshopper"] = _ => GrasshopperEndpoint(Context);
             Post["/io"] = _ => IOsEndpoint(Context, true);
             Get["/io"] = _ => IOsEndpoint(Context, false);

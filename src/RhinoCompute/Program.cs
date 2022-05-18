@@ -130,9 +130,12 @@ namespace compute.geometry
 
             Rhino.Runtime.HostUtils.OnExceptionReport += (source, ex) =>
             {
-                Log.Error(ex, "An exception occurred while processing request");
+                // // - Do NOT report the runtime exceptions.
+                // // - They are already collected as RuntimeMessages and will be reported at the end of SolveDefinition().
+
+                //Log.Error(ex, "An exception occurred while processing request");
                 //if (Config.Debug)
-                Logging.LogExceptionData(ex);
+                //Logging.LogExceptionData(ex);
             };
 
             StartOptions options = new StartOptions();

@@ -19,14 +19,6 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             List<string> errors, warnings, remarks = new List<string>();
             gdef.GH_Document.RuntimeMessages(out errors, out warnings, out remarks);
 
-            errors.ForEach(m => gdef.Errors.Add(m));
-            warnings.ForEach(m => gdef.Warnings.Add(m));
-            remarks.ForEach(m => gdef.Remarks.Add(m));
-
-            errors.ForEach(m => resthopperOutput.Errors.Add(m));
-            warnings.ForEach(m => resthopperOutput.Warnings.Add(m));
-            remarks.ForEach(m => resthopperOutput.Remarks.Add(m));
-
             foreach (var kv in gdef.Outputs)
             {
                 IGH_Param param = kv.Value;
@@ -58,7 +50,17 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             }
 
             if (resthopperOutput.Data.Count < 1)
-                gdef.Errors.Add("No output was returned.");
+                Log.RecordNote("No output was returned.");
+
+            // Add the messages from BHoM components
+            BH.Engine.RemoteCompute.Log.GetErrors().ForEach(m => errors.Add(m));
+            BH.Engine.RemoteCompute.Log.GetWarnings().ForEach(m => warnings.Add(m));
+            BH.Engine.RemoteCompute.Log.GetNotes().ForEach(m => remarks.Add(m));
+
+            // Add errors to the resthopperOutput
+            errors.ForEach(m => resthopperOutput.Errors.Add(m));
+            warnings.ForEach(m => resthopperOutput.Warnings.Add(m));
+            remarks.ForEach(m => resthopperOutput.Remarks.Add(m));
 
             return resthopperOutput;
         }

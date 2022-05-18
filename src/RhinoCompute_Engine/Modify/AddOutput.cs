@@ -11,7 +11,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return;
 
             if (rc.Outputs.ContainsKey(name))
-                rc.Errors.Add("Multiple output parameters with the same name were detected. Parameter names must be unique.");
+                Log.RecordError($"Multiple outputs with the same name `{name}` were detected.");
             else
                 rc.Outputs[name] = param;
         }

@@ -25,7 +25,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             {
                 GrasshopperDataTree<ResthopperObject> tree = inputsListTrees[i];
                 if (!rc.AssignInputData(tree))
-                    Log.RecordError($"Could not assign the input data to {tree.ParamName} from input index {i}.");
+                    Log.RecordError($"Could not assign the input named `{tree.ParamName}` at input list index {i}.");
             }
         }
 
@@ -36,13 +36,13 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             InputGroup inputGroup = null;
             if (!rc.Inputs.TryGetValue(tree.ParamName, out inputGroup))
             {
-                Log.RecordError($"Input {tree.ParamName} was not created as {nameof(InputGroup)} before assignment.");
+                Log.RecordError($"Input `{tree.ParamName}` does not appear to exist in this script. Check the spelling.");
                 return false;
             }
 
             if (inputGroup.IsAlreadySet(tree))
             {
-                Log.RecordError($"Input {tree.ParamName} was set already.");
+                Log.RecordError($"Input `{tree.ParamName}` was set already. Check if you have two or more inputs with the same name.");
                 return false;
             }
 
