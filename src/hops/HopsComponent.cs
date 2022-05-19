@@ -115,16 +115,23 @@ namespace Hops
         }
 
         public int SolveSerialNumber => _solveSerialNumber;
-        public HTTPRecord HTTPRecord;
+
+        HTTPRecord _httpRecord;
+        public HTTPRecord HTTPRecord
+        {
+            get
+            {
+                if (_httpRecord == null)
+                    _httpRecord = new HTTPRecord();
+                return _httpRecord; 
+            }
+        }
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             if (!_enabledThisSolve)
                 return;
             _iteration++;
-
-            if (HTTPRecord == null)
-                HTTPRecord = new HTTPRecord();
 
             // Limit recursive calls on compute
             if (_isHeadless && _solveRecursionLevel > HopsAppSettings.RecursionLimit)
@@ -178,12 +185,21 @@ namespace Hops
                 }
 
                 List<string> warnings;
-                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheResultsOnServer, _solveRecursionLevel, out warnings);
+                List<string> errors;
+                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheResultsOnServer, _solveRecursionLevel, out warnings, out errors);
                 if (warnings != null && warnings.Count > 0)
                 {
                     foreach (var warning in warnings)
                     {
                         AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
+                    }
+                    return;
+                }
+                if (errors != null && errors.Count > 0)
+                {
+                    foreach (var error in errors)
+                    {
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
                     }
                     return;
                 }
@@ -216,13 +232,22 @@ namespace Hops
 
             if (!GetSolveResults(DA, out var schema))
             {
+                List<string> errors;
                 List<string> warnings;
-                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheResultsOnServer, _solveRecursionLevel, out warnings);
+                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheResultsOnServer, _solveRecursionLevel, out warnings, out errors);
                 if (warnings != null && warnings.Count > 0)
                 {
                     foreach (var warning in warnings)
                     {
                         AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
+                    }
+                    return;
+                }
+                if (errors != null && errors.Count > 0)
+                {
+                    foreach (var error in errors)
+                    {
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
                     }
                     return;
                 }
