@@ -4,11 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.14.1] - 2022-05-19
+## [0.14.1] - 2022-05-26
+### Fixed
+- A bug was fixed which caused an error when parsing the numeric minimum and maximum values on the Get Number or Get Integer components.
+
+## [0.14.0] - 2022-05-19
 ### Added
 - DataTrees are now supported in Rhino builds >= 7.19.22130.15001 and 8.0.22131.04306. All of the contextual getter components now have a menu item which lets you set whether you want that parameter to have DataTree access. When set to true, this setting will override the AtMost value which is what Hops uses for item or list access. The DataTree access setting has no effect on the GH Player command. 
 
 - The function manager is now available in Rhino for mac on builds >= 7.19.22126.15001 and 8.0.22126.04306. See the update below for hops build 0.13.1 for more information about how the function manager works.
+
+- The bootstrap script which is used when deploying Rhino.Compute for a production environment has been update to follow a two-step installation process (with a restart in between). The installation is largely the same, however a restart is now required to finish the installation of the IIS modules.
 
 ### Fixed
 - A bug was fixed if the Hops referenced file was not found. Now, if the referenced file is at least in the same folder as the Hops definition then it should find and load it upon opening the file.

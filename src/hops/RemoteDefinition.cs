@@ -786,28 +786,32 @@ namespace Hops
             {
                 try
                 {
-                    var val = Convert.ToDouble(item);
-                    if (val < (double)schema.Minimum)
+                    if (Convert.ToDouble(item) < Convert.ToDouble(schema.Minimum))
                     {
                         errors.Add(String.Format("{0} value must be greater than the specified minimum value of the parameter", name));
                         return false;
                     }
                 }
-                catch (Exception ex) { errors.Add(ex.ToString()); return false; }
+                catch (Exception ex) { 
+                    errors.Add(ex.ToString()); 
+                    return false; 
+                }
 
             }
             if (schema.Maximum != null)
             {
                 try
                 {
-                    var val = Convert.ToDouble(item);
-                    if (val > (double)schema.Maximum)
+                    if (Convert.ToDouble(item) > Convert.ToDouble(schema.Maximum))
                     {
                         errors.Add(String.Format("{0} value must be smaller than the specified maximum value of the parameter", name));
                         return false;
                     }
                 }
-                catch (Exception ex) { errors.Add(ex.ToString()); return false; }
+                catch (Exception ex) { 
+                    errors.Add(ex.ToString()); 
+                    return false; 
+                }
             }
             return true;
         }
@@ -835,9 +839,13 @@ namespace Hops
                     }
                     else
                     {
-                        var passed = CheckMinMax<T>(t, inputName, schema, ref errors);
-                        if (!passed)
-                            return;
+                        if(t is double || t is int)
+                        {
+                            var passed = CheckMinMax<T>(t, inputName, schema, ref errors);
+                            if (!passed)
+                                return;
+                        }
+                        
                         dataTree.Append(new ResthopperObject(t), "0");
                     }
                 }
@@ -857,9 +865,12 @@ namespace Hops
                         }
                         else
                         {
-                            var passed = CheckMinMax<T>(item, inputName, schema, ref errors);
-                            if (!passed)
-                                return;
+                            if (item is double || item is int)
+                            {
+                                var passed = CheckMinMax<T>(item, inputName, schema, ref errors);
+                                if (!passed)
+                                    return;
+                            }
                             dataTree.Append(new ResthopperObject(item), "0");
                         }
                     }
@@ -893,9 +904,12 @@ namespace Hops
                         var items = tree[path];
                         foreach (var item in items)
                         {
-                            var passed = CheckMinMax<T>(item.Value, inputName, schema, ref errors);
-                            if (!passed)
-                                return;
+                            if (item is double || item is int)
+                            {
+                                var passed = CheckMinMax<T>(item.Value, inputName, schema, ref errors);
+                                if (!passed)
+                                    return;
+                            }
                             dataTree.Append(new ResthopperObject(item.Value), pathString);
                         }
                     }
