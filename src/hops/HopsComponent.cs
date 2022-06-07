@@ -465,7 +465,7 @@ namespace Hops
                     DefineInputsAndOutputs();                 
                 }
             });
-            tsi.ToolTipText = "Make referenced definition permanent and clear any existing source paths";
+            tsi.ToolTipText = "Make the referenced definition permanent and clear any existing source paths";
             if (!File.Exists(RemoteDefinitionLocation))
             {
                 tsi.Enabled = false;
