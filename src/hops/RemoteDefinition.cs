@@ -25,6 +25,7 @@ namespace Hops
         public enum PathType
         {
             GrasshopperDefinition,
+            InternalizedDefinition,
             ComponentGuid,
             Server,
             NonresponsiveUrl,
@@ -38,19 +39,30 @@ namespace Hops
         System.Drawing.Bitmap _customIcon = null;
         string _path = null;
         string _cacheKey = null;
+        public byte[] _internalizedDefinition = null;
         const string _apiKeyName = "RhinoComputeKey";
-        PathType? _pathType;
+        public PathType? _pathType;
         public static RemoteDefinition Create(string path, HopsComponent parentComponent)
         {
             var rc = new RemoteDefinition(path, parentComponent);
-            RemoteDefinitionCache.Add(rc);
+            if(path != null)
+                RemoteDefinitionCache.Add(rc);
             return rc;
+        }
+
+        public void InternalizeDefinition(string path)
+        {
+            _internalizedDefinition = System.IO.File.ReadAllBytes(path);
+            _pathType = PathType.InternalizedDefinition;
+            RemoteDefinitionCache.Remove(this);
+            _path = null;
         }
 
         private RemoteDefinition(string path, HopsComponent parentComponent)
         {
             _parentComponent = parentComponent;
             _path = path;
+            _internalizedDefinition = null;
         }
 
         public void Dispose()
@@ -86,12 +98,10 @@ namespace Hops
         }
 
         public static PathType GetPathType(string path)
-        {
+        { 
             if (Guid.TryParse(path, out Guid id))
-            {
                 return PathType.ComponentGuid;
-            }
-
+           
             PathType rc = PathType.GrasshopperDefinition;
             if (path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
             {
@@ -111,7 +121,8 @@ namespace Hops
             return rc;
         }
 
-        public string Path { get { return _path; } }
+        public string Path { get { return _path; } set { _path = value; } }
+        public byte[] InternalizedDefinition { get { return _internalizedDefinition; } set { _internalizedDefinition = value; } }
 
         public void OnWatchedFileChanged()
         {
@@ -149,7 +160,7 @@ namespace Hops
             return _description;
         }
 
-        void GetRemoteDescription()
+        public void GetRemoteDescription()
         {
             bool performPost = false;
 
@@ -170,6 +181,10 @@ namespace Hops
                 case PathType.ComponentGuid:
                     address = Servers.GetDescriptionUrl(Guid.Parse(Path));
                     break;
+                case PathType.InternalizedDefinition:
+                    address = "internalized";
+                    performPost = true;
+                    break;
                 case PathType.Server:
                     address = Path;
                     break;
@@ -186,14 +201,22 @@ namespace Hops
             {
                 string postUrl = Servers.GetDescriptionPostUrl();
                 var schema = new Schema();
-                if (Path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                if (pathType != PathType.InternalizedDefinition)
                 {
-                    schema.Pointer = address;
+                    if(Path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                    {
+                        schema.Pointer = address;
+                    }
+                    else
+                    {
+                        var bytes = System.IO.File.ReadAllBytes(address);
+                        schema.Algo = Convert.ToBase64String(bytes);
+                    }
                 }
                 else
                 {
-                    var bytes = System.IO.File.ReadAllBytes(address);
-                    schema.Algo = Convert.ToBase64String(bytes);
+                    if(_internalizedDefinition != null)
+                        schema.Algo = Convert.ToBase64String(_internalizedDefinition);
                 }
                 schema.AbsoluteTolerance = GetDocumentTolerance();
                 schema.AngleTolerance = GetDocumentAngleTolerance();
@@ -403,7 +426,7 @@ namespace Hops
             if (pathType == PathType.NonresponsiveUrl)
                 return null;
 
-            if (pathType == PathType.GrasshopperDefinition || pathType == PathType.ComponentGuid)
+            if (pathType == PathType.GrasshopperDefinition || pathType == PathType.ComponentGuid || pathType == PathType.InternalizedDefinition)
             {
                 solveUrl = Servers.GetSolveUrl();
                 if (!string.IsNullOrEmpty(_cacheKey))
@@ -1215,7 +1238,7 @@ namespace Hops
 
         public static void Remove(RemoteDefinition definition)
         {
-            if (_definitions.Remove(definition))
+            if (_definitions.Remove(definition) && definition.Path != null)
             {
                 string path = Path.GetFullPath(definition.Path);
                 string directory = Path.GetDirectoryName(path);
