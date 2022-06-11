@@ -29,6 +29,8 @@ namespace Hops
         }
 
         public const string AppVersion = "0.15.0.0";
+        
+        public const string Prerelease = ""; // empty string or prerelease identifier starting with "-" (e.g. "-dev.1")
 
         public override Bitmap Icon
         {
@@ -82,7 +84,7 @@ namespace Hops
             get
             {
                 var t = typeof(GhaAssemblyInfo).Assembly.GetName().Version;
-                return $"{t.Major}.{t.Minor}.{t.Build}";
+                return $"{t.Major}.{t.Minor}.{t.Build}{Prerelease}";
             }
         }
     }
