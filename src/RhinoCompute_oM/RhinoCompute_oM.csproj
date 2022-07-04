@@ -34,7 +34,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="BHoM">
-      <HintPath>..\..\..\..\..\..\ProgramData\BHoM\Assemblies\BHoM.dll</HintPath>
+      <HintPath>C:\ProgramData\BHoM\Assemblies\BHoM.dll</HintPath>
     </Reference>
     <Reference Include="Eto, Version=2.5.0.0, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
       <HintPath>..\packages\RhinoCommon.7.0.20314.3001\lib\net45\Eto.dll</HintPath>
@@ -52,7 +52,7 @@
       <HintPath>..\packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="RemoteCompute_oM">
-      <HintPath>..\..\..\..\..\..\ProgramData\BHoM\Assemblies\RemoteCompute_oM.dll</HintPath>
+      <HintPath>C:\ProgramData\BHoM\Assemblies\RemoteCompute_oM.dll</HintPath>
     </Reference>
     <Reference Include="Rhino.UI, Version=7.0.20314.3000, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
       <HintPath>..\packages\RhinoCommon.7.0.20314.3001\lib\net45\Rhino.UI.dll</HintPath>
