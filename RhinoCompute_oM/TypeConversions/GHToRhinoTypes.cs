@@ -24,7 +24,8 @@ namespace BH.oM.RemoteCompute.RhinoCompute
             { typeof(GH_Box), typeof(Box) },
             { typeof(GH_Surface), typeof(Brep) },
             { typeof(GH_Brep), typeof(Brep) },
-            { typeof(GH_Mesh), typeof(Mesh) }
+            { typeof(GH_Mesh), typeof(Mesh) },
+            { typeof(GH_ObjectWrapper), typeof(object) }
         };
 
         public static Dictionary<Type, Type> RhinoToGHTypes { get; } = new Dictionary<Type, Type>()
@@ -44,7 +45,8 @@ namespace BH.oM.RemoteCompute.RhinoCompute
             { typeof(Box), typeof(GH_Box) },
             //{ typeof(Brep), typeof(GH_Surface) },
             { typeof(Brep), typeof(GH_Brep)},
-            { typeof(Mesh), typeof(GH_Mesh) }
+            { typeof(Mesh), typeof(GH_Mesh) },
+            { typeof(object), typeof(GH_ObjectWrapper)}
         };
     }
 }

@@ -30,13 +30,9 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Query
     {
-        public static List<IGH_DocumentObject> RemoteInputComponents(this GH_Document ghDocument)
+        public static bool IsRemoteInput(this IGH_DocumentObject obj)
         {
-            var bhomRemoteInputs = ghDocument.Objects.OfType<IGH_DocumentObject>()
-                .Where(obj => obj.IsRemoteInput())
-                .ToList();
-
-            return bhomRemoteInputs; 
+            return obj?.Category == "BHoM" && obj.Name == nameof(BH.Engine.RemoteCompute.Create.RemoteIN);
         }
     }
 }

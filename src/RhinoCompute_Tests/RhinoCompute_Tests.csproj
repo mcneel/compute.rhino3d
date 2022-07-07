@@ -4,18 +4,19 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{AAAB403E-3A80-4408-9932-B7819FB81DDE}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>BH.Engine.RhinoCompute</RootNamespace>
-    <AssemblyName>BH.Engine.RhinoCompute</AssemblyName>
+    <ProjectGuid>{9EEDC512-BF0F-420B-892A-37177DE27C8E}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>RhinoCompute_Tests</RootNamespace>
+    <AssemblyName>RhinoCompute_Tests</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -25,6 +26,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -33,10 +35,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="BHoM, Version=5.0.0.0, Culture=neutral, processorArchitecture=MSIL" />
-    <Reference Include="BHoM_Engine">
-      <HintPath>C:\ProgramData\BHoM\Assemblies\BHoM_Engine.dll</HintPath>
-    </Reference>
     <Reference Include="Eto, Version=2.5.0.0, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
       <HintPath>..\packages\RhinoCommon.7.0.20314.3001\lib\net45\Eto.dll</HintPath>
     </Reference>
@@ -48,15 +46,6 @@
     </Reference>
     <Reference Include="Grasshopper, Version=7.0.20314.3000, Culture=neutral, PublicKeyToken=dda4f5ec2cd80803, processorArchitecture=MSIL">
       <HintPath>..\packages\Grasshopper.7.0.20314.3001\lib\net45\Grasshopper.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json, Version=10.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="RemoteCompute_Engine">
-      <HintPath>C:\ProgramData\BHoM\Assemblies\RemoteCompute_Engine.dll</HintPath>
-    </Reference>
-    <Reference Include="RemoteCompute_oM">
-      <HintPath>C:\ProgramData\BHoM\Assemblies\RemoteCompute_oM.dll</HintPath>
     </Reference>
     <Reference Include="Rhino.UI, Version=7.0.20314.3000, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
       <HintPath>..\packages\RhinoCommon.7.0.20314.3001\lib\net45\Rhino.UI.dll</HintPath>
@@ -71,82 +60,27 @@
       <HintPath>..\packages\RhinoWindows.7.0.20314.3001\lib\net45\RhinoWindows.dll</HintPath>
     </Reference>
     <Reference Include="System" />
-    <Reference Include="System.Configuration" />
-    <Reference Include="System.Configuration.ConfigurationManager, Version=6.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Configuration.ConfigurationManager.6.0.0\lib\net461\System.Configuration.ConfigurationManager.dll</HintPath>
-    </Reference>
     <Reference Include="System.Core" />
-    <Reference Include="System.Data.OracleClient" />
-    <Reference Include="System.Net" />
-    <Reference Include="System.Runtime.Caching" />
-    <Reference Include="System.Security" />
-    <Reference Include="System.Security.AccessControl, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Security.AccessControl.6.0.0\lib\net461\System.Security.AccessControl.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Security.Permissions, Version=6.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Security.Permissions.6.0.0\lib\net461\System.Security.Permissions.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Security.Principal.Windows, Version=5.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.Security.Principal.Windows.5.0.0\lib\net461\System.Security.Principal.Windows.dll</HintPath>
-    </Reference>
-    <Reference Include="System.ServiceProcess" />
-    <Reference Include="System.Transactions" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
-    <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Create\TryCreateGrasshopperDefinition.cs" />
-    <Compile Include="Objects\Cache\DataCache.cs" />
-    <Compile Include="Objects\Cache\FileWatcher.cs" />
-    <Compile Include="Compute\GHArchiveFromFilepath.cs" />
-    <Compile Include="Compute\GHArchiveFromUrl.cs" />
-    <Compile Include="Compute\SolveDefinition.cs" />
-    <Compile Include="Convert\FromBHoM\ResthopperOutput.cs" />
-    <Compile Include="Convert\ToGrasshopperDefinition.cs" />
-    <Compile Include="Convert\GHParamToRhinoType.cs" />
-    <Compile Include="Convert\ToBHoM\FormerSchema.cs" />
-    <Compile Include="Convert\ToResthopperObject.cs" />
-    <Compile Include="Create\GrasshopperDefinition.cs" />
-    <Compile Include="Modify\AssignContextualData.cs" />
-    <Compile Include="Modify\AddOutput.cs" />
-    <Compile Include="Modify\AssignInputData.cs" />
-    <Compile Include="Modify\SetIO.cs" />
-    <Compile Include="Modify\AddInput.cs" />
-    <Compile Include="Convert\GHArchiveFromBase64String.cs" />
-    <Compile Include="Query\IsBHoMUIParameter.cs" />
-    <Compile Include="Query\IsNullOrEmpty.cs" />
-    <Compile Include="Query\IsRemoteInput.cs" />
-    <Compile Include="Query\RemoteInputName.cs" />
-    <Compile Include="Query\RuntimeMessages.cs" />
-    <Compile Include="Query\GetMaximum.cs" />
-    <Compile Include="Query\IsAlreadySet.cs" />
-    <Compile Include="Query\GetMinimum.cs" />
-    <Compile Include="Query\GetAtMost.cs" />
-    <Compile Include="Query\GetAtLeast.cs" />
-    <Compile Include="Query\Description.cs" />
-    <Compile Include="Query\DefaultValue.cs" />
-    <Compile Include="Query\CorrespondingType.cs" />
-    <Compile Include="Convert\GHToRhinoType.cs" />
-    <Compile Include="Convert\RhinoToGHType.cs" />
-    <Compile Include="Query\GHArchive.cs" />
-    <Compile Include="Query\GHDocument.cs" />
-    <Compile Include="Query\RemoteInputComponents.cs" />
-    <Compile Include="Query\RemoteOutputComponents.cs" />
-    <Compile Include="Query\StripBom.cs" />
-    <Compile Include="Query\ParamTypeName.cs" />
+    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="app.config" />
+    <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup />
   <ItemGroup>
+    <ProjectReference Include="..\RhinoCompute_Engine\RhinoCompute_Engine.csproj">
+      <Project>{aaab403e-3a80-4408-9932-b7819fb81dde}</Project>
+      <Name>RhinoCompute_Engine</Name>
+    </ProjectReference>
     <ProjectReference Include="..\RhinoCompute_oM\RhinoCompute_oM.csproj">
       <Project>{56a5f5ad-a351-416f-a9ca-3850536bc267}</Project>
       <Name>RhinoCompute_oM</Name>

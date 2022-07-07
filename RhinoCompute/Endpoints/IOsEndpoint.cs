@@ -19,9 +19,17 @@ namespace compute.geometry
 
             if (asPost)
             {
-                string body = ctx.Request.Body.AsString();
-                if (body.StartsWith("[") && body.EndsWith("]"))
-                    body = body.Substring(1, body.Length - 2);
+                string body = ctx.GetBody();
+
+                if (string.IsNullOrWhiteSpace(body))
+                {
+                    Response errorResponse = new Response();
+                    errorResponse.StatusCode = Nancy.HttpStatusCode.BadRequest;
+                    errorResponse.ReasonPhrase = "No body provided with the request.";
+                    BH.Engine.RemoteCompute.Log.RecordError(errorResponse.ReasonPhrase);
+
+                    return errorResponse;
+                }
 
                 ResthopperInput resthopperInput = JsonConvert.DeserializeObject<ResthopperInput>(body);
 
@@ -31,7 +39,7 @@ namespace compute.geometry
             else
             {
                 string url = Request.Query[nameof(ResthopperInput.Script)].ToString();
-                definition = GrasshopperDefinitionUtils.FromUrl(new Uri(url));
+                definition = Create.GrasshopperDefinition(new Uri(url));
             }
 
             if (definition == null)

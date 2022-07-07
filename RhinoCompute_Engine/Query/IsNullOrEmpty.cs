@@ -9,6 +9,9 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
     {
         public static bool IsNullOrEmpty(this ResthopperInput obj)
         {
+            if (obj == null)
+                return true;
+
             if (string.IsNullOrWhiteSpace(obj.Script) && obj.Data.IsNullOrEmpty())
                 return true;
 

@@ -14,7 +14,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
             // solve definition
             gdef.GH_Document.Enabled = true;
-            gdef.GH_Document.NewSolution(false, GH_SolutionMode.CommandLine);
+            gdef.GH_Document.NewSolution(false, GH_SolutionMode.Default);
 
             List<string> errors, warnings, remarks = new List<string>();
             gdef.GH_Document.RuntimeMessages(out errors, out warnings, out remarks);
@@ -32,8 +32,9 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 IGH_Structure volatileData = param.VolatileData;
                 foreach (var path in volatileData.Paths)
                 {
-                    var resthopperObjectList = new List<ResthopperObject>();
-                    foreach (var goo in volatileData.get_Branch(path))
+                    List<ResthopperObject> resthopperObjectList = new List<ResthopperObject>();
+                    System.Collections.IList goos = volatileData.get_Branch(path);
+                    foreach (object goo in goos)
                     {
                         if (goo == null)
                             continue;

@@ -61,10 +61,9 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             inputGroup.Param.ExpireSolution(false); // mark param as expired but don't recompute just yet
 
             inputGroup.DataTree = tree;
-            Type paramType = inputGroup.Param.GetType();
 
             // BHOM DATA ASSIGNMENT AS VOLATILE DATA
-            if (paramType.FullName.StartsWith("BH.UI"))
+            if (inputGroup.Param.IsBHoMUIParameter())
             {
                 foreach (KeyValuePair<string, List<ResthopperObject>> entry in tree)
                 {
@@ -72,7 +71,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     for (int i = 0; i < entry.Value.Count; i++)
                     {
                         ResthopperObject restobj = entry.Value[i];
-                        Type t = Type.GetType(restobj.Type);
+                        Type t = restobj.Type.TypeFromName();
 
                         object data = JsonConvert.DeserializeObject(restobj.Data, t);
 
@@ -121,6 +120,8 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return true;
             }
 
+            Type paramType = inputGroup.Param.GetType();
+
             Type paramRhinoType = paramType.GHParamToRhinoType();
             if (paramRhinoType == null)
                 return false;
@@ -134,9 +135,9 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
         private static bool AssignVolatileData(this IGH_Param gH_Param, Type RType, Type GHType, GrasshopperDataTree<ResthopperObject> dataTree)
         {
-            MethodInfo method = typeof(Modify).GetMethod(nameof(Modify.AssignVolatileDataGeneric), BindingFlags.NonPublic);
+            MethodInfo method = typeof(Modify).GetMethod(nameof(Modify.AssignVolatileDataGeneric), BindingFlags.NonPublic | BindingFlags.Static);
             MethodInfo generic = method.MakeGenericMethod(new Type[] { RType, GHType });
-            return (bool)generic.Invoke(null, new object[] { dataTree });
+            return (bool)generic.Invoke(null, new object[] { gH_Param, dataTree });
         }
 
         private static bool AssignVolatileDataGeneric<RType, GHType>(this IGH_Param gH_Param, GrasshopperDataTree<ResthopperObject> dataTree) where GHType : class, IGH_Goo
@@ -152,12 +153,11 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     RType rhinoData = JsonConvert.DeserializeObject<RType>(restobj.Data);
 
                     GHType grasshopperData = Activator.CreateInstance(typeof(GHType), new object[] { rhinoData }) as GHType;
-                    if (gH_Param.AddVolatileData(path, i, grasshopperData))
+                    if (!gH_Param.AddVolatileData(path, i, grasshopperData))
                     {
                         result = false;
                         Log.RecordError($"Could not assign data from datatree {dataTree.ParamName}, path {path} to {grasshopperData.TypeName}, {grasshopperData.TypeDescription}.");
                     }
-
                 }
             }
 

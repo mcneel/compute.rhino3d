@@ -27,6 +27,7 @@ namespace BH.oM.RemoteCompute.RhinoCompute
             { typeof(Param_Boolean), typeof(bool) },
             { typeof(GH_BooleanToggle), typeof(bool) },
             { typeof(Param_Curve), null}, // Param_Curve may correspond to either Rhino.Geometry.Polyline or Rhino.Geometry.Curve
+            { typeof(Param_GenericObject), typeof(object)}
         };
     }
 }

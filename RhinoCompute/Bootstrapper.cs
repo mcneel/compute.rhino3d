@@ -59,8 +59,6 @@ namespace compute.geometry
             pipelines.OnError += LogError;
             ApiKey.Initialize(pipelines);
 
-            Rhino.Runtime.HostUtils.RegisterComputeEndpoint("grasshopper", typeof(Endpoints.GrasshopperEndpoint));
-
             base.ApplicationStartup(container, pipelines);
         }
 

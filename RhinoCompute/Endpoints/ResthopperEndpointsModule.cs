@@ -1,4 +1,7 @@
-﻿namespace compute.geometry
+﻿using Nancy;
+using Nancy.Extensions;
+
+namespace compute.geometry
 {
     public partial class ResthopperEndpointsModule : Nancy.NancyModule
     {
@@ -14,5 +17,17 @@
         static System.Diagnostics.Stopwatch _stopwatch = new System.Diagnostics.Stopwatch();
 
         static object _ghsolvelock = new object();
+    }
+
+    public static class NancyExtensions
+    {
+        public static string GetBody(this NancyContext ctx)
+        {
+            string body = ctx.Request.Body.AsString();
+            if (body.StartsWith("[") && body.EndsWith("]"))
+                body = body.Substring(1, body.Length - 2);
+
+            return body;
+        }
     }
 }

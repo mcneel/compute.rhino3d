@@ -30,13 +30,29 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Query
     {
-        public static List<IGH_DocumentObject> RemoteInputComponents(this GH_Document ghDocument)
+        public static string RemoteInputName(this IGH_DocumentObject obj)
         {
-            var bhomRemoteInputs = ghDocument.Objects.OfType<IGH_DocumentObject>()
-                .Where(obj => obj.IsRemoteInput())
-                .ToList();
+            GH_Component component = obj as GH_Component;
+            if (component == null)
+            {
+                Log.RecordWarning($"Cannot derive input name from null `{obj.GetType().FullName}`.");
+                return null;
+            }
 
-            return bhomRemoteInputs; 
+            if (!obj.IsRemoteInput())
+            {
+                Log.RecordError($"Cannot derive input name from an object that is not a `{nameof(BH.Engine.RemoteCompute.Create.RemoteIN)}`.");
+                return null;
+            }
+
+            IGH_Param firstInputParameter = component.Params.Input.FirstOrDefault();
+            if (firstInputParameter == null)
+            {
+                Log.RecordError($"The {nameof(BH.Engine.RemoteCompute.Create.RemoteIN)} had a null or missing input parameter.");
+                return null;
+            }
+
+            return firstInputParameter.NickName;
         }
     }
 }

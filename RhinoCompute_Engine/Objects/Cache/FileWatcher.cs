@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using System.Collections.Generic;
 
-namespace compute.geometry
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static class FileWatcher
     {

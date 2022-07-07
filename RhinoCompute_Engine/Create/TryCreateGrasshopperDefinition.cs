@@ -1,7 +1,6 @@
 ﻿using System;
 using BH.oM.RemoteCompute;
 using BH.oM.RemoteCompute.RhinoCompute;
-using compute.geometry;
 using Grasshopper.Kernel;
 
 namespace BH.Engine.RemoteCompute.RhinoCompute
@@ -17,11 +16,11 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
             Uri scriptUrl = null;
             if (Uri.TryCreate(resthopperInput.Script, UriKind.Absolute, out scriptUrl))
-                definition = GrasshopperDefinitionUtils.FromUrl(scriptUrl);
+                definition = Create.GrasshopperDefinition(scriptUrl);
 
             if (definition == null)
             {
-                definition = GrasshopperDefinitionUtils.FromBase64String(resthopperInput.Script);
+                definition = Create.GrasshopperDefinition(resthopperInput.Script);
 
                 if (definition == null)
                     throw new Exception("Unable to convert Base-64 encoded Grasshopper script to a GrasshopperDefinition object.");

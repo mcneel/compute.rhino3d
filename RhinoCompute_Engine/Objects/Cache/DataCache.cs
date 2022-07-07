@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using BH.Engine.RemoteCompute;
 using BH.oM.RemoteCompute.RhinoCompute;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace compute.geometry
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
-    static partial class DataCache
+    public static partial class DataCache
     {
         static string _definitionCacheDirectory;
         static string CacheDirectory
@@ -74,13 +75,13 @@ namespace compute.geometry
                 try
                 {
                     string data = System.IO.File.ReadAllText(filename);
-                    rc = GrasshopperDefinitionUtils.FromBase64String(data);
+                    rc = Create.GrasshopperDefinition(data);
                     return true;
                 }
                 catch (Exception ex)
                 {
-                    Serilog.Log.Error($"Unable to read cache file: {filename}");
-                    Serilog.Log.Error(ex, "File error exception");
+                    Log.RecordError($"Unable to read cache file: {filename}");
+                    Log.RecordError(ex, "File error exception");
                 }
             }
 
@@ -115,8 +116,8 @@ namespace compute.geometry
                     }
                     catch (Exception ex)
                     {
-                        Serilog.Log.Error($"Unable to write cache file: {filename}");
-                        Serilog.Log.Error(ex, "File error exception");
+                        Log.RecordError($"Unable to write cache file: {filename}");
+                        Log.RecordError(ex, "File error exception");
                     }
                 }
             }
@@ -248,7 +249,7 @@ namespace compute.geometry
             }
             catch (Exception ex)
             {
-                Serilog.Log.Error(ex, "exception while GC on cache directory");
+                Log.RecordError(ex, "exception while GC on cache directory");
             }
         }
 

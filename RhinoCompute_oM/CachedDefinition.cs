@@ -1,11 +1,9 @@
-﻿using BH.oM.RemoteCompute.RhinoCompute;
-
-namespace compute.geometry
+﻿
+namespace BH.oM.RemoteCompute.RhinoCompute
 {
-    class CachedResults
+    public class CachedDefinition
     {
         public GrasshopperDefinition Definition { get; set; }
         public uint WatchedFileRuntimeSerialNumber { get; set; }
-        public string Json { get; set; }
     }
 }

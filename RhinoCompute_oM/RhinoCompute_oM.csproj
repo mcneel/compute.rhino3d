@@ -76,6 +76,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CachedDefinition.cs" />
+    <Compile Include="CachedResults.cs" />
     <Compile Include="GrasshopperDefinition.cs" />
     <Compile Include="TypeConversions\GHParamToRhinoTypes.cs" />
     <Compile Include="TypeConversions\GHToRhinoTypes.cs" />

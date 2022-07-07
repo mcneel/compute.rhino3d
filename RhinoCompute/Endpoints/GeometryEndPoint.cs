@@ -9,6 +9,7 @@ using Rhino.Geometry;
 using Rhino.Runtime;
 using Newtonsoft.Json.Linq;
 using BH.oM.RemoteCompute.RhinoCompute;
+using BH.Engine.RemoteCompute.RhinoCompute;
 
 namespace compute.geometry
 {
