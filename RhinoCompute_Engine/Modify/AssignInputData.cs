@@ -11,6 +11,7 @@ using Newtonsoft.Json;
 using Rhino.Geometry;
 using System.Reflection;
 using System.Linq;
+using System.ComponentModel;
 
 namespace BH.Engine.RemoteCompute.RhinoCompute
 {
@@ -71,7 +72,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     for (int i = 0; i < entry.Value.Count; i++)
                     {
                         ResthopperObject restobj = entry.Value[i];
-                        Type t = restobj.Type.TypeFromName();
+                        Type t = restobj.Type?.TypeFromName();
 
                         object data = JsonConvert.DeserializeObject(restobj.Data, t);
 
@@ -120,43 +121,87 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return true;
             }
 
-            Type paramType = inputGroup.Param.GetType();
-
-            Type paramRhinoType = paramType.GHParamToRhinoType();
-            if (paramRhinoType == null)
-                return false;
-
-            Type paramGHType = paramRhinoType.RhinoToGHType();
-            if (paramGHType == null)
-                return false;
-
-            return AssignVolatileData(inputGroup.Param, paramRhinoType, paramGHType, tree);
+            return AssignVolatileData(inputGroup.Param, tree);
         }
 
-        private static bool AssignVolatileData(this IGH_Param gH_Param, Type RType, Type GHType, GrasshopperDataTree<ResthopperObject> dataTree)
-        {
-            MethodInfo method = typeof(Modify).GetMethod(nameof(Modify.AssignVolatileDataGeneric), BindingFlags.NonPublic | BindingFlags.Static);
-            MethodInfo generic = method.MakeGenericMethod(new Type[] { RType, GHType });
-            return (bool)generic.Invoke(null, new object[] { gH_Param, dataTree });
-        }
-
-        private static bool AssignVolatileDataGeneric<RType, GHType>(this IGH_Param gH_Param, GrasshopperDataTree<ResthopperObject> dataTree) where GHType : class, IGH_Goo
+        private static bool AssignVolatileData(this IGH_Param gH_Param, GrasshopperDataTree<ResthopperObject> dataTree)
         {
             bool result = true;
+
+            Type paramRhinoType = gH_Param.GetType().GHParamToRhinoType();
+            Type GHgooType = paramRhinoType.RhinoToGHType();
 
             foreach (KeyValuePair<string, List<ResthopperObject>> entry in dataTree)
             {
                 GH_Path path = new GH_Path(GrasshopperPath.FromString(entry.Key));
+                string errorTextFirstPart = $"Could not assign volatile data from datatree {dataTree.ParamName}, path {path}";
+
                 for (int i = 0; i < entry.Value.Count; i++)
                 {
-                    ResthopperObject restobj = entry.Value[i];
-                    RType rhinoData = JsonConvert.DeserializeObject<RType>(restobj.Data);
+                    ResthopperObject restobj = entry.Value.ElementAtOrDefault(i);
+                    Type restType = restobj?.Type?.TypeFromName();
 
-                    GHType grasshopperData = Activator.CreateInstance(typeof(GHType), new object[] { rhinoData }) as GHType;
-                    if (!gH_Param.AddVolatileData(path, i, grasshopperData))
+                    object inputObject = null;
+                    try
+                    {
+                        inputObject = JsonConvert.DeserializeObject(restobj.Data, restType);
+                    }
+                    catch
+                    {
+
+                        try
+                        {
+                            inputObject = JsonConvert.DeserializeObject(restobj.Data, paramRhinoType);
+                        }
+                        catch
+                        {
+                            result = false;
+                            Log.RecordError($"{errorTextFirstPart}: could not deserialize input object.");
+                            continue;
+                        }
+                    }
+
+                    if (paramRhinoType == typeof(object) && restType != null && restType != typeof(object) && TypeConversions.GHParamToRhinoTypes.Values.Contains(restType))
+                    {
+                        paramRhinoType = restType;
+                        GHgooType = paramRhinoType.RhinoToGHType();
+                    }
+
+                    object dataToAssign = null;
+                    object rhinoData = inputObject;
+                    if (inputObject != null)
+                    {
+                        if (restType != paramRhinoType)
+                            try
+                            {
+                                rhinoData = System.Convert.ChangeType(inputObject, paramRhinoType);
+                            }
+                            catch
+                            {
+                                result = false;
+                                Log.RecordError($"{errorTextFirstPart}: input type was {inputObject.GetType().FullName} which cannot be converted to required type {paramRhinoType.FullName}.");
+                                continue;
+                            }
+
+                        IGH_Goo grasshopperData = null;
+                        try
+                        {
+                            grasshopperData = Activator.CreateInstance(GHgooType, new object[] { rhinoData }) as IGH_Goo;
+                        }
+                        catch
+                        {
+                            result = false;
+                            Log.RecordError($"{errorTextFirstPart}: cannot create instance of required {GHgooType.FullName} to host the input type {paramRhinoType.FullName}.");
+                            continue;
+                        }
+
+                        dataToAssign = grasshopperData;
+                    }
+
+                    if (!gH_Param.AddVolatileData(path, i, dataToAssign))
                     {
                         result = false;
-                        Log.RecordError($"Could not assign data from datatree {dataTree.ParamName}, path {path} to {grasshopperData.TypeName}, {grasshopperData.TypeDescription}.");
+                        Log.RecordError($"{errorTextFirstPart}");
                     }
                 }
             }
