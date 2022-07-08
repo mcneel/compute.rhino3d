@@ -141,6 +141,13 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     ResthopperObject restobj = entry.Value.ElementAtOrDefault(i);
                     Type restType = restobj?.Type?.TypeFromName();
 
+                    // See if a more specific type can be used for the Goo.
+                    if (paramRhinoType == typeof(object) && restType != null && restType != typeof(object) && TypeConversions.GHParamToRhinoTypes.Values.Contains(restType))
+                    {
+                        paramRhinoType = restType;
+                        GHgooType = paramRhinoType.RhinoToGHType();
+                    }
+
                     object inputObject = null;
                     try
                     {
@@ -159,12 +166,6 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                             Log.RecordError($"{errorTextFirstPart}: could not deserialize input object.");
                             continue;
                         }
-                    }
-
-                    if (paramRhinoType == typeof(object) && restType != null && restType != typeof(object) && TypeConversions.GHParamToRhinoTypes.Values.Contains(restType))
-                    {
-                        paramRhinoType = restType;
-                        GHgooType = paramRhinoType.RhinoToGHType();
                     }
 
                     object dataToAssign = null;
