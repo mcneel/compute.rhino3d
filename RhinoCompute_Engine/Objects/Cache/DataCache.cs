@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using BH.Engine.RemoteCompute;
 using BH.oM.RemoteCompute.RhinoCompute;
 using Newtonsoft.Json;
@@ -10,37 +12,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class DataCache
     {
-        static string _definitionCacheDirectory;
-        static string CacheDirectory
-        {
-            get
-            {
-                if (string.IsNullOrWhiteSpace(_definitionCacheDirectory))
-                {
-                    string path = System.Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                    _definitionCacheDirectory = System.IO.Path.Combine(path, "McNeel", "rhino.compute", "definitioncache");
-                }
-                return _definitionCacheDirectory;
-            }
-        }
-
-        public static string CreateCacheKey(string input)
-        {
-            // Use input string to calculate MD5 hash
-            using (System.Security.Cryptography.MD5 md5 = System.Security.Cryptography.MD5.Create())
-            {
-                byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(input);
-                byte[] hashBytes = md5.ComputeHash(inputBytes);
-
-                // Convert the byte array to hexadecimal string
-                var sb = new System.Text.StringBuilder("md5_");
-                for (int i = 0; i < hashBytes.Length; i++)
-                {
-                    sb.Append(hashBytes[i].ToString("X2"));
-                }
-                return sb.ToString();
-            }
-        }
+        private static string m_cacheDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BHoM", "RhinoCompute", "definitioncache");
 
         public static bool TryGetCachedDefinition(string key, out GrasshopperDefinition rc)
         {
@@ -50,113 +22,78 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return false;
 
             // Check in-memory cache
-            var cachedDef = System.Runtime.Caching.MemoryCache.Default.Get(key) as CachedDefinition;
+            CachedDefinition cachedDef = System.Runtime.Caching.MemoryCache.Default.Get(key) as CachedDefinition;
 
             if (cachedDef != null)
             {
                 rc = cachedDef.Definition;
-
-                if (File.Exists(cachedDef.Definition.CacheKey))
-                {
-                    if (cachedDef.WatchedFileRuntimeSerialNumber != FileWatcher.WatchedFileRuntimeSerialNumber)
-                    {
-                        System.Runtime.Caching.MemoryCache.Default.Remove(key);
-                    }
-                }
-
                 return true;
             }
 
             // Check file cache
-            string filename = CacheFileName(key);
+            string filepath = key.CacheFilePath();
 
-            if (filename != null && System.IO.File.Exists(filename))
+            if (!System.IO.File.Exists(filepath))
+                return false;
+
+            try
             {
-                try
-                {
-                    string data = System.IO.File.ReadAllText(filename);
-                    rc = Create.GrasshopperDefinition(data);
-                    return true;
-                }
-                catch (Exception ex)
-                {
-                    Log.RecordError($"Unable to read cache file: {filename}");
-                    Log.RecordError(ex, "File error exception");
-                }
+                string data = System.IO.File.ReadAllText(filepath);
+                rc = Create.GrasshopperDefinitionFromCacheKey(data);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.RecordError($"Unable to read cache file: {filepath}");
+                Log.RecordError(ex, "File error exception");
             }
 
             return false;
         }
 
-        public static bool CacheInMemory(string key, GrasshopperDefinition definition)
+        public static bool WriteInMemory(GrasshopperDefinition definition, string base64definition = null)
         {
+            if (string.IsNullOrEmpty(base64definition))
+                base64definition = definition.ToBase64String();
+
+            string cacheKey = base64definition.CacheKey();
+
             try
             {
-                System.Runtime.Caching.MemoryCache.Default.Set(key, definition, CachePolicy);
+                System.Runtime.Caching.MemoryCache.Default.Set(cacheKey, definition, CachePolicy);
                 return true;
             }
             catch { }
+
             return false;
         }
 
-        public static void CacheToDisk(string key, string data)
+        public static bool TryWriteToDisk(string base64script, out string cacheKey)
         {
-            if (!string.IsNullOrWhiteSpace(data))
-            {
-                string filename = CacheFileName(key);
-                if (filename != null && !System.IO.File.Exists(filename))
-                {
-                    try
-                    {
-                        if (!System.IO.Directory.Exists(CacheDirectory))
-                            System.IO.Directory.CreateDirectory(CacheDirectory);
+            cacheKey = base64script.CacheKey();
 
-                        System.IO.File.WriteAllText(filename, data);
-                        System.Threading.Tasks.Task.Run(() => DataCache.CGCacheDirectory());
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.RecordError($"Unable to write cache file: {filename}");
-                        Log.RecordError(ex, "File error exception");
-                    }
-                }
+            if (string.IsNullOrWhiteSpace(cacheKey) || string.IsNullOrWhiteSpace(base64script))
+                return false;
+
+            try
+            {
+                if (!System.IO.Directory.Exists(m_cacheDirectory))
+                    System.IO.Directory.CreateDirectory(m_cacheDirectory);
+
+                System.IO.File.WriteAllText(cacheKey.CacheFilePath(), base64script);
+                System.Threading.Tasks.Task.Run(() => CGCacheDirectory());
+
+                return true;
             }
-        }
-
-        public static string GetCachedSolveResults(string key)
-        {
-            if (string.IsNullOrWhiteSpace(key))
-                return null;
-            var cache = System.Runtime.Caching.MemoryCache.Default.Get(key) as CachedResults;
-            if (cache == null)
-                return null;
-
-            if (File.Exists(cache.Definition.CacheKey))
+            catch (Exception ex)
             {
-                if (cache.WatchedFileRuntimeSerialNumber != FileWatcher.WatchedFileRuntimeSerialNumber)
-                {
-                    System.Runtime.Caching.MemoryCache.Default.Remove(key);
-                    return null;
-                }
+                Log.RecordError($"Unable to write cache file: {cacheKey.CacheFilePath()}");
+                Log.RecordError(ex, "File error exception");
             }
 
-            return cache.Json;
+            return false;
         }
 
-        public static void SetCachedSolveResults(string key, string jsonResults, GrasshopperDefinition definition)
-        {
-            if (string.IsNullOrWhiteSpace(key))
-                return;
-
-            var cache = new CachedResults
-            {
-                Definition = definition,
-                WatchedFileRuntimeSerialNumber = FileWatcher.WatchedFileRuntimeSerialNumber,
-                Json = jsonResults
-            };
-
-            System.Runtime.Caching.MemoryCache.Default.Add(key, cache, CachePolicy);
-        }
 
         public static object GetCachedItem(JToken token, Type objectType, JsonSerializer serializer)
         {
@@ -219,23 +156,22 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             return null;
         }
 
-        //  we could do things like evict after 2 weeks with policy.SlidingExpiration = new TimeSpan(14, 0, 0, 0);
         private static System.Runtime.Caching.CacheItemPolicy CachePolicy { get; } = new System.Runtime.Caching.CacheItemPolicy();
 
-        static int CompareFilesByDate(string a, string b)
+        private static int CompareFilesByDate(string a, string b)
         {
             var fileInfoA = new System.IO.FileInfo(a);
             var fileInfoB = new System.IO.FileInfo(b);
             return DateTime.Compare(fileInfoB.LastAccessTime, fileInfoA.LastAccessTime);
         }
 
-        static void CGCacheDirectory()
+        private static void CGCacheDirectory()
         {
             try
             {
-                if (System.IO.Directory.Exists(CacheDirectory))
+                if (System.IO.Directory.Exists(m_cacheDirectory))
                 {
-                    var files = System.IO.Directory.GetFiles(CacheDirectory);
+                    var files = System.IO.Directory.GetFiles(m_cacheDirectory);
                     const int ALLOWED_COUNT = 20;
                     if (files != null && files.Length > ALLOWED_COUNT)
                     {
@@ -253,9 +189,9 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             }
         }
 
-        static string CacheFileName(string key)
+        private static string CacheFilePath(this string key)
         {
-            return System.IO.Path.Combine(CacheDirectory, key + ".cache");
+            return Path.Combine(m_cacheDirectory, key);
         }
     }
 }
