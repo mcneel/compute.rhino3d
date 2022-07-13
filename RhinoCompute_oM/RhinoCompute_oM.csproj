@@ -79,11 +79,12 @@
     <Compile Include="CachedDefinition.cs" />
     <Compile Include="CachedResults.cs" />
     <Compile Include="GrasshopperDefinition.cs" />
+    <Compile Include="Model\Output.cs" />
     <Compile Include="TypeConversions\GHParamToRhinoTypes.cs" />
     <Compile Include="TypeConversions\GHToRhinoTypes.cs" />
     <Compile Include="IGrasshopperDefinition.cs" />
-    <Compile Include="Model\FormerSchema.cs" />
-    <Compile Include="Model\InputGroup.cs" />
+    <Compile Include="FormerRestSchema.cs" />
+    <Compile Include="Model\Input.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Serialization\ArchivableDictionaryResolver.cs" />
     <Compile Include="Serialization\GeometryResolver.cs" />

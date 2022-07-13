@@ -3,31 +3,40 @@ using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
 using BH.oM.RemoteCompute;
 using BH.oM.RemoteCompute.RhinoCompute;
+using BH.oM.RemoteCompute.RhinoCompute.Schemas;
 
 namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Compute
     {
-        public static ResthopperOutput SolveDefinition(this GrasshopperDefinition gdef)
-        {
-            ResthopperOutput resthopperOutput = new ResthopperOutput();
+        private static object m_ghsolvelock = new object();
 
-            // solve definition
+        public static ResthopperOutputs SolveDefinition(this GrasshopperDefinition gdef, int recursionLevel = 0)
+        {
+            ResthopperOutputs resthopperOutput = new ResthopperOutputs();
+
+            bool singleThreaded = recursionLevel == 0; // can't block on recursive calls
+            gdef.GH_Document.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(recursionLevel + 1));
             gdef.GH_Document.Enabled = true;
-            gdef.GH_Document.NewSolution(false, GH_SolutionMode.Default);
+
+            if (singleThreaded)
+                lock (m_ghsolvelock)
+                    gdef.GH_Document.NewSolution(false, GH_SolutionMode.Default);
+            else
+                gdef.GH_Document.NewSolution(false, GH_SolutionMode.Default);
 
             List<string> errors, warnings, remarks = new List<string>();
             gdef.GH_Document.RuntimeMessages(out errors, out warnings, out remarks);
 
-            foreach (var kv in gdef.Outputs)
+            foreach (Output output in gdef.Outputs.Values)
             {
-                IGH_Param param = kv.Value;
+                IGH_Param param = output.Param;
                 if (param == null)
                     continue;
 
                 // Get data
                 var outputTree = new GrasshopperDataTree<ResthopperObject>();
-                outputTree.ParamName = kv.Key;
+                outputTree.ParamName = output.Name;
 
                 IGH_Structure volatileData = param.VolatileData;
                 foreach (var path in volatileData.Paths)
@@ -47,16 +56,16 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     outputTree.Add(path.ToString(), resthopperObjectList);
                 }
 
-                resthopperOutput.Data.Add(outputTree);
+                resthopperOutput.OutputsData.Add(outputTree);
             }
 
-            if (resthopperOutput.Data.Count < 1)
+            if (resthopperOutput.OutputsData.Count < 1)
                 Log.RecordNote("No output was returned.");
 
             // Add the messages from BHoM components
-            BH.Engine.RemoteCompute.Log.GetErrors().ForEach(m => errors.Add(m));
-            BH.Engine.RemoteCompute.Log.GetWarnings().ForEach(m => warnings.Add(m));
-            BH.Engine.RemoteCompute.Log.GetNotes().ForEach(m => remarks.Add(m));
+            Log.GetErrors().ForEach(m => errors.Add(m));
+            Log.GetWarnings().ForEach(m => warnings.Add(m));
+            Log.GetNotes().ForEach(m => remarks.Add(m));
 
             // Add errors to the resthopperOutput
             errors.ForEach(m => resthopperOutput.Errors.Add(m));

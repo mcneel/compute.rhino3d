@@ -33,19 +33,23 @@ namespace compute.geometry
             var runheadless = pluginObject?.GetType().GetMethod("RunHeadless");
             if (runheadless != null)
                 runheadless.Invoke(pluginObject, null);
+            else
+            {
+                Log.Error("Could not start Rhino in headless mode.");
+                return;
+            }
 
             if (sendToConsole != null)
                 sendToConsole.SetValue(null, false);
             else
             {
                 var lines = Rhino.RhinoApp.CapturedCommandWindowStrings(true);
-                if (lines != null && lines.Length > 0)
+                if (lines != null && lines.Any())
                 {
                     foreach (var line in lines)
-                    {
                         Log.Information(line.Trim());
-                    }
                 }
+
                 Rhino.RhinoApp.CommandWindowCaptureEnabled = false;
             }
 
@@ -53,6 +57,8 @@ namespace compute.geometry
             var loadComputePlugins = typeof(Rhino.PlugIns.PlugIn).GetMethod("LoadComputeExtensionPlugins");
             if (loadComputePlugins != null)
                 loadComputePlugins.Invoke(null, null);
+            else
+                Log.Warning("Could not load extension plugins.");
 
             Nancy.StaticConfiguration.DisableErrorTraces = false;
 

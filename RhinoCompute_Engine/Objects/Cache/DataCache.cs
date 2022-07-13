@@ -14,6 +14,18 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
     {
         private static string m_cacheDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BHoM", "RhinoCompute", "definitioncache");
 
+        public static GrasshopperDefinition GrasshopperDefinitionFromCacheKey(string cacheKey)
+        {
+            GrasshopperDefinition rc = null;
+            if (!DataCache.TryGetCachedDefinition(cacheKey, out rc))
+            {
+                Log.RecordError($"Could not fetch the Grasshopper definition from cache at input key `{cacheKey}`.");
+                return rc;
+            }
+
+            return rc;
+        }
+
         public static bool TryGetCachedDefinition(string key, out GrasshopperDefinition rc)
         {
             rc = null;
@@ -39,7 +51,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             try
             {
                 string data = System.IO.File.ReadAllText(filepath);
-                rc = Create.GrasshopperDefinitionFromCacheKey(data);
+                rc = GrasshopperDefinitionFromCacheKey(data);
                 return true;
             }
             catch (Exception ex)
@@ -51,12 +63,18 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             return false;
         }
 
-        public static bool WriteInMemory(GrasshopperDefinition definition, string base64definition = null)
+        /// <summary>
+        /// Cache a GrasshopperDefinition in memory.
+        /// </summary>
+        /// <param name="cacheKey">The cache key under which the definition is stored.</param>
+        /// <param name="base64definition">Provide it if the serialized definition is already available to speed up the caching.</param>
+        /// <returns></returns>
+        public static bool TryWriteInMemory(GrasshopperDefinition definition, out string cacheKey, string base64definition = null)
         {
             if (string.IsNullOrEmpty(base64definition))
                 base64definition = definition.ToBase64String();
 
-            string cacheKey = base64definition.CacheKey();
+            cacheKey = base64definition.CacheKey();
 
             try
             {
@@ -66,6 +84,11 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             catch { }
 
             return false;
+        }
+
+        public static bool TryWriteToDisk(GrasshopperDefinition definition, out string cacheKey)
+        {
+            return TryWriteToDisk(definition.ToBase64String(), out cacheKey);
         }
 
         public static bool TryWriteToDisk(string base64script, out string cacheKey)
@@ -92,68 +115,6 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             }
 
             return false;
-        }
-
-
-        public static object GetCachedItem(JToken token, Type objectType, JsonSerializer serializer)
-        {
-            string jsonString = token.ToString();
-            if (jsonString.StartsWith("{") &&
-                jsonString.EndsWith("}") &&
-                jsonString.IndexOf("url", StringComparison.OrdinalIgnoreCase) > 0 &&
-                jsonString.IndexOf("http", StringComparison.OrdinalIgnoreCase) > 0)
-            {
-                Dictionary<string, string> cacheDictionary = new Dictionary<string, string>();
-
-                cacheDictionary = token.ToObject(cacheDictionary.GetType()) as Dictionary<string, string>;
-
-                string url;
-
-                if (cacheDictionary == null || !cacheDictionary.TryGetValue("url", out url))
-                    return null;
-
-                JToken jtoken = null;
-                string key = $"url:{url.ToLower()}";
-                Tuple<JToken, object> cacheEntry = System.Runtime.Caching.MemoryCache.Default.Get(key) as Tuple<JToken, object>;
-
-                if (cacheEntry != null)
-                {
-                    Rhino.Geometry.GeometryBase geometry = cacheEntry.Item2 as Rhino.Geometry.GeometryBase;
-                    if (geometry != null)
-                        return geometry.DuplicateShallow();
-                    jtoken = cacheEntry.Item1;
-                }
-
-                if (jtoken == null)
-                {
-                    using (var client = new System.Net.WebClient())
-                    {
-                        string cacheString = client.DownloadString(url);
-                        object data = string.IsNullOrWhiteSpace(cacheString) ? null : Newtonsoft.Json.JsonConvert.DeserializeObject(cacheString);
-                        var ja = data as Newtonsoft.Json.Linq.JArray;
-                        jtoken = ja[0];
-                    }
-                }
-
-                if (jtoken != null)
-                {
-                    object rc = null;
-                    if (serializer == null)
-                        rc = jtoken.ToObject(objectType);
-                    else
-                        rc = jtoken.ToObject(objectType, serializer);
-
-                    cacheEntry = new Tuple<JToken, object>(jtoken, rc);
-
-                    System.Runtime.Caching.MemoryCache.Default.Add(key, cacheEntry, CachePolicy);
-
-                    Rhino.Geometry.GeometryBase geometry = rc as Rhino.Geometry.GeometryBase;
-                    if (geometry != null)
-                        return geometry.DuplicateShallow();
-                    return rc;
-                }
-            }
-            return null;
         }
 
         private static System.Runtime.Caching.CacheItemPolicy CachePolicy { get; } = new System.Runtime.Caching.CacheItemPolicy();

@@ -7,15 +7,13 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Query
     {
-        public static object GetMaximum(this InputGroup inputGroup)
+        public static double? GetMaximum(this IGH_Param param)
         {
-            var p = inputGroup.Param;
+            if (param is IGH_ContextualParameter contextualParameter && param.Sources.Count == 1)
+                return GetMaximum(param.Sources[0]);
 
-            if (p is IGH_ContextualParameter && p.Sources.Count == 1)
-                p = p.Sources[0];
-
-            if (p is GH_NumberSlider paramSlider)
-                return paramSlider.Slider.Maximum;
+            if (param is GH_NumberSlider paramSlider)
+                return System.Convert.ChangeType(paramSlider.Slider.Maximum, typeof(double)) as double?;
 
             return null;
         }

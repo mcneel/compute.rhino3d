@@ -17,24 +17,26 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Modify
     {
-        public static void AssignInputData(this GrasshopperDefinition rc, List<ResthopperInputTree> inputsListTrees)
+        public static void AssignInputsData(this GrasshopperDefinition rc, IEnumerable<ResthopperInputTree> inputsListTrees)
         {
             if (inputsListTrees == null)
                 return;
 
-            for (int i = 0; i < inputsListTrees.Count; i++)
+            int inputIdx = 0;
+            foreach (ResthopperInputTree inputTree in inputsListTrees)
             {
-                GrasshopperDataTree<ResthopperObject> tree = inputsListTrees[i];
-                if (!rc.AssignInputData(tree))
-                    Log.RecordError($"Could not assign the input named `{tree.ParamName}` from input list, index {i}.", false, true);
+                if (inputTree == null || !rc.AssignInputData(inputTree))
+                    Log.RecordError($"Could not assign the input at index {inputIdx}" + (inputTree?.ParamName != null ? $", of name named `{inputTree.ParamName}`." : "."), false, true);
+
+                inputIdx++;
             }
         }
 
-        public static bool AssignInputData(this GrasshopperDefinition rc, GrasshopperDataTree<ResthopperObject> tree)
+        private static bool AssignInputData(this GrasshopperDefinition rc, ResthopperInputTree tree)
         {
             // Make sure the input has been created before populating it with data.
             // This is done via AddInput().
-            InputGroup inputGroup = null;
+            Input inputGroup = null;
             if (!rc.Inputs.TryGetValue(tree.ParamName, out inputGroup))
             {
                 Log.RecordError($"Input `{tree.ParamName}` does not appear to exist in this script. Check the spelling and the names of the available inputs for this script.");
@@ -61,7 +63,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             inputGroup.Param.VolatileData.Clear();
             inputGroup.Param.ExpireSolution(false); // mark param as expired but don't recompute just yet
 
-            inputGroup.DataTree = tree;
+            inputGroup.InputData = tree;
 
             // BHOM DATA ASSIGNMENT AS VOLATILE DATA
             if (inputGroup.Param.IsBHoMUIParameter())

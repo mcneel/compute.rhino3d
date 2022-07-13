@@ -13,7 +13,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             if (rc.Inputs.ContainsKey(inputName))
                 Log.RecordError($"Multiple inputs found under the name {inputName}. Considering only the first match.");
             else
-                rc.Inputs[inputName] = new InputGroup(param);
+                rc.Inputs[inputName] = new Input(inputName, param);
         }
     }
 }

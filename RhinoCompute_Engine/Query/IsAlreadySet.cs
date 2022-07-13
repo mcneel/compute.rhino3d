@@ -7,12 +7,12 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Query
     {
-        public static bool IsAlreadySet(this InputGroup inputGroup, GrasshopperDataTree<ResthopperObject> tree)
+        public static bool IsAlreadySet(this Input inputGroup, GrasshopperDataTree<ResthopperObject> tree)
         {
-            if (inputGroup.DataTree == null)
+            if (inputGroup.InputData == null)
                 return false;
 
-            var oldDictionary = inputGroup.DataTree.InnerTree;
+            var oldDictionary = inputGroup.InputData.InnerTree;
             var newDictionary = tree.InnerTree;
 
             if (!oldDictionary.Keys.SequenceEqual(newDictionary.Keys))

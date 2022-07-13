@@ -10,13 +10,10 @@ namespace BH.oM.RemoteCompute.RhinoCompute
             GH_Document = gh_document;
         }
 
-        public Dictionary<string, InputGroup> Inputs { get; set; } = new Dictionary<string, InputGroup>();
-        public Dictionary<string, IGH_Param> Outputs { get; set; } = new Dictionary<string, IGH_Param>();
+        public Dictionary<string, Input> Inputs { get; set; } = new Dictionary<string, Input>();
+        public Dictionary<string, Output> Outputs { get; set; } = new Dictionary<string, Output>();
 
         public GH_Document GH_Document { get; }
         public GH_Component SingularComponent { get; set; } = null;
-
-        public string CacheKey { get; set; }
-        public bool StoredInCache { get; set; }
     }
 }

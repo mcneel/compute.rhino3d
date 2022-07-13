@@ -8,6 +8,15 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Convert
     {
+        public static GrasshopperDefinition ToGrasshopperDefinition(this string base64String)
+        {
+            GH_Archive archive = base64String.GHArchiveFromBase64String();
+            if (archive == null)
+                return null;
+
+            return archive.ToGrasshopperDefinition();
+        }
+
         public static GrasshopperDefinition ToGrasshopperDefinition(this GH_Archive archive)
         {
             GH_Document ghDocument = archive.GHDocument();

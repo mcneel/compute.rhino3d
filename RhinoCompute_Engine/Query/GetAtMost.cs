@@ -6,14 +6,14 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Query
     {
-        public static int GetAtMost(this InputGroup inputGroup)
+        public static int GetAtMost(this IGH_Param param)
         {
-            IGH_ContextualParameter contextualParameter = inputGroup.Param as IGH_ContextualParameter;
+            IGH_ContextualParameter contextualParameter = param as IGH_ContextualParameter;
 
             if (contextualParameter != null)
                 return contextualParameter.AtMost;
 
-            if (inputGroup.Param is GH_NumberSlider)
+            if (contextualParameter is GH_NumberSlider paramSlider)
                 return 1;
 
             return int.MaxValue;

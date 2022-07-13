@@ -26,25 +26,9 @@ using GH_IO.Serialization;
 
 namespace BH.Engine.RemoteCompute.RhinoCompute
 {
-    public static partial class Query
+    public static partial class Convert
     {
-        public static GH_Archive GHArchive(string filePath)
-        {
-            if (string.IsNullOrWhiteSpace(filePath))
-            {
-                throw new Exception($"Missing {nameof(filePath)} input.");
-            }
-
-            if (!File.Exists(filePath))
-            {
-                throw new Exception($"File at input filepath does not exist: {filePath}");
-            }
-
-            byte[] byteArray = File.ReadAllBytes(filePath);
-            return byteArray.GHArchive();
-        }
-
-        public static GH_Archive GHArchive(this byte[] byteArray)
+        public static GH_Archive GHArchiveFromByteArray(this byte[] byteArray)
         {
             try
             {

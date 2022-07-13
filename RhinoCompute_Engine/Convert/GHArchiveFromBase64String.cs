@@ -1,5 +1,6 @@
 ﻿
 using GH_IO.Serialization;
+using Grasshopper.Kernel;
 
 namespace BH.Engine.RemoteCompute.RhinoCompute
 {
@@ -12,7 +13,12 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
             byte[] byteArray = System.Convert.FromBase64String(base64string);
 
-            return Query.GHArchive(byteArray);
+            return Convert.GHArchiveFromByteArray(byteArray);
         }
+
+        //public static GH_Document GHDocumentFromBase64String(this string base64string)
+        //{
+
+        //}
     }
 }

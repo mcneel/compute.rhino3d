@@ -1,4 +1,5 @@
-﻿using BH.oM.RemoteCompute.RhinoCompute;
+﻿using System.Collections.Generic;
+using BH.oM.RemoteCompute.RhinoCompute;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
 
@@ -6,11 +7,6 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Query
     {
-        public static object DefaultValue(this InputGroup inputGroup)
-        {
-            return inputGroup.Param.DefaultValue();
-        }
-
         public static object DefaultValue(this IGH_Param param, int depth = 0)
         {
             object defaultValue = null;

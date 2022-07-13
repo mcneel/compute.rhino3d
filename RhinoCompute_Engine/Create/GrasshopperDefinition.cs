@@ -11,34 +11,21 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
         /**** Public Methods                            ****/
         /***************************************************/
 
-        public static GrasshopperDefinition GrasshopperDefinition(string base64string, bool cacheToDisk = true)
+        public static GrasshopperDefinition GrasshopperDefinitionFromBase64String(string base64string)
         {
-            var archive = base64string.GHArchiveFromBase64String();
-            if (archive == null)
-                return null;
+            string cacheKey = base64string.CacheKey();
 
-            GrasshopperDefinition grasshopperDefinition = archive.ToGrasshopperDefinition();
+            GrasshopperDefinition grasshopperDefinition = base64string.ToGrasshopperDefinition();
 
             // Set inputs and outputs.
             grasshopperDefinition.SetIO();
-
-            if (grasshopperDefinition != null)
-            {
-                grasshopperDefinition.CacheKey = DataCache.CreateCacheKey(base64string);
-
-                if (cacheToDisk)
-                {
-                    DataCache.CacheToDisk(grasshopperDefinition.CacheKey, base64string);
-                    grasshopperDefinition.StoredInCache = true;
-                }
-            }
 
             return grasshopperDefinition;
         }
 
         /***************************************************/
 
-        public static GrasshopperDefinition GrasshopperDefinition(Uri scriptUrl, bool storeInCache = true)
+        public static GrasshopperDefinition GrasshopperDefinitionFromUri(Uri scriptUrl)
         {
             if (scriptUrl == null)
                 return null;
@@ -46,47 +33,28 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             string urlString = scriptUrl.ToString();
 
             // First check if the definition has been downloaded previously and is present in cache.
-            GrasshopperDefinition rc = null;
-            if (DataCache.TryGetCachedDefinition(urlString, out rc))
+            GrasshopperDefinition gDef = null;
+            if (DataCache.TryGetCachedDefinition(urlString, out gDef))
             {
                 Log.RecordNote("Using cached definition");
-                return rc;
+                return gDef;
             }
 
             var archive = BH.Engine.RemoteCompute.RhinoCompute.Compute.GHArchiveFromUrl(scriptUrl);
             if (archive == null)
                 return null;
 
-            rc = archive.ToGrasshopperDefinition();
+            gDef = archive.ToGrasshopperDefinition();
 
             // Set inputs and outputs.
-            rc.SetIO();
+            gDef.SetIO();
 
-            rc.CacheKey = urlString;
-
-            if (storeInCache)
-                rc.StoredInCache = DataCache.CacheInMemory(urlString, rc);
-
-            return rc;
+            return gDef;
         }
 
         /***************************************************/
 
-        public static GrasshopperDefinition GrasshopperDefinition(Guid componentId, bool cache)
-        {
-            GrasshopperDefinition rc = ConstructAndSetIo(componentId);
-
-            if (cache)
-                rc.StoredInCache = DataCache.CacheInMemory(componentId.ToString(), rc);
-
-            return rc;
-        }
-
-        /***************************************************/
-        /**** Private Methods                           ****/
-        /***************************************************/
-
-        private static GrasshopperDefinition ConstructAndSetIo(Guid componentId)
+        public static GrasshopperDefinition GrasshopperDefinitionFromComponent(Guid componentId)
         {
             GH_Component component = Grasshopper.Instances.ComponentServer.EmitObject(componentId) as GH_Component;
             if (component == null)
@@ -108,14 +76,14 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             GrasshopperDefinition rc = new GrasshopperDefinition(gh_document);
             rc.SingularComponent = component;
 
-            foreach (var input in component.Params.Input)
+            foreach (var inputParam in component.Params.Input)
             {
-                rc.Inputs[input.NickName] = new InputGroup(input);
+                rc.Inputs[inputParam.NickName] = new Input(inputParam.NickName, inputParam);
             }
 
-            foreach (var output in component.Params.Output)
+            foreach (var outputParam in component.Params.Output)
             {
-                rc.Outputs[output.NickName] = output;
+                rc.Outputs[outputParam.NickName] = new Output(outputParam.NickName, outputParam);
             }
 
             return rc;

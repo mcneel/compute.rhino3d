@@ -28,16 +28,9 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Query
     {
-        public static GH_Document GHDocument(string filePath)
-        {
-            GH_Archive gH_Archive = GHArchive(filePath);
-
-            return GHDocument(gH_Archive);
-        }
-
         public static GH_Document GHDocument(this byte[] byteArchive)
         {
-            GH_Archive archive = GHArchive(byteArchive);
+            GH_Archive archive = byteArchive.GHArchiveFromByteArray();
 
             return archive.GHDocument();
         }

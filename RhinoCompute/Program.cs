@@ -22,17 +22,7 @@ namespace compute.geometry
             Logging.Init();
 
             RhinoInside.Resolver.Initialize();
-#if DEBUG
-            // Uncomment the following to debug with core Rhino source. This
-            // tells compute to use a different RhinoCore than what RhinoInside thinks
-            // should use.
-            // (for McNeel devs only and only those devs who use the same path as Steve)
 
-            //string rhinoSystemDir = @"C:\dev\github\mcneel\rhino7\src4\bin\Debug";
-            //if (System.IO.File.Exists(rhinoSystemDir + "\\Rhino.exe"))
-            //RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
-
-#endif
             LogVersions();
             StartTime = DateTime.Now;
             Shutdown.RegisterStartTime(StartTime);
@@ -223,29 +213,6 @@ namespace compute.geometry
                 result.AppendLine("</p></body></html>");
                 return result.ToString();
             };
-
-            foreach (var endpoint in GeometryEndPoint.AllEndPoints)
-            {
-                string key = endpoint.PathURL;
-                Get[key] = _ => endpoint.Get(Context);
-            }
-        }
-    }
-
-    public class RhinoPostModule : NancyModule
-    {
-        public RhinoPostModule(IRouteCacheProvider routeCacheProvider)
-        {
-            foreach (var endpoint in GeometryEndPoint.AllEndPoints)
-            {
-                string key = endpoint.PathURL;
-                Post[key] = _ =>
-                {
-                    var r = endpoint.Post(Context);
-                    r.ContentType = "application/json";
-                    return r;
-                };
-            }
         }
     }
 }

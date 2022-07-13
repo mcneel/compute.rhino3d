@@ -8,116 +8,52 @@ using System.Linq;
 using BH.oM.RemoteCompute;
 using BH.Engine.RemoteCompute.RhinoCompute;
 using BH.oM.RemoteCompute.RhinoCompute;
+using BH.oM.RemoteCompute.RhinoCompute.Schemas;
 
 namespace compute.geometry
 {
     public partial class ResthopperEndpointsModule : Nancy.NancyModule
     {
-        Response IOsEndpoint(NancyContext ctx, bool asPost)
+        Response IoBase64(NancyContext ctx)
         {
-            GrasshopperDefinition definition;
+            // Obtain the GrasshopperDefinition from body of request.
+            GrasshopperDefinition definition = null;
 
-            if (asPost)
-            {
-                string body = ctx.GetBody();
+            if (!ctx.TryDeserializeAndGetGrasshopperDefinition(out Base64ScriptInput base64Input, out definition, out Response errorResponse) || definition == null)
+                return errorResponse;
 
-                if (string.IsNullOrWhiteSpace(body))
-                {
-                    Response errorResponse = new Response();
-                    errorResponse.StatusCode = Nancy.HttpStatusCode.BadRequest;
-                    errorResponse.ReasonPhrase = "No body provided with the request.";
-                    BH.Engine.RemoteCompute.Log.RecordError(errorResponse.ReasonPhrase);
-
-                    return errorResponse;
-                }
-
-                ResthopperInput resthopperInput = JsonConvert.DeserializeObject<ResthopperInput>(body);
-
-                if (!resthopperInput.TryCreateGrasshopperDefinition(out definition))
-                    return null;
-            }
-            else
-            {
-                string url = Request.Query[nameof(ResthopperInput.Script)].ToString();
-                definition = Create.GrasshopperDefinition(new Uri(url));
-            }
-
-            if (definition == null)
-                throw new Exception("Unable to load grasshopper definition");
-
-            IoResponse ioResponse = IoResponse(definition);
-            ioResponse.CacheKey = definition.CacheKey;
-
-            foreach (var error in Logging.Errors)
-                ioResponse.Errors.Add(error);
-
-            string ioResponse_json = JsonConvert.SerializeObject(ioResponse);
-            Response ioResponse_json_nancy = ioResponse_json;
-            ioResponse_json_nancy.ContentType = "application/json";
-
-            Logging.Warnings.Clear();
-            Logging.Errors.Clear();
-
-            return ioResponse_json_nancy;
+            return ResthopperIOVariables(definition).ToResponse();
         }
 
-
-        private IoResponse IoResponse(GrasshopperDefinition ghDef)
+        Response IoUrl(NancyContext ctx)
         {
-            // Parse input and output names
-            List<string> inputNames = new List<string>();
-            List<string> outputNames = new List<string>();
-            var inputs = new List<InputParam>();
-            var outputs = new List<IoParam>();
+            // Obtain the GrasshopperDefinition from body of request.
+            GrasshopperDefinition definition = null;
 
-            IOrderedEnumerable<KeyValuePair<string, InputGroup>> sortedInputs = ghDef.Inputs.OrderBy(i => i.Value.Param.Attributes.Pivot.Y);
-            IOrderedEnumerable<KeyValuePair<string, IGH_Param>> sortedOutputs = ghDef.Outputs.OrderBy(i => i.Value.Attributes.Pivot.Y);
+            if (!ctx.TryDeserializeAndGetGrasshopperDefinition(out ScriptUrlInput urlinput, out definition, out Response errorResponse) || definition == null)
+                return errorResponse;
 
-            foreach (var input in sortedInputs)
+            return ResthopperIOVariables(definition).ToResponse();
+        }
+
+        Response IoCacheKey(NancyContext ctx)
+        {
+            // Obtain the GrasshopperDefinition from body of request.
+            GrasshopperDefinition definition = null;
+
+            if (!ctx.TryDeserializeAndGetGrasshopperDefinition(out CacheKeyInput cacheKeyInput, out definition, out Response errorResponse) || definition == null)
+                return errorResponse;
+
+            return NancyExtensions.CreateErrorResponse("Could not extract Inputs/Outputs.");
+        }
+
+        private ResthopperIOVariables ResthopperIOVariables(GrasshopperDefinition ghDef)
+        {
+            return new ResthopperIOVariables
             {
-                inputNames.Add(input.Key);
-                var inputSchema = new InputParam
-                {
-                    Name = input.Key,
-                    ParamTypeName = input.Value.Param.ParamTypeName(),
-                    Description = input.Value.Description(),
-                    AtLeast = input.Value.GetAtLeast(),
-                    AtMost = input.Value.GetAtMost(),
-                    Default = input.Value.DefaultValue(),
-                    Minimum = input.Value.GetMinimum(),
-                    Maximum = input.Value.GetMaximum(),
-                };
-
-                if (ghDef.SingularComponent != null)
-                {
-                    inputSchema.Description = input.Value.Param.Description;
-                    if (input.Value.Param.Access == GH_ParamAccess.item)
-                    {
-                        inputSchema.AtMost = inputSchema.AtLeast;
-                    }
-                }
-                inputs.Add(inputSchema);
-            }
-
-            foreach (var o in sortedOutputs)
-            {
-                outputNames.Add(o.Key);
-                outputs.Add(new IoParam
-                {
-                    Name = o.Key,
-                    ParamTypeName = o.Value.TypeName
-                });
-            }
-
-            string description = ghDef.SingularComponent?.Description ?? ghDef.GH_Document.Properties.Description;
-
-            return new IoResponse
-            {
-                Description = description,
-                InputNames = inputNames,
-                OutputNames = outputNames,
-                Inputs = inputs,
-                Outputs = outputs
+                Description = ghDef.SingularComponent?.Description ?? ghDef.GH_Document.Properties.Description,
+                Inputs = ghDef.InputVariables(),
+                Outputs = ghDef.OutputVariables()
             };
         }
     }

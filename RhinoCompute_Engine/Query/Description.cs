@@ -5,9 +5,8 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Query
     {
-        public static string Description(this InputGroup inputgroup)
+        public static string Description(this IGH_ContextualParameter contextualParameter)
         {
-            IGH_ContextualParameter contextualParameter = inputgroup.Param as IGH_ContextualParameter;
             if (contextualParameter != null)
                 return contextualParameter.Prompt;
 

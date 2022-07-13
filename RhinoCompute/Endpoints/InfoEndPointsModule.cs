@@ -5,12 +5,11 @@ using Nancy;
 
 namespace compute.geometry
 {
-    public class FixedEndPointsModule : NancyModule
+    public class InfoEndPointsModule : NancyModule
     {
-        public FixedEndPointsModule(Nancy.Routing.IRouteCacheProvider routeCacheProvider)
+        public InfoEndPointsModule(Nancy.Routing.IRouteCacheProvider routeCacheProvider)
         {
             Get[""] = _ => HomePage(Context);
-            Get["/healthcheck"] = _ => "healthy";
             Get["version"] = _ => GetVersion(Context);
             Get["servertime"] = _ => ServerTime(Context);
             Get["sdk/csharp"] = _ => CSharpSdk(Context);
@@ -26,8 +25,6 @@ namespace compute.geometry
             var values = new Dictionary<string, string>();
             values.Add("rhino", Rhino.RhinoApp.Version.ToString());
             values.Add("compute", Assembly.GetExecutingAssembly().GetName().Version.ToString());
-            string git_sha = null; // appveyor will replace this
-            values.Add("git_sha", git_sha);
             var response = (Nancy.Response)Newtonsoft.Json.JsonConvert.SerializeObject(values);
             response.ContentType = "application/json";
             return response;
@@ -43,7 +40,7 @@ namespace compute.geometry
         static Response CSharpSdk(NancyContext ctx)
         {
             string content = "";
-            using (var resourceStream = typeof(FixedEndPointsModule).Assembly.GetManifestResourceStream("compute.geometry.RhinoCompute.cs"))
+            using (var resourceStream = typeof(InfoEndPointsModule).Assembly.GetManifestResourceStream("compute.geometry.RhinoCompute.cs"))
             {
                 var stream = new System.IO.StreamReader(resourceStream);
                 content = stream.ReadToEnd();
