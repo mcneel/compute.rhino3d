@@ -19,11 +19,10 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 {
                     Name = input.Name,
                     Description = (input as IGH_ContextualParameter).Description(),
-                    Type = null, //input.Param.ParamType(), // TODO: implement
+                    TypeName = input.Param.ParamTypeNameIncludingSources(), 
                     DefaultValue = input.Param.DefaultValue(),
                     Minimum = input.Param.GetMinimum(),
                     Maximum = input.Param.GetMaximum(),
-                    GhParamTypeName = input.Param.ParamTypeName(),
                     GhAtLeast = input.Param.GetAtLeast(),
                     GhAtMost = input.Param.GetAtMost(),
                 };

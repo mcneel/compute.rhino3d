@@ -18,9 +18,8 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 {
                     Name = output.Name,
                     Description = (output.Param as IGH_ContextualParameter).Description(),
-                    Type = null, // output.Param.ParamType(), //TODO: implement
+                    TypeName = output.Param.ParamTypeNameIncludingRecipients(),
                     GhNickname = output.Param.NickName,
-                    GhParamTypeName = output.Param.ParamTypeName(),
                 });
 
             }
