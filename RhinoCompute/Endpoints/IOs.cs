@@ -36,7 +36,7 @@ namespace compute.geometry
             return ResthopperIOVariables(definition).ToResponse();
         }
 
-        Response IoCacheKey(NancyContext ctx)
+        Response IoCacheKey(NancyContext ctx, object cacheKey)
         {
             // Obtain the GrasshopperDefinition from body of request.
             GrasshopperDefinition definition = null;

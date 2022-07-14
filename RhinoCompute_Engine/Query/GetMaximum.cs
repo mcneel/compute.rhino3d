@@ -9,7 +9,10 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
     {
         public static double? GetMaximum(this IGH_Param param)
         {
-            if (param is IGH_ContextualParameter contextualParameter && param.Sources.Count == 1)
+            if (param == null)
+                return null;
+
+            if (param.Sources.Count == 1)
                 return GetMaximum(param.Sources[0]);
 
             if (param is GH_NumberSlider paramSlider)

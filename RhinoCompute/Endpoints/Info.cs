@@ -5,9 +5,9 @@ using Nancy;
 
 namespace compute.geometry
 {
-    public class InfoEndPointsModule : NancyModule
+    public class Info : NancyModule
     {
-        public InfoEndPointsModule(Nancy.Routing.IRouteCacheProvider routeCacheProvider)
+        public Info(Nancy.Routing.IRouteCacheProvider routeCacheProvider)
         {
             Get[""] = _ => HomePage(Context);
             Get["version"] = _ => GetVersion(Context);
@@ -40,7 +40,7 @@ namespace compute.geometry
         static Response CSharpSdk(NancyContext ctx)
         {
             string content = "";
-            using (var resourceStream = typeof(InfoEndPointsModule).Assembly.GetManifestResourceStream("compute.geometry.RhinoCompute.cs"))
+            using (var resourceStream = typeof(Info).Assembly.GetManifestResourceStream("compute.geometry.RhinoCompute.cs"))
             {
                 var stream = new System.IO.StreamReader(resourceStream);
                 content = stream.ReadToEnd();

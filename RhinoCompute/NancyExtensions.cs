@@ -78,12 +78,13 @@ namespace compute.geometry
             Response outputSchema_nancy = outputSchema_json;
             outputSchema_nancy.ContentType = "application/json";
 
-            foreach (var item in additionalHeaderInfo)
-            {
-                // Add headers, e.g.:
-                // "Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}"
-                outputSchema_nancy = outputSchema_nancy.WithHeader(item.Key, item.Value);
-            }
+            if (additionalHeaderInfo != null)
+                foreach (var item in additionalHeaderInfo)
+                {
+                    // Add headers, e.g.:
+                    // "Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}"
+                    outputSchema_nancy = outputSchema_nancy.WithHeader(item.Key, item.Value);
+                }
 
             return outputSchema_nancy;
         }
@@ -98,12 +99,13 @@ namespace compute.geometry
             Response outputSchema_nancy = outputSchema_json;
             outputSchema_nancy.ContentType = "application/json";
 
-            foreach (var item in additionalHeaderInfo)
-            {
-                // Add headers, e.g.:
-                // "Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}"
-                outputSchema_nancy = outputSchema_nancy.WithHeader(item.Key, item.Value);
-            }
+            if (additionalHeaderInfo != null)
+                foreach (var item in additionalHeaderInfo)
+                {
+                    // Add headers, e.g.:
+                    // "Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}"
+                    outputSchema_nancy = outputSchema_nancy.WithHeader(item.Key, item.Value);
+                }
 
             return outputSchema_nancy;
         }

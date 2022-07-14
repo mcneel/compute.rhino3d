@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using BH.oM.RemoteCompute.RhinoCompute;
 using Grasshopper.Kernel;
+using Grasshopper.Kernel.Parameters;
+using Grasshopper.Kernel.Special;
 using Grasshopper.Kernel.Types;
 
 namespace BH.Engine.RemoteCompute.RhinoCompute
@@ -31,111 +33,111 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                         }
                     }
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Arc _:
+                case Param_Arc _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Boolean paramBool:
+                case Param_Boolean paramBool:
                     if (paramBool.PersistentDataCount == 1)
                         defaultValue = paramBool.PersistentData[0][0].Value;
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Box _:
+                case Param_Box _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Brep _:
+                case Param_Brep _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Circle _:
+                case Param_Circle _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Colour _:
+                case Param_Colour _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Complex _:
+                case Param_Complex _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Culture _:
+                case Param_Culture _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Curve _:
+                case Param_Curve _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Field _:
+                case Param_Field _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_FilePath _:
+                case Param_FilePath _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_GenericObject _:
+                case Param_GenericObject _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Geometry _:
+                case Param_Geometry _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Group _:
+                case Param_Group _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Guid _:
+                case Param_Guid _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Integer paramInt:
+                case Param_Integer paramInt:
                     if (paramInt.PersistentDataCount == 1)
                         defaultValue = paramInt.PersistentData[0][0].Value;
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Interval _:
+                case Param_Interval _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Interval2D _:
+                case Param_Interval2D _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_LatLonLocation _:
+                case Param_LatLonLocation _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Line _:
+                case Param_Line _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Matrix _:
+                case Param_Matrix _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Mesh _:
+                case Param_Mesh _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_MeshFace _:
+                case Param_MeshFace _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_MeshParameters _:
+                case Param_MeshParameters _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Number paramNumber:
+                case Param_Number paramNumber:
                     if (paramNumber.PersistentDataCount == 1)
                         defaultValue = paramNumber.PersistentData[0][0].Value;
                     break;
-                //case Grasshopper.Kernel.Parameters.Param_OGLShader:
-                case Grasshopper.Kernel.Parameters.Param_Plane paramPlane:
+                //case Param_OGLShader:
+                case Param_Plane paramPlane:
                     if (paramPlane.PersistentDataCount == 1)
                         defaultValue = paramPlane.PersistentData[0][0].Value;
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Point paramPoint:
+                case Param_Point paramPoint:
                     if (paramPoint.PersistentDataCount == 1)
                         defaultValue = paramPoint.PersistentData[0][0].Value;
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Rectangle _:
+                case Param_Rectangle _:
                     break;
-                //case Grasshopper.Kernel.Parameters.Param_ScriptVariable _:
-                case Grasshopper.Kernel.Parameters.Param_String paramString:
+                //case Param_ScriptVariable _:
+                case Param_String paramString:
                     if (paramString.PersistentDataCount == 1)
                         defaultValue = paramString.PersistentData[0][0].Value;
                     break;
-                case Grasshopper.Kernel.Parameters.Param_StructurePath _:
+                case Param_StructurePath _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_SubD _:
+                case Param_SubD _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Surface _:
+                case Param_Surface _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Time _:
+                case Param_Time _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Transform _:
+                case Param_Transform _:
                     break;
-                case Grasshopper.Kernel.Parameters.Param_Vector paramVector:
+                case Param_Vector paramVector:
                     if (paramVector.PersistentDataCount == 1)
                         defaultValue = paramVector.PersistentData[0][0].Value;
                     break;
-                case Grasshopper.Kernel.Special.GH_NumberSlider paramSlider:
+                case GH_NumberSlider paramSlider:
                     defaultValue = paramSlider.CurrentValue;
                     break;
-                case Grasshopper.Kernel.Special.GH_Panel paramPanel:
+                case GH_Panel paramPanel:
                     defaultValue = paramPanel.UserText;
                     break;
-                case Grasshopper.Kernel.Special.GH_ValueList paramValueList:
+                case GH_ValueList paramValueList:
                     defaultValue = paramValueList.FirstSelectedItem.Value;
                     break;
             }
 
             if (defaultValue is GH_Number ghNumber)
-            {
-                defaultValue = ghNumber.Value;
-            }
-            else if (defaultValue is GH_Boolean ghBoolean)
-            {
-                defaultValue = ghBoolean.Value;
-            }
+                return ghNumber.Value;
+
+            if (defaultValue is GH_Boolean ghBoolean)
+                return ghBoolean.Value;
+
+            if (param.Sources != null && param.Sources.Count == 1)
+                return DefaultValue(param.Sources[0], depth + 1);
 
             return defaultValue;
         }

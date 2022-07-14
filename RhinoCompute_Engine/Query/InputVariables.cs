@@ -18,22 +18,21 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 var inputSchema = new InputVariable
                 {
                     Name = input.Name,
-                    ParamTypeName = input.Param.ParamTypeName(),
                     Description = (input as IGH_ContextualParameter).Description(),
-                    AtLeast = input.Param.GetAtLeast(),
-                    AtMost = input.Param.GetAtMost(),
-                    DefaultValue = new List<List<object>>() { new List<object>() { input.Param.DefaultValue() } },
+                    Type = null, //input.Param.ParamType(), // TODO: implement
+                    DefaultValue = input.Param.DefaultValue(),
                     Minimum = input.Param.GetMinimum(),
                     Maximum = input.Param.GetMaximum(),
+                    GhParamTypeName = input.Param.ParamTypeName(),
+                    GhAtLeast = input.Param.GetAtLeast(),
+                    GhAtMost = input.Param.GetAtMost(),
                 };
 
                 if (ghDef.SingularComponent != null)
                 {
                     inputSchema.Description = input.Param.Description;
                     if (input.Param.Access == GH_ParamAccess.item)
-                    {
-                        inputSchema.AtMost = inputSchema.AtLeast;
-                    }
+                        inputSchema.GhAtMost = inputSchema.GhAtLeast;
                 }
 
                 inputs.Add(inputSchema);

@@ -14,8 +14,8 @@ namespace compute.geometry
             Post["/solve/url"] = _ => SolveUrl(Context);
             Post["/io/base64"] = _ => IoBase64(Context);
             Post["/io/url"] = _ => IoUrl(Context);
-            Post["/io/cached"] = _ => IoCacheKey(Context);
-            Get["/isCached"] = _ => throw new NotImplementedException();
+            Get["/io/cached/{cacheKey}"] = x => IoCacheKey(Context, x.cacheKey);
+            Get["/isCached/{cacheKey}"] = x => IsCached(Context, x.cacheKey);
         }
     }
 }

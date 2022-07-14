@@ -17,12 +17,10 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 outputs.Add(new OutputVariable
                 {
                     Name = output.Name,
-                    Nickname = output.Param.NickName,
                     Description = (output.Param as IGH_ContextualParameter).Description(),
-                    DefaultValue = new List<List<object>>() { new List<object>() { output.Param.DefaultValue() } },
-                    ParamTypeName = output.Param.TypeName,
-                    Minimum = output.Param.GetMinimum(),
-                    Maximum = output.Param.GetMaximum(),
+                    Type = null, // output.Param.ParamType(), //TODO: implement
+                    GhNickname = output.Param.NickName,
+                    GhParamTypeName = output.Param.ParamTypeName(),
                 });
 
             }
