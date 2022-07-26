@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using BH.oM.RemoteCompute.RhinoCompute;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Parameters;
@@ -37,7 +39,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     break;
                 case Param_Boolean paramBool:
                     if (paramBool.PersistentDataCount == 1)
-                        defaultValue = paramBool.PersistentData[0][0].Value;
+                        defaultValue = paramBool.ToListOfLists();
                     break;
                 case Param_Box _:
                     break;
@@ -66,8 +68,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 case Param_Guid _:
                     break;
                 case Param_Integer paramInt:
-                    if (paramInt.PersistentDataCount == 1)
-                        defaultValue = paramInt.PersistentData[0][0].Value;
+                    defaultValue = paramInt.ToListOfLists();
                     break;
                 case Param_Interval _:
                     break;
@@ -86,24 +87,28 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 case Param_MeshParameters _:
                     break;
                 case Param_Number paramNumber:
-                    if (paramNumber.PersistentDataCount == 1)
-                        defaultValue = paramNumber.PersistentData[0][0].Value;
-                    break;
+                    {
+                        if (paramNumber.PersistentDataCount == 1)
+                        {
+                            defaultValue = paramNumber.ToListOfLists();
+                            break;
+                        }
+
+                        break;
+                    }
                 //case Param_OGLShader:
                 case Param_Plane paramPlane:
-                    if (paramPlane.PersistentDataCount == 1)
-                        defaultValue = paramPlane.PersistentData[0][0].Value;
+                    defaultValue = paramPlane.ToListOfLists();
                     break;
                 case Param_Point paramPoint:
-                    if (paramPoint.PersistentDataCount == 1)
-                        defaultValue = paramPoint.PersistentData[0][0].Value;
+                    defaultValue = paramPoint.ToListOfLists();
                     break;
                 case Param_Rectangle _:
                     break;
                 //case Param_ScriptVariable _:
                 case Param_String paramString:
                     if (paramString.PersistentDataCount == 1)
-                        defaultValue = paramString.PersistentData[0][0].Value;
+                        defaultValue = paramString.ToListOfLists();
                     break;
                 case Param_StructurePath _:
                     break;
@@ -117,14 +122,12 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     break;
                 case Param_Vector paramVector:
                     if (paramVector.PersistentDataCount == 1)
-                        defaultValue = paramVector.PersistentData[0][0].Value;
+                        defaultValue = paramVector.ToListOfLists();
                     break;
                 case GH_NumberSlider paramSlider:
-                    defaultValue = paramSlider.CurrentValue;
-                    break;
+                    return paramSlider.CurrentValue;
                 case GH_Panel paramPanel:
-                    defaultValue = paramPanel.UserText;
-                    break;
+                    return paramPanel.UserText;
                 case GH_ValueList paramValueList:
                     defaultValue = paramValueList.FirstSelectedItem.Value;
                     break;
@@ -139,7 +142,63 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             if (param.Sources != null && param.Sources.Count == 1)
                 return DefaultValue(param.Sources[0], depth + 1);
 
-            return defaultValue;
+            try
+            {
+                // Grasshopper sucks. How can they not know how to use interfaces? Incredible.
+                dynamic persistentData = (param as dynamic).PersistentData;
+
+                return ToListOfLists(persistentData);
+            }
+            catch { }
+
+            return param;
+        }
+
+        public static object ToListOfLists<G>(this GH_PersistentParam<G> persistentParam) where G : class, IGH_Goo
+        {
+            Grasshopper.Kernel.Data.GH_Structure<G> ghstructure = persistentParam.PersistentData;
+
+            return ghstructure.ToListOfLists();
+        }
+
+        public static object ToListOfLists<G>(this Grasshopper.Kernel.Data.GH_Structure<G> ghstructure) where G : class, IGH_Goo
+        {
+            List<List<object>> result = new List<List<object>>();
+
+            foreach (var branch in ghstructure)
+            {
+                List<object> branchList = new List<object>();
+
+                IEnumerable branchIEnumerable = branch as IEnumerable;
+                if (branchIEnumerable == null)
+                    try
+                    {
+                        // Grasshopper sucks. How can they not know how to use interfaces? Incredible.
+                        branchList.Add((branch as dynamic).Value);
+                    }
+                    catch { }
+
+                if (branchIEnumerable != null)
+                    foreach (var element in branchIEnumerable)
+                    {
+                        try
+                        {
+                            // Grasshopper sucks. How can they not know how to use interfaces? Incredible.
+                            branchList.Add((element as dynamic).Value);
+                        }
+                        catch { }
+                    }
+
+                if (branchList.Count == 1)
+                    return branchList.FirstOrDefault();
+
+                if (ghstructure.PathCount == 1)
+                    return branchList;
+
+                result.Add(branchList);
+            }
+
+            return result;
         }
     }
 }

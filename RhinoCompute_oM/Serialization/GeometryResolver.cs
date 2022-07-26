@@ -13,7 +13,12 @@ namespace BH.oM.RemoteCompute.RhinoCompute
             {
                 if (_settings == null)
                 {
-                    _settings = new JsonSerializerSettings { ContractResolver = new GeometryResolver() };
+                    _settings = new JsonSerializerSettings { 
+                        ContractResolver = new GeometryResolver(), 
+                        TypeNameHandling = TypeNameHandling.Auto, 
+                        NullValueHandling = NullValueHandling.Ignore,
+                        TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Full
+                    };
                     // return V6 ON_Objects for now
                     var options = new Rhino.FileIO.SerializationOptions();
                     options.RhinoVersion = 6;
