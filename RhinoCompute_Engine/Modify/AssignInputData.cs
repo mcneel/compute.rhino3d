@@ -76,7 +76,17 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                         ResthopperObject restobj = entry.Value[i];
                         Type t = restobj.Type?.TypeFromName();
 
-                        object data = JsonConvert.DeserializeObject(restobj.Data, t);
+                        object data = null;
+
+                        try
+                        {
+                            data = JsonConvert.DeserializeObject(restobj.Data, t, m_jsonSerializerSettings);
+                        }
+                        catch (Exception e)
+                        {
+                            Log.RecordError($"Could not assign input {tree.ParamName} as Volatile Data. Error: {e.Message}");
+                            return false;
+                        }
 
                         if (!inputGroup.Param.AddVolatileData(path, i, data))
                         {
@@ -101,13 +111,13 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                         GH_Curve ghCurve;
                         try
                         {
-                            Rhino.Geometry.Polyline data = JsonConvert.DeserializeObject<Rhino.Geometry.Polyline>(restobj.Data);
+                            Rhino.Geometry.Polyline data = JsonConvert.DeserializeObject<Rhino.Geometry.Polyline>(restobj.Data, m_jsonSerializerSettings);
                             Rhino.Geometry.Curve c = new Rhino.Geometry.PolylineCurve(data);
                             ghCurve = new GH_Curve(c);
                         }
                         catch
                         {
-                            var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(restobj.Data);
+                            var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(restobj.Data, m_jsonSerializerSettings);
                             var c = (Rhino.Geometry.Curve)Rhino.Runtime.CommonObject.FromJSON(dict);
                             ghCurve = new GH_Curve(c);
                         }
@@ -153,14 +163,14 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     object inputObject = null;
                     try
                     {
-                        inputObject = JsonConvert.DeserializeObject(restobj.Data, restType);
+                        inputObject = JsonConvert.DeserializeObject(restobj.Data, restType, m_jsonSerializerSettings);
                     }
                     catch
                     {
 
                         try
                         {
-                            inputObject = JsonConvert.DeserializeObject(restobj.Data, paramRhinoType);
+                            inputObject = JsonConvert.DeserializeObject(restobj.Data, paramRhinoType, m_jsonSerializerSettings);
                         }
                         catch
                         {
@@ -211,5 +221,11 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
             return result;
         }
+
+        private static JsonSerializerSettings m_jsonSerializerSettings = new JsonSerializerSettings()
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore
+        };
     }
 }
