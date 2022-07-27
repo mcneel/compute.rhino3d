@@ -78,12 +78,12 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
             foreach (var inputParam in component.Params.Input)
             {
-                rc.Inputs[inputParam.NickName] = new Input(inputParam.NickName, inputParam);
+                rc.Inputs[inputParam.NickName] = new Input(inputParam.NickName, inputParam, inputParam.Description());
             }
 
             foreach (var outputParam in component.Params.Output)
             {
-                rc.Outputs[outputParam.NickName] = new Output(outputParam.NickName, outputParam);
+                rc.Outputs[outputParam.NickName] = new Output(outputParam.NickName, outputParam, outputParam.Description());
             }
 
             return rc;

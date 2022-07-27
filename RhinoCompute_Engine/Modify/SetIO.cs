@@ -23,7 +23,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             {
                 var contextBaker = docObj as GH_Component;
                 IGH_Param param = contextBaker.Params.Input[0];
-                rc.AddInput(param, docObj.RemoteInputName());
+                rc.AddInput(param, docObj.RemoteInputName(), docObj.Description());
                 return;
             }
 
@@ -40,7 +40,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             {
                 IGH_Param param = docObj as IGH_Param;
                 if (param != null)
-                    rc.AddInput(param, param.NickName);
+                    rc.AddInput(param, param.NickName, param.Description);
 
                 return;
             }
@@ -66,7 +66,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 string inputName = groupName.Replace(m_inputGroupKey, "");
                 var param = groupObjects[0] as IGH_Param;
                 if (param != null)
-                    rc.AddInput(param, inputName);
+                    rc.AddInput(param, inputName, param.Description());
             }
 
             if (groupName.Contains(m_outputGroupKey) && groupObjects.Count > 0)

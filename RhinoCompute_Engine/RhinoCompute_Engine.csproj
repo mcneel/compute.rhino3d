@@ -121,6 +121,9 @@
     <Compile Include="Modify\SetIO.cs" />
     <Compile Include="Modify\AddInput.cs" />
     <Compile Include="Convert\GHArchiveFromBase64String.cs" />
+    <Compile Include="Convert\ToListOfLists.cs" />
+    <Compile Include="Query\SimplifiedListOfLists.cs" />
+    <Compile Include="Query\PersistentDataAsListOfLists.cs" />
     <Compile Include="Query\IsBHoMUIParameter.cs" />
     <Compile Include="Query\IsNullOrEmpty.cs" />
     <Compile Include="Query\IsRemoteInput.cs" />

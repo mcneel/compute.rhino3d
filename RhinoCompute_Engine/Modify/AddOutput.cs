@@ -13,7 +13,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             if (rc.Outputs.ContainsKey(name))
                 Log.RecordError($"Multiple outputs with the same name `{name}` were detected.");
             else
-                rc.Outputs[name] = new Output(name, param);
+                rc.Outputs[name] = new Output(name, param, param.Description());
         }
     }
 }

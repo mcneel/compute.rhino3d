@@ -39,7 +39,13 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             Input inputGroup = null;
             if (!rc.Inputs.TryGetValue(tree.ParamName, out inputGroup))
             {
-                Log.RecordError($"Input `{tree.ParamName}` does not appear to exist in this script. Check the spelling and the names of the available inputs for this script.");
+                string error = $"Input `{tree.ParamName}` does not appear to exist in this script. Check the spelling and the names of the available inputs for this script.";
+
+                string availableInputs = string.Join("`, `", rc.Inputs?.Select(i => i.Key));
+                if (!string.IsNullOrWhiteSpace(availableInputs))
+                    error += "\nInputs available in this script: `" + availableInputs;
+
+                Log.RecordError(error);
                 return false;
             }
 

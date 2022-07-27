@@ -18,7 +18,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 var inputSchema = new InputVariable
                 {
                     Name = input.Name,
-                    Description = (input as IGH_ContextualParameter).Description(),
+                    Description = input.Description(),
                     TypeName = input.Param.ParamTypeNameIncludingSources(), 
                     DefaultValue = input.Param.DefaultValue(),
                     Minimum = input.Param.GetMinimum(),

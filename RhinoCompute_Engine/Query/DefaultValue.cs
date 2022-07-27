@@ -39,7 +39,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     break;
                 case Param_Boolean paramBool:
                     if (paramBool.PersistentDataCount == 1)
-                        defaultValue = paramBool.ToListOfLists();
+                        defaultValue = paramBool.ToListOfLists().SimplifiedListOfLists();
                     break;
                 case Param_Box _:
                     break;
@@ -68,7 +68,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 case Param_Guid _:
                     break;
                 case Param_Integer paramInt:
-                    defaultValue = paramInt.ToListOfLists();
+                    defaultValue = paramInt.ToListOfLists().SimplifiedListOfLists();
                     break;
                 case Param_Interval _:
                     break;
@@ -90,7 +90,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     {
                         if (paramNumber.PersistentDataCount == 1)
                         {
-                            defaultValue = paramNumber.ToListOfLists();
+                            defaultValue = paramNumber.ToListOfLists().SimplifiedListOfLists();
                             break;
                         }
 
@@ -98,17 +98,15 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     }
                 //case Param_OGLShader:
                 case Param_Plane paramPlane:
-                    defaultValue = paramPlane.ToListOfLists();
+                    defaultValue = paramPlane.ToListOfLists().SimplifiedListOfLists();
                     break;
                 case Param_Point paramPoint:
-                    defaultValue = paramPoint.ToListOfLists();
+                    defaultValue = paramPoint.ToListOfLists().SimplifiedListOfLists();
                     break;
                 case Param_Rectangle _:
                     break;
                 //case Param_ScriptVariable _:
                 case Param_String paramString:
-                    if (paramString.PersistentDataCount == 1)
-                        defaultValue = paramString.ToListOfLists();
                     break;
                 case Param_StructurePath _:
                     break;
@@ -122,7 +120,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     break;
                 case Param_Vector paramVector:
                     if (paramVector.PersistentDataCount == 1)
-                        defaultValue = paramVector.ToListOfLists();
+                        defaultValue = paramVector.ToListOfLists().SimplifiedListOfLists();
                     break;
                 case GH_NumberSlider paramSlider:
                     return paramSlider.CurrentValue;
@@ -142,63 +140,12 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             if (param.Sources != null && param.Sources.Count == 1)
                 return DefaultValue(param.Sources[0], depth + 1);
 
-            try
-            {
-                // Grasshopper sucks. How can they not know how to use interfaces? Incredible.
-                dynamic persistentData = (param as dynamic).PersistentData;
-
-                return ToListOfLists(persistentData);
-            }
-            catch { }
-
-            return param;
+            return param.PersistentDataAsListOfLists().SimplifiedListOfLists();
         }
 
-        public static object ToListOfLists<G>(this GH_PersistentParam<G> persistentParam) where G : class, IGH_Goo
-        {
-            Grasshopper.Kernel.Data.GH_Structure<G> ghstructure = persistentParam.PersistentData;
 
-            return ghstructure.ToListOfLists();
-        }
 
-        public static object ToListOfLists<G>(this Grasshopper.Kernel.Data.GH_Structure<G> ghstructure) where G : class, IGH_Goo
-        {
-            List<List<object>> result = new List<List<object>>();
+      
 
-            foreach (var branch in ghstructure)
-            {
-                List<object> branchList = new List<object>();
-
-                IEnumerable branchIEnumerable = branch as IEnumerable;
-                if (branchIEnumerable == null)
-                    try
-                    {
-                        // Grasshopper sucks. How can they not know how to use interfaces? Incredible.
-                        branchList.Add((branch as dynamic).Value);
-                    }
-                    catch { }
-
-                if (branchIEnumerable != null)
-                    foreach (var element in branchIEnumerable)
-                    {
-                        try
-                        {
-                            // Grasshopper sucks. How can they not know how to use interfaces? Incredible.
-                            branchList.Add((element as dynamic).Value);
-                        }
-                        catch { }
-                    }
-
-                if (branchList.Count == 1)
-                    return branchList.FirstOrDefault();
-
-                if (ghstructure.PathCount == 1)
-                    return branchList;
-
-                result.Add(branchList);
-            }
-
-            return result;
-        }
     }
 }

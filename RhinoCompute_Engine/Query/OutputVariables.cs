@@ -17,7 +17,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 outputs.Add(new OutputVariable
                 {
                     Name = output.Name,
-                    Description = (output.Param as IGH_ContextualParameter).Description(),
+                    Description = output.Description(),
                     TypeName = output.Param.ParamTypeNameIncludingRecipients(),
                     GhNickname = output.Param.NickName,
                 });
