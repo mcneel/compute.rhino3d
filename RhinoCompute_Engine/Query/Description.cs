@@ -25,8 +25,11 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             return contextualParameter.Prompt;
         }
 
-        public static string Description(this IGH_Param param)
+        public static string Description(this IGH_Param param, bool isDescriptionParam = false)
         {
+            if (isDescriptionParam)
+                return param.VolatileData.AllData(true).FirstOrDefault().ToString();
+
             if (param != null)
                 return param.Description;
 

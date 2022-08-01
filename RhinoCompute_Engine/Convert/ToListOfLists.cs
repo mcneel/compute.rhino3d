@@ -15,6 +15,23 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             return ghstructure.ToListOfLists();
         }
 
+        public static List<List<object>> ToListOfLists(this Grasshopper.Kernel.Data.IGH_Structure ghstructure)
+        {
+            List<List<object>> result = new List<List<object>>();
+            foreach (Grasshopper.Kernel.Data.GH_Path path in ghstructure.Paths)
+            {
+                System.Collections.IList goos = ghstructure.get_Branch(path);
+                List<object> branchList = new List<object>();
+                foreach (IGH_Goo goo in goos)
+                {
+                    branchList.Add((goo as dynamic).Value);
+                }
+                result.Add(branchList);
+            }
+
+            return result;
+        }
+
         public static List<List<object>> ToListOfLists<G>(this Grasshopper.Kernel.Data.GH_Structure<G> ghstructure) where G : class, IGH_Goo
         {
             List<List<object>> result = new List<List<object>>();

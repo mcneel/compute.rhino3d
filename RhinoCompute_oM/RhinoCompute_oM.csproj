@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>BH.oM.RemoteCompute.RhinoCompute</RootNamespace>
-    <AssemblyName>BH.oM.RemoteCompute.RhinoCompute</AssemblyName>
+    <AssemblyName>RhinoCompute_oM</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -105,4 +105,9 @@
   </Target>
   <Import Project="..\packages\Grasshopper.7.0.20314.3001\build\Grasshopper.targets" Condition="Exists('..\packages\Grasshopper.7.0.20314.3001\build\Grasshopper.targets')" />
   <Import Project="..\packages\RhinoWindows.7.0.20314.3001\build\RhinoWindows.targets" Condition="Exists('..\packages\RhinoWindows.7.0.20314.3001\build\RhinoWindows.targets')" />
+  <PropertyGroup>
+    <PostBuildEvent>xcopy "$(TargetDir)$(TargetFileName)"  "C:\ProgramData\BHoM\Assemblies\" /F /R /Y /I
+
+EXIT 0</PostBuildEvent>
+  </PropertyGroup>
 </Project>
