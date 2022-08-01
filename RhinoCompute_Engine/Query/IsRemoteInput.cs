@@ -32,7 +32,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
     {
         public static bool IsRemoteInput(this IGH_DocumentObject obj)
         {
-            return obj?.Category == "BHoM" && obj.Name == nameof(BH.Engine.RemoteCompute.Create.RemoteIN);
+            return obj.Name == nameof(BH.Engine.RemoteCompute.Create.RemoteIN) && (obj?.Category == "BHoM" || obj.GetType().FullName == "Grasshopper.Kernel.Components.GH_PlaceholderComponent");
         }
     }
 }

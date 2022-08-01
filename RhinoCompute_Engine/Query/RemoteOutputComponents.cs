@@ -41,7 +41,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
         public static bool IsRemoteOutput(this IGH_DocumentObject obj)
         {
-            return obj?.Category == "BHoM" && obj.Name == nameof(BH.Engine.RemoteCompute.Create.RemoteOUT);
+            return obj.Name == nameof(BH.Engine.RemoteCompute.Create.RemoteOUT) && (obj?.Category == "BHoM" || obj.GetType().FullName == "Grasshopper.Kernel.Components.GH_PlaceholderComponent");
         }
 
         public static string RemoteOutputName(this IGH_DocumentObject obj)
