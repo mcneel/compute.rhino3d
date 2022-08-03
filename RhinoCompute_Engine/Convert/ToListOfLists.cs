@@ -8,8 +8,24 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Convert
     {
+        public static List<List<object>> PersistentDataAsListOfLists(this IGH_Param persistentParam)
+        {
+            try
+            {
+                // Grasshopper sucks. How can they not know how to use interfaces? Incredible.
+                dynamic persistentData = (persistentParam as dynamic).PersistentData;
+                return Convert.ToListOfLists(persistentData) as List<List<object>>;
+            }
+            catch { }
+
+            return new List<List<object>>();
+        }
+
         public static List<List<object>> ToListOfLists<G>(this GH_PersistentParam<G> persistentParam) where G : class, IGH_Goo
         {
+            //if (persistentParam == null)
+            //    return new List<List<object>>();
+
             Grasshopper.Kernel.Data.GH_Structure<G> ghstructure = persistentParam.PersistentData;
 
             return ghstructure.ToListOfLists();

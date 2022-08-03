@@ -5,7 +5,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Modify
     {
-        public static void AddOutput(this GrasshopperDefinition rc, IGH_Param param, string name)
+        public static void AddOutput(this GrasshopperDefinition rc, IGH_Param param, string name, string description = null)
         {
             if (param == null || string.IsNullOrWhiteSpace(name))
                 return;
@@ -13,7 +13,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             if (rc.Outputs.ContainsKey(name))
                 Log.RecordError($"Multiple outputs with the same name `{name}` were detected.");
             else
-                rc.Outputs[name] = new Output(name, param, param.Description());
+                rc.Outputs[name] = new Output(name, param, description ?? param.Description());
         }
     }
 }

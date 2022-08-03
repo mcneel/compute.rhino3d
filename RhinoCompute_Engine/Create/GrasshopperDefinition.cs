@@ -17,9 +17,6 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
             GrasshopperDefinition grasshopperDefinition = base64string.ToGrasshopperDefinition();
 
-            // Set inputs and outputs.
-            grasshopperDefinition.SetIO();
-
             return grasshopperDefinition;
         }
 
@@ -45,9 +42,6 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return null;
 
             gDef = archive.ToGrasshopperDefinition();
-
-            // Set inputs and outputs.
-            gDef.SetIO();
 
             return gDef;
         }

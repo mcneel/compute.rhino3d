@@ -136,7 +136,7 @@ namespace compute.geometry
             }
 
             // Assign inputs data.
-            grasshopperDefinition.AssignInputsData(resthopperInputs.InputsData);
+            grasshopperDefinition.SetInputsData(resthopperInputs.InputsData);
 
             return true;
         }

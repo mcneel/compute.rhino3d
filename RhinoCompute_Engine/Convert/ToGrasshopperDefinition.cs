@@ -14,13 +14,23 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             if (archive == null)
                 return null;
 
-            return archive.ToGrasshopperDefinition();
+            GrasshopperDefinition gDef = archive.ToGrasshopperDefinition();
+
+            // Set inputs and outputs.
+            gDef.AddIO();
+
+            return gDef;
         }
 
         public static GrasshopperDefinition ToGrasshopperDefinition(this GH_Archive archive)
         {
             GH_Document ghDocument = archive.GHDocument();
 
+            return ghDocument.ToGrasshopperDefinition();
+        }
+
+        public static GrasshopperDefinition ToGrasshopperDefinition(this GH_Document ghDocument)
+        {
             try
             {
                 // raise DocumentServer.DocumentAdded event (used by some plug-ins)
@@ -31,9 +41,12 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 BH.Engine.RemoteCompute.Log.RecordWarning($"Exception in DocumentAdded event handler:\n\t{e.Message}");
             }
 
-            GrasshopperDefinition rc = new GrasshopperDefinition(ghDocument);
+            GrasshopperDefinition gDef = new GrasshopperDefinition(ghDocument);
 
-            return rc;
+            // Set inputs and outputs.
+            gDef.AddIO();
+
+            return gDef;
         }
     }
 }

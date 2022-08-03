@@ -16,27 +16,28 @@ namespace compute.geometry
         static Response SolveUrl(NancyContext ctx)
         {
             // Obtain the GrasshopperDefinition from body of request.
-            if (!ctx.TryDeserializeAndGetGrasshopperDefinition(out ScriptUrlInput urlInput, out GrasshopperDefinition definition, out Response errorResponse))
+            if (!ctx.TryDeserializeAndGetGrasshopperDefinition(out ScriptUrlInput urlInput, out GrasshopperDefinition ghDef, out Response errorResponse))
                 return errorResponse;
 
             // Solve the GrasshopperDefinition.
-            ResthopperOutputs outputSchema = definition.SolveDefinition(urlInput.RecursionLevel);
+            ghDef.SolveDefinition();
+            ResthopperOutputs resthopperOutput = ghDef.ResthopperOutputs();
 
             // Store in cache if required.
             if (urlInput.CacheToDisk)
             {
-                if (DataCache.TryWriteToDisk(definition, out string cacheKey))
-                    outputSchema.ScriptCacheKey = cacheKey;
+                if (DataCache.TryWriteToDisk(ghDef, out string cacheKey))
+                    resthopperOutput.ScriptCacheKey = cacheKey;
             }
 
             if (urlInput.CacheToMemory)
             {
-                if (DataCache.TryWriteInMemory(definition, out string cacheKey))
-                    outputSchema.ScriptCacheKey = cacheKey;
+                if (DataCache.TryWriteInMemory(ghDef, out string cacheKey))
+                    resthopperOutput.ScriptCacheKey = cacheKey;
             }
 
             // Set up response.
-            Response outputSchema_nancy = outputSchema.ToResponse();
+            Response outputSchema_nancy = resthopperOutput.ToResponse();
 
             // Clean backend log.
             BH.Engine.RemoteCompute.Log.Clean();

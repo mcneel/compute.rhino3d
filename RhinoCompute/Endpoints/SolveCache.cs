@@ -16,14 +16,15 @@ namespace compute.geometry
         static Response SolveCache(NancyContext ctx)
         {
             // Obtain the GrasshopperDefinition from body of request.
-            if (!ctx.TryDeserializeAndGetGrasshopperDefinition(out CacheKeyInput cacheInput, out GrasshopperDefinition definition, out Response errorResponse))
+            if (!ctx.TryDeserializeAndGetGrasshopperDefinition(out CacheKeyInput cacheInput, out GrasshopperDefinition ghDef, out Response errorResponse))
                 return errorResponse;
 
             // Solve the GrasshopperDefinition.
-            ResthopperOutputs outputSchema = definition.SolveDefinition(cacheInput.RecursionLevel);
+            ghDef.SolveDefinition();
+            ResthopperOutputs resthopperOutput = ghDef.ResthopperOutputs();
 
             // Set up response.
-            Response outputSchema_nancy = outputSchema.ToResponse();
+            Response outputSchema_nancy = resthopperOutput.ToResponse();
 
             // Clean backend log.
             Log.Clean();

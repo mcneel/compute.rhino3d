@@ -116,10 +116,10 @@
     <Compile Include="Convert\ToBHoM\FormerSchema.cs" />
     <Compile Include="Convert\ToResthopperObject.cs" />
     <Compile Include="Create\GrasshopperDefinition.cs" />
-    <Compile Include="Modify\AssignContextualData.cs" />
+    <Compile Include="Modify\SetContextualData.cs" />
     <Compile Include="Modify\AddOutput.cs" />
-    <Compile Include="Modify\AssignInputData.cs" />
-    <Compile Include="Modify\SetIO.cs" />
+    <Compile Include="Modify\SetInputsData.cs" />
+    <Compile Include="Modify\AddIO.cs" />
     <Compile Include="Modify\AddInput.cs" />
     <Compile Include="Convert\GHArchiveFromBase64String.cs" />
     <Compile Include="Convert\ToListOfLists.cs" />

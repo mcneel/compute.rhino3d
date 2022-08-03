@@ -25,25 +25,26 @@ namespace compute.geometry
 
             ResthopperInputs convertedSchema = formerRestSchema.ToBHoM();
 
-            GrasshopperDefinition definition = null;
+            GrasshopperDefinition ghDef = null;
             ResthopperOutputs resthopperOutput = null;
             errorResponse = null;
-            if (!convertedSchema.ITryCreateGrasshopperDefinition(out definition))
+            if (!convertedSchema.ITryCreateGrasshopperDefinition(out ghDef))
             {
                 errorResponse = NancyExtensions.CreateErrorResponse("Could not create Grasshopper Definition from the provided input.", HttpStatusCode.BadRequest);
                 return errorResponse;
             }
 
-            definition.AssignInputsData(convertedSchema.InputsData);
+            ghDef.SetInputsData(convertedSchema.InputsData);
 
             // Solve definition.
-            resthopperOutput = definition.SolveDefinition(formerRestSchema.RecursionLevel);
+            ghDef.SolveDefinition();
+            resthopperOutput = ghDef.ResthopperOutputs();
 
             // Cache to disk if possible and if required.
             if (convertedSchema is ICacheable cacheable)
             {
-                if ((cacheable.CacheToMemory && DataCache.TryWriteInMemory(definition, out string cacheKey)) || 
-                    (cacheable.CacheToDisk && DataCache.TryWriteToDisk(definition, out cacheKey)))
+                if ((cacheable.CacheToMemory && DataCache.TryWriteInMemory(ghDef, out string cacheKey)) || 
+                    (cacheable.CacheToDisk && DataCache.TryWriteToDisk(ghDef, out cacheKey)))
                     resthopperOutput.ScriptCacheKey = cacheKey;
             }
 

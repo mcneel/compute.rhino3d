@@ -9,7 +9,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Modify
     {
-        public static bool AssignContextualData(this IGH_ContextualParameter contextualParameter, string paramTypeName, GrasshopperDataTree<ResthopperObject> data)
+        public static bool SetContextualData(this IGH_ContextualParameter contextualParameter, string paramTypeName, GrasshopperDataTree<ResthopperObject> data)
         {
             if (contextualParameter == null || string.IsNullOrEmpty(paramTypeName))
                 return false;

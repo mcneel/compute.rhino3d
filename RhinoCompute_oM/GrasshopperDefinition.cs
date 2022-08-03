@@ -10,6 +10,8 @@ namespace BH.oM.RemoteCompute.RhinoCompute
             GH_Document = gh_document;
         }
 
+        public bool IsSolved { get; set; } = false;
+
         public Dictionary<string, Input> Inputs { get; set; } = new Dictionary<string, Input>();
         public Dictionary<string, Output> Outputs { get; set; } = new Dictionary<string, Output>();
 

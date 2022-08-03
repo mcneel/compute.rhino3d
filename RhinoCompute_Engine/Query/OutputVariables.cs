@@ -21,7 +21,6 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     TypeName = output.Param.ParamTypeNameIncludingRecipients(),
                     GhNickname = output.Param.NickName,
                 });
-
             }
 
             return outputs;

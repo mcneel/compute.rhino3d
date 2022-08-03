@@ -17,50 +17,56 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Modify
     {
-        public static void AssignInputsData(this GrasshopperDefinition rc, IEnumerable<ResthopperInputTree> inputsListTrees)
+        public static void SetInputsData(this GrasshopperDefinition rc, IEnumerable<ResthopperInputTree> inputsListTrees)
         {
             if (inputsListTrees == null)
                 return;
 
-            int inputIdx = 0;
-            foreach (ResthopperInputTree inputTree in inputsListTrees)
+            string availableInputs = string.Join("`, `", rc.Inputs?.Select(inp => inp.Key));
+            bool specifiedInputsNotFound = false;
+            for (int i = 0; i < inputsListTrees.Count(); i++)
             {
-                if (inputTree == null || !rc.AssignInputData(inputTree))
-                    Log.RecordError($"Could not assign the input at index {inputIdx}" + (inputTree?.ParamName != null ? $", of name named `{inputTree.ParamName}`." : "."), false, true);
+                ResthopperInputTree inputTree = inputsListTrees.ElementAtOrDefault(i);
 
-                inputIdx++;
+                // Make sure the input was added to GrasshopperDefinition before populating it with data. This is done via AddInput().
+                Input inputGroup = null;
+                if (!rc.Inputs.TryGetValue(inputTree.ParamName, out inputGroup))
+                {
+                    Log.RecordWarning($"Input `{inputTree.ParamName}` does not appear to exist in this script. Check the spelling and the names of the available inputs for this script.", true);
+
+                    if (!string.IsNullOrWhiteSpace(availableInputs))
+                        specifiedInputsNotFound = true;
+
+                    continue;
+                }
+
+                if (inputGroup.IsAlreadySet(inputTree))
+                {
+                    Log.RecordWarning($"Input `{inputTree.ParamName}` was set already. Check if you have two or more inputs with the same name.");
+                    continue;
+                }
+
+                if (inputTree == null || !rc.SetInputsData(inputTree, i))
+                    Log.RecordError($"Could not assign the input at index {i}" + (inputTree?.ParamName != null ? $", of name named `{inputTree.ParamName}`." : "."), false, true);
             }
+
+            if (specifiedInputsNotFound)
+                Log.RecordWarning("Some specified inputs were not found in the script. Inputs available in this script: `" + availableInputs, true);
         }
 
-        private static bool AssignInputData(this GrasshopperDefinition rc, ResthopperInputTree tree)
+        private static bool SetInputsData(this GrasshopperDefinition rc, ResthopperInputTree inputTree, int inputTreeIndex)
         {
-            // Make sure the input has been created before populating it with data.
-            // This is done via AddInput().
             Input inputGroup = null;
-            if (!rc.Inputs.TryGetValue(tree.ParamName, out inputGroup))
-            {
-                string error = $"Input `{tree.ParamName}` does not appear to exist in this script. Check the spelling and the names of the available inputs for this script.";
 
-                string availableInputs = string.Join("`, `", rc.Inputs?.Select(i => i.Key));
-                if (!string.IsNullOrWhiteSpace(availableInputs))
-                    error += "\nInputs available in this script: `" + availableInputs;
-
-                Log.RecordError(error);
+            if (!rc.Inputs.TryGetValue(inputTree.ParamName, out inputGroup))
                 return false;
-            }
-
-            if (inputGroup.IsAlreadySet(tree))
-            {
-                Log.RecordError($"Input `{tree.ParamName}` was set already. Check if you have two or more inputs with the same name.");
-                return false;
-            }
 
             // CONTEXTUAL DATA ASSIGNMENT
             IGH_ContextualParameter contextualParameter = inputGroup.Param as IGH_ContextualParameter;
             if (contextualParameter != null)
             {
-                if (!AssignContextualData(contextualParameter, inputGroup.Param.ParamTypeName(), tree))
-                    Log.RecordError($"Could not assign input {tree.ParamName} as Contextual Data.");
+                if (!SetContextualData(contextualParameter, inputGroup.Param.ParamTypeName(), inputTree))
+                    Log.RecordError($"Could not assign input {inputTree.ParamName} as Contextual Data.");
 
                 return false;
             }
@@ -69,12 +75,12 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             inputGroup.Param.VolatileData.Clear();
             inputGroup.Param.ExpireSolution(false); // mark param as expired but don't recompute just yet
 
-            inputGroup.InputData = tree;
+            inputGroup.InputData = inputTree;
 
             // BHOM DATA ASSIGNMENT AS VOLATILE DATA
             if (inputGroup.Param.IsBHoMUIParameter())
             {
-                foreach (KeyValuePair<string, List<ResthopperObject>> entry in tree)
+                foreach (KeyValuePair<string, List<ResthopperObject>> entry in inputTree)
                 {
                     GH_Path path = new GH_Path(GrasshopperPath.FromString(entry.Key));
                     for (int i = 0; i < entry.Value.Count; i++)
@@ -90,13 +96,13 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                         }
                         catch (Exception e)
                         {
-                            Log.RecordError($"Could not assign input {tree.ParamName} as Volatile Data. Error: {e.Message}");
+                            Log.RecordError($"Could not assign input {inputTree.ParamName} as Volatile Data. Error: {e.Message}");
                             return false;
                         }
 
                         if (!inputGroup.Param.AddVolatileData(path, i, data))
                         {
-                            Log.RecordError($"Could not assign the BHoM input data in {tree.ParamName} as Volatile Data.");
+                            Log.RecordError($"Could not assign the BHoM input data in {inputTree.ParamName} as Volatile Data.");
                             return false;
                         }
                     }
@@ -108,7 +114,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             // OTHER DATA ASSIGNMENT AS VOLATILE DATA
             if (inputGroup.Param is Param_Curve)
             {
-                foreach (KeyValuePair<string, List<ResthopperObject>> entry in tree)
+                foreach (KeyValuePair<string, List<ResthopperObject>> entry in inputTree)
                 {
                     GH_Path path = new GH_Path(GrasshopperPath.FromString(entry.Key));
                     for (int i = 0; i < entry.Value.Count; i++)
@@ -130,7 +136,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
                         if (!inputGroup.Param.AddVolatileData(path, i, ghCurve))
                         {
-                            Log.RecordError($"Could not assign the Curve in {tree.ParamName} as Volatile Data.");
+                            Log.RecordError($"Could not assign the Curve in {inputTree.ParamName} as Volatile Data.");
                             return false;
                         }
                     }
@@ -139,10 +145,10 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return true;
             }
 
-            return AssignVolatileData(inputGroup.Param, tree);
+            return SetVolatileData(inputGroup.Param, inputTree);
         }
 
-        private static bool AssignVolatileData(this IGH_Param gH_Param, GrasshopperDataTree<ResthopperObject> dataTree)
+        private static bool SetVolatileData(this IGH_Param gH_Param, GrasshopperDataTree<ResthopperObject> dataTree)
         {
             bool result = true;
 

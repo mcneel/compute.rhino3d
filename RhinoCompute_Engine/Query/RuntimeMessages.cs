@@ -1,10 +1,23 @@
-﻿using Grasshopper.Kernel;
+﻿using BH.oM.RemoteCompute.RhinoCompute;
+using Grasshopper.Kernel;
 using System.Collections.Generic;
 
 namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Query
     {
+        public static RuntimeMessages RuntimeMessages(this GH_Document ghDoc)
+        {
+            List<string> errors = new List<string>();
+            List<string> warnings = new List<string>();
+            List<string> remarks = new List<string>();
+
+            if (ghDoc != null)
+                ghDoc.RuntimeMessages(out errors, out warnings, out remarks);
+
+            return new RuntimeMessages() { Errors = errors, Warnings = warnings, Remarks = remarks };
+        }
+
         public static void RuntimeMessages(this GH_Document gh_document, out List<string> errors, out List<string> warnings, out List<string> remarks)
         {
             List<IGH_ActiveObject> activeObjects = gh_document.ActiveObjects();

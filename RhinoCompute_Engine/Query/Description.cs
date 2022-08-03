@@ -38,11 +38,33 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
         public static string Description(this IGH_DocumentObject docObj)
         {
-            if (docObj.IsRemoteInput())
+            if (docObj.IsRemoteInput() || docObj.IsRemoteOutput())
             {
-                IGH_Param descriptionParameter = (docObj as GH_Component).Params.Input.Where(p => p.Description.ToLower().Contains("description")).FirstOrDefault();
-                if (descriptionParameter != null)
-                    return (descriptionParameter as dynamic).PersistentData.ToString();
+                IGH_Param descriptionParameter = (docObj as GH_Component).Params.Input.Where(p => p.Name.ToLower().Contains("description")).FirstOrDefault();
+
+                if (descriptionParameter == null)
+                    return null;
+
+                string description = descriptionParameter.PersistentData()?.FirstOrDefault()?.ToString();
+                if (description != null)
+                    return description;
+
+                description = descriptionParameter.VolatileData()?.FirstOrDefault()?.ToString();
+                if (description != null)
+                    return description;
+
+                var sources = descriptionParameter.Sources.FirstOrDefault();
+                description = sources.PersistentData()?.FirstOrDefault()?.ToString();
+                if (description != null)
+                    return description;
+
+                description = sources.VolatileData()?.FirstOrDefault()?.ToString();
+                if (description != null)
+                    return description;
+
+                var panel = sources as Grasshopper.Kernel.Special.GH_Panel;
+                if (panel != null)
+                    return panel.UserText;
             }
 
             IGH_ContextualParameter contextualParameter = docObj as IGH_ContextualParameter;

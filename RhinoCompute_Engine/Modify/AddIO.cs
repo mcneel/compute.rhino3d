@@ -9,15 +9,15 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Modify
     {
-        public static void SetIO(this GrasshopperDefinition rc)
+        public static void AddIO(this GrasshopperDefinition rc)
         {
             IList<IGH_DocumentObject> documentObjects = rc.GH_Document.Objects;
 
             foreach (IGH_DocumentObject docObj in documentObjects)
-                rc.SetIO(docObj);
+                rc.AddIO(docObj);
         }
 
-        private static void SetIO(this GrasshopperDefinition rc, IGH_DocumentObject docObj)
+        private static void AddIO(this GrasshopperDefinition rc, IGH_DocumentObject docObj)
         {
             if (docObj.IsRemoteInput())
             {
@@ -31,7 +31,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             {
                 var contextBaker = docObj as GH_Component;
                 IGH_Param param = contextBaker.Params.Output[0];
-                rc.AddOutput(param, docObj.RemoteOutputName());
+                rc.AddOutput(param, docObj.RemoteOutputName(), docObj.Description());
                 return;
             }
 
