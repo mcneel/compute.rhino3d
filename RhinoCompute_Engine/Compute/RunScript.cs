@@ -15,8 +15,11 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Compute
     {
-        public static List<RemoteOutputInstance> RunScript(string scriptFilePath, List<IObject> inputs = null, bool active = false)
+        public static List<RemoteOutputInstance> RunScript(string scriptFilePath, List<IObject> inputs = null, GHScriptConfig gHScriptConfig = null, bool active = false)
         {
+            if (gHScriptConfig == null)
+                gHScriptConfig = new GHScriptConfig();
+
             List<RemoteOutputInstance> result = new List<RemoteOutputInstance>();
 
             if (!scriptFilePath.IsExistingGhFile())
@@ -38,7 +41,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return new List<RemoteOutputInstance>();
             }
 
-            GrasshopperDefinition ghDef = ghDoc.ToGrasshopperDefinition();
+            GrasshopperDefinition ghDef = ghDoc.ToGrasshopperDefinition(gHScriptConfig);
 
             // Set inputs
             List<RemoteInputInstance> allInputsProvided = inputs.ToRemoteInputData();
@@ -48,6 +51,17 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             // Solve the GrasshopperDefinition.
             ghDef.SolveDefinition();
             ResthopperOutputs outputSchema = ghDef.ResthopperOutputs();
+
+            // Close and clean.
+            if (gHScriptConfig.CloseAfterSolving)
+            {
+                Grasshopper.Instances.DocumentServer.RemoveDocument(ghDef.GH_Document);
+                ghDef.GH_Document.CloseAllSubsidiaries();
+                ghDef.GH_Document.Dispose();
+            }
+
+            Log.RaiseAllMessagesToUI();
+            Log.Clean();
 
             return outputSchema.ToBHoM();
         }

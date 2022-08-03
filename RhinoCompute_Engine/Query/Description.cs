@@ -1,6 +1,7 @@
 ﻿using BH.oM.RemoteCompute;
 using BH.oM.RemoteCompute.RhinoCompute;
 using Grasshopper.Kernel;
+using Grasshopper.Kernel.Special;
 using System.Linq;
 
 namespace BH.Engine.RemoteCompute.RhinoCompute
@@ -29,6 +30,9 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
         {
             if (isDescriptionParam)
                 return param.VolatileData.AllData(true).FirstOrDefault().ToString();
+
+            if (param is GH_Panel panel && !string.IsNullOrWhiteSpace(panel.NickName))
+                return panel.NickName;
 
             if (param != null)
                 return param.Description;

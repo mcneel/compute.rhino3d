@@ -23,7 +23,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return false;
             }
 
-            definition = Create.GrasshopperDefinitionFromBase64String(resthopperInput.Base64Script);
+            definition = Create.GrasshopperDefinitionFromBase64String(resthopperInput.Base64Script, resthopperInput.GHScriptConfig);
 
             if (definition == null)
                 Log.RecordError("Unable to convert Base-64 encoded Grasshopper script to a GrasshopperDefinition object.");
@@ -41,7 +41,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return false;
             }
 
-            definition = Create.GrasshopperDefinitionFromUri(resthopperInput.ScriptUrl);
+            definition = Create.GrasshopperDefinitionFromUri(resthopperInput.ScriptUrl, resthopperInput.GHScriptConfig);
 
             return definition != null;
         }

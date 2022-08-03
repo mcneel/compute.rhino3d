@@ -9,6 +9,9 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
     {
         public static Type GHParamToRhinoType(this Type t, bool warningIfNotFound = true)
         {
+            if (t.IsPrimitiveType())
+                return t;
+
             if (!typeof(IGH_Param).IsAssignableFrom(t))
             {
                 log.RecordWarning($"Input type {t.FullName} is not a Grasshopper parameter.");

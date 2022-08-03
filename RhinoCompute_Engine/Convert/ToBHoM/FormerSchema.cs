@@ -16,10 +16,10 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
             IEnumerable<ResthopperInputTree> inputData = formerSchema.Values.Select(v => new ResthopperInputTree() { InnerTree = v.InnerTree, ParamName = v.ParamName });
 
-
+            GHScriptConfig gHScriptConfig = new GHScriptConfig() { RecursionLevel = formerSchema.RecursionLevel };
             if (string.IsNullOrWhiteSpace(formerSchema.Pointer))
             {
-                return new Base64ScriptInput() { Base64Script = formerSchema.Algo, InputsData = inputData, RecursionLevel = formerSchema.RecursionLevel, CacheToDisk = formerSchema.CacheSolve };
+                return new Base64ScriptInput(formerSchema.Algo, gHScriptConfig) { InputsData = inputData, CacheToDisk = formerSchema.CacheSolve };
             }
             else
             {
@@ -29,7 +29,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     return null;
                 }
 
-                return new ScriptUrlInput() { ScriptUrl = uri, InputsData = inputData, RecursionLevel = formerSchema.RecursionLevel, CacheToMemory = formerSchema.CacheSolve };
+                return new ScriptUrlInput(uri, gHScriptConfig) { InputsData = inputData, CacheToMemory = formerSchema.CacheSolve };
             }
         }
     }

@@ -15,17 +15,17 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
     {
         private static object m_ghsolvelock = new object();
 
-        public static ResthopperOutputs ResthopperOutputs(this GrasshopperDefinition gdef)
+        public static ResthopperOutputs ResthopperOutputs(this GrasshopperDefinition ghDef)
         {
             ResthopperOutputs resthopperOutput = new ResthopperOutputs();
 
-            if (!gdef.IsSolved)
+            if (!ghDef.IsSolved)
             {
                 Log.RecordError($"Definition not yet solved. Invoke {nameof(SolveDefinition)} on it first.");
                 return resthopperOutput;
             }
 
-            foreach (Output output in gdef.Outputs.Values)
+            foreach (Output output in ghDef.Outputs.Values)
             {
                 IGH_Param param = output.Param;
                 if (param == null)
@@ -61,7 +61,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 Log.RecordNote("No output was returned.");
 
             // Add messages to the resthopperOutput
-            var runtimeMessages = gdef.GH_Document.RuntimeMessages();
+            var runtimeMessages = ghDef.GH_Document.RuntimeMessages();
             runtimeMessages.Errors.ForEach(m => resthopperOutput.Errors.Add(m));
             runtimeMessages.Warnings.ForEach(m => resthopperOutput.Warnings.Add(m));
             runtimeMessages.Remarks.ForEach(m => resthopperOutput.Remarks.Add(m));
@@ -69,31 +69,27 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             return resthopperOutput;
         }
 
-        public static void SolveDefinition(this GrasshopperDefinition gdef, int recursionLevel = 0, bool raiseMessages = true)
+        public static void SolveDefinition(this GrasshopperDefinition ghDef, int recursionLevel = 0, bool raiseMessages = true)
         {
             bool singleThreaded = recursionLevel == 0; // can't block on recursive calls
-            gdef.GH_Document.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(recursionLevel + 1));
-            gdef.GH_Document.Enabled = true;
+            ghDef.GH_Document.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(recursionLevel + 1));
+            ghDef.GH_Document.Enabled = true;
 
             if (singleThreaded)
                 lock (m_ghsolvelock)
-                    gdef.GH_Document.NewSolution(false, GH_SolutionMode.Default);
+                    ghDef.GH_Document.NewSolution(false, GH_SolutionMode.Default);
             else
-                gdef.GH_Document.NewSolution(false, GH_SolutionMode.Default);
+                ghDef.GH_Document.NewSolution(false, GH_SolutionMode.Default);
 
-            gdef.IsSolved = true;
+            ghDef.IsSolved = true;
 
             if (raiseMessages)
             {
-                var runtimeMessages = gdef.GH_Document.RuntimeMessages();
+                var runtimeMessages = ghDef.GH_Document.RuntimeMessages();
                 runtimeMessages.Errors.ForEach(m => Log.RecordError(m));
                 runtimeMessages.Warnings.ForEach(m => Log.RecordWarning(m));
                 runtimeMessages.Remarks.ForEach(m => Log.RecordNote(m));
             }
-
-            Grasshopper.Instances.DocumentServer.RemoveDocument(gdef.GH_Document);
-            gdef.GH_Document.CloseAllSubsidiaries();
-            gdef.GH_Document.Dispose();
         }
     }
 }

@@ -5,9 +5,10 @@ namespace BH.oM.RemoteCompute.RhinoCompute
 {
     public partial class GrasshopperDefinition : IGrasshopperDefinition
     {
-        public GrasshopperDefinition(GH_Document gh_document)
+        public GrasshopperDefinition(GH_Document gh_document, GHScriptConfig ghScriptConfig)
         {
             GH_Document = gh_document;
+            GHScriptConfig = ghScriptConfig;
         }
 
         public bool IsSolved { get; set; } = false;
@@ -17,5 +18,6 @@ namespace BH.oM.RemoteCompute.RhinoCompute
 
         public GH_Document GH_Document { get; }
         public GH_Component SingularComponent { get; set; } = null;
+        public GHScriptConfig GHScriptConfig { get; }
     }
 }

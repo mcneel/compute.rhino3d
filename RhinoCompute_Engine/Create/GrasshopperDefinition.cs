@@ -1,5 +1,6 @@
 ﻿using System;
 using BH.Engine.RemoteCompute;
+using BH.oM.RemoteCompute;
 using BH.oM.RemoteCompute.RhinoCompute;
 using Grasshopper.Kernel;
 
@@ -11,18 +12,18 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
         /**** Public Methods                            ****/
         /***************************************************/
 
-        public static GrasshopperDefinition GrasshopperDefinitionFromBase64String(string base64string)
+        public static GrasshopperDefinition GrasshopperDefinitionFromBase64String(string base64string, GHScriptConfig gHScriptConfig)
         {
             string cacheKey = base64string.CacheKey();
 
-            GrasshopperDefinition grasshopperDefinition = base64string.ToGrasshopperDefinition();
+            GrasshopperDefinition grasshopperDefinition = base64string.ToGrasshopperDefinition(gHScriptConfig);
 
             return grasshopperDefinition;
         }
 
         /***************************************************/
 
-        public static GrasshopperDefinition GrasshopperDefinitionFromUri(Uri scriptUrl)
+        public static GrasshopperDefinition GrasshopperDefinitionFromUri(Uri scriptUrl, GHScriptConfig gHScriptConfig)
         {
             if (scriptUrl == null)
                 return null;
@@ -41,14 +42,14 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             if (archive == null)
                 return null;
 
-            gDef = archive.ToGrasshopperDefinition();
+            gDef = archive.ToGrasshopperDefinition(gHScriptConfig);
 
             return gDef;
         }
 
         /***************************************************/
 
-        public static GrasshopperDefinition GrasshopperDefinitionFromComponent(Guid componentId)
+        public static GrasshopperDefinition GrasshopperDefinitionFromComponent(Guid componentId, GHScriptConfig gHScriptConfig)
         {
             GH_Component component = Grasshopper.Instances.ComponentServer.EmitObject(componentId) as GH_Component;
             if (component == null)
@@ -67,7 +68,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 BH.Engine.RemoteCompute.Log.RecordWarning($"Exception in DocumentAdded event handler:\n\t{e.Message}");
             }
 
-            GrasshopperDefinition rc = new GrasshopperDefinition(gh_document);
+            GrasshopperDefinition rc = new GrasshopperDefinition(gh_document, gHScriptConfig);
             rc.SingularComponent = component;
 
             foreach (var inputParam in component.Params.Input)

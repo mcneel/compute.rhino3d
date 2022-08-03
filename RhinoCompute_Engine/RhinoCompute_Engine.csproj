@@ -146,6 +146,7 @@
     <Compile Include="Query\RemoteOutputComponents.cs" />
     <Compile Include="Query\InputVariables.cs" />
     <Compile Include="Query\OutputVariables.cs" />
+    <Compile Include="Query\IsPrimitiveType.cs" />
     <Compile Include="Query\StripBom.cs" />
     <Compile Include="Query\ParamTypeName.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

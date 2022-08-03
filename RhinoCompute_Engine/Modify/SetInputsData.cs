@@ -23,6 +23,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return;
 
             string availableInputs = string.Join("`, `", rc.Inputs?.Select(inp => inp.Key));
+            availableInputs = availableInputs.IsNullOrEmpty() ? availableInputs : $"`{availableInputs}`";
             bool specifiedInputsNotFound = false;
             for (int i = 0; i < inputsListTrees.Count(); i++)
             {
@@ -51,7 +52,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             }
 
             if (specifiedInputsNotFound)
-                Log.RecordWarning("Some specified inputs were not found in the script. Inputs available in this script: `" + availableInputs, true);
+                Log.RecordWarning($"Some specified inputs were not found in the script. Available inputs: {availableInputs}.", true);
         }
 
         private static bool SetInputsData(this GrasshopperDefinition rc, ResthopperInputTree inputTree, int inputTreeIndex)
@@ -196,7 +197,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     object rhinoData = inputObject;
                     if (inputObject != null)
                     {
-                        if (restType != paramRhinoType)
+                        if (paramRhinoType != null && restType != paramRhinoType)
                             try
                             {
                                 rhinoData = System.Convert.ChangeType(inputObject, paramRhinoType);
@@ -216,7 +217,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                         catch
                         {
                             result = false;
-                            Log.RecordError($"{errorTextFirstPart}: cannot create instance of required {GHgooType.FullName} to host the input type {paramRhinoType.FullName}.");
+                            Log.RecordError($"{errorTextFirstPart}: cannot create instance of required {GHgooType.FullName} to host the input type {rhinoData.GetType().FullName}.");
                             continue;
                         }
 

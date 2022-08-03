@@ -23,11 +23,12 @@ namespace BH.oM.RemoteCompute.RhinoCompute
             { typeof(Param_Box), typeof(Box) },
             { typeof(Param_Surface), typeof(Surface) },
             { typeof(Param_Brep), typeof(Brep) },
-            { typeof(GH_NumberSlider), typeof(double) },
             { typeof(Param_Boolean), typeof(bool) },
-            { typeof(GH_BooleanToggle), typeof(bool) },
             { typeof(Param_Curve), null}, // Param_Curve may correspond to either Rhino.Geometry.Polyline or Rhino.Geometry.Curve
-            { typeof(Param_GenericObject), typeof(object)}
+            { typeof(Param_GenericObject), typeof(object)},
+            { typeof(GH_Panel), typeof(string) },
+            { typeof(GH_NumberSlider), typeof(double) },
+            { typeof(GH_BooleanToggle), typeof(bool) },
         };
     }
 }

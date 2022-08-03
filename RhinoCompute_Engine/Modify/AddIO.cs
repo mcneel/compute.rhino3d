@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using BH.oM.RemoteCompute;
 using BH.oM.RemoteCompute.RhinoCompute;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Special;
@@ -9,21 +10,21 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Modify
     {
-        public static void AddIO(this GrasshopperDefinition rc)
+        public static void AddIO(this GrasshopperDefinition ghDef)
         {
-            IList<IGH_DocumentObject> documentObjects = rc.GH_Document.Objects;
+            IList<IGH_DocumentObject> documentObjects = ghDef.GH_Document.Objects;
 
             foreach (IGH_DocumentObject docObj in documentObjects)
-                rc.AddIO(docObj);
+                ghDef.AddIO(docObj);
         }
 
-        private static void AddIO(this GrasshopperDefinition rc, IGH_DocumentObject docObj)
+        private static void AddIO(this GrasshopperDefinition ghDef, IGH_DocumentObject docObj)
         {
             if (docObj.IsRemoteInput())
             {
                 var contextBaker = docObj as GH_Component;
                 IGH_Param param = contextBaker.Params.Input[0];
-                rc.AddInput(param, docObj.RemoteInputName(), docObj.Description());
+                ghDef.AddInput(param, docObj.RemoteInputName(), docObj.Description());
                 return;
             }
 
@@ -31,51 +32,65 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             {
                 var contextBaker = docObj as GH_Component;
                 IGH_Param param = contextBaker.Params.Output[0];
-                rc.AddOutput(param, docObj.RemoteOutputName(), docObj.Description());
+                ghDef.AddOutput(param, docObj.RemoteOutputName(), docObj.Description());
                 return;
             }
 
+            // Not sure about this ContextualParameter IO handling.
+            // Left for compatibility with non-BHoM RhinoCompute scripts.
             IGH_ContextualParameter contextualParam = docObj as IGH_ContextualParameter;
             if (contextualParam != null)
             {
                 IGH_Param param = docObj as IGH_Param;
                 if (param != null)
-                    rc.AddInput(param, param.NickName, param.Description);
+                    ghDef.AddInput(param, param.NickName, param.Description);
 
                 return;
             }
 
+            // Not sure about this ContextBakeComponent/ContextPrintComponent IO handling.
+            // Left for compatibility with non-BHoM RhinoCompute scripts.
             Type docObjType = docObj.GetType();
             var className = docObjType.Name;
             if (className == "ContextBakeComponent" || className == "ContextPrintComponent")
             {
                 var contextBaker = docObj as GH_Component;
                 IGH_Param param = contextBaker.Params.Input[0];
-                rc.AddOutput(param, param.NickName);
+                ghDef.AddOutput(param, param.NickName);
+
+                return;
             }
 
-            GH_Group group = docObj as GH_Group;
+            // Handle inputs/outputs specified as Groups of components.
+            ghDef.AddIOsFromGroups(docObj as GH_Group, ghDef.GHScriptConfig);
+        }
+
+        private static void AddIOsFromGroups(this GrasshopperDefinition ghDef, GH_Group group, GHScriptConfig ghscriptconfig)
+        {
             if (group == null)
                 return;
 
             string groupName = group.NickName;
             var groupObjects = group.Objects();
 
-            if (groupName.Contains(m_inputGroupKey) && groupObjects.Count > 0)
+            if (groupObjects.Count <= 0)
+                return;
+
+            if (groupName.StartsWith(ghscriptconfig.InputSingleComponentGroupName))
             {
-                string inputName = groupName.Replace(m_inputGroupKey, "");
+                string inputName = groupName.Replace(ghscriptconfig.InputSingleComponentGroupName, "");
                 var param = groupObjects[0] as IGH_Param;
                 if (param != null)
-                    rc.AddInput(param, inputName, param.Description());
+                    ghDef.AddInput(param, inputName, param.Description());
             }
 
-            if (groupName.Contains(m_outputGroupKey) && groupObjects.Count > 0)
+            if (groupName.StartsWith(ghscriptconfig.OutputSingleComponentGroupName))
             {
-                string outputName = groupName.Replace(m_outputGroupKey, "");
+                string outputName = groupName.Replace(ghDef.GHScriptConfig.OutputSingleComponentGroupName, "");
 
                 if (groupObjects[0] is IGH_Param param)
                 {
-                    rc.AddOutput(param, outputName);
+                    ghDef.AddOutput(param, outputName);
                 }
                 else if (groupObjects[0] is GH_Component component)
                 {
@@ -84,19 +99,28 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     {
                         if (1 == outputCount)
                         {
-                            rc.AddOutput(component.Params.Output[i], outputName);
+                            ghDef.AddOutput(component.Params.Output[i], outputName);
                         }
                         else
                         {
                             string itemName = $"{outputName} ({component.Params.Output[i].NickName})";
-                            rc.AddOutput(component.Params.Output[i], itemName);
+                            ghDef.AddOutput(component.Params.Output[i], itemName);
                         }
                     }
                 }
             }
-        }
 
-        private static string m_inputGroupKey = "RH_IN:";
-        private static string m_outputGroupKey = "RH_OUT:";
+            if (groupName.ToLower() == ghscriptconfig.InputMultipleComponentsGroupName.ToLower())
+            {
+                Log.RecordNote($"Gathering inputs from group named `{groupName}`.");
+
+                foreach (IGH_DocumentObject groupObj in groupObjects)
+                {
+                    var param = groupObj as IGH_Param;
+                    if (param != null)
+                        ghDef.AddInput(param, param.NickName, param.Description());
+                }
+            }
+        }
     }
 }
