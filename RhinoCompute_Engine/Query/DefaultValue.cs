@@ -142,10 +142,5 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
             return param.PersistentDataAsListOfLists().SimplifiedListOfLists();
         }
-
-
-
-      
-
     }
 }
