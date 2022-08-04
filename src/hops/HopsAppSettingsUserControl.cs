@@ -8,6 +8,9 @@ namespace Hops
         public HopsAppSettingsUserControl()
         {
             InitializeComponent();
+            _addFunctionSourceButton.Image = HopsFunctionMgr.AddIcon();
+            _deleteFunctionSourceButton.Image = HopsFunctionMgr.DeleteIcon();
+
             _serversTextBox.Lines = HopsAppSettings.Servers;
             _serversTextBox.TextChanged += ServersTextboxChanged;
             _apiKeyTextbox.Text = HopsAppSettings.APIKey;
