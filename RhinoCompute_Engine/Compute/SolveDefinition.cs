@@ -24,6 +24,8 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             ghDef.GH_Document.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(gHScriptConfig.RecursionLevel + 1));
             ghDef.GH_Document.Enabled = true;
 
+            ghDef.SetTriggers();
+
             if (singleThreaded)
                 lock (m_ghsolvelock)
                     ghDef.GH_Document.NewSolution(false, GH_SolutionMode.Default);

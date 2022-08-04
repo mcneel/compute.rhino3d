@@ -28,6 +28,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             if (gHScriptConfig.RaiseDocumentOpenEvent && Grasshopper.Instances.DocumentServer.GetEnumerator_Generic().ToList().Contains(ghDef.GH_Document))
                 Grasshopper.Instances.DocumentServer.RemoveDocument(ghDef.GH_Document);
 
+            ghDef.GH_Document.ExpireSolution();
             ghDef.GH_Document.CloseAllSubsidiaries();
             ghDef.GH_Document.Dispose();
 

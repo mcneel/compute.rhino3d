@@ -76,17 +76,19 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             if (groupObjects.Count <= 0)
                 return;
 
-            if (groupName.StartsWith(ghscriptconfig.InputSingleComponentGroupPrefix))
+            // Kept for compatibility with existing non-BHoM RhinoCompute scripts.
+            if (groupName.StartsWith("RH_IN:"))
             {
-                string inputName = groupName.Replace(ghscriptconfig.InputSingleComponentGroupPrefix, "");
+                string inputName = groupName.Replace("RH_IN:", "");
                 var param = groupObjects[0] as IGH_Param;
                 if (param != null)
                     ghDef.AddInput(param, inputName, param.Description());
             }
 
-            if (groupName.StartsWith(ghscriptconfig.OutputSingleComponentGroupPrefix))
+            // Kept for compatibility with existing non-BHoM RhinoCompute scripts.
+            if (groupName.StartsWith("RH_OUT:"))
             {
-                string outputName = groupName.Replace(ghDef.GHScriptConfig.OutputSingleComponentGroupPrefix, "");
+                string outputName = groupName.Replace("RH_OUT:", "");
 
                 if (groupObjects[0] is IGH_Param param)
                 {
@@ -110,7 +112,8 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 }
             }
 
-            if (groupName.ToLower() == ghscriptconfig.InputMultipleComponentsGroupName.ToLower())
+            // Deal with multiple "INPUT" components included in a group.
+            if (groupName.StartsWith(ghscriptconfig.InputGroupNamePrefix))
             {
                 Log.RecordNote($"Gathering inputs from group named `{groupName}`.");
 
@@ -119,6 +122,32 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     var param = groupObj as IGH_Param;
                     if (param != null)
                         ghDef.AddInput(param, param.NickName, param.Description());
+                }
+            }
+
+            // Deal with multiple "TRIGGER" components included in a group.
+            if (groupName.StartsWith(ghscriptconfig.TriggerGroupNamePrefix))
+            {
+                Log.RecordNote($"Gathering triggers from group named `{groupName}`.");
+
+                string triggerIndexStr = groupName.Replace(ghscriptconfig.TriggerGroupNamePrefix, "").Trim();
+                int triggerIndex = (int.TryParse(triggerIndexStr, out triggerIndex) && triggerIndex > 0) ? triggerIndex : -1;
+
+                foreach (IGH_DocumentObject groupObj in groupObjects)
+                {
+                    if (triggerIndex == -1)
+                    {
+                        ghDef.Triggers.Add(ghDef.Triggers.Keys.LastOrDefault() + 1, groupObj);
+                        continue;
+                    }
+
+                    if (ghDef.Triggers.Keys.Contains(triggerIndex))
+                    {
+                        Log.RecordWarning($"The trigger group `{groupName}` specifies an index number ({triggerIndex}) that already used in another trigger group. It will be triggered last.");
+                        ghDef.Triggers.Add(ghDef.Triggers.Keys.LastOrDefault(), groupObj);
+                    }
+
+                    ghDef.Triggers[triggerIndex] = groupObj;
                 }
             }
         }

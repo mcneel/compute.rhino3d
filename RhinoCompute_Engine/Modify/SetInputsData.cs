@@ -11,7 +11,6 @@ using Newtonsoft.Json;
 using Rhino.Geometry;
 using System.Reflection;
 using System.Linq;
-using System.ComponentModel;
 
 namespace BH.Engine.RemoteCompute.RhinoCompute
 {
@@ -233,6 +232,18 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             }
 
             return result;
+        }
+
+        public static void SetTriggers(this GrasshopperDefinition ghDef)
+        {
+            foreach (IGH_DocumentObject trigger in ghDef.Triggers.Values)
+            {
+                if (trigger is Grasshopper.Kernel.Special.GH_BooleanToggle toggle)
+                    toggle.Value = true;
+
+                if (trigger is Grasshopper.Kernel.Special.GH_ButtonObject button)
+                    button.ButtonDown = true;
+            }
         }
 
         private static JsonSerializerSettings m_jsonSerializerSettings = new JsonSerializerSettings()

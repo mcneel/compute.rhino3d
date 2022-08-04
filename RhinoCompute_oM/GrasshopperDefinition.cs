@@ -16,6 +16,8 @@ namespace BH.oM.RemoteCompute.RhinoCompute
         public Dictionary<string, Input> Inputs { get; set; } = new Dictionary<string, Input>();
         public Dictionary<string, Output> Outputs { get; set; } = new Dictionary<string, Output>();
 
+        public SortedDictionary<int, IGH_DocumentObject> Triggers { get; set; } = new SortedDictionary<int, IGH_DocumentObject>();
+
         public GH_Document GH_Document { get; }
         public GH_Component SingularComponent { get; set; } = null;
         public GHScriptConfig GHScriptConfig { get; }
