@@ -76,17 +76,17 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             if (groupObjects.Count <= 0)
                 return;
 
-            if (groupName.StartsWith(ghscriptconfig.InputSingleComponentGroupName))
+            if (groupName.StartsWith(ghscriptconfig.InputSingleComponentGroupPrefix))
             {
-                string inputName = groupName.Replace(ghscriptconfig.InputSingleComponentGroupName, "");
+                string inputName = groupName.Replace(ghscriptconfig.InputSingleComponentGroupPrefix, "");
                 var param = groupObjects[0] as IGH_Param;
                 if (param != null)
                     ghDef.AddInput(param, inputName, param.Description());
             }
 
-            if (groupName.StartsWith(ghscriptconfig.OutputSingleComponentGroupName))
+            if (groupName.StartsWith(ghscriptconfig.OutputSingleComponentGroupPrefix))
             {
-                string outputName = groupName.Replace(ghDef.GHScriptConfig.OutputSingleComponentGroupName, "");
+                string outputName = groupName.Replace(ghDef.GHScriptConfig.OutputSingleComponentGroupPrefix, "");
 
                 if (groupObjects[0] is IGH_Param param)
                 {

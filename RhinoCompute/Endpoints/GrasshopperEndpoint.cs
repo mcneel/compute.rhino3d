@@ -37,8 +37,7 @@ namespace compute.geometry
             ghDef.SetInputsData(convertedSchema.InputsData);
 
             // Solve definition.
-            ghDef.SolveDefinition();
-            resthopperOutput = ghDef.ResthopperOutputs();
+            resthopperOutput = ghDef.SolveAndGetOutputs();
 
             // Cache to disk if possible and if required.
             if (convertedSchema is ICacheable cacheable)

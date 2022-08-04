@@ -102,8 +102,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Compute\RunScript.cs" />
+    <Compile Include="Compute\SolveAndGetOutputs.cs" />
     <Compile Include="Convert\ToGHArchive.cs" />
     <Compile Include="Convert\ToBase64String.cs" />
+    <Compile Include="Convert\ToIEnumerable.cs" />
     <Compile Include="Create\TryCreateGrasshopperDefinition.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="Objects\Cache\DataCache.cs" />
@@ -123,6 +125,7 @@
     <Compile Include="Modify\AddInput.cs" />
     <Compile Include="Convert\GHArchiveFromBase64String.cs" />
     <Compile Include="Convert\ToListOfLists.cs" />
+    <Compile Include="Query\ResthopperOutputs.cs" />
     <Compile Include="Query\SimplifiedListOfLists.cs" />
     <Compile Include="Query\PersistentDataAsListOfLists.cs" />
     <Compile Include="Query\IsBHoMUIParameter.cs" />

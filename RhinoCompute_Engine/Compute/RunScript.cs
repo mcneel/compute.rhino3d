@@ -31,10 +31,10 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return new List<RemoteOutputInstance>();
             }
 
-            var io = new GH_DocumentIO();
-            io.Open(scriptFilePath);
+            var ghDocumentIo = new GH_DocumentIO();
+            ghDocumentIo.Open(scriptFilePath);
 
-            GH_Document ghDoc = io.Document;
+            GH_Document ghDoc = ghDocumentIo.Document;
             if (ghDoc == null)
             {
                 Log.RecordError("Could not extract a Grasshopper definition from the input file.");
@@ -49,16 +49,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             ghDef.SetInputsData(allResthopperInputs);
 
             // Solve the GrasshopperDefinition.
-            ghDef.SolveDefinition();
-            ResthopperOutputs outputSchema = ghDef.ResthopperOutputs();
-
-            // Close and clean.
-            if (gHScriptConfig.CloseAfterSolving)
-            {
-                Grasshopper.Instances.DocumentServer.RemoveDocument(ghDef.GH_Document);
-                ghDef.GH_Document.CloseAllSubsidiaries();
-                ghDef.GH_Document.Dispose();
-            }
+            ResthopperOutputs outputSchema = ghDef.SolveAndGetOutputs();
 
             Log.RaiseAllMessagesToUI();
             Log.Clean();

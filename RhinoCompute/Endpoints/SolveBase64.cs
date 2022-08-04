@@ -20,8 +20,7 @@ namespace compute.geometry
                 return errorResponse;
 
             // Solve the GrasshopperDefinition.
-            ghDef.SolveDefinition();
-            ResthopperOutputs resthopperOutput = ghDef.ResthopperOutputs();
+            ResthopperOutputs resthopperOutput = ghDef.SolveAndGetOutputs();
 
             // Store in cache if required.
             if (base64Input.CacheToDisk)
