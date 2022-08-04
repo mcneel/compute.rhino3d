@@ -10,6 +10,7 @@ namespace Hops
     {
         const string HOPS_SERVERS = "Hops:Servers";
         const string HOPS_APIKEY = "Hops:ApiKey";
+        const string HOPS_HTTP_TIMEOUT = "Hops:HttpTimeout";
         const string HIDE_WORKER_WINDOWS = "Hops:HideWorkerWindows";
         const string LAUNCH_WORKER_AT_START = "Hops:LaunchWorkerAtStart";
         const string LOCAL_WORKER_COUNT = "Hops:LocalWorkerCount";
@@ -268,6 +269,27 @@ namespace Hops
                     Grasshopper.Instances.Settings.SetValue(RECURSION_LIMIT, value);
             }
         }
+
+        static int _httpTimeout = 0;
+        public static int HTTPTimeout
+        {
+            get
+            {
+                if (0 == _httpTimeout)
+                    _httpTimeout = Grasshopper.Instances.Settings.GetValue(HOPS_HTTP_TIMEOUT, 100);
+                return _httpTimeout;
+            }
+            set
+            {
+                if (value >= 1)
+                {
+                    Grasshopper.Instances.Settings.SetValue(HOPS_HTTP_TIMEOUT, value);
+                    _httpTimeout = value;
+                }
+            }
+
+        }
+
         //static int _waittime;
         //public static int SynchronousWaitTime
         //{

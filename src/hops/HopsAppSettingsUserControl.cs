@@ -12,6 +12,18 @@ namespace Hops
             _serversTextBox.TextChanged += ServersTextboxChanged;
             _apiKeyTextbox.Text = HopsAppSettings.APIKey;
             _apiKeyTextbox.TextChanged += APIKeyTextboxChanged;
+            _httpTimeoutTextbox.Text = HopsAppSettings.HTTPTimeout.ToString();
+            _httpTimeoutTextbox.KeyPress += (s, e) =>
+            {
+                e.Handled = !char.IsDigit(e.KeyChar) && !char.IsControl(e.KeyChar);
+            };
+            _httpTimeoutTextbox.TextChanged += (s, e) =>
+            {
+                if (int.TryParse(_httpTimeoutTextbox.Text, out int result) && result > 0)
+                {
+                    HopsAppSettings.HTTPTimeout = result;
+                }
+            };
             _maxConcurrentRequestsTextbox.Text = HopsAppSettings.MaxConcurrentRequests.ToString();
             _maxConcurrentRequestsTextbox.KeyPress += (s, e) =>
             {
