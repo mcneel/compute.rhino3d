@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.1] - 2022-08-04
+### Added
+- A textbox was added to the Hops App Settings dialog (under Preferences/Solver) which allows you to set the timeout (in seconds) for the HTTP client that Hops uses to send/receive data to/from the rhino.compute server. The default is 100s but for long running calculations you may need to increase this value.
+
 ## [0.15.0] - 2022-06-10
 ### Added
 - Hops can now internalize it's referenced definition if it is saved on a local file system. Similar to internalizing geometry, when you internalize a definition it means that it removes the reference to the external file and instead serializes the definition inside the Hops component. This means that once a referenced file is internalized, you no longer have to share the accompanying referenced definition along with the Hops file.
