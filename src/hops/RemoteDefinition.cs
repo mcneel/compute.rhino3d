@@ -232,6 +232,8 @@ namespace Hops
                 HttpClient client = new HttpClient();
                 if(!String.IsNullOrEmpty(HopsAppSettings.APIKey))
                     client.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
+                if(HopsAppSettings.HTTPTimeout > 0)
+                    client.Timeout = TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout);
                 responseTask = client.PostAsync(postUrl, content);
                 _parentComponent.HTTPRecord.Schema = schema;
                 contentToDispose = content;
@@ -459,6 +461,8 @@ namespace Hops
                 HttpClient client = new HttpClient();
                 if (!String.IsNullOrEmpty(HopsAppSettings.APIKey))
                     client.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
+                if (HopsAppSettings.HTTPTimeout > 0)
+                    client.Timeout = TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout);
                 var postTask = client.PostAsync(solveUrl, content);
                 var responseMessage = postTask.Result;
                 var remoteSolvedData = responseMessage.Content;
@@ -484,6 +488,8 @@ namespace Hops
                         HttpClient client2 = new HttpClient();
                         if (!String.IsNullOrEmpty(HopsAppSettings.APIKey))
                             client2.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
+                        if (HopsAppSettings.HTTPTimeout > 0)
+                            client2.Timeout = TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout);
                         postTask = client.PostAsync(solveUrl, content2);
                         responseMessage = postTask.Result;
                         remoteSolvedData = responseMessage.Content;
