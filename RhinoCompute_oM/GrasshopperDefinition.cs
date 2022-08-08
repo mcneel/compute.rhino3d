@@ -18,6 +18,7 @@ namespace BH.oM.RemoteCompute.RhinoCompute
 
         public SortedDictionary<int, IGH_DocumentObject> Triggers { get; set; } = new SortedDictionary<int, IGH_DocumentObject>();
 
+
         public GH_Document GH_Document { get; }
         public GH_Component SingularComponent { get; set; } = null;
         public GHScriptConfig GHScriptConfig { get; }

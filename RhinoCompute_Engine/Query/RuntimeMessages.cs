@@ -1,4 +1,5 @@
-﻿using BH.oM.RemoteCompute.RhinoCompute;
+﻿using BH.oM.RemoteCompute;
+using BH.oM.RemoteCompute.RhinoCompute;
 using Grasshopper.Kernel;
 using System.Collections.Generic;
 

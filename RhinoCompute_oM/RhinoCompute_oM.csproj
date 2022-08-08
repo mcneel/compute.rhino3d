@@ -77,7 +77,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CachedDefinition.cs" />
-    <Compile Include="RuntimeMessages.cs" />
     <Compile Include="CachedResults.cs" />
     <Compile Include="GrasshopperDefinition.cs" />
     <Compile Include="Model\Output.cs" />

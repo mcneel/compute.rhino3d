@@ -21,6 +21,16 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             if (inputsListTrees == null)
                 return;
 
+            if ((!rc.Inputs?.Any() ?? false) && (inputsListTrees?.Any() ?? false))
+            {
+                Log.RecordWarning($"Some input data was specified, but no input could be gathered from the script. Check that:" +
+                    $"\n\t- the script includes some Groups with a name that starts with prefix `{rc.GHScriptConfig.InputGroupNamePrefix}`," +
+                    $"\n\t- or change the required input group name prefix in `{nameof(GHScriptConfig)}.{nameof(GHScriptConfig.InputGroupNamePrefix)}`," +
+                    $"\n\t- or use {nameof(BH.Engine.RemoteCompute.Create.RemoteIN)} components in the script to specify inputs." +
+                    $"\nThe script will now be run without setting any input.", true);
+                return;
+            }
+
             string availableInputs = string.Join("`, `", rc.Inputs?.Select(inp => inp.Key));
             availableInputs = availableInputs.IsNullOrEmpty() ? availableInputs : $"`{availableInputs}`";
             bool specifiedInputsNotFound = false;
@@ -51,7 +61,8 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             }
 
             if (specifiedInputsNotFound)
-                Log.RecordWarning($"Some specified inputs were not found in the script. Available inputs: {availableInputs}.", true);
+                Log.RecordWarning($"Some specified inputs were not found in the script. Inputs are gathered from `{nameof(RemoteCompute.Create.RemoteIN)}` components and from Groups with a name that is prefixed with INPUT." +
+                    $"\nInputs found in script: {availableInputs}.", true);
         }
 
         private static bool SetInputsData(this GrasshopperDefinition rc, ResthopperInputTree inputTree, int inputTreeIndex)

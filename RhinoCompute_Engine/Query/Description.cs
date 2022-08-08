@@ -8,7 +8,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Query
     {
-        public static string Description(this IRemoteIO io)
+        public static string Description(this IRemoteIOVariable io)
         {
             return io.Description;
         }
