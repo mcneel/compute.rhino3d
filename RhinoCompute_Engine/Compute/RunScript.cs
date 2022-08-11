@@ -19,6 +19,8 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
     {
         private static bool m_PartOfChain = false;
 
+        [Input("scriptFilePaths", "Excecuted in the order provided. ")]
+        [Input("inputs", "The full list of script will be executed for every input in this list.")]
         [MultiOutputAttribute(0, "Logs", "Log returned by each script.")]
         [MultiOutputAttribute(1, "Outputs", "Outputs returned by each script.")]
         public static Output<List<RuntimeMessages>, List<List<RemoteOutputData>>> RunScripts(List<string> scriptFilePaths, List<CustomObject> inputs = null, GHScriptConfig gHScriptConfig = null, bool active = false)
@@ -64,20 +66,23 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     Log.RecordError($"Could not compute script `{Path.GetFileName(scriptFilePaths.ElementAtOrDefault(i))}`.");
                 }
 
-                if (m_PartOfChain)
-                {
-                    if (scriptResult?.Item1?.Errors.Any() ?? false)
-                        Log.RecordError("Some errors were encountered. Check the individual Log outputs for details.", true);
-
-                    if (scriptResult?.Item1?.Warnings.Any() ?? false)
-                        Log.RecordWarning("Some warnings were encountered. Check the individual Log outputs for details.", true);
-
-                    if (scriptResult?.Item1?.Remarks.Any() ?? false)
-                        Log.RecordNote("Some Remarks were encountered. Check the individual Log outputs for details.", true);
-                }
-
                 allRuntimeMessages.Add(scriptResult.Item1);
                 allOutputData.Add(scriptResult.Item2);
+            }
+
+            if (m_PartOfChain)
+            {
+                if (allRuntimeMessages?.Any(rm => rm.Errors.Any()) ?? false)
+                    Log.RecordError($"Some Errors were encountered in these scripts:\n     `{string.Join("`,\n     ", allRuntimeMessages.Where(rm => rm.Errors.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)))}`." +
+                        $"\nCheck the individual Logs output for details.", true);
+
+                if (allRuntimeMessages?.Any(rm => rm.Warnings.Any()) ?? false)
+                    Log.RecordWarning($"Some Warnings were encountered in these scripts:\n     `{string.Join("`,\n     ", allRuntimeMessages.Where(rm => rm.Warnings.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)))}`." +
+                        $"\nCheck the individual Logs output for details.", true);
+
+                if (allRuntimeMessages?.Any(rm => rm.Remarks.Any()) ?? false)
+                    Log.RecordNote($"Some Remarks were encountered in these scripts:\n     `{string.Join("`,\n     ", allRuntimeMessages.Where(rm => rm.Remarks.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)))}`." +
+                        $"\nCheck the individual Logs output for details.", true);
             }
 
             m_PartOfChain = false;

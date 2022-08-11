@@ -42,7 +42,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 Input inputGroup = null;
                 if (!rc.Inputs.TryGetValue(inputTree.ParamName, out inputGroup))
                 {
-                    Log.RecordWarning($"Input `{inputTree.ParamName}` does not appear to exist in this script. Check the spelling and the names of the available inputs for this script.", true);
+                    Log.RecordWarning($"Specified input `{inputTree.ParamName}` does exist in this script.", true);
 
                     if (!string.IsNullOrWhiteSpace(availableInputs))
                         specifiedInputsNotFound = true;
@@ -61,7 +61,9 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             }
 
             if (specifiedInputsNotFound)
-                Log.RecordWarning($"Some specified inputs were not found in the script. Inputs are gathered from `{nameof(RemoteCompute.Create.RemoteIN)}` components and from Groups with a name that is prefixed with INPUT." +
+                Log.RecordWarning($"Some specified inputs were not found in the script." +
+                    $"\nInputs are gathered from `{nameof(RemoteCompute.Create.RemoteIN)}` components and from Groups with a name that is prefixed with INPUT." +
+                    $"\nCheck their names and their spelling in the script (they are case-sensitive)." +
                     $"\nInputs found in script: {availableInputs}.", true);
         }
 
