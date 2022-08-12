@@ -75,23 +75,23 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return false;
 
             // CONTEXTUAL DATA ASSIGNMENT
-            IGH_ContextualParameter contextualParameter = inputGroup.Param as IGH_ContextualParameter;
+            IGH_ContextualParameter contextualParameter = inputGroup.Data as IGH_ContextualParameter;
             if (contextualParameter != null)
             {
-                if (!SetContextualData(contextualParameter, inputGroup.Param.ParamTypeName(), inputTree))
+                if (!SetContextualData(contextualParameter, inputGroup.Data.ParamTypeName(), inputTree))
                     Log.RecordError($"Could not assign input {inputTree.ParamName} as Contextual Data.");
 
                 return false;
             }
 
             // VOLATILE DATA ASSIGMENT
-            inputGroup.Param.VolatileData.Clear();
-            inputGroup.Param.ExpireSolution(false); // mark param as expired but don't recompute just yet
+            inputGroup.Data.VolatileData.Clear();
+            inputGroup.Data.ExpireSolution(false); // mark param as expired but don't recompute just yet
 
             inputGroup.InputData = inputTree;
 
             // BHOM DATA ASSIGNMENT AS VOLATILE DATA
-            if (inputGroup.Param.IsBHoMUIParameter())
+            if (inputGroup.Data.IsBHoMUIParameter())
             {
                 foreach (KeyValuePair<string, List<ResthopperObject>> entry in inputTree)
                 {
@@ -113,7 +113,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                             return false;
                         }
 
-                        if (!inputGroup.Param.AddVolatileData(path, i, data))
+                        if (!inputGroup.Data.AddVolatileData(path, i, data))
                         {
                             Log.RecordError($"Could not assign the BHoM input data in {inputTree.ParamName} as Volatile Data.");
                             return false;
@@ -125,7 +125,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             }
 
             // OTHER DATA ASSIGNMENT AS VOLATILE DATA
-            if (inputGroup.Param is Param_Curve)
+            if (inputGroup.Data is Param_Curve)
             {
                 foreach (KeyValuePair<string, List<ResthopperObject>> entry in inputTree)
                 {
@@ -147,7 +147,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                             ghCurve = new GH_Curve(c);
                         }
 
-                        if (!inputGroup.Param.AddVolatileData(path, i, ghCurve))
+                        if (!inputGroup.Data.AddVolatileData(path, i, ghCurve))
                         {
                             Log.RecordError($"Could not assign the Curve in {inputTree.ParamName} as Volatile Data.");
                             return false;
@@ -158,7 +158,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return true;
             }
 
-            return SetVolatileData(inputGroup.Param, inputTree);
+            return SetVolatileData(inputGroup.Data, inputTree);
         }
 
         private static bool SetVolatileData(this IGH_Param gH_Param, GrasshopperDataTree<ResthopperObject> dataTree)

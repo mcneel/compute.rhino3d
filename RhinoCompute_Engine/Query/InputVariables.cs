@@ -12,25 +12,25 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
         {
             // Parse input and output names
             var inputs = new List<InputVariable>();
-            var sortedInputs = ghDef.Inputs.Values.OrderBy(i => i.Param.Attributes.Pivot.Y);
+            var sortedInputs = ghDef.Inputs.Values.OrderBy(i => i.Data.Attributes.Pivot.Y);
             foreach (Input input in sortedInputs)
             {
                 var inputSchema = new InputVariable
                 {
                     Name = input.Name,
                     Description = input.Description(),
-                    TypeName = input.Param.ParamTypeNameIncludingSources(), 
-                    DefaultValue = input.Param.DefaultValue(),
-                    Minimum = input.Param.GetMinimum(),
-                    Maximum = input.Param.GetMaximum(),
-                    GhAtLeast = input.Param.GetAtLeast(),
-                    GhAtMost = input.Param.GetAtMost(),
+                    TypeName = input.Data.ParamTypeNameIncludingSources(), 
+                    DefaultValue = input.Data.DefaultValue(),
+                    Minimum = input.Data.GetMinimum(),
+                    Maximum = input.Data.GetMaximum(),
+                    GhAtLeast = input.Data.GetAtLeast(),
+                    GhAtMost = input.Data.GetAtMost(),
                 };
 
                 if (ghDef.SingularComponent != null)
                 {
-                    inputSchema.Description = input.Param.Description;
-                    if (input.Param.Access == GH_ParamAccess.item)
+                    inputSchema.Description = input.Data.Description;
+                    if (input.Data.Access == GH_ParamAccess.item)
                         inputSchema.GhAtMost = inputSchema.GhAtLeast;
                 }
 

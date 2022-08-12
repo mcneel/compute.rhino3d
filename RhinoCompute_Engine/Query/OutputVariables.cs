@@ -11,15 +11,15 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
         public static List<OutputVariable> OutputVariables(this GrasshopperDefinition ghDef)
         {
             var outputs = new List<OutputVariable>();
-            var sortedOutputs = ghDef.Outputs.Values.OrderBy(i => i.Param.Attributes.Pivot.Y);
+            var sortedOutputs = ghDef.Outputs.Values.OrderBy(i => i.Data.Attributes.Pivot.Y);
             foreach (Output output in sortedOutputs)
             {
                 outputs.Add(new OutputVariable
                 {
                     Name = output.Name,
                     Description = output.Description(),
-                    TypeName = output.Param.ParamTypeNameIncludingRecipients(),
-                    GhNickname = output.Param.NickName,
+                    TypeName = output.Data.ParamTypeNameIncludingRecipients(),
+                    GhNickname = output.Data.NickName,
                 });
             }
 

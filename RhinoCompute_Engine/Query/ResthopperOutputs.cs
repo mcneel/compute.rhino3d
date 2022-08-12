@@ -26,7 +26,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
             foreach (Output output in ghDef.Outputs.Values)
             {
-                IGH_Param param = output.Param;
+                IGH_Param param = output.Data;
                 if (param == null)
                     continue;
 
