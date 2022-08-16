@@ -101,16 +101,16 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             if (m_PartOfChain || m_repeatedExecutionMultiInputs)
             {
                 if (allRuntimeMessages?.Any(rm => rm.Errors.Any()) ?? false)
-                    Log.RecordError($"Some Errors were encountered in these scripts:\n     `{string.Join("`,\n     ", allRuntimeMessages.Where(rm => rm.Errors.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)).Distinct())}`." +
-                        $"\nCheck the individual Logs output for details.", true);
+                    BH.Engine.Base.Compute.RecordError($"Some Errors were encountered in these scripts:\n     `{string.Join("`,\n     ", allRuntimeMessages.Where(rm => rm.Errors.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)).Distinct())}`." +
+                        $"\nCheck the individual Logs output for details.");
 
                 if (allRuntimeMessages?.Any(rm => rm.Warnings.Any()) ?? false)
-                    Log.RecordWarning($"Some Warnings were encountered in these scripts:\n     `{string.Join("`,\n     ", allRuntimeMessages.Where(rm => rm.Warnings.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)).Distinct())}`." +
-                        $"\nCheck the individual Logs output for details.", true);
+                    BH.Engine.Base.Compute.RecordWarning($"Some Warnings were encountered in these scripts:\n     `{string.Join("`,\n     ", allRuntimeMessages.Where(rm => rm.Warnings.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)).Distinct())}`." +
+                        $"\nCheck the individual Logs output for details.");
 
                 if (allRuntimeMessages?.Any(rm => rm.Remarks.Any()) ?? false)
-                    Log.RecordNote($"Some Remarks were encountered in these scripts:\n     `{string.Join("`,\n     ", allRuntimeMessages.Where(rm => rm.Remarks.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)).Distinct())}`." +
-                        $"\nCheck the individual Logs output for details.", true);
+                    BH.Engine.Base.Compute.RecordNote($"Some Remarks were encountered in these scripts:\n     `{string.Join("`,\n     `", allRuntimeMessages.Where(rm => rm.Remarks.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)).Distinct())}`." +
+                        $"\nCheck the individual Logs output for details.");
             }
 
             m_PartOfChain = false;
@@ -165,7 +165,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 {
                     m_PartOfChain = i != 0;
                     Log.Clean();
-                    Log.RecordError($"Could not compute script `{Path.GetFileName(scriptFilePaths.ElementAtOrDefault(i))}`.");
+                    BH.Engine.Base.Compute.RecordError($"Could not compute script `{Path.GetFileName(scriptFilePaths.ElementAtOrDefault(i))}`.");
                 }
 
                 allRuntimeMessages.Add(scriptResult.Item1);
@@ -175,16 +175,16 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             if (m_PartOfChain || m_repeatedExecutionMultiInputs)
             {
                 if (allRuntimeMessages?.Any(rm => rm.Errors.Any()) ?? false)
-                    Log.RecordError($"Some Errors were encountered in these scripts:\n     `{string.Join("`,\n     ", allRuntimeMessages.Where(rm => rm.Errors.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)))}`." +
-                        $"\nCheck the individual Logs output for details.", true);
+                    BH.Engine.Base.Compute.RecordError($"Some Errors were encountered in these scripts:\n     `{string.Join("`,\n     ", allRuntimeMessages.Where(rm => rm.Errors.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)).Distinct())}`." +
+                        $"\nCheck the individual Logs output for details.");
 
                 if (allRuntimeMessages?.Any(rm => rm.Warnings.Any()) ?? false)
-                    Log.RecordWarning($"Some Warnings were encountered in these scripts:\n     `{string.Join("`,\n     ", allRuntimeMessages.Where(rm => rm.Warnings.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)))}`." +
-                        $"\nCheck the individual Logs output for details.", true);
+                    BH.Engine.Base.Compute.RecordWarning($"Some Warnings were encountered in these scripts:\n     `{string.Join("`,\n     ", allRuntimeMessages.Where(rm => rm.Warnings.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)).Distinct())}`." +
+                        $"\nCheck the individual Logs output for details.");
 
                 if (allRuntimeMessages?.Any(rm => rm.Remarks.Any()) ?? false)
-                    Log.RecordNote($"Some Remarks were encountered in these scripts:\n     `{string.Join("`,\n     ", allRuntimeMessages.Where(rm => rm.Remarks.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)))}`." +
-                        $"\nCheck the individual Logs output for details.", true);
+                    BH.Engine.Base.Compute.RecordNote($"Some Remarks were encountered in these scripts:\n     `{string.Join("`,\n     `", allRuntimeMessages.Where(rm => rm.Remarks.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)).Distinct())}`." +
+                        $"\nCheck the individual Logs output for details.");
             }
 
             m_PartOfChain = false;
@@ -232,6 +232,12 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
             if (!m_PartOfChain && !m_repeatedExecutionMultiInputs)
                 Log.RaiseAllMessagesToUI();
+            else
+            {
+                outputSchema.Errors.AddRange(Log.GetErrors());
+                outputSchema.Warnings.AddRange(Log.GetWarnings());
+                outputSchema.Remarks.AddRange(Log.GetNotes());
+            }
 
             Log.Clean();
 
