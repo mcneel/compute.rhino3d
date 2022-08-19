@@ -24,15 +24,12 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
         [Input("scriptFilePaths", "Scripts to be run. They will be run in the order provided, independently from each other.")]
         [Input("inputs", "The full list of script will be executed for every input in this list.")]
-        [MultiOutputAttribute(0, "Logs", "Log returned by each script.")]
-        [MultiOutputAttribute(1, "Outputs", "Outputs returned by each script.")]
-        public static Output<List<RuntimeMessages>, List<List<RemoteOutputData<object>>>> RunScriptChain(List<string> scriptFilePaths, List<CustomObject> inputs = null, bool chainIO = true, GHScriptConfig gHScriptConfig = null, bool active = false)
+        public static List<RemoteScriptOutput> RunScriptChain(List<string> scriptFilePaths, List<CustomObject> inputs = null, bool chainIO = true, GHScriptConfig gHScriptConfig = null, bool active = false)
         {
             if (gHScriptConfig == null)
                 gHScriptConfig = new GHScriptConfig();
 
-            var emptyOutput = new Output<List<RuntimeMessages>, List<List<RemoteOutputData<object>>>>() { Item1 = new List<RuntimeMessages>(), Item2 = new List<List<RemoteOutputData<object>>>() };
-
+            var emptyOutput = new List<RemoteScriptOutput>();
 
             if (!active)
             {
@@ -40,8 +37,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return emptyOutput;
             }
 
-            List<RuntimeMessages> allRuntimeMessages = new List<RuntimeMessages>();
-            List<List<RemoteOutputData<object>>> allOutputData = new List<List<RemoteOutputData<object>>>();
+            List<RemoteScriptOutput> allOutputs = new List<RemoteScriptOutput>();
 
             m_PartOfChain = scriptFilePaths.Count > 1;
             m_repeatedExecutionMultiInputs = inputs.Count > 1;
@@ -67,18 +63,17 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             {
                 var input = inputs[i];
 
-                Output<RuntimeMessages, List<RemoteOutputData<object>>> scriptResult = new Output<RuntimeMessages, List<RemoteOutputData<object>>>();
+                RemoteScriptOutput scriptResult = new RemoteScriptOutput();
 
                 for (int j = 0; j < scriptFilePaths.Count; j++)
                 {
                     try
                     {
-
                         if (chainIO && j != 0)
                         {
                             input = new CustomObject();
 
-                            foreach (var g in scriptResult.Item2.GroupBy(r => r.Name))
+                            foreach (var g in scriptResult.OutputDatas.GroupBy(r => r.Name))
                                 if (input.CustomData.ContainsKey(g.Key))
                                     input.CustomData[g.Key] = g.ToList().ToRemoteInputData();
                         }
@@ -92,43 +87,28 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                         Log.RecordError($"Could not compute script `{Path.GetFileName(scriptFilePaths.ElementAtOrDefault(j))}`.");
                     }
 
-                    allRuntimeMessages.Add(scriptResult.Item1);
-                    allOutputData.Add(scriptResult.Item2);
+                    allOutputs.Add(scriptResult);
                 }
 
             }
 
             if (m_PartOfChain || m_repeatedExecutionMultiInputs)
-            {
-                if (allRuntimeMessages?.Any(rm => rm?.Errors.Any() ?? false) ?? false)
-                    BH.Engine.Base.Compute.RecordError($"Some Errors were encountered in these scripts:\n     `{string.Join("`,\n     ", allRuntimeMessages.Where(rm => rm.Errors.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)).Distinct())}`." +
-                        $"\nCheck the individual Logs output for details.");
-
-                if (allRuntimeMessages?.Any(rm => rm?.Warnings.Any() ?? false) ?? false)
-                    BH.Engine.Base.Compute.RecordWarning($"Some Warnings were encountered in these scripts:\n     `{string.Join("`,\n     ", allRuntimeMessages.Where(rm => rm.Warnings.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)).Distinct())}`." +
-                        $"\nCheck the individual Logs output for details.");
-
-                if (allRuntimeMessages?.Any(rm => rm?.Remarks.Any() ?? false) ?? false)
-                    BH.Engine.Base.Compute.RecordNote($"Some Remarks were encountered in these scripts:\n     `{string.Join("`,\n     `", allRuntimeMessages.Where(rm => rm.Remarks.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)).Distinct())}`." +
-                        $"\nCheck the individual Logs output for details.");
-            }
+                allOutputs.ReportClusteredMessagesToUI();
 
             m_PartOfChain = false;
             m_askToReenable = true;
 
-            return new Output<List<RuntimeMessages>, List<List<RemoteOutputData<object>>>>() { Item1 = allRuntimeMessages, Item2 = allOutputData };
+            return allOutputs;
         }
 
         [Input("scriptFilePaths", "Scripts to be run. They will be run in the order provided, independently from each other.")]
         [Input("inputs", "Inputs for the scripts. The number of inputs provided must match the number of scripts provided. If a script does not need an input, provide an empty CustomObject for it.")]
-        [MultiOutputAttribute(0, "Logs", "Log returned by each script.")]
-        [MultiOutputAttribute(1, "Outputs", "Outputs returned by each script.")]
-        public static Output<List<RuntimeMessages>, List<List<RemoteOutputData<object>>>> RunScripts(List<string> scriptFilePaths, List<CustomObject> inputs = null, GHScriptConfig gHScriptConfig = null, bool active = false)
+        public static List<RemoteScriptOutput> RunScripts(List<string> scriptFilePaths, List<CustomObject> inputs = null, GHScriptConfig gHScriptConfig = null, bool active = false)
         {
             if (gHScriptConfig == null)
                 gHScriptConfig = new GHScriptConfig();
 
-            var emptyOutput = new Output<List<RuntimeMessages>, List<List<RemoteOutputData<object>>>>() { Item1 = new List<RuntimeMessages>(), Item2 = new List<List<RemoteOutputData<object>>>() };
+            var emptyOutput = new List<RemoteScriptOutput>();
 
             if (scriptFilePaths.Any() && inputs.Any() && scriptFilePaths.Count != inputs.Count)
             {
@@ -145,8 +125,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return emptyOutput;
             }
 
-            List<RuntimeMessages> allRuntimeMessages = new List<RuntimeMessages>();
-            List<List<RemoteOutputData<object>>> allOutputData = new List<List<RemoteOutputData<object>>>();
+            List<RemoteScriptOutput> allOutputs = new List<RemoteScriptOutput>();
 
             m_PartOfChain = scriptFilePaths.Count > 1;
             m_repeatedExecutionMultiInputs = inputs.Count > 1;
@@ -155,7 +134,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             {
                 m_PartOfChain = scriptFilePaths.Count > 1;
 
-                Output<RuntimeMessages, List<RemoteOutputData<object>>> scriptResult = new Output<RuntimeMessages, List<RemoteOutputData<object>>>();
+                var scriptResult = new RemoteScriptOutput();
 
                 try
                 {
@@ -168,38 +147,23 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                     BH.Engine.Base.Compute.RecordError($"Could not compute script `{Path.GetFileName(scriptFilePaths.ElementAtOrDefault(i))}`.");
                 }
 
-                allRuntimeMessages.Add(scriptResult.Item1);
-                allOutputData.Add(scriptResult.Item2);
+                allOutputs.Add(scriptResult);
             }
 
             if (m_PartOfChain || m_repeatedExecutionMultiInputs)
-            {
-                if (allRuntimeMessages?.Any(rm => rm?.Errors.Any() ?? false) ?? false)
-                    BH.Engine.Base.Compute.RecordError($"Some Errors were encountered in these scripts:\n     `{string.Join("`,\n     ", allRuntimeMessages.Where(rm => rm.Errors.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)).Distinct())}`." +
-                        $"\nCheck the individual Logs output for details.");
-
-                if (allRuntimeMessages?.Any(rm => rm?.Warnings.Any() ?? false) ?? false)
-                    BH.Engine.Base.Compute.RecordWarning($"Some Warnings were encountered in these scripts:\n     `{string.Join("`,\n     ", allRuntimeMessages.Where(rm => rm.Warnings.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)).Distinct())}`." +
-                        $"\nCheck the individual Logs output for details.");
-
-                if (allRuntimeMessages?.Any(rm => rm?.Remarks.Any() ?? false) ?? false)
-                    BH.Engine.Base.Compute.RecordNote($"Some Remarks were encountered in these scripts:\n     `{string.Join("`,\n     `", allRuntimeMessages.Where(rm => rm.Remarks.Any()).Select(rm => Path.GetFileName(rm.ScriptIdentifier)).Distinct())}`." +
-                        $"\nCheck the individual Logs output for details.");
-            }
+                allOutputs.ReportClusteredMessagesToUI();
 
             m_PartOfChain = false;
 
-            return new Output<List<RuntimeMessages>, List<List<RemoteOutputData<object>>>>() { Item1 = allRuntimeMessages, Item2 = allOutputData };
+            return allOutputs;
         }
 
-        [MultiOutputAttribute(0, "Log", "Log returned by the script.")]
-        [MultiOutputAttribute(1, "Outputs", "Outputs returned by the script.")]
-        private static Output<RuntimeMessages, List<RemoteOutputData<object>>> RunScript(string scriptFilePath, CustomObject inputs = null, GHScriptConfig gHScriptConfig = null, bool active = false)
+        private static RemoteScriptOutput RunScript(string scriptFilePath, CustomObject inputs = null, GHScriptConfig gHScriptConfig = null, bool active = false)
         {
             if (gHScriptConfig == null)
                 gHScriptConfig = new GHScriptConfig();
 
-            Output<RuntimeMessages, List<RemoteOutputData<object>>> output = new Output<RuntimeMessages, List<RemoteOutputData<object>>>();
+            var output = new RemoteScriptOutput();
 
             if (!scriptFilePath.IsExistingGhFile())
                 return output;
@@ -241,9 +205,26 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
             Log.Clean();
 
-            List<RemoteOutputData<object>> result = outputSchema.ToRemoteOutputDatas(scriptFilePath);
+            var result = outputSchema.ToRemoteOutputDatas(scriptFilePath);
 
-            return new Output<RuntimeMessages, List<RemoteOutputData<object>>>() { Item1 = outputSchema.RuntimeMessages(Path.GetFileName(scriptFilePath)), Item2 = result };
+            result.Inputs = inputs.ToRemoteInputData();
+
+            return result;
+        }
+
+        private static void ReportClusteredMessagesToUI(this List<RemoteScriptOutput> allOutputs)
+        {
+            if (allOutputs.Select(o => o.Log)?.Any(rm => rm?.Errors.Any() ?? false) ?? false)
+                BH.Engine.Base.Compute.RecordError($"Some Errors were encountered in these scripts:\n     `{string.Join("`,\n     ", allOutputs?.Where(o => o.Log.Errors.Any()).Select(o => o.SourceScript).Distinct())}`." +
+                    $"\nCheck the individual Logs output for details.");
+
+            if (allOutputs.Select(o => o.Log)?.Any(rm => rm?.Warnings.Any() ?? false) ?? false)
+                BH.Engine.Base.Compute.RecordWarning($"Some Warnings were encountered in these scripts:\n     `{string.Join("`,\n     ", allOutputs?.Where(o => o.Log.Warnings.Any()).Select(o => o.SourceScript).Distinct())}`." +
+                    $"\nCheck the individual Logs output for details.");
+
+            if (allOutputs.Select(o => o.Log)?.Any(rm => rm?.Remarks.Any() ?? false) ?? false)
+                BH.Engine.Base.Compute.RecordNote($"Some Remarks were encountered in these scripts:\n     `{string.Join("`,\n     `", allOutputs?.Where(o => o.Log.Remarks.Any()).Select(o => o.SourceScript).Distinct())}`." +
+                    $"\nCheck the individual Logs output for details.");
         }
     }
 }
