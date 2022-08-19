@@ -24,12 +24,12 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
         [Input("scriptFilePaths", "Scripts to be run. They will be run in the order provided, independently from each other.")]
         [Input("inputs", "The full list of script will be executed for every input in this list.")]
-        public static List<RemoteScriptOutput> RunScriptChain(List<string> scriptFilePaths, List<CustomObject> inputs = null, bool chainIO = true, GHScriptConfig gHScriptConfig = null, bool active = false)
+        public static List<ComputationOutput> RunScriptChain(List<string> scriptFilePaths, List<CustomObject> inputs = null, bool chainIO = true, GHScriptConfig gHScriptConfig = null, bool active = false)
         {
             if (gHScriptConfig == null)
                 gHScriptConfig = new GHScriptConfig();
 
-            var emptyOutput = new List<RemoteScriptOutput>();
+            var emptyOutput = new List<ComputationOutput>();
 
             if (!active)
             {
@@ -37,7 +37,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return emptyOutput;
             }
 
-            List<RemoteScriptOutput> allOutputs = new List<RemoteScriptOutput>();
+            List<ComputationOutput> allOutputs = new List<ComputationOutput>();
 
             m_PartOfChain = scriptFilePaths.Count > 1;
             m_repeatedExecutionMultiInputs = inputs.Count > 1;
@@ -63,7 +63,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             {
                 var input = inputs[i];
 
-                RemoteScriptOutput scriptResult = new RemoteScriptOutput();
+                ComputationOutput scriptResult = new ComputationOutput();
 
                 for (int j = 0; j < scriptFilePaths.Count; j++)
                 {
@@ -103,12 +103,12 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
         [Input("scriptFilePaths", "Scripts to be run. They will be run in the order provided, independently from each other.")]
         [Input("inputs", "Inputs for the scripts. The number of inputs provided must match the number of scripts provided. If a script does not need an input, provide an empty CustomObject for it.")]
-        public static List<RemoteScriptOutput> RunScripts(List<string> scriptFilePaths, List<CustomObject> inputs = null, GHScriptConfig gHScriptConfig = null, bool active = false)
+        public static List<ComputationOutput> RunScripts(List<string> scriptFilePaths, List<CustomObject> inputs = null, GHScriptConfig gHScriptConfig = null, bool active = false)
         {
             if (gHScriptConfig == null)
                 gHScriptConfig = new GHScriptConfig();
 
-            var emptyOutput = new List<RemoteScriptOutput>();
+            var emptyOutput = new List<ComputationOutput>();
 
             if (scriptFilePaths.Any() && inputs.Any() && scriptFilePaths.Count != inputs.Count)
             {
@@ -125,7 +125,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return emptyOutput;
             }
 
-            List<RemoteScriptOutput> allOutputs = new List<RemoteScriptOutput>();
+            List<ComputationOutput> allOutputs = new List<ComputationOutput>();
 
             m_PartOfChain = scriptFilePaths.Count > 1;
             m_repeatedExecutionMultiInputs = inputs.Count > 1;
@@ -134,7 +134,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             {
                 m_PartOfChain = scriptFilePaths.Count > 1;
 
-                var scriptResult = new RemoteScriptOutput();
+                var scriptResult = new ComputationOutput();
 
                 try
                 {
@@ -158,12 +158,12 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             return allOutputs;
         }
 
-        private static RemoteScriptOutput RunScript(string scriptFilePath, CustomObject inputs = null, GHScriptConfig gHScriptConfig = null, bool active = false)
+        private static ComputationOutput RunScript(string scriptFilePath, CustomObject inputs = null, GHScriptConfig gHScriptConfig = null, bool active = false)
         {
             if (gHScriptConfig == null)
                 gHScriptConfig = new GHScriptConfig();
 
-            var output = new RemoteScriptOutput();
+            var output = new ComputationOutput();
 
             if (!scriptFilePath.IsExistingGhFile())
                 return output;
@@ -212,7 +212,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             return result;
         }
 
-        private static void ReportClusteredMessagesToUI(this List<RemoteScriptOutput> allOutputs)
+        private static void ReportClusteredMessagesToUI(this List<ComputationOutput> allOutputs)
         {
             if (allOutputs.Select(o => o.Log)?.Any(rm => rm?.Errors.Any() ?? false) ?? false)
                 BH.Engine.Base.Compute.RecordError($"Some Errors were encountered in these scripts:\n     `{string.Join("`,\n     ", allOutputs?.Where(o => o.Log.Errors.Any()).Select(o => o.SourceScript).Distinct())}`." +
