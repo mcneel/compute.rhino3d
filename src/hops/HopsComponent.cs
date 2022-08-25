@@ -115,16 +115,23 @@ namespace Hops
         }
 
         public int SolveSerialNumber => _solveSerialNumber;
-        public HTTPRecord HTTPRecord;
+
+        HTTPRecord _httpRecord;
+        public HTTPRecord HTTPRecord
+        {
+            get
+            {
+                if (_httpRecord == null)
+                    _httpRecord = new HTTPRecord();
+                return _httpRecord; 
+            }
+        }
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             if (!_enabledThisSolve)
                 return;
             _iteration++;
-
-            if (HTTPRecord == null)
-                HTTPRecord = new HTTPRecord();
 
             // Limit recursive calls on compute
             if (_isHeadless && _solveRecursionLevel > HopsAppSettings.RecursionLimit)
@@ -152,7 +159,7 @@ namespace Hops
                 }
             }
 
-            if ( string.IsNullOrWhiteSpace(RemoteDefinitionLocation))
+            if (string.IsNullOrWhiteSpace(RemoteDefinitionLocation)  && _remoteDefinition?.InternalizedDefinition == null)
             {
                 AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "No URL or path defined for definition");
                 return;
@@ -178,12 +185,21 @@ namespace Hops
                 }
 
                 List<string> warnings;
-                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheResultsOnServer, _solveRecursionLevel, out warnings);
+                List<string> errors;
+                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheResultsOnServer, _solveRecursionLevel, out warnings, out errors);
                 if (warnings != null && warnings.Count > 0)
                 {
                     foreach (var warning in warnings)
                     {
                         AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
+                    }
+                    return;
+                }
+                if (errors != null && errors.Count > 0)
+                {
+                    foreach (var error in errors)
+                    {
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
                     }
                     return;
                 }
@@ -216,13 +232,22 @@ namespace Hops
 
             if (!GetSolveResults(DA, out var schema))
             {
+                List<string> errors;
                 List<string> warnings;
-                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheResultsOnServer, _solveRecursionLevel, out warnings);
+                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheResultsOnServer, _solveRecursionLevel, out warnings, out errors);
                 if (warnings != null && warnings.Count > 0)
                 {
                     foreach (var warning in warnings)
                     {
                         AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
+                    }
+                    return;
+                }
+                if (errors != null && errors.Count > 0)
+                {
+                    foreach (var error in errors)
+                    {
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
                     }
                     return;
                 }
@@ -257,6 +282,8 @@ namespace Hops
         const string TagSynchronousSolve = "SynchronousSolve";
         const string TagShowEnabled = "ShowInput_Enabled";
         const string TagShowPath = "ShowInput_Path";
+        const string TagInternalizeDefinitionFlag = "InternalizeFlag";
+        const string TagInternalizeDefinition = "InternalizeDefinition";
 
         public override bool Write(GH_IWriter writer)
         {
@@ -270,6 +297,10 @@ namespace Hops
                 writer.SetBoolean(TagSynchronousSolve, _synchronous);
                 writer.SetBoolean(TagShowEnabled, _showEnabledInput);
                 writer.SetBoolean(TagShowPath, _showPathInput);
+                if(_remoteDefinition?.InternalizedDefinition != null)
+                {
+                    writer.SetByteArray(TagInternalizeDefinition, _remoteDefinition.InternalizedDefinition);
+                }
             }
             return rc;
         }
@@ -303,32 +334,53 @@ namespace Hops
                 if (reader.TryGetBoolean(TagShowPath, ref showPath))
                     _showPathInput = showPath;
 
+                if(reader.ItemExists(TagInternalizeDefinition))
+                {
+                    try
+                    {
+                        byte[] internalizedDefinition = reader.GetByteArray(TagInternalizeDefinition);
+                        if(_remoteDefinition == null)
+                            _remoteDefinition = RemoteDefinition.Create(null, this);
+                        _remoteDefinition.InternalizedDefinition = internalizedDefinition;
+                        _remoteDefinition._pathType = RemoteDefinition.PathType.InternalizedDefinition;
+                        _remoteDefinition.GetRemoteDescription();
+                    }
+                    catch(Exception ex)
+                    {
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unable to deserialize internalized grasshopper definition. " + ex.Message);
+                    }
+                }
+
+
                 // set remote definition location last as it will need all of the
                 // previous values to define inputs and outputs
-                try
+                if (!String.IsNullOrWhiteSpace(path))
                 {
-                    var pathType = RemoteDefinition.GetPathType(path);
-                    if(pathType == RemoteDefinition.PathType.GrasshopperDefinition)
+                    try
                     {
-                        if (!File.Exists(path))
+                        var pathType = RemoteDefinition.GetPathType(path);
+                        if (pathType == RemoteDefinition.PathType.GrasshopperDefinition)
                         {
-                            // See if the file is in the same directoy as this definition. If it
-                            // is then use that file. NOTE: This will change the saved path for
-                            // for this component when we save the GH definition again. That may or
-                            // may not be a problem; I'm not sure yet.
-                            string parentDirectory = Path.GetDirectoryName(reader.ArchiveLocation);
-                            string remoteFileName = Path.GetFileName(path);
-                            string filePath = Path.Combine(parentDirectory, remoteFileName);
-                            if (File.Exists(filePath))
-                                path = filePath;
+                            if (!File.Exists(path))
+                            {
+                                // See if the file is in the same directoy as this definition. If it
+                                // is then use that file. NOTE: This will change the saved path for
+                                // for this component when we save the GH definition again. That may or
+                                // may not be a problem; I'm not sure yet.
+                                string parentDirectory = Path.GetDirectoryName(reader.ArchiveLocation);
+                                string remoteFileName = Path.GetFileName(path);
+                                string filePath = Path.Combine(parentDirectory, remoteFileName);
+                                if (File.Exists(filePath))
+                                    path = filePath;
+                            }
                         }
+                        RemoteDefinitionLocation = path;
                     }
-                    RemoteDefinitionLocation = path;
-                }
-                catch (System.Net.WebException)
-                {
-                    // this can happen if a server is not responding and is acceptable in this
-                    // case as we want to read without throwing exceptions
+                    catch (System.Net.WebException)
+                    {
+                        // this can happen if a server is not responding and is acceptable in this
+                        // case as we want to read without throwing exceptions
+                    }
                 }
             }
             return rc;
@@ -394,6 +446,8 @@ namespace Hops
             if (separator != null)
                 menu.Items.RemoveAt(menu.Items.Count - 1);
 
+            menu.Items.Add(new ToolStripSeparator());
+
             var tsi = new ToolStripMenuItem("&Path...", null, (sender, e) => { ShowSetDefinitionUi(); });
             if (!_showPathInput)
                 tsi.Font = new System.Drawing.Font(tsi.Font, System.Drawing.FontStyle.Bold);
@@ -403,7 +457,23 @@ namespace Hops
             tsi = HopsFunctionMgr.AddFunctionMgrControl(this);
             if (tsi != null)
                 menu.Items.Add(tsi);
-                   
+
+            tsi = new ToolStripMenuItem("Internalize Definition", null, (s, e) => {
+                if (File.Exists(RemoteDefinitionLocation))
+                {
+                    _remoteDefinition.InternalizeDefinition(RemoteDefinitionLocation);
+                    DefineInputsAndOutputs();                 
+                }
+            });
+            tsi.ToolTipText = "Make the referenced definition permanent and clear any existing source paths";
+            if (!File.Exists(RemoteDefinitionLocation))
+            {
+                tsi.Enabled = false;
+            }
+            menu.Items.Add(tsi);
+
+            menu.Items.Add(new ToolStripSeparator());
+
             tsi = new ToolStripMenuItem("Show Input: Path", null, (s, e) => {
                 _showPathInput = !_showPathInput;
                 DefineInputsAndOutputs();

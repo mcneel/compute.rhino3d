@@ -25,6 +25,7 @@ namespace Hops
         public enum PathType
         {
             GrasshopperDefinition,
+            InternalizedDefinition,
             ComponentGuid,
             Server,
             NonresponsiveUrl,
@@ -38,19 +39,30 @@ namespace Hops
         System.Drawing.Bitmap _customIcon = null;
         string _path = null;
         string _cacheKey = null;
+        public byte[] _internalizedDefinition = null;
         const string _apiKeyName = "RhinoComputeKey";
-        PathType? _pathType;
+        public PathType? _pathType;
         public static RemoteDefinition Create(string path, HopsComponent parentComponent)
         {
             var rc = new RemoteDefinition(path, parentComponent);
-            RemoteDefinitionCache.Add(rc);
+            if(path != null)
+                RemoteDefinitionCache.Add(rc);
             return rc;
+        }
+
+        public void InternalizeDefinition(string path)
+        {
+            _internalizedDefinition = System.IO.File.ReadAllBytes(path);
+            _pathType = PathType.InternalizedDefinition;
+            RemoteDefinitionCache.Remove(this);
+            _path = null;
         }
 
         private RemoteDefinition(string path, HopsComponent parentComponent)
         {
             _parentComponent = parentComponent;
             _path = path;
+            _internalizedDefinition = null;
         }
 
         public void Dispose()
@@ -86,12 +98,10 @@ namespace Hops
         }
 
         public static PathType GetPathType(string path)
-        {
+        { 
             if (Guid.TryParse(path, out Guid id))
-            {
                 return PathType.ComponentGuid;
-            }
-
+           
             PathType rc = PathType.GrasshopperDefinition;
             if (path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
             {
@@ -111,7 +121,8 @@ namespace Hops
             return rc;
         }
 
-        public string Path { get { return _path; } }
+        public string Path { get { return _path; } set { _path = value; } }
+        public byte[] InternalizedDefinition { get { return _internalizedDefinition; } set { _internalizedDefinition = value; } }
 
         public void OnWatchedFileChanged()
         {
@@ -149,7 +160,7 @@ namespace Hops
             return _description;
         }
 
-        void GetRemoteDescription()
+        public void GetRemoteDescription()
         {
             bool performPost = false;
 
@@ -170,6 +181,10 @@ namespace Hops
                 case PathType.ComponentGuid:
                     address = Servers.GetDescriptionUrl(Guid.Parse(Path));
                     break;
+                case PathType.InternalizedDefinition:
+                    address = "internalized";
+                    performPost = true;
+                    break;
                 case PathType.Server:
                     address = Path;
                     break;
@@ -186,14 +201,22 @@ namespace Hops
             {
                 string postUrl = Servers.GetDescriptionPostUrl();
                 var schema = new Schema();
-                if (Path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                if (pathType != PathType.InternalizedDefinition)
                 {
-                    schema.Pointer = address;
+                    if(Path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                    {
+                        schema.Pointer = address;
+                    }
+                    else
+                    {
+                        var bytes = System.IO.File.ReadAllBytes(address);
+                        schema.Algo = Convert.ToBase64String(bytes);
+                    }
                 }
                 else
                 {
-                    var bytes = System.IO.File.ReadAllBytes(address);
-                    schema.Algo = Convert.ToBase64String(bytes);
+                    if(_internalizedDefinition != null)
+                        schema.Algo = Convert.ToBase64String(_internalizedDefinition);
                 }
                 schema.AbsoluteTolerance = GetDocumentTolerance();
                 schema.AngleTolerance = GetDocumentAngleTolerance();
@@ -204,13 +227,13 @@ namespace Hops
                 requestContent += "\"Method\": \"POST" + "\"," + Environment.NewLine;
                 requestContent += "\"Content\": " + inputJson  + Environment.NewLine;
                 requestContent += "}";
-                if(_parentComponent.HTTPRecord == null)
-                    _parentComponent.HTTPRecord = new HTTPRecord();
                 _parentComponent.HTTPRecord.IORequest = requestContent;
                 var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
                 HttpClient client = new HttpClient();
                 if(!String.IsNullOrEmpty(HopsAppSettings.APIKey))
                     client.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
+                if(HopsAppSettings.HTTPTimeout > 0)
+                    client.Timeout = TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout);
                 responseTask = client.PostAsync(postUrl, content);
                 _parentComponent.HTTPRecord.Schema = schema;
                 contentToDispose = content;
@@ -405,7 +428,7 @@ namespace Hops
             if (pathType == PathType.NonresponsiveUrl)
                 return null;
 
-            if (pathType == PathType.GrasshopperDefinition || pathType == PathType.ComponentGuid)
+            if (pathType == PathType.GrasshopperDefinition || pathType == PathType.ComponentGuid || pathType == PathType.InternalizedDefinition)
             {
                 solveUrl = Servers.GetSolveUrl();
                 if (!string.IsNullOrEmpty(_cacheKey))
@@ -438,6 +461,8 @@ namespace Hops
                 HttpClient client = new HttpClient();
                 if (!String.IsNullOrEmpty(HopsAppSettings.APIKey))
                     client.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
+                if (HopsAppSettings.HTTPTimeout > 0)
+                    client.Timeout = TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout);
                 var postTask = client.PostAsync(solveUrl, content);
                 var responseMessage = postTask.Result;
                 var remoteSolvedData = responseMessage.Content;
@@ -463,6 +488,8 @@ namespace Hops
                         HttpClient client2 = new HttpClient();
                         if (!String.IsNullOrEmpty(HopsAppSettings.APIKey))
                             client2.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
+                        if (HopsAppSettings.HTTPTimeout > 0)
+                            client2.Timeout = TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout);
                         postTask = client.PostAsync(solveUrl, content2);
                         responseMessage = postTask.Result;
                         remoteSolvedData = responseMessage.Content;
@@ -782,11 +809,51 @@ namespace Hops
             return null;
         }
 
+        static bool CheckMinMax<T>(T item, string name, InputParamSchema schema, ref List<string> errors)
+        {
+            if (schema.Minimum != null)
+            {
+                try
+                {
+                    if (Convert.ToDouble(item) < Convert.ToDouble(schema.Minimum))
+                    {
+                        errors.Add(String.Format("{0} value must be greater than the specified minimum value of the parameter", name));
+                        return false;
+                    }
+                }
+                catch (Exception ex) { 
+                    errors.Add(ex.ToString()); 
+                    return false; 
+                }
+
+            }
+            if (schema.Maximum != null)
+            {
+                try
+                {
+                    if (Convert.ToDouble(item) > Convert.ToDouble(schema.Maximum))
+                    {
+                        errors.Add(String.Format("{0} value must be smaller than the specified maximum value of the parameter", name));
+                        return false;
+                    }
+                }
+                catch (Exception ex) { 
+                    errors.Add(ex.ToString()); 
+                    return false; 
+                }
+            }
+            return true;
+        }
+
         static void CollectDataHelper<T>(IGH_DataAccess DA,
             string inputName,
+            InputParamSchema schema,
             GH_ParamAccess access,
             ref int inputCount,
-            DataTree<ResthopperObject> dataTree, bool convertToGeometryBase = false)
+            DataTree<ResthopperObject> dataTree, 
+            ref List<string> warnings, 
+            ref List<string> errors, 
+            bool convertToGeometryBase = false)
         {
             if (access == GH_ParamAccess.item)
             {
@@ -801,6 +868,13 @@ namespace Hops
                     }
                     else
                     {
+                        if(t is double || t is int)
+                        {
+                            var passed = CheckMinMax<T>(t, inputName, schema, ref errors);
+                            if (!passed)
+                                return;
+                        }
+                        
                         dataTree.Append(new ResthopperObject(t), "0");
                     }
                 }
@@ -820,6 +894,12 @@ namespace Hops
                         }
                         else
                         {
+                            if (item is double || item is int)
+                            {
+                                var passed = CheckMinMax<T>(item, inputName, schema, ref errors);
+                                if (!passed)
+                                    return;
+                            }
                             dataTree.Append(new ResthopperObject(item), "0");
                         }
                     }
@@ -835,9 +915,12 @@ namespace Hops
 
         static void CollectDataHelper2<T, GHT>(IGH_DataAccess DA,
             string inputName,
+            InputParamSchema schema,
             GH_ParamAccess access,
             ref int inputCount,
-            DataTree<ResthopperObject> dataTree) where GHT : GH_Goo<T>
+            DataTree<ResthopperObject> dataTree,
+            ref List<string> warnings,
+            ref List<string> errors) where GHT : GH_Goo<T>
         {
             if (access == GH_ParamAccess.tree)
             {
@@ -850,6 +933,12 @@ namespace Hops
                         var items = tree[path];
                         foreach (var item in items)
                         {
+                            if (item is double || item is int)
+                            {
+                                var passed = CheckMinMax<T>(item.Value, inputName, schema, ref errors);
+                                if (!passed)
+                                    return;
+                            }
                             dataTree.Append(new ResthopperObject(item.Value), pathString);
                         }
                     }
@@ -857,64 +946,103 @@ namespace Hops
             }
             else
             {
-                CollectDataHelper<T>(DA, inputName, access, ref inputCount, dataTree);
+                CollectDataHelper<T>(DA, inputName, schema, access, ref inputCount, dataTree, ref warnings, ref errors);
             }
         }
 
         static void CollectDataHelperPoints<T>(IGH_DataAccess DA,
             string inputName,
+            InputParamSchema schema,
             GH_ParamAccess access,
             ref int inputCount,
-            DataTree<ResthopperObject> dataTree)
+            DataTree<ResthopperObject> dataTree,
+            ref List<string> warnings,
+            ref List<string> errors)
         {
-            if (access == GH_ParamAccess.tree)
+            var tree = new Grasshopper.Kernel.Data.GH_Structure<GH_Point>();
+            switch (access)
             {
-                var tree = new Grasshopper.Kernel.Data.GH_Structure<GH_Point>();
-                if (DA.GetDataTree(inputName, out tree))
-                {
-                    foreach (var path in tree.Paths)
+                case GH_ParamAccess.item:
+                    GH_Point t = default(GH_Point);
+                    if (DA.GetData(inputName, ref t))
                     {
-                        string pathString = path.ToString();
-                        var items = tree[path];
-                        foreach (var item in items)
+                        dataTree.Append(new ResthopperObject(t.Value), "0");
+                    }
+                    break;
+                case GH_ParamAccess.list:
+                    List<GH_Point> list = new List<GH_Point>();
+                    if (DA.GetDataList(inputName, list))
+                    {
+                        foreach (var item in list)
                         {
-                            dataTree.Append(new ResthopperObject(item.Value), pathString);
+                            dataTree.Append(new ResthopperObject(item.Value), "0");
                         }
                     }
-                }
+                    break;
+                case GH_ParamAccess.tree:
+                    if (DA.GetDataTree(inputName, out tree))
+                    {
+                        foreach (var path in tree.Paths)
+                        {
+                            string pathString = path.ToString();
+                            var items = tree[path];
+                            foreach (var item in items)
+                            {
+                                dataTree.Append(new ResthopperObject(item.Value), pathString);
+                            }
+                        }
+                    }
+                    break;
             }
-            else
-            {
-                CollectDataHelper<T>(DA, inputName, access, ref inputCount, dataTree);
-            }
+
         }
 
         static void CollectDataHelperGeometryBase<T>(IGH_DataAccess DA,
             string inputName,
+            InputParamSchema schema,
             GH_ParamAccess access,
             ref int inputCount,
-            DataTree<ResthopperObject> dataTree)
+            DataTree<ResthopperObject> dataTree, 
+            ref List<string> warnings, 
+            ref List<string> errors)
         {
-            if (access == GH_ParamAccess.tree)
+            var tree = new Grasshopper.Kernel.Data.GH_Structure<IGH_GeometricGoo>();
+            switch (access)
             {
-                var tree = new Grasshopper.Kernel.Data.GH_Structure<IGH_GeometricGoo>();
-                if (DA.GetDataTree(inputName, out tree))
-                {
-                    foreach (var path in tree.Paths)
+                case GH_ParamAccess.item:
+                    IGH_GeometricGoo t = default(IGH_GeometricGoo);
+                    if (DA.GetData(inputName, ref t))
                     {
-                        string pathString = path.ToString();
-                        var items = tree[path];
-                        foreach (var item in items)
+                        var gb = Grasshopper.Kernel.GH_Convert.ToGeometryBase(t);
+                        dataTree.Append(new ResthopperObject(gb), "0");
+                    }
+                    break;
+                case GH_ParamAccess.list:
+                    List<IGH_GeometricGoo> list = new List<IGH_GeometricGoo>();
+                    if (DA.GetDataList(inputName, list))
+                    {
+                        foreach (var item in list)
                         {
                             var gb = Grasshopper.Kernel.GH_Convert.ToGeometryBase(item);
-                            dataTree.Append(new ResthopperObject(gb), pathString);
+                            dataTree.Append(new ResthopperObject(gb), "0");
                         }
                     }
-                }
-            }
-            else
-            {
-                CollectDataHelper<T>(DA, inputName, access, ref inputCount, dataTree);
+                    break;
+                case GH_ParamAccess.tree:
+                    if (DA.GetDataTree(inputName, out tree))
+                    {
+                        foreach (var path in tree.Paths)
+                        {
+                            string pathString = path.ToString();
+                            var items = tree[path];
+                            foreach (var item in items)
+                            {
+                                var gb = Grasshopper.Kernel.GH_Convert.ToGeometryBase(item);
+                                dataTree.Append(new ResthopperObject(gb), pathString);
+                            }
+                        }
+                    }
+                    break;
             }
         }
 
@@ -934,9 +1062,10 @@ namespace Hops
         }
 
         public Schema CreateSolveInput(IGH_DataAccess DA, bool cacheSolveOnServer, int recursionLevel,
-            out List<string> warnings)
+            out List<string> warnings, out List<string> errors)
         {
             warnings = new List<string>();
+            errors = new List<string>();
             var schema = new Resthopper.IO.Schema();
             schema.RecursionLevel = recursionLevel;
             schema.AbsoluteTolerance = GetDocumentTolerance();
@@ -953,7 +1082,7 @@ namespace Hops
                     string inputName = kv.Key;
                     string computeName = input.Name;
                     GH_ParamAccess access = AccessFromInput(input);
-
+                    
                     var dataTree = new DataTree<Resthopper.IO.ResthopperObject>();
                     dataTree.ParamName = computeName;
                     schema.Values.Add(dataTree);
@@ -961,112 +1090,111 @@ namespace Hops
                     switch (param)
                     {
                         case Grasshopper.Kernel.Parameters.Param_Arc _:
-                            CollectDataHelper2<Arc, GH_Arc>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<Arc, GH_Arc>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Boolean _:
-                            CollectDataHelper2<bool, GH_Boolean>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<bool, GH_Boolean>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Box _:
-                            CollectDataHelper2<Box, GH_Box>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<Box, GH_Box>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Brep _:
-                            CollectDataHelper2<Brep, GH_Brep>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<Brep, GH_Brep>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Circle _:
-                            CollectDataHelper2<Circle, GH_Circle>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<Circle, GH_Circle>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Colour _:
-                            CollectDataHelper2<System.Drawing.Color, GH_Colour>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<System.Drawing.Color, GH_Colour>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Complex _:
-                            CollectDataHelper2<Complex, GH_ComplexNumber>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<Complex, GH_ComplexNumber>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Culture _:
-                            CollectDataHelper2<System.Globalization.CultureInfo, GH_Culture>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<System.Globalization.CultureInfo, GH_Culture>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Curve _:
-                            CollectDataHelper2<Curve, GH_Curve>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<Curve, GH_Curve>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Field _:
-                            CollectDataHelper<Grasshopper.Kernel.Types.GH_Field>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper<Grasshopper.Kernel.Types.GH_Field>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_FilePath _:
-                            CollectDataHelper2<string, GH_String>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<string, GH_String>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_GenericObject _:
                             throw new Exception("generic param not supported");
                         case Grasshopper.Kernel.Parameters.Param_Geometry _:
-                            CollectDataHelperGeometryBase<IGH_GeometricGoo>(DA, inputName, access, ref inputListCount, dataTree);
-                            //CollectDataHelper<IGH_GeometricGoo>(DA, inputName, access, ref inputListCount, dataTree, true);
+                            CollectDataHelperGeometryBase<IGH_GeometricGoo>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Group _:
                             throw new Exception("group param not supported");
                         case Grasshopper.Kernel.Parameters.Param_Guid _:
-                            CollectDataHelper2<Guid, GH_Guid>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<Guid, GH_Guid>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Integer _:
-                            CollectDataHelper2<int, GH_Integer>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<int, GH_Integer>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Interval _:
-                            CollectDataHelper2<Interval, GH_Interval>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<Interval, GH_Interval>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Interval2D _:
-                            CollectDataHelper2<UVInterval, GH_Interval2D>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<UVInterval, GH_Interval2D>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_LatLonLocation _:
                             throw new Exception("latlonlocation param not supported");
                         case Grasshopper.Kernel.Parameters.Param_Line _:
-                            CollectDataHelper2<Line, GH_Line>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<Line, GH_Line>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Matrix _:
-                            CollectDataHelper2<Matrix, GH_Matrix>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<Matrix, GH_Matrix>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Mesh _:
-                            CollectDataHelper2<Mesh, GH_Mesh>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<Mesh, GH_Mesh>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_MeshFace _:
-                            CollectDataHelper2<MeshFace, GH_MeshFace>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<MeshFace, GH_MeshFace>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_MeshParameters _:
-                            CollectDataHelper2<MeshingParameters, GH_MeshingParameters>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<MeshingParameters, GH_MeshingParameters>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Number _:
-                            CollectDataHelper2<double, GH_Number>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<double, GH_Number>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         //case Grasshopper.Kernel.Parameters.Param_OGLShader:
                         case Grasshopper.Kernel.Parameters.Param_Plane _:
-                            CollectDataHelper2<Plane, GH_Plane>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<Plane, GH_Plane>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Point _:
-                            CollectDataHelperPoints<Point3d>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelperPoints<Point3d>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Rectangle _:
-                            CollectDataHelper2<Rectangle3d, GH_Rectangle>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<Rectangle3d, GH_Rectangle>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         //case Grasshopper.Kernel.Parameters.Param_ScriptVariable _:
                         case Grasshopper.Kernel.Parameters.Param_String _:
-                            CollectDataHelper2<string, GH_String>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<string, GH_String>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_StructurePath _:
-                            CollectDataHelper2<Grasshopper.Kernel.Data.GH_Path, GH_StructurePath>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<Grasshopper.Kernel.Data.GH_Path, GH_StructurePath>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_SubD _:
-                            CollectDataHelper2<SubD, GH_SubD>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<SubD, GH_SubD>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Surface _:
-                            CollectDataHelper<Surface>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper<Surface>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Time _:
-                            CollectDataHelper2<DateTime, GH_Time>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<DateTime, GH_Time>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Transform _:
-                            CollectDataHelper2<Transform, GH_Transform>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<Transform, GH_Transform>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Vector _:
-                            CollectDataHelper2<Vector3d, GH_Vector>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<Vector3d, GH_Vector>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                         case Grasshopper.Kernel.Special.GH_NumberSlider _:
-                            CollectDataHelper2<double, GH_Number>(DA, inputName, access, ref inputListCount, dataTree);
+                            CollectDataHelper2<double, GH_Number>(DA, inputName, input, access, ref inputListCount, dataTree, ref warnings, ref errors);
                             break;
                     }
 
@@ -1116,7 +1244,7 @@ namespace Hops
 
         public static void Remove(RemoteDefinition definition)
         {
-            if (_definitions.Remove(definition))
+            if (_definitions.Remove(definition) && definition.Path != null)
             {
                 string path = Path.GetFullPath(definition.Path);
                 string directory = Path.GetDirectoryName(path);

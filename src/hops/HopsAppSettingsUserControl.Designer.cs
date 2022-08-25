@@ -50,6 +50,8 @@ namespace Hops
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this._addFunctionSourceButton = new System.Windows.Forms.ToolStripButton();
             this._deleteFunctionSourceButton = new System.Windows.Forms.ToolStripButton();
+            this.label3 = new System.Windows.Forms.Label();
+            this._httpTimeoutTextbox = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this._childComputeCount)).BeginInit();
             this._gpboxFunctionMgr.SuspendLayout();
             this.toolStrip1.SuspendLayout();
@@ -60,7 +62,7 @@ namespace Hops
             this._serversTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this._serversTextBox.Location = new System.Drawing.Point(2, 1);
-            this._serversTextBox.Margin = new System.Windows.Forms.Padding(2);
+            this._serversTextBox.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._serversTextBox.Multiline = true;
             this._serversTextBox.Name = "_serversTextBox";
             this._serversTextBox.Size = new System.Drawing.Size(295, 49);
@@ -69,8 +71,8 @@ namespace Hops
             // _hideWorkerWindows
             // 
             this._hideWorkerWindows.AutoSize = true;
-            this._hideWorkerWindows.Location = new System.Drawing.Point(2, 128);
-            this._hideWorkerWindows.Margin = new System.Windows.Forms.Padding(2);
+            this._hideWorkerWindows.Location = new System.Drawing.Point(2, 150);
+            this._hideWorkerWindows.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._hideWorkerWindows.Name = "_hideWorkerWindows";
             this._hideWorkerWindows.Size = new System.Drawing.Size(207, 17);
             this._hideWorkerWindows.TabIndex = 5;
@@ -80,8 +82,8 @@ namespace Hops
             // _launchWorkerAtStart
             // 
             this._launchWorkerAtStart.AutoSize = true;
-            this._launchWorkerAtStart.Location = new System.Drawing.Point(2, 150);
-            this._launchWorkerAtStart.Margin = new System.Windows.Forms.Padding(2);
+            this._launchWorkerAtStart.Location = new System.Drawing.Point(2, 172);
+            this._launchWorkerAtStart.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._launchWorkerAtStart.Name = "_launchWorkerAtStart";
             this._launchWorkerAtStart.Size = new System.Drawing.Size(204, 17);
             this._launchWorkerAtStart.TabIndex = 6;
@@ -90,8 +92,8 @@ namespace Hops
             // 
             // _btnClearMemCache
             // 
-            this._btnClearMemCache.Location = new System.Drawing.Point(2, 100);
-            this._btnClearMemCache.Margin = new System.Windows.Forms.Padding(2);
+            this._btnClearMemCache.Location = new System.Drawing.Point(1, 122);
+            this._btnClearMemCache.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._btnClearMemCache.Name = "_btnClearMemCache";
             this._btnClearMemCache.Size = new System.Drawing.Size(160, 22);
             this._btnClearMemCache.TabIndex = 4;
@@ -101,7 +103,7 @@ namespace Hops
             // _lblCacheCount
             // 
             this._lblCacheCount.AutoSize = true;
-            this._lblCacheCount.Location = new System.Drawing.Point(166, 105);
+            this._lblCacheCount.Location = new System.Drawing.Point(166, 127);
             this._lblCacheCount.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this._lblCacheCount.Name = "_lblCacheCount";
             this._lblCacheCount.Size = new System.Drawing.Size(126, 13);
@@ -110,16 +112,16 @@ namespace Hops
             // 
             // _childComputeCount
             // 
-            this._childComputeCount.Location = new System.Drawing.Point(2, 173);
-            this._childComputeCount.Margin = new System.Windows.Forms.Padding(2);
+            this._childComputeCount.Location = new System.Drawing.Point(2, 195);
+            this._childComputeCount.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._childComputeCount.Name = "_childComputeCount";
             this._childComputeCount.Size = new System.Drawing.Size(60, 20);
             this._childComputeCount.TabIndex = 7;
             // 
             // _updateChildCountButton
             // 
-            this._updateChildCountButton.Location = new System.Drawing.Point(68, 172);
-            this._updateChildCountButton.Margin = new System.Windows.Forms.Padding(2);
+            this._updateChildCountButton.Location = new System.Drawing.Point(68, 194);
+            this._updateChildCountButton.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._updateChildCountButton.Name = "_updateChildCountButton";
             this._updateChildCountButton.Size = new System.Drawing.Size(138, 22);
             this._updateChildCountButton.TabIndex = 8;
@@ -129,9 +131,9 @@ namespace Hops
             // _maxConcurrentRequestsTextbox
             // 
             this._maxConcurrentRequestsTextbox.Location = new System.Drawing.Point(136, 76);
-            this._maxConcurrentRequestsTextbox.Margin = new System.Windows.Forms.Padding(2);
+            this._maxConcurrentRequestsTextbox.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._maxConcurrentRequestsTextbox.Name = "_maxConcurrentRequestsTextbox";
-            this._maxConcurrentRequestsTextbox.Size = new System.Drawing.Size(42, 20);
+            this._maxConcurrentRequestsTextbox.Size = new System.Drawing.Size(37, 20);
             this._maxConcurrentRequestsTextbox.TabIndex = 3;
             // 
             // label1
@@ -159,7 +161,7 @@ namespace Hops
             this._apiKeyTextbox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this._apiKeyTextbox.Location = new System.Drawing.Point(51, 53);
-            this._apiKeyTextbox.Margin = new System.Windows.Forms.Padding(2);
+            this._apiKeyTextbox.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this._apiKeyTextbox.Name = "_apiKeyTextbox";
             this._apiKeyTextbox.Size = new System.Drawing.Size(246, 20);
             this._apiKeyTextbox.TabIndex = 2;
@@ -170,7 +172,7 @@ namespace Hops
             | System.Windows.Forms.AnchorStyles.Right)));
             this._gpboxFunctionMgr.Controls.Add(this._functionSourceTable);
             this._gpboxFunctionMgr.Controls.Add(this.toolStrip1);
-            this._gpboxFunctionMgr.Location = new System.Drawing.Point(0, 197);
+            this._gpboxFunctionMgr.Location = new System.Drawing.Point(0, 219);
             this._gpboxFunctionMgr.Name = "_gpboxFunctionMgr";
             this._gpboxFunctionMgr.Size = new System.Drawing.Size(300, 73);
             this._gpboxFunctionMgr.TabIndex = 12;
@@ -201,18 +203,18 @@ namespace Hops
             this._deleteFunctionSourceButton});
             this.toolStrip1.Location = new System.Drawing.Point(3, 16);
             this.toolStrip1.Name = "toolStrip1";
+            this.toolStrip1.Padding = new System.Windows.Forms.Padding(0, 0, 2, 0);
             this.toolStrip1.RenderMode = System.Windows.Forms.ToolStripRenderMode.System;
-            this.toolStrip1.Size = new System.Drawing.Size(294, 27);
+            this.toolStrip1.Size = new System.Drawing.Size(294, 25);
             this.toolStrip1.TabIndex = 15;
             this.toolStrip1.Text = "toolStrip1";
             // 
             // _addFunctionSourceButton
             // 
-            this._addFunctionSourceButton.Image = HopsFunctionMgr.AddIcon();
             this._addFunctionSourceButton.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
             this._addFunctionSourceButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this._addFunctionSourceButton.Name = "_addFunctionSourceButton";
-            this._addFunctionSourceButton.Size = new System.Drawing.Size(92, 24);
+            this._addFunctionSourceButton.Size = new System.Drawing.Size(72, 22);
             this._addFunctionSourceButton.Text = "Add Source";
             this._addFunctionSourceButton.ToolTipText = "Add a new function source";
             this._addFunctionSourceButton.Click += new System.EventHandler(this._addFunctionSourceButton_Click);
@@ -220,19 +222,38 @@ namespace Hops
             // _deleteFunctionSourceButton
             // 
             this._deleteFunctionSourceButton.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
-            this._deleteFunctionSourceButton.Image = HopsFunctionMgr.DeleteIcon();
             this._deleteFunctionSourceButton.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
             this._deleteFunctionSourceButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             this._deleteFunctionSourceButton.Name = "_deleteFunctionSourceButton";
-            this._deleteFunctionSourceButton.Size = new System.Drawing.Size(111, 24);
+            this._deleteFunctionSourceButton.Size = new System.Drawing.Size(91, 22);
             this._deleteFunctionSourceButton.Text = "Delete Selected";
             this._deleteFunctionSourceButton.ToolTipText = "Delete selected function sources";
             this._deleteFunctionSourceButton.Click += new System.EventHandler(this._deleteFunctionSourceButton_Click);
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(2, 102);
+            this.label3.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(71, 13);
+            this.label3.TabIndex = 14;
+            this.label3.Text = "Timeout (sec)";
+            // 
+            // _httpTimeoutTextbox
+            // 
+            this._httpTimeoutTextbox.Location = new System.Drawing.Point(76, 99);
+            this._httpTimeoutTextbox.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+            this._httpTimeoutTextbox.Name = "_httpTimeoutTextbox";
+            this._httpTimeoutTextbox.Size = new System.Drawing.Size(97, 20);
+            this._httpTimeoutTextbox.TabIndex = 13;
             // 
             // HopsAppSettingsUserControl
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Controls.Add(this.label3);
+            this.Controls.Add(this._httpTimeoutTextbox);
             this.Controls.Add(this._gpboxFunctionMgr);
             this.Controls.Add(this._apiKeyTextbox);
             this.Controls.Add(this.label2);
@@ -245,9 +266,9 @@ namespace Hops
             this.Controls.Add(this._launchWorkerAtStart);
             this.Controls.Add(this._hideWorkerWindows);
             this.Controls.Add(this._serversTextBox);
-            this.Margin = new System.Windows.Forms.Padding(2);
+            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.Name = "HopsAppSettingsUserControl";
-            this.Size = new System.Drawing.Size(300, 275);
+            this.Size = new System.Drawing.Size(300, 292);
             ((System.ComponentModel.ISupportInitialize)(this._childComputeCount)).EndInit();
             this._gpboxFunctionMgr.ResumeLayout(false);
             this._gpboxFunctionMgr.PerformLayout();
@@ -276,5 +297,7 @@ namespace Hops
         public ToolStripButton _addFunctionSourceButton;
         private ToolStripButton _deleteFunctionSourceButton;
         private TableLayoutPanel _functionSourceTable;
+        private Label label3;
+        private TextBox _httpTimeoutTextbox;
     }
 }

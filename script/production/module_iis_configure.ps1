@@ -40,11 +40,11 @@ function SetEnvVar {
 function New-RandomPassword {
     param(
         [Parameter()]
-        [int]$MinimumPasswordLength = 12,
+        [int]$MinimumPasswordLength = 16,
         [Parameter()]
-        [int]$MaximumPasswordLength = 16,
+        [int]$MaximumPasswordLength = 20,
         [Parameter()]
-        [int]$NumberOfAlphaNumericCharacters = 10,
+        [int]$NumberOfAlphaNumericCharacters = 6,
         [Parameter()]
         [switch]$ConvertToSecureString
     )
@@ -61,7 +61,7 @@ function New-RandomPassword {
 #EndRegion funcs
 
 Write-Step "Creating a new user identity"
-$securePassword = New-RandomPassword -MinimumPasswordLength 10 -MaximumPasswordLength 15 -NumberOfAlphaNumericCharacters 6 -ConvertToSecureString
+$securePassword = New-RandomPassword -MinimumPasswordLength 16 -MaximumPasswordLength 20 -NumberOfAlphaNumericCharacters 6 -ConvertToSecureString
 $localUserAccount = @{
    Name = $localUserName
    Password = $securePassword

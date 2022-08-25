@@ -51,7 +51,7 @@ function Install-IISPrerequisites {
     ForEach ($feature in $required_IIS_features) {
         IF ((Get-WindowsOptionalFeature -Online -FeatureName $feature).State -eq "Disabled"){
            Write-Host "$($feature) missing - installing"
-           Enable-WindowsOptionalFeature -Online -FeatureName $feature
+           Enable-WindowsOptionalFeature -Online -FeatureName $feature -NoRestart
         }
     }
     Install-WindowsFeature WAS
