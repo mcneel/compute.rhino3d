@@ -18,6 +18,14 @@ DEFAULT_SUBCATEGORY = "Hops Python"
 class HopsBase:
     """Base class for all Hops middleware implementations"""
 
+    SOLVE_URI = "/solve"
+
+    ERROR_PAGE_405 = """<!doctype html>
+<html lang=en>
+<title>405 Method Not Allowed</title>
+<h1>Method Not Allowed</h1>
+<p>The method is not allowed for the requested URL.</p>"""
+
     def __init__(self, app):
         self.app = app
         # components dict store each components two times under
@@ -25,7 +33,13 @@ class HopsBase:
         # it is assumed that uri and solve uri and both unique to the component
         self._components: dict[str, HopsComponent] = {}
 
-    def contains(self, uri):
+    def handles(self, uri):
+        return uri == HopsBase.SOLVE_URI or uri in self._components
+
+    def is_solve_uri(self, uri):
+        return uri == HopsBase.SOLVE_URI
+
+    def is_comp_uri(self, uri):
         return uri in self._components
 
     def query(self, uri) -> Tuple[bool, str]:
@@ -53,7 +67,7 @@ class HopsBase:
             return False, self._return_with_err("Nothing to solve on root")
 
         # FIXME: remove support for legacy solve behaviour
-        elif uri == "/solve":
+        elif uri == HopsBase.SOLVE_URI:
             data = json.loads(payload)
             comp_uri = data["pointer"]
             if not comp_uri.startswith("/"):
@@ -83,6 +97,11 @@ class HopsBase:
             err_res = {"values": [], "errors": [err_msg]}
 
         return json.dumps(err_res, cls=_HopsEncoder)
+
+    def _return_method_not_allowed(self, environ, start_response):
+        response = self._prep_response(405, "Method Not Allowed")
+        response.data = HopsBase.ERROR_PAGE_405.encode(encoding="utf_8")
+        return response(environ, start_response)
 
     def _get_all_comps_data(self):
         # return json formatted string of all components metadata

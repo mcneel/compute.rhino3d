@@ -20,6 +20,12 @@ def update():
     return "Update example!"
 
 
+# /solve is a builtin method and can not be overrriden
+@app.route("/solve", methods=["GET", "POST"])
+def solve():
+    return "Oh oh! this should not happen!"
+
+
 @hops.component(
     "/binmult",
     inputs=[hs.HopsNumber("A"), hs.HopsNumber("B")],
