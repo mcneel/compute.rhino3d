@@ -25,6 +25,9 @@ class HopsBase:
         # it is assumed that uri and solve uri and both unique to the component
         self._components: dict[str, HopsComponent] = {}
 
+    def contains(self, uri):
+        return uri in self._components
+
     def query(self, uri) -> Tuple[bool, str]:
         """Get information on given uri"""
         # try to find a component registered for this uri

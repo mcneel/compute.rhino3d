@@ -15,6 +15,11 @@ def help():
     return "Welcome to Grashopper Hops for CPython!"
 
 
+@app.route("/update", methods=["POST"])
+def update():
+    return "Update example!"
+
+
 @hops.component(
     "/binmult",
     inputs=[hs.HopsNumber("A"), hs.HopsNumber("B")],
