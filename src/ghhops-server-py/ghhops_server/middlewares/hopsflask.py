@@ -27,52 +27,25 @@ class HopsFlask(base.HopsBase):
         request = Request(environ)
 
         method = request.method
-        comp_uri = request.path
 
-        # if uri is registered on the hops app
-        if self.handles(comp_uri):
-            if method == "GET":
-                # if calling GET /solve, respond 405
-                if self.is_solve_uri(comp_uri):
-                    return self._return_method_not_allowed(
-                        environ,
-                        start_response
-                        )
+        # if hops app handled this request
+        if self.handles(request):
+            response = None
 
-                # if component exists, return component data
-                res, results = self.query(uri=comp_uri)
-                if res:
-                    response = self._prep_response()
-                    response.data = results
+            if method == "HEAD":
+                response = self.handle_HEAD(request)
 
-                # otherwise return 404
-                else:
-                    response = self._prep_response(404, "Unknown URI")
-
-                return response(environ, start_response)
+            elif method == "GET":
+                response = self.handle_GET(request)
 
             elif method == "POST":
-                # if POST on component uri, return 405
-                if self.is_comp_uri(comp_uri):
-                    return self._return_method_not_allowed(
-                        environ,
-                        start_response
-                        )
+                response = self.handle_POST(request)
 
-                # otherwise try to solve with payload
-                data = request.data
-                res, results = self.solve(uri=comp_uri, payload=data)
-                if res:
-                    response = self._prep_response()
-                    response.data = results.encode(encoding="utf_8")
-                else:
-                    response = self._prep_response(404, "Execution Error")
-                    response.data = results.encode(encoding="utf_8")
-
+            if response:
                 return response(environ, start_response)
 
             # respond with 405 if method is not valid
-            return self._return_method_not_allowed(environ, start_response)
+            return self._return_method_not_allowed()
 
         # otherwise ask wapped app to process the call
         return self.wsgi_app(environ, start_response)
