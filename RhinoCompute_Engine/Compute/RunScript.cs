@@ -25,7 +25,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
         [Input("scriptFilePaths", "Scripts to be run. They will be run in the order provided, independently from each other.")]
         [Input("inputs", "Each script will be executed once for every input in this list.")]
         [Input("chainIO", "(Optional, false by default) If true, take the outputs of the previously computed script and add them to the inputs to the next script in chain." +
-            "\nNote that the next script in chain may be the same as the previous script run with the next input in the input list, if more than 1 input is specified. " +
+            "\nNote that, if also more than 1 input is specified in the `inputs`, then the next script in chain will be the same as the previous script run with the next input in the input list." +
             "\nInputs manually specified take precedence over chained IOs, in case of overlapping names.")]
         public static List<ComputationOutput> RunScriptChain(List<string> scriptFilePaths, List<CustomObject> inputs = null, bool chainIO = false, GHScriptConfig gHScriptConfig = null, bool active = false)
         {
