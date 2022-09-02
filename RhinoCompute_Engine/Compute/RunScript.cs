@@ -59,17 +59,19 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             }
 
             // Each script is to be run once for each input.
-            for (int i = 0; i < inputs.Count; i++)
+            for (int i = 0; i < scriptFilePaths.Count; i++)
             {
-                var input = inputs[i];
+                string script = scriptFilePaths.ElementAtOrDefault(i);
 
                 ComputationOutput scriptResult = new ComputationOutput();
 
-                for (int j = 0; j < scriptFilePaths.Count; j++)
+                for (int j = 0; j < inputs.Count; j++)
                 {
+                    CustomObject input = inputs.ElementAtOrDefault(j);
+
                     try
                     {
-                        if (chainIO && j != 0)
+                        if (chainIO && i != 0)
                         {
                             input = new CustomObject();
 
@@ -78,7 +80,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                                     input.CustomData[g.Key] = g.ToList().ToRemoteInputData();
                         }
 
-                        scriptResult = RunScript(scriptFilePaths.ElementAtOrDefault(j), input, gHScriptConfig, active);
+                        scriptResult = RunScript(script, input, gHScriptConfig, active);
                     }
                     catch
                     {
@@ -89,7 +91,6 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
                     allOutputs.Add(scriptResult);
                 }
-                System.Threading.Thread.Sleep(200);
             }
 
             if (m_PartOfChain || m_repeatedExecutionMultiInputs)
