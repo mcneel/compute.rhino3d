@@ -89,7 +89,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
                     allOutputs.Add(scriptResult);
                 }
-
+                System.Threading.Thread.Sleep(200);
             }
 
             if (m_PartOfChain || m_repeatedExecutionMultiInputs)
