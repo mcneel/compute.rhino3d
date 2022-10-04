@@ -18,9 +18,6 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
             GrasshopperDefinition gDef = archive.ToGrasshopperDefinition(gHScriptConfig);
 
-            // Set inputs and outputs.
-            gDef.AddIO();
-
             return gDef;
         }
 
