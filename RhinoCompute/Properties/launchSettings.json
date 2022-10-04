@@ -1,12 +1,8 @@
 {
   "profiles": {
-    "compute.geometry": {
+    "Default": {
       "commandName": "Project",
       "nativeDebugging": true
-    },
-    "RhinoCompute.Server": {
-      "commandName": "Project",
-      "nativeDebugging": false
     }
   }
 }
