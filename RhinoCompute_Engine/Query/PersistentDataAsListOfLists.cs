@@ -9,6 +9,9 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
     {
         public static IEnumerable<GH_PersistentParam<IGH_Goo>> PersistentData(this IGH_Param persistentParam)
         {
+            if (persistentParam == null)
+                return null;
+
             try
             {
                 // Grasshopper sucks. How can they not know how to use interfaces? Incredible.
@@ -22,6 +25,9 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
         public static IEnumerable<IGH_Goo> VolatileData(this IGH_Param persistentParam)
         {
+            if (persistentParam == null)
+                return null;
+
             try
             {
                 // Grasshopper sucks. How can they not know how to use interfaces? Incredible.
@@ -35,6 +41,9 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
         public static List<List<object>> PersistentDataAsListOfLists(this IGH_Param persistentParam)
         {
+            if (persistentParam == null)
+                return new List<List<object>>();
+
             try
             {
                 // Grasshopper sucks. How can they not know how to use interfaces? Incredible.
