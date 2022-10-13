@@ -1,5 +1,5 @@
 # RhinoCompute_Toolkit
-BHoM Toolkit with Rhino/Grasshopper objects and functions to compute Grasshopper scripts (locally or via WebService).
+BHoM Toolkit with Rhino/Grasshopper objects and functions to compute Grasshopper scripts (locally or via WebService) that can include BHoM functions and objects.
 
 
 ### Forked from [RhinoCompute](https://github.com/mcneel/compute.rhino3d) and heavily adapted for BHoM
