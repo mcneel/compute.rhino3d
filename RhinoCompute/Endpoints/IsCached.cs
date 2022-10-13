@@ -5,10 +5,10 @@ using Grasshopper.Kernel;
 using Newtonsoft.Json;
 using Nancy.Extensions;
 using System.Linq;
-using BH.oM.RemoteCompute;
-using BH.Engine.RemoteCompute.RhinoCompute;
-using BH.oM.RemoteCompute.RhinoCompute;
-using BH.oM.RemoteCompute.RhinoCompute.Schemas;
+using BH.oM.Computing;
+using BH.Engine.Computing.RhinoCompute;
+using BH.oM.Computing.RhinoCompute;
+using BH.oM.Computing.RhinoCompute.Schemas;
 
 namespace compute.geometry
 {

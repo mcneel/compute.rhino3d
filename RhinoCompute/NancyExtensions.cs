@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
-using BH.Engine.RemoteCompute;
-using BH.Engine.RemoteCompute.RhinoCompute;
-using BH.oM.RemoteCompute.RhinoCompute;
-using BH.oM.RemoteCompute.RhinoCompute.Schemas;
+using BH.Engine.Computing;
+using BH.Engine.Computing.RhinoCompute;
+using BH.oM.Computing.RhinoCompute;
+using BH.oM.Computing.RhinoCompute.Schemas;
 using Nancy;
 using Nancy.Extensions;
 using Newtonsoft.Json;
@@ -61,7 +61,7 @@ namespace compute.geometry
             errorResponse.ReasonPhrase = reasonPhrase;
 
             if (logError)
-                BH.Engine.RemoteCompute.Log.RecordError(reasonPhrase);
+                BH.Engine.Computing.Log.RecordError(reasonPhrase);
 
             return errorResponse;
         }

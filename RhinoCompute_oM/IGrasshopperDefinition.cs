@@ -1,4 +1,4 @@
-﻿namespace BH.oM.RemoteCompute.RhinoCompute
+﻿namespace BH.oM.Computing.RhinoCompute
 {
     public interface IGrasshopperDefinition
     {

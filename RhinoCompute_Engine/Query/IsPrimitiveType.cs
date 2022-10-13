@@ -2,7 +2,7 @@
 using System.ComponentModel;
 using BH.oM.Base.Attributes;
 
-namespace BH.Engine.RemoteCompute.RhinoCompute
+namespace BH.Engine.Computing.RhinoCompute
 {
     public static partial class Query
     {

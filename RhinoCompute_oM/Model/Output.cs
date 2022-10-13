@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using Grasshopper.Kernel;
 
-namespace BH.oM.RemoteCompute.RhinoCompute
+namespace BH.oM.Computing.RhinoCompute
 {
     [Description("An output variable of a grasshopper script. Also acts as a data object that can host the results of a computation (set into the IGH_Param).")]
     public class Output : IRemoteIOVariable, IRemoteIOData<IGH_Param>

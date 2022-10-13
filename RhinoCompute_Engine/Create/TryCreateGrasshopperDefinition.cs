@@ -1,10 +1,10 @@
 ﻿using System;
-using BH.oM.RemoteCompute;
-using BH.oM.RemoteCompute.RhinoCompute;
-using BH.oM.RemoteCompute.RhinoCompute.Schemas;
+using BH.oM.Computing;
+using BH.oM.Computing.RhinoCompute;
+using BH.oM.Computing.RhinoCompute.Schemas;
 using Grasshopper.Kernel;
 
-namespace BH.Engine.RemoteCompute.RhinoCompute
+namespace BH.Engine.Computing.RhinoCompute
 {
     public static partial class Create
     {

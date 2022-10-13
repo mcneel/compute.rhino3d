@@ -26,7 +26,7 @@ using System.Linq;
 using Grasshopper.Kernel;
 //using BH.UI.Grasshopper.Components;
 
-namespace BH.Engine.RemoteCompute.RhinoCompute
+namespace BH.Engine.Computing.RhinoCompute
 {
     public static partial class Query
     {
@@ -41,14 +41,14 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
             if (!obj.IsRemoteInput())
             {
-                Log.RecordError($"Cannot derive input name from an object that is not a `{nameof(BH.Engine.RemoteCompute.Create.RemoteIN)}`.");
+                Log.RecordError($"Cannot derive input name from an object that is not a `{nameof(BH.Engine.Computing.Create.RemoteIN)}`.");
                 return null;
             }
 
             IGH_Param firstInputParameter = component.Params.Input.FirstOrDefault();
             if (firstInputParameter == null)
             {
-                Log.RecordError($"The {nameof(BH.Engine.RemoteCompute.Create.RemoteIN)} had a null or missing input parameter.");
+                Log.RecordError($"The {nameof(BH.Engine.Computing.Create.RemoteIN)} had a null or missing input parameter.");
                 return null;
             }
 

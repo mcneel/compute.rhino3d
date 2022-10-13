@@ -26,7 +26,7 @@ using System.Linq;
 using Grasshopper.Kernel;
 //using BH.UI.Grasshopper.Components;
 
-namespace BH.Engine.RemoteCompute.RhinoCompute
+namespace BH.Engine.Computing.RhinoCompute
 {
     public static partial class Query
     {
@@ -41,7 +41,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
 
         public static bool IsRemoteOutput(this IGH_DocumentObject obj)
         {
-            return obj.Name == nameof(BH.Engine.RemoteCompute.Create.RemoteOUT) && (obj?.Category == "BHoM" || obj.GetType().FullName == "Grasshopper.Kernel.Components.GH_PlaceholderComponent");
+            return obj.Name == nameof(BH.Engine.Computing.Create.RemoteOUT) && (obj?.Category == "BHoM" || obj.GetType().FullName == "Grasshopper.Kernel.Components.GH_PlaceholderComponent");
         }
 
         public static string RemoteOutputName(this IGH_DocumentObject obj)
@@ -51,7 +51,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                 return null; // TODO: Add error
 
             if (!obj.IsRemoteOutput())
-                throw new ArgumentException($"Expected a `{nameof(BH.Engine.RemoteCompute.Create.RemoteOUT)}` but got a `{obj.Name}` instead.");
+                throw new ArgumentException($"Expected a `{nameof(BH.Engine.Computing.Create.RemoteOUT)}` but got a `{obj.Name}` instead.");
 
             return component.Params.Output.FirstOrDefault().NickName;
         }
