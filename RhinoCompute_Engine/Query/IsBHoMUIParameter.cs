@@ -1,10 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using BH.oM.Computing.RhinoCompute;
-using BH.oM.Computing;
+using BH.oM.RemoteCompute.RhinoCompute;
+using BH.oM.RemoteCompute;
 using Grasshopper.Kernel;
 
-namespace BH.Engine.Computing.RhinoCompute
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Query
     {

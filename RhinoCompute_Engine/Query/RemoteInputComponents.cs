@@ -26,7 +26,7 @@ using System.Linq;
 using Grasshopper.Kernel;
 //using BH.UI.Grasshopper.Components;
 
-namespace BH.Engine.Computing.RhinoCompute
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Query
     {

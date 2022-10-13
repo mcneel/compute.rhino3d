@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using BH.oM.Computing.RhinoCompute.Schemas;
+using BH.oM.RemoteCompute.RhinoCompute.Schemas;
 
-namespace BH.oM.Computing.RhinoCompute
+namespace BH.oM.RemoteCompute.RhinoCompute
 {
     // Class that collects all proprerties the original schema found in compute.geometry.
     // Kept for compatibility with existing RhinoCompute scripts.

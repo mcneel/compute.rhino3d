@@ -1,15 +1,15 @@
 ﻿using System.Collections.Generic;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
-using BH.oM.Computing;
-using BH.oM.Computing.RhinoCompute;
-using BH.oM.Computing.RhinoCompute.Schemas;
-using Log = BH.Engine.Computing.Log;
+using BH.oM.RemoteCompute;
+using BH.oM.RemoteCompute.RhinoCompute;
+using BH.oM.RemoteCompute.RhinoCompute.Schemas;
+using Log = BH.Engine.RemoteCompute.Log;
 using System;
 using System.Linq;
 using Grasshopper;
 
-namespace BH.Engine.Computing.RhinoCompute
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Compute
     {

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using BH.oM.Computing.RhinoCompute;
-using BH.oM.Computing;
+using BH.oM.RemoteCompute.RhinoCompute;
+using BH.oM.RemoteCompute;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
 using Grasshopper.Kernel.Parameters;
@@ -12,7 +12,7 @@ using Rhino.Geometry;
 using System.Reflection;
 using System.Linq;
 
-namespace BH.Engine.Computing.RhinoCompute
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Modify
     {
@@ -26,7 +26,7 @@ namespace BH.Engine.Computing.RhinoCompute
                 Log.RecordWarning($"Some input data was specified, but no input could be gathered from the script. Check that:" +
                     $"\n\t- the script includes some Groups with a name that starts with prefix `{rc.GHScriptConfig.InputGroupNamePrefix}`," +
                     $"\n\t- or change the required input group name prefix in `{nameof(GHScriptConfig)}.{nameof(GHScriptConfig.InputGroupNamePrefix)}`," +
-                    $"\n\t- or use {nameof(BH.Engine.Computing.Create.RemoteIN)} components in the script to specify inputs." +
+                    $"\n\t- or use {nameof(BH.Engine.RemoteCompute.Create.RemoteIN)} components in the script to specify inputs." +
                     $"\nThe script will now be run without setting any input.", true);
                 return;
             }
@@ -62,7 +62,7 @@ namespace BH.Engine.Computing.RhinoCompute
 
             if (specifiedInputsNotFound)
                 Log.RecordWarning($"Some specified inputs were not found in the script." +
-                    $"\nInputs are gathered from `{nameof(Computing.Create.RemoteIN)}` components and from Groups with a name that is prefixed with INPUT." +
+                    $"\nInputs are gathered from `{nameof(RemoteCompute.Create.RemoteIN)}` components and from Groups with a name that is prefixed with INPUT." +
                     $"\nCheck their names and their spelling in the script (they are case-sensitive)." +
                     $"\nInputs found in script: {availableInputs}.", true);
         }

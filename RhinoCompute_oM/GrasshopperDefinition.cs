@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Grasshopper.Kernel;
 
-namespace BH.oM.Computing.RhinoCompute
+namespace BH.oM.RemoteCompute.RhinoCompute
 {
     public partial class GrasshopperDefinition : IGrasshopperDefinition
     {

@@ -2,14 +2,14 @@
 using Nancy;
 using Newtonsoft.Json;
 using Nancy.Extensions;
-using BH.oM.Computing;
+using BH.oM.RemoteCompute;
 using System.Linq;
-using BH.oM.Computing.RhinoCompute;
-using BH.Engine.Computing.RhinoCompute;
-using BH.oM.Computing.RhinoCompute.Schemas;
-using BH.Engine.Computing;
+using BH.oM.RemoteCompute.RhinoCompute;
+using BH.Engine.RemoteCompute.RhinoCompute;
+using BH.oM.RemoteCompute.RhinoCompute.Schemas;
+using BH.Engine.RemoteCompute;
 using System.Collections.Generic;
-using BH.oM.Computing.Schemas;
+using BH.oM.RemoteCompute.Schemas;
 
 namespace compute.geometry
 {
@@ -52,7 +52,7 @@ namespace compute.geometry
             Response response = formerSchemaOutput.ToResponse();
 
             // Clean backend log.
-            BH.Engine.Computing.Log.Clean();
+            BH.Engine.RemoteCompute.Log.Clean();
 
             return response;
         }

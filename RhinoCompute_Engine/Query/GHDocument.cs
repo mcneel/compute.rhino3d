@@ -24,7 +24,7 @@ using System;
 using GH_IO.Serialization;
 using Grasshopper.Kernel;
 
-namespace BH.Engine.Computing.RhinoCompute
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Query
     {

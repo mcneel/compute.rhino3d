@@ -6,7 +6,7 @@ namespace compute.geometry
     {
         public ResthopperEndpointsModule(Nancy.Routing.IRouteCacheProvider routeCacheProvider)
         {
-            BH.Engine.Computing.Log.Clean();
+            BH.Engine.RemoteCompute.Log.Clean();
 
             Post["/grasshopper"] = _ => GrasshopperEndpoint(Context);
             Post["/solve/base64"] = _ => SolveBase64(Context);

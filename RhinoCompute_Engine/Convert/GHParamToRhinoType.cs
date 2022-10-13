@@ -1,9 +1,9 @@
 ﻿using System;
-using BH.oM.Computing.RhinoCompute;
+using BH.oM.RemoteCompute.RhinoCompute;
 using Grasshopper.Kernel;
-using log = BH.Engine.Computing.Log;
+using log = BH.Engine.RemoteCompute.Log;
 
-namespace BH.Engine.Computing.RhinoCompute
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Convert
     {

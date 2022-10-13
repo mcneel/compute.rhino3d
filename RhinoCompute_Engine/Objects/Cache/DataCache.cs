@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using BH.Engine.Computing;
-using BH.oM.Computing.RhinoCompute;
+using BH.Engine.RemoteCompute;
+using BH.oM.RemoteCompute.RhinoCompute;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace BH.Engine.Computing.RhinoCompute
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class DataCache
     {

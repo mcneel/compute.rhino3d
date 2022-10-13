@@ -1,10 +1,10 @@
-﻿using BH.oM.Computing;
-using BH.oM.Computing.RhinoCompute;
+﻿using BH.oM.RemoteCompute;
+using BH.oM.RemoteCompute.RhinoCompute;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Special;
 using System.Linq;
 
-namespace BH.Engine.Computing.RhinoCompute
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Query
     {

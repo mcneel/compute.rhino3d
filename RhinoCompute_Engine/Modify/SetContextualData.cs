@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using BH.oM.Computing;
+using BH.oM.RemoteCompute;
 using Grasshopper.Kernel;
 using Newtonsoft.Json;
 using Rhino.Geometry;
 
-namespace BH.Engine.Computing.RhinoCompute
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Modify
     {

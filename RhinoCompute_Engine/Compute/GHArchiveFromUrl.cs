@@ -2,9 +2,9 @@
 using System.IO;
 using System.Net;
 using GH_IO.Serialization;
-using BH.Engine.Computing.RhinoCompute;
+using BH.Engine.RemoteCompute.RhinoCompute;
 
-namespace BH.Engine.Computing.RhinoCompute
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Compute
     {

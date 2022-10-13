@@ -2,7 +2,7 @@
 using System.Runtime.Serialization;
 using Newtonsoft.Json;
 
-namespace BH.oM.Computing.RhinoCompute
+namespace BH.oM.RemoteCompute.RhinoCompute
 {
     public class ArchivableDictionaryResolver : JsonConverter
     {

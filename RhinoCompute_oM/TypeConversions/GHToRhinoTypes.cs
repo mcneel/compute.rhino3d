@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Grasshopper.Kernel.Types;
 using Rhino.Geometry;
 
-namespace BH.oM.Computing.RhinoCompute
+namespace BH.oM.RemoteCompute.RhinoCompute
 {
     public static partial class TypeConversions
     {

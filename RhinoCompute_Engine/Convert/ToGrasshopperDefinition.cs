@@ -1,12 +1,12 @@
 ﻿
 using System;
 using System.Collections.Generic;
-using BH.oM.Computing;
-using BH.oM.Computing.RhinoCompute;
+using BH.oM.RemoteCompute;
+using BH.oM.RemoteCompute.RhinoCompute;
 using GH_IO.Serialization;
 using Grasshopper.Kernel;
 
-namespace BH.Engine.Computing.RhinoCompute
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Convert
     {
@@ -46,7 +46,7 @@ namespace BH.Engine.Computing.RhinoCompute
                 }
                 catch (Exception e)
                 {
-                    BH.Engine.Computing.Log.RecordWarning($"Exception in DocumentAdded event handler:\n\t{e.Message}");
+                    BH.Engine.RemoteCompute.Log.RecordWarning($"Exception in DocumentAdded event handler:\n\t{e.Message}");
                 }
 
             GrasshopperDefinition gDef = new GrasshopperDefinition(ghDocument, gHScriptConfig);

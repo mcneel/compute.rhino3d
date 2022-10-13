@@ -1,11 +1,11 @@
 ﻿using System.Linq;
-using BH.oM.Computing;
-using BH.oM.Computing.RhinoCompute;
+using BH.oM.RemoteCompute;
+using BH.oM.RemoteCompute.RhinoCompute;
 using System.Collections.Generic;
-using BH.oM.Computing.RhinoCompute.Schemas;
+using BH.oM.RemoteCompute.RhinoCompute.Schemas;
 using System;
 
-namespace BH.Engine.Computing.RhinoCompute
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Convert
     {

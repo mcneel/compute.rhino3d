@@ -2,7 +2,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
-namespace BH.oM.Computing.RhinoCompute
+namespace BH.oM.RemoteCompute.RhinoCompute
 {
     public class GeometryResolver : DefaultContractResolver
     {

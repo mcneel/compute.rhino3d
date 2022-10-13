@@ -1,10 +1,10 @@
 ﻿using System;
-using BH.Engine.Computing;
-using BH.oM.Computing;
-using BH.oM.Computing.RhinoCompute;
+using BH.Engine.RemoteCompute;
+using BH.oM.RemoteCompute;
+using BH.oM.RemoteCompute.RhinoCompute;
 using Grasshopper.Kernel;
 
-namespace BH.Engine.Computing.RhinoCompute
+namespace BH.Engine.RemoteCompute.RhinoCompute
 {
     public static partial class Create
     {
@@ -38,7 +38,7 @@ namespace BH.Engine.Computing.RhinoCompute
                 return gDef;
             }
 
-            var archive = BH.Engine.Computing.RhinoCompute.Compute.GHArchiveFromUrl(scriptUrl);
+            var archive = BH.Engine.RemoteCompute.RhinoCompute.Compute.GHArchiveFromUrl(scriptUrl);
             if (archive == null)
                 return null;
 
@@ -65,7 +65,7 @@ namespace BH.Engine.Computing.RhinoCompute
             }
             catch (Exception e)
             {
-                BH.Engine.Computing.Log.RecordWarning($"Exception in DocumentAdded event handler:\n\t{e.Message}");
+                BH.Engine.RemoteCompute.Log.RecordWarning($"Exception in DocumentAdded event handler:\n\t{e.Message}");
             }
 
             GrasshopperDefinition rc = new GrasshopperDefinition(gh_document, gHScriptConfig);
