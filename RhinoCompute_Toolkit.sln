@@ -1,15 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30413.136
+# Visual Studio Version 17
+VisualStudioVersion = 17.3.32922.545
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RhinoCompute", "RhinoCompute\RhinoCompute.csproj", "{EF929848-7ABE-43E4-838A-0908FC90556D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RhinoCompute_WebService", "RhinoCompute\RhinoCompute_WebService.csproj", "{EF929848-7ABE-43E4-838A-0908FC90556D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RhinoCompute_oM", "RhinoCompute_oM\RhinoCompute_oM.csproj", "{56A5F5AD-A351-416F-A9CA-3850536BC267}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RhinoCompute_Engine", "RhinoCompute_Engine\RhinoCompute_Engine.csproj", "{AAAB403E-3A80-4408-9932-B7819FB81DDE}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RhinoCompute_Tests", "RhinoCompute_Tests\RhinoCompute_Tests.csproj", "{9EEDC512-BF0F-420B-892A-37177DE27C8E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -29,10 +27,6 @@ Global
 		{AAAB403E-3A80-4408-9932-B7819FB81DDE}.Debug|x64.Build.0 = Debug|Any CPU
 		{AAAB403E-3A80-4408-9932-B7819FB81DDE}.Release|x64.ActiveCfg = Release|Any CPU
 		{AAAB403E-3A80-4408-9932-B7819FB81DDE}.Release|x64.Build.0 = Release|Any CPU
-		{9EEDC512-BF0F-420B-892A-37177DE27C8E}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{9EEDC512-BF0F-420B-892A-37177DE27C8E}.Debug|x64.Build.0 = Debug|Any CPU
-		{9EEDC512-BF0F-420B-892A-37177DE27C8E}.Release|x64.ActiveCfg = Release|Any CPU
-		{9EEDC512-BF0F-420B-892A-37177DE27C8E}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
