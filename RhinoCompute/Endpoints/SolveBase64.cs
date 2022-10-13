@@ -2,12 +2,12 @@
 using Nancy;
 using Newtonsoft.Json;
 using Nancy.Extensions;
-using BH.oM.RemoteCompute;
+using BH.oM.Computing;
 using System.Linq;
-using BH.oM.RemoteCompute.RhinoCompute;
-using BH.Engine.RemoteCompute.RhinoCompute;
-using BH.oM.RemoteCompute.RhinoCompute.Schemas;
-using BH.Engine.RemoteCompute;
+using BH.oM.Computing.RhinoCompute;
+using BH.Engine.Computing.RhinoCompute;
+using BH.oM.Computing.RhinoCompute.Schemas;
+using BH.Engine.Computing;
 
 namespace compute.geometry
 {

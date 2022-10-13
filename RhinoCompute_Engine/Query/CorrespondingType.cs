@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace BH.Engine.RemoteCompute.RhinoCompute
+namespace BH.Engine.Computing.RhinoCompute
 {
     public static partial class Query
     {

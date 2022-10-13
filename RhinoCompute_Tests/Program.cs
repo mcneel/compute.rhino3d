@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using BH.Engine.RemoteCompute.RhinoCompute;
+using BH.Engine.Computing.RhinoCompute;
 
 namespace RhinoCompute_Tests
 {

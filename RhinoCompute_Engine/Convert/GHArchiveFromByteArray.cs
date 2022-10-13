@@ -24,7 +24,7 @@ using System;
 using System.IO;
 using GH_IO.Serialization;
 
-namespace BH.Engine.RemoteCompute.RhinoCompute
+namespace BH.Engine.Computing.RhinoCompute
 {
     public static partial class Convert
     {

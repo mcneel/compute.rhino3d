@@ -42,11 +42,11 @@
     <ProjectReference Include="..\RhinoCompute_oM\RhinoCompute_oM.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="RemoteCompute_Engine">
-      <HintPath>C:\ProgramData\BHoM\Assemblies\RemoteCompute_Engine.dll</HintPath>
+    <Reference Include="Computing_Engine">
+      <HintPath>C:\ProgramData\BHoM\Assemblies\Computing_Engine.dll</HintPath>
     </Reference>
-    <Reference Include="RemoteCompute_oM">
-      <HintPath>C:\ProgramData\BHoM\Assemblies\RemoteCompute_oM.dll</HintPath>
+    <Reference Include="Computing_oM">
+      <HintPath>C:\ProgramData\BHoM\Assemblies\Computing_oM.dll</HintPath>
     </Reference>
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Runtime.Caching" />

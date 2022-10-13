@@ -1,16 +1,16 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using BH.oM.RemoteCompute;
-using BH.oM.RemoteCompute.RhinoCompute;
-using BH.oM.RemoteCompute.RhinoCompute.Schemas;
+using BH.oM.Computing;
+using BH.oM.Computing.RhinoCompute;
+using BH.oM.Computing.RhinoCompute.Schemas;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
 using Grasshopper.Kernel.Parameters;
 using Grasshopper.Kernel.Special;
 using Grasshopper.Kernel.Types;
 
-namespace BH.Engine.RemoteCompute.RhinoCompute
+namespace BH.Engine.Computing.RhinoCompute
 {
     public static partial class Query
     {
@@ -45,7 +45,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
                         if (goo == null)
                             continue;
 
-                        ResthopperObject rhObj = BH.Engine.RemoteCompute.RhinoCompute.Convert.ToResthopperObject(goo);
+                        ResthopperObject rhObj = BH.Engine.Computing.RhinoCompute.Convert.ToResthopperObject(goo);
                         resthopperObjectList.Add(rhObj);
                     }
 

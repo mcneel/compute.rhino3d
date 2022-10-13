@@ -26,13 +26,13 @@ using System.Linq;
 using Grasshopper.Kernel;
 //using BH.UI.Grasshopper.Components;
 
-namespace BH.Engine.RemoteCompute.RhinoCompute
+namespace BH.Engine.Computing.RhinoCompute
 {
     public static partial class Query
     {
         public static bool IsRemoteInput(this IGH_DocumentObject obj)
         {
-            return obj.Name == nameof(BH.Engine.RemoteCompute.Create.RemoteIN) && (obj?.Category == "BHoM" || obj.GetType().FullName == "Grasshopper.Kernel.Components.GH_PlaceholderComponent");
+            return obj.Name == nameof(BH.Engine.Computing.Create.RemoteIN) && (obj?.Category == "BHoM" || obj.GetType().FullName == "Grasshopper.Kernel.Components.GH_PlaceholderComponent");
         }
     }
 }

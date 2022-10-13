@@ -1,9 +1,9 @@
 ﻿using System;
-using BH.oM.RemoteCompute;
-using BH.oM.RemoteCompute.RhinoCompute;
+using BH.oM.Computing;
+using BH.oM.Computing.RhinoCompute;
 using Newtonsoft.Json;
 
-namespace BH.Engine.RemoteCompute.RhinoCompute
+namespace BH.Engine.Computing.RhinoCompute
 {
     public static partial class Convert
     {
@@ -44,7 +44,7 @@ namespace BH.Engine.RemoteCompute.RhinoCompute
             if (equivalentRhinoType != null)
             {
                 // Serialize data with GeometryResolver settings
-                dynamic castedGooValue = BH.Engine.RemoteCompute.Modify.CastTo(gooValue, equivalentRhinoType);
+                dynamic castedGooValue = BH.Engine.Computing.Modify.CastTo(gooValue, equivalentRhinoType);
 
                 result.Data = JsonConvert.SerializeObject(castedGooValue, GeometryResolver.JsonSerializerSettings);
             }

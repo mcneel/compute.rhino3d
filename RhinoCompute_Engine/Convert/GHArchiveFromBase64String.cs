@@ -2,7 +2,7 @@
 using GH_IO.Serialization;
 using Grasshopper.Kernel;
 
-namespace BH.Engine.RemoteCompute.RhinoCompute
+namespace BH.Engine.Computing.RhinoCompute
 {
     public static partial class Convert
     {

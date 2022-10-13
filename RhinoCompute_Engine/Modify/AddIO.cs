@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using BH.oM.RemoteCompute;
-using BH.oM.RemoteCompute.RhinoCompute;
+using BH.oM.Computing;
+using BH.oM.Computing.RhinoCompute;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Special;
 
-namespace BH.Engine.RemoteCompute.RhinoCompute
+namespace BH.Engine.Computing.RhinoCompute
 {
     public static partial class Modify
     {

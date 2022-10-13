@@ -6,15 +6,15 @@ using Grasshopper;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Data;
 using BH.oM.Base;
-using BH.oM.RemoteCompute;
-using BH.Engine.RemoteCompute;
-using BH.oM.RemoteCompute.RhinoCompute;
-using BH.oM.RemoteCompute.RhinoCompute.Schemas;
-using Log = BH.Engine.RemoteCompute.Log;
+using BH.oM.Computing;
+using BH.Engine.Computing;
+using BH.oM.Computing.RhinoCompute;
+using BH.oM.Computing.RhinoCompute.Schemas;
+using Log = BH.Engine.Computing.Log;
 using BH.oM.Base.Attributes;
 using System.Collections;
 
-namespace BH.Engine.RemoteCompute.RhinoCompute
+namespace BH.Engine.Computing.RhinoCompute
 {
     public static partial class Compute
     {
