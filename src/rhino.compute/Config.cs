@@ -18,18 +18,25 @@ namespace rhino.compute
         public static int ReverseProxyRequestTimeout { get; private set; }
 
         /// <summary>
+        /// RHINO_COMPUTE_REQUEST_LIMIT: maximum allowed size of any request body in bytes.
+        /// </summary>
+        public static long MaxRequestSize { get; private set; }
+
+        /// <summary>
         /// Loads config from environment variables (or uses defaults).
         /// </summary>
         public static void Load()
         {
             ApiKey = GetEnvironmentVariable<string>(RHINO_COMPUTE_KEY, null);
             ReverseProxyRequestTimeout = GetEnvironmentVariable<int>(RHINO_COMPUTE_TIMEOUT, 100);
+            MaxRequestSize = GetEnvironmentVariable<long>(RHINO_COMPUTE_MAX_REQUEST_SIZE, 52428800);
         }
 
         #region private
         // environment variables
         const string RHINO_COMPUTE_KEY = "RHINO_COMPUTE_KEY";
         const string RHINO_COMPUTE_TIMEOUT = "RHINO_COMPUTE_TIMEOUT";
+        const string RHINO_COMPUTE_MAX_REQUEST_SIZE = "RHINO_COMPUTE_MAX_REQUEST_SIZE";
 
         readonly static List<string> _warnings = new List<string>();
 
@@ -60,6 +67,15 @@ namespace rhino.compute
                     return (T)(object)result;
 
                 _warnings.Add($"{name} set to '{value}'; unable to parse as integer");
+                return defaultValue;
+            }
+
+            if (typeof(T) == typeof(long))
+            {
+                if (long.TryParse(value, out long result))
+                    return (T)(object)result;
+
+                _warnings.Add($"{name} set to '{value}'; unable to parse as long");
                 return defaultValue;
             }
 
