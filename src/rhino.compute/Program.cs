@@ -90,7 +90,7 @@ requests while the child processes are launching.")]
                     var b = webBuilder.ConfigureKestrel((context, options) =>
                     {
                         // Handle requests up to 50 MB
-                        options.Limits.MaxRequestBodySize = 52428800;
+                        options.Limits.MaxRequestBodySize = Config.MaxRequestSize;
                     })
                     .UseIISIntegration()
                     .UseStartup<Startup>()
