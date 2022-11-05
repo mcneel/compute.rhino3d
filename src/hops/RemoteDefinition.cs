@@ -976,6 +976,7 @@ namespace Hops
                         foreach (var item in list)
                         {
                             dataTree.Append(new ResthopperObject(item.Value), "0");
+                            inputCount++;
                         }
                     }
                     break;

@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.3] - 2022-11-05
+### Fixed
+- A bug where warnings were always being produced with input set to list access
+
 ## [0.15.2] - 2022-10-26
 ### Added
 - An environment variable called `RHINO_COMPUTE_MAX_REQUEST_SIZE` can now be set to configure the maximum allowed size of any HTTP request body in bytes. The default value is set to 52428800 bytes (approx. 50mb).
