@@ -228,16 +228,16 @@ namespace BH.Engine.Computing.RhinoCompute
 
         private static void ReportClusteredMessagesToUI(this List<ComputationOutput> allOutputs)
         {
-            if (allOutputs.Select(o => o.Log)?.Any(rm => rm?.Errors.Any() ?? false) ?? false)
-                BH.Engine.Base.Compute.RecordError($"Some Errors were encountered in these scripts:\n     `{string.Join("`,\n     ", allOutputs?.Where(o => o.Log.Errors.Any()).Select(o => o.SourceScript).Distinct())}`." +
+            if (allOutputs.Select(o => o.ComponentsLog?.Errors.Concat(o.ScriptLog?.Errors))?.Any() ?? false)
+                BH.Engine.Base.Compute.RecordError($"Some Errors were encountered in these scripts:\n     `{string.Join("`,\n     ", allOutputs?.Where(o => o.ComponentsLog.Errors.Concat(o.ScriptLog?.Errors).Any()).Select(o => o.SourceScript).Distinct())}`." +
                     $"\nCheck the individual Logs output for details.");
 
-            if (allOutputs.Select(o => o.Log)?.Any(rm => rm?.Warnings.Any() ?? false) ?? false)
-                BH.Engine.Base.Compute.RecordWarning($"Some Warnings were encountered in these scripts:\n     `{string.Join("`,\n     ", allOutputs?.Where(o => o.Log.Warnings.Any()).Select(o => o.SourceScript).Distinct())}`." +
+            if (allOutputs.Select(o => o.ComponentsLog?.Warnings.Concat(o.ScriptLog?.Warnings))?.Any() ?? false)
+                BH.Engine.Base.Compute.RecordWarning($"Some Warnings were encountered in these scripts:\n     `{string.Join("`,\n     ", allOutputs?.Where(o => o.ComponentsLog.Warnings.Concat(o.ScriptLog?.Warnings).Any()).Select(o => o.SourceScript).Distinct())}`." +
                     $"\nCheck the individual Logs output for details.");
 
-            if (allOutputs.Select(o => o.Log)?.Any(rm => rm?.Remarks.Any() ?? false) ?? false)
-                BH.Engine.Base.Compute.RecordNote($"Some Remarks were encountered in these scripts:\n     `{string.Join("`,\n     `", allOutputs?.Where(o => o.Log.Remarks.Any()).Select(o => o.SourceScript).Distinct())}`." +
+            if (allOutputs.Select(o => o.ComponentsLog?.Remarks.Concat(o.ScriptLog?.Remarks))?.Any() ?? false)
+                BH.Engine.Base.Compute.RecordNote($"Some Remarks were encountered in these scripts:\n     `{string.Join("`,\n     `", allOutputs?.Where(o => o.ComponentsLog.Remarks.Concat(o.ScriptLog?.Remarks).Any()).Select(o => o.SourceScript).Distinct())}`." +
                     $"\nCheck the individual Logs output for details.");
         }
     }
