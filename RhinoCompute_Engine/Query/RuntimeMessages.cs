@@ -45,7 +45,7 @@ namespace BH.Engine.Computing.RhinoCompute
             return allObjsMessages;
         }
 
-        public static List<string> RuntimeMessages(IGH_ActiveObject obj, GH_RuntimeMessageLevel messageLevel, bool skipFirstNullErrorForBHoMComponents = true)
+        public static List<string> RuntimeMessages(IGH_ActiveObject obj, GH_RuntimeMessageLevel messageLevel, bool skipFirstNullErrorForBHoMComponents = true, bool printComponentType = false, bool printComponentGuid = false)
         {
             List<string> runtimeMessages = new List<string>();
 
@@ -65,7 +65,15 @@ namespace BH.Engine.Computing.RhinoCompute
                     continue;
                 }
 
-                runtimeMessages.Add($"{messageLevel} message from component named `{obj.Name}`:\n\t{msg}\nThe component that threw the {messageLevel} is of type {obj.GetType().FullName}, with instance GUID `{obj.InstanceGuid}`.");
+                string msgToAdd = $"{messageLevel} message from component named `{obj.Name}`:";
+                msgToAdd += $"\n\t{msg}`";
+
+                if (printComponentType)
+                    msgToAdd += $"\nComponent type: {obj.GetType().FullName}";
+                if (printComponentGuid)
+                    msgToAdd += $"\nComponent GUID: `{obj.InstanceGuid}`";
+
+                runtimeMessages.Add(msgToAdd);
             }
 
             return runtimeMessages;
