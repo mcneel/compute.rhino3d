@@ -107,7 +107,7 @@ namespace BH.Engine.Computing.RhinoCompute
             }
 
             if (m_PartOfChain || m_repeatedExecutionMultiInputs)
-                allOutputs.ReportClusteredMessagesToUI();
+                allOutputs.ReportScriptsWithMessagesToUI();
 
             m_PartOfChain = false;
             m_askToReenable = true;
@@ -165,7 +165,7 @@ namespace BH.Engine.Computing.RhinoCompute
             }
 
             if (m_PartOfChain || m_repeatedExecutionMultiInputs)
-                allOutputs.ReportClusteredMessagesToUI();
+                allOutputs.ReportScriptsWithMessagesToUI();
 
             m_PartOfChain = false;
 
@@ -226,18 +226,18 @@ namespace BH.Engine.Computing.RhinoCompute
             return result;
         }
 
-        private static void ReportClusteredMessagesToUI(this List<ComputationOutput> allOutputs)
+        private static void ReportScriptsWithMessagesToUI(this List<ComputationOutput> allOutputs)
         {
-            if (allOutputs.Select(o => o.ComponentsLog?.Errors.Concat(o.ScriptLog?.Errors))?.Any() ?? false)
-                BH.Engine.Base.Compute.RecordError($"Some Errors were encountered in these scripts:\n     `{string.Join("`,\n     ", allOutputs?.Where(o => o.ComponentsLog.Errors.Concat(o.ScriptLog?.Errors).Any()).Select(o => o.SourceScript).Distinct())}`." +
+            if (allOutputs.Any(o => o.HasLogMessages(MessageLevel.Error)))
+                BH.Engine.Base.Compute.RecordError($"Some Errors were encountered in these scripts:\n     `{string.Join("`,\n     ", allOutputs?.Where(o => o.HasLogMessages(MessageLevel.Error)).Select(o => o.SourceScript).Distinct())}`." +
                     $"\nCheck the individual Logs output for details.");
 
-            if (allOutputs.Select(o => o.ComponentsLog?.Warnings.Concat(o.ScriptLog?.Warnings))?.Any() ?? false)
-                BH.Engine.Base.Compute.RecordWarning($"Some Warnings were encountered in these scripts:\n     `{string.Join("`,\n     ", allOutputs?.Where(o => o.ComponentsLog.Warnings.Concat(o.ScriptLog?.Warnings).Any()).Select(o => o.SourceScript).Distinct())}`." +
+            if (allOutputs.Any(o => o.HasLogMessages(MessageLevel.Warning)))
+                BH.Engine.Base.Compute.RecordWarning($"Some Warnings were encountered in these scripts:\n     `{string.Join("`,\n     ", allOutputs?.Where(o => o.HasLogMessages(MessageLevel.Warning)).Select(o => o.SourceScript).Distinct())}`." +
                     $"\nCheck the individual Logs output for details.");
 
-            if (allOutputs.Select(o => o.ComponentsLog?.Remarks.Concat(o.ScriptLog?.Remarks))?.Any() ?? false)
-                BH.Engine.Base.Compute.RecordNote($"Some Remarks were encountered in these scripts:\n     `{string.Join("`,\n     `", allOutputs?.Where(o => o.ComponentsLog.Remarks.Concat(o.ScriptLog?.Remarks).Any()).Select(o => o.SourceScript).Distinct())}`." +
+            if (allOutputs.Any(o => o.HasLogMessages(MessageLevel.Note)))
+                BH.Engine.Base.Compute.RecordNote($"Some Remarks were encountered in these scripts:\n     `{string.Join("`,\n     `", allOutputs?.Where(o => o.HasLogMessages(MessageLevel.Note)).Select(o => o.SourceScript).Distinct())}`." +
                     $"\nCheck the individual Logs output for details.");
         }
     }
