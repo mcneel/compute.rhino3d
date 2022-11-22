@@ -13,14 +13,19 @@ using BH.oM.Computing.RhinoCompute.Schemas;
 using Log = BH.Engine.Computing.Log;
 using BH.oM.Base.Attributes;
 using System.Collections;
+using System.Diagnostics.Eventing.Reader;
 
 namespace BH.Engine.Computing.RhinoCompute
 {
     public static partial class Compute
     {
+        private static Dictionary<string, CustomObject> m_runPermutations = new Dictionary<string, CustomObject>();
         private static bool m_PartOfChain = false;
         private static bool m_repeatedExecutionMultiInputs = false;
         private static bool m_askToReenable = true;
+        private static bool m_warnAboutDuplicateScripts = true;
+        private static bool m_warnAboutDuplicateInputs = true;
+
 
         [Input("scriptFilePaths", "Scripts to be run. They will be run in the order provided, independently from each other.")]
         [Input("inputs", "Each script will be executed once for every input in this list.")]
@@ -29,8 +34,7 @@ namespace BH.Engine.Computing.RhinoCompute
             "\nInputs manually specified take precedence over chained IOs, in case of overlapping names.")]
         public static List<ComputationOutput> RunScriptChain(List<string> scriptFilePaths, List<CustomObject> inputs = null, bool chainIO = false, GHScriptConfig gHScriptConfig = null, bool active = false)
         {
-            if (gHScriptConfig == null)
-                gHScriptConfig = new GHScriptConfig();
+            // Input checks
 
             var emptyOutput = new List<ComputationOutput>();
 
@@ -39,6 +43,30 @@ namespace BH.Engine.Computing.RhinoCompute
                 BH.Engine.Base.Compute.RecordWarning($"Please set the `{nameof(active)}` input to true to activate the computation.");
                 return emptyOutput;
             }
+
+            if (!scriptFilePaths.Any())
+            {
+                BH.Engine.Base.Compute.RecordWarning($"No input script provided.");
+                return emptyOutput;
+            }
+
+            if (m_warnAboutDuplicateScripts && scriptFilePaths.Distinct().Count() != scriptFilePaths.Count)
+            {
+                BH.Engine.Base.Compute.RecordWarning($"You have input duplicate scripts. If this was intentional, please re-enable the component to continue.");
+                m_warnAboutDuplicateScripts = false;
+                return emptyOutput;
+            }
+
+            if (m_warnAboutDuplicateInputs && inputs.Distinct().Count() != inputs.Count)
+            {
+                BH.Engine.Base.Compute.RecordWarning($"You have specified duplicate inputs. If this was intentional, please re-enable the component to continue.");
+                m_warnAboutDuplicateInputs = false;
+                return emptyOutput;
+            }
+
+            // Initialisations
+            if (gHScriptConfig == null)
+                gHScriptConfig = new GHScriptConfig();
 
             List<ComputationOutput> allOutputs = new List<ComputationOutput>();
 
@@ -61,21 +89,27 @@ namespace BH.Engine.Computing.RhinoCompute
                 return emptyOutput;
             }
 
-
             // Each script is to be run once for each input.
             ComputationOutput scriptResult = new ComputationOutput();
             string previouslyComputedScript = null;
 
             for (int i = 0; i < scriptFilePaths.Count; i++)
             {
-                string script = scriptFilePaths.ElementAtOrDefault(i);
+                string scriptFilePath = scriptFilePaths.ElementAtOrDefault(i);
 
-                if (string.IsNullOrWhiteSpace(script))
+                if (string.IsNullOrWhiteSpace(scriptFilePath))
                     continue;
 
                 for (int j = 0; j < inputs.Count; j++)
                 {
                     CustomObject input = inputs.ElementAtOrDefault(j);
+
+                    // Check if a permutation was already done.
+                    if(m_runPermutations.TryGetValue(scriptFilePath, out CustomObject co) && co == input)
+                    {
+                        Log.RecordWarning($"A permutation of the script {scriptFilePath} has received the same inputs as a previously computed one. Continuing to the next script.", doNotRepeat: true);
+                        continue;
+                    }
 
                     try
                     {
@@ -83,6 +117,7 @@ namespace BH.Engine.Computing.RhinoCompute
                         {
                             input = input ?? new CustomObject();
 
+                            // Unwrap outputs
                             foreach (var g in scriptResult.OutputDatas?.GroupBy(r => r.Name))
                                 if (!input.CustomData.ContainsKey(g.Key)) // do not overwrite any specified input.
                                     input.CustomData[g.Key] = g.ToList().ToRemoteInputData();
@@ -92,16 +127,17 @@ namespace BH.Engine.Computing.RhinoCompute
                                         $"which conflicts with specified input in `{nameof(inputs)}`.");
                         }
 
-                        scriptResult = RunScript(script, input, gHScriptConfig, active);
-                        previouslyComputedScript = script;
+                        scriptResult = RunScript(scriptFilePath, input, gHScriptConfig, active);
+                        previouslyComputedScript = scriptFilePath;
                     }
                     catch
                     {
                         m_PartOfChain = j != 0;
                         Log.Clean();
-                        Log.RecordError($"Could not compute script `{Path.GetFileName(script)}`.");
+                        Log.RecordError($"Could not compute script `{Path.GetFileName(scriptFilePath)}`.");
                     }
 
+                    m_runPermutations[scriptFilePath] = input;
                     allOutputs.Add(scriptResult);
                 }
             }
