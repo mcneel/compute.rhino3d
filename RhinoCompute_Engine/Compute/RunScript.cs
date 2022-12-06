@@ -19,7 +19,6 @@ namespace BH.Engine.Computing.RhinoCompute
 {
     public static partial class Compute
     {
-        private static Dictionary<string, CustomObject> m_runPermutations = new Dictionary<string, CustomObject>();
         private static bool m_PartOfChain = false;
         private static bool m_repeatedExecutionMultiInputs = false;
         private static bool m_askToReenable = true;
@@ -104,13 +103,6 @@ namespace BH.Engine.Computing.RhinoCompute
                 {
                     CustomObject input = inputs.ElementAtOrDefault(j);
 
-                    // Check if a permutation was already done.
-                    if(m_runPermutations.TryGetValue(scriptFilePath, out CustomObject co) && co == input)
-                    {
-                        Log.RecordWarning($"A permutation of the script {scriptFilePath} has received the same inputs as a previously computed one. Continuing to the next script.", doNotRepeat: true);
-                        continue;
-                    }
-
                     try
                     {
                         if (chainIO && !string.IsNullOrWhiteSpace(previouslyComputedScript) && (scriptResult?.OutputDatas?.Any() ?? false))
@@ -137,7 +129,6 @@ namespace BH.Engine.Computing.RhinoCompute
                         Log.RecordError($"Could not compute script `{Path.GetFileName(scriptFilePath)}`.");
                     }
 
-                    m_runPermutations[scriptFilePath] = input;
                     allOutputs.Add(scriptResult);
                 }
             }
