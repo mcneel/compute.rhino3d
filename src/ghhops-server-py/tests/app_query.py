@@ -19,7 +19,7 @@ def help():
     name="PointAt",
     nickname="PtAt",
     description="Get point along curve",
-    icon="tests/pointAt.png",
+    icon="examples/pointat.png",
     inputs=[
         hs.HopsCurve("Curve", "C", "Curve to evaluate"),
         hs.HopsNumber("t", "t", "Parameter on Curve to evaluate")
@@ -34,6 +34,7 @@ def pointat(curve: rhino3dm.Curve, t=0.0):
     "/surfaces/srf4pt",
     name="4Point Surface",
     nickname="Srf4Pt",
+    icon="srf4pt.png",
     description="Create ruled surface from four points",
     inputs=[
         hs.HopsPoint("Corner A", "A", "First corner"),
@@ -57,6 +58,7 @@ def ruled_surface(a: rhino3dm.Point3d,
     name="Add",
     nickname="Add",
     description="Add numbers with CPython",
+    icon="add.png",
     inputs=[
         hs.HopsNumber("A", "A", "First number"),
         hs.HopsNumber("B", "B", "Second number"),
