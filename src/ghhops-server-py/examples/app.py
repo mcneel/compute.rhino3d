@@ -1,6 +1,12 @@
 """Hops flask middleware example"""
+import sys
+import os
 from flask import Flask
+
+# load ghhops-server-py source from this directory
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 import ghhops_server as hs
+
 import rhino3dm
 
 
@@ -88,6 +94,21 @@ def ruled_surface(
     edge1 = rhino3dm.LineCurve(a, b)
     edge2 = rhino3dm.LineCurve(c, d)
     return rhino3dm.NurbsSurface.CreateRuledSurface(edge1, edge2)
+
+
+@hops.component(
+    "/test.IntegerOutput",
+    name="tIntegerOutput",
+    nickname="tIntegerOutput",
+    description="Add numbers with CPython and Test Integer output.",
+    inputs=[
+        hs.HopsInteger("A", "A", "First number"),
+        hs.HopsInteger("B", "B", "Second number"),
+    ],
+    outputs=[hs.HopsInteger("Sum", "S", "A + B")],
+)
+def test_IntegerOutput(a, b):
+    return a + b
 
 
 if __name__ == "__main__":

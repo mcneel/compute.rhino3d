@@ -45,6 +45,7 @@ RHINO = None
 RHINO_FROMJSON = None
 RHINO_TOJSON = None
 RHINO_GEOM = None
+CONVERT_VALUE = None
 
 
 def _init_rhinoinside():
@@ -52,12 +53,14 @@ def _init_rhinoinside():
     global RHINO_FROMJSON
     global RHINO_TOJSON
     global RHINO_GEOM
+    global CONVERT_VALUE
 
     # initialize with Rhino.Inside Cpython ==========
     import clr
 
     clr.AddReference("System.Collections")
     clr.AddReference("Newtonsoft.Json.Rhino")
+    import System
     import Newtonsoft.Json as NJ
     from System.Collections.Generic import Dictionary
 
@@ -72,6 +75,18 @@ def _init_rhinoinside():
         """Convert RhinoCommon object to json"""
         return NJ.JsonConvert.SerializeObject(value)
 
+    def convert_value(value):
+        # FIXME: more value types probably need to be handled
+        if isinstance(value, bool):
+            return System.Boolean(value)
+        elif isinstance(value, int):
+            return System.Int32(value)
+        elif isinstance(value, float):
+            return System.Double(value)
+        elif isinstance(value, str):
+            return System.String(value)
+        return value
+
     RHINO_FROMJSON = from_json
     RHINO_TOJSON = to_json
 
@@ -80,12 +95,15 @@ def _init_rhinoinside():
     RHINO = Rhino
     RHINO_GEOM = Rhino.Geometry
 
+    CONVERT_VALUE = convert_value
+
 
 def _init_rhino3dm():
     global RHINO
     global RHINO_FROMJSON
     global RHINO_TOJSON
     global RHINO_GEOM
+    global CONVERT_VALUE
 
     import rhino3dm
 
@@ -97,10 +115,15 @@ def _init_rhino3dm():
         """Convert rhino3dm object to json"""
         return json.dumps(value, cls=_HopsEncoder)
 
+    def convert_value(value):
+        return value
+
     RHINO_FROMJSON = from_json
     RHINO_TOJSON = to_json
 
     RHINO_GEOM = rhino3dm
+
+    CONVERT_VALUE = convert_value
 
 
 class HopsParamAccess(Enum):
@@ -199,8 +222,9 @@ class _GHParam:
                 branch_data = [
                     {
                         "type": self.result_type,
-                        "data": RHINO_TOJSON(v)
-                    } for v in value[key]
+                        "data": RHINO_TOJSON(CONVERT_VALUE(v)),
+                    }
+                    for v in value[key]
                 ]
                 tree[key] = branch_data
             output = {
@@ -208,22 +232,18 @@ class _GHParam:
                 "InnerTree": tree,
             }
             return output
-        
+
         if not isinstance(value, tuple) and not isinstance(value, list):
             value = (value,)
 
         output_list = [
-            {
-                "type": self.result_type,
-                "data": RHINO_TOJSON(v)
-            } for v in value
+            {"type": self.result_type, "data": RHINO_TOJSON(CONVERT_VALUE(v))}
+            for v in value
         ]
 
         output = {
             "ParamName": self.name,
-            "InnerTree": {
-                "0": output_list
-            },
+            "InnerTree": {"0": output_list},
         }
         return output
 
@@ -252,10 +272,10 @@ class HopsCircle(_GHParam):
 
     coercers = {
         "Rhino.Geometry.Circle": lambda d: HopsCircle._make_circle(
-            HopsPlane._make_plane(d["Plane"]["Origin"],
-                                  d["Plane"]["XAxis"],
-                                  d["Plane"]["YAxis"]),
-            d["Radius"]
+            HopsPlane._make_plane(
+                d["Plane"]["Origin"], d["Plane"]["XAxis"], d["Plane"]["YAxis"]
+            ),
+            d["Radius"],
         )
     }
 
@@ -264,7 +284,6 @@ class HopsCircle(_GHParam):
         circle = RHINO_GEOM.Circle(r)
         circle.Plane = p
         return circle
-
 
 
 class HopsCurve(_GHParam):
@@ -321,20 +340,22 @@ class HopsNumber(_GHParam):
 class HopsPlane(_GHParam):
     """Wrapper for GH_Plane"""
 
-    param_type ="Plane"
+    param_type = "Plane"
     result_type = "Rhino.Geometry.Plane"
 
     coercers = {
-        "Rhino.Geometry.Plane": lambda p: HopsPlane._make_plane(p["Origin"],
-                                                                p["XAxis"],
-                                                                p["YAxis"])
+        "Rhino.Geometry.Plane": lambda p: HopsPlane._make_plane(
+            p["Origin"], p["XAxis"], p["YAxis"]
+        )
     }
 
     @staticmethod
     def _make_plane(o, x, y):
-        return RHINO_GEOM.Plane(RHINO_GEOM.Point3d(o["X"], o["Y"], o["Z"]),
-                                RHINO_GEOM.Vector3d(x["X"], x["Y"], x["Z"]),
-                                RHINO_GEOM.Vector3d(y["X"], y["Y"], y["Z"]))
+        return RHINO_GEOM.Plane(
+            RHINO_GEOM.Point3d(o["X"], o["Y"], o["Z"]),
+            RHINO_GEOM.Vector3d(x["X"], x["Y"], x["Z"]),
+            RHINO_GEOM.Vector3d(y["X"], y["Y"], y["Z"]),
+        )
 
 
 class HopsPoint(_GHParam):

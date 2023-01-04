@@ -1,5 +1,10 @@
 """Hops default HTTP server swith rhinoinside example"""
+import sys
+import os
 import rhinoinside
+
+# load ghhops-server-py source from this directory
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 import ghhops_server as hs
 
 
@@ -94,6 +99,21 @@ def interp_length(p1, p2, p3):
     pts.Add(p3)
     crv = Rhino.Geometry.Curve.CreateInterpolatedCurve(pts, 3)
     return crv.GetLength()
+
+
+@hops.component(
+    "/test.IntegerOutput",
+    name="tIntegerOutput",
+    nickname="tIntegerOutput",
+    description="Add numbers with CPython and Test Integer output.",
+    inputs=[
+        hs.HopsInteger("A", "A", "First number"),
+        hs.HopsInteger("B", "B", "Second number"),
+    ],
+    outputs=[hs.HopsInteger("Sum", "S", "A + B")],
+)
+def test_IntegerOutput(a, b):
+    return a + b
 
 
 if __name__ == "__main__":
