@@ -5,29 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Flask",
-            "type": "python",
-            "request": "launch",
-            "program": "${file}",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}"
-            },
-            "console": "integratedTerminal",
-            "justMyCode": true
-        },
-        {
-            "name": "Python: HTTP",
-            "type": "python",
-            "request": "launch",
-            "program": "${file}",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}"
-            },
-            "console": "integratedTerminal",
-            "justMyCode": true
-        },
-        {
-            "name": "Python: RhinoInside",
+            "name": "Python",
             "type": "python",
             "request": "launch",
             "program": "${file}",
