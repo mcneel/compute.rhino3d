@@ -18,12 +18,76 @@ DEFAULT_SUBCATEGORY = "Hops Python"
 class HopsBase:
     """Base class for all Hops middleware implementations"""
 
+    ROOT_ROUTE = "/"
+    SOLVE_ROUTE = "/solve"
+
+    BUILTIN_ROUTES = [ROOT_ROUTE, SOLVE_ROUTE]
+
+    ERROR_PAGE_405 = """<!doctype html>
+<html lang=en>
+<title>405 Method Not Allowed</title>
+<h1>Method Not Allowed</h1>
+<p>The method is not allowed for the requested URL.</p>"""
+
     def __init__(self, app):
         self.app = app
         # components dict store each components two times under
         # two keys get uri and solve uri, for faster lookups in query and solve
         # it is assumed that uri and solve uri and both unique to the component
         self._components: dict[str, HopsComponent] = {}
+
+    def handles(self, request):
+        uri = request.path
+        return uri in HopsBase.BUILTIN_ROUTES or uri in self._components
+
+    def handle_HEAD(self, _):
+        return self._prep_response(200, "Success")
+
+    def handle_GET(self, request):
+        uri = request.path
+
+        # if calling GET /solve, respond 405
+        if self._is_solve_uri(uri):
+            return self._return_method_not_allowed()
+
+        # if component exists, return component data
+        res, results = self.query(uri=uri)
+        if res:
+            response = self._prep_response()
+            response.data = results
+
+        # otherwise return 404
+        else:
+            response = self._prep_response(404, "Unknown URI")
+
+        return response
+
+    def handle_POST(self, request):
+        uri = request.path
+
+        # if POST on component uri, return 405
+        if self._is_comp_uri(uri):
+            return self._return_method_not_allowed()
+
+        # otherwise try to solve with payload
+        data = request.data
+        res, results = self.solve(uri=uri, payload=data)
+        if res:
+            response = self._prep_response()
+            response.data = results.encode(encoding="utf_8")
+
+        # otherwise return 404
+        else:
+            response = self._prep_response(404, "Execution Error")
+            response.data = results.encode(encoding="utf_8")
+
+        return response
+
+    def _is_solve_uri(self, uri):
+        return uri == HopsBase.SOLVE_ROUTE
+
+    def _is_comp_uri(self, uri):
+        return uri in self._components
 
     def query(self, uri) -> Tuple[bool, str]:
         """Get information on given uri"""
@@ -45,16 +109,16 @@ class HopsBase:
 
     def solve(self, uri, payload) -> Tuple[bool, str]:
         """Perform Solve on given uri"""
-        if uri == "/":
+        if uri == HopsBase.ROOT_ROUTE:
             hlogger.debug("Nothing to solve on root")
             return False, self._return_with_err("Nothing to solve on root")
 
         # FIXME: remove support for legacy solve behaviour
-        elif uri == "/solve":
+        elif uri == HopsBase.SOLVE_ROUTE:
             data = json.loads(payload)
             comp_uri = data["pointer"]
-            if not comp_uri.startswith("/"):
-                comp_uri = "/" + comp_uri
+            if not comp_uri.startswith(HopsBase.ROOT_ROUTE):
+                comp_uri = HopsBase.ROOT_ROUTE + comp_uri
             for comp in self._components.values():
                 if comp_uri == comp.uri:
                     hlogger.info("Solving using legacy API: %s", comp)
@@ -80,6 +144,11 @@ class HopsBase:
             err_res = {"values": [], "errors": [err_msg]}
 
         return json.dumps(err_res, cls=_HopsEncoder)
+
+    def _return_method_not_allowed(self):
+        response = self._prep_response(405, "Method Not Allowed")
+        response.data = HopsBase.ERROR_PAGE_405.encode(encoding="utf_8")
+        return response
 
     def _get_all_comps_data(self):
         # return json formatted string of all components metadata

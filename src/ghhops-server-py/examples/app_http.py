@@ -6,6 +6,15 @@ hops = hs.Hops()
 
 
 @hops.component(
+    "/binmult",
+    inputs=[hs.HopsNumber("A"), hs.HopsNumber("B")],
+    outputs=[hs.HopsNumber("Multiply")],
+)
+def BinaryMultiply(a: float, b: float):
+    return a * b
+
+
+@hops.component(
     "/add",
     name="Add",
     nickname="Add",
@@ -14,7 +23,7 @@ hops = hs.Hops()
         hs.HopsNumber("A", "A", "First number"),
         hs.HopsNumber("B", "B", "Second number"),
     ],
-    outputs=[hs.HopsNumber("Sum", "S", "A + B")]
+    outputs=[hs.HopsNumber("Sum", "S", "A + B")],
 )
 def add(a, b):
     return a + b
@@ -30,9 +39,7 @@ def add(a, b):
         hs.HopsCurve("Curve", "C", "Curve to evaluate"),
         hs.HopsNumber("t", "t", "Parameter on Curve to evaluate"),
     ],
-    outputs=[
-        hs.HopsPoint("P", "P", "Point on curve at t")
-    ]
+    outputs=[hs.HopsPoint("P", "P", "Point on curve at t")],
 )
 def pointat(curve, t=0.0):
     return curve.PointAt(t)
@@ -48,11 +55,11 @@ def pointat(curve, t=0.0):
     icon="pointat.png",
     inputs=[
         hs.HopsCurve("Curve", "C", "Curve to evaluate"),
-        hs.HopsNumber("t", "t", "Parameters on Curve to evaluate", hs.HopsParamAccess.LIST),
+        hs.HopsNumber(
+            "t", "t", "Parameters on Curve to evaluate", hs.HopsParamAccess.LIST
+        ),
     ],
-    outputs=[
-        hs.HopsPoint("P", "P", "Points on curve at t")
-    ]
+    outputs=[hs.HopsPoint("P", "P", "Points on curve at t")],
 )
 def pointsat(curve, t):
     points = [curve.PointAt(item) for item in t]
@@ -68,9 +75,9 @@ def pointsat(curve, t):
         hs.HopsPoint("Corner A", "A", "First corner"),
         hs.HopsPoint("Corner B", "B", "Second corner"),
         hs.HopsPoint("Corner C", "C", "Third corner"),
-        hs.HopsPoint("Corner D", "D", "Fourth corner")
+        hs.HopsPoint("Corner D", "D", "Fourth corner"),
     ],
-    outputs=[hs.HopsSurface("Surface", "S", "Resulting surface")]
+    outputs=[hs.HopsSurface("Surface", "S", "Resulting surface")],
 )
 def ruled_surface(a, b, c, d):
     edge1 = rhino3dm.LineCurve(a, b)
