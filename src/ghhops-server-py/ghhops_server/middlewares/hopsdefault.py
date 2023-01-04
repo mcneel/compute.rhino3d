@@ -47,6 +47,9 @@ class _HopsHTTPHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", "application/json")
         self.end_headers()
 
+    def do_HEAD(self):
+        self._prep_response()
+
     def do_GET(self):
         # grab the path before url params
         comp_uri = self._get_comp_uri()
@@ -57,9 +60,6 @@ class _HopsHTTPHandler(BaseHTTPRequestHandler):
             self.wfile.write(results.encode(encoding="utf_8"))
         else:
             self._prep_response(status=404)
-
-    def do_HEAD(self):
-        self._prep_response()
 
     def do_POST(self):
         # read the message and convert it into a python dictionary

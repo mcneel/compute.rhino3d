@@ -27,26 +27,25 @@ class HopsFlask(base.HopsBase):
         request = Request(environ)
 
         method = request.method
-        comp_uri = request.path
 
-        if method == "GET":
-            res, results = self.query(uri=comp_uri)
-            if res:
-                response = self._prep_response()
-                response.data = results
-            else:
-                response = self._prep_response(404, "Unknown URI")
-            return response(environ, start_response)
+        # if hops app handled this request
+        if self.handles(request):
+            response = None
 
-        elif method == "POST":
-            data = request.data
-            res, results = self.solve(uri=comp_uri, payload=data)
-            if res:
-                response = self._prep_response()
-                response.data = results.encode(encoding="utf_8")
-            else:
-                response = self._prep_response(404, "Execution Error")
-                response.data = results.encode(encoding="utf_8")
-            return response(environ, start_response)
+            if method == "HEAD":
+                response = self.handle_HEAD(request)
 
+            elif method == "GET":
+                response = self.handle_GET(request)
+
+            elif method == "POST":
+                response = self.handle_POST(request)
+
+            if response:
+                return response(environ, start_response)
+
+            # respond with 405 if method is not valid
+            return self._return_method_not_allowed()
+
+        # otherwise ask wapped app to process the call
         return self.wsgi_app(environ, start_response)

@@ -27,7 +27,6 @@ RhinoCompute.cs
 .DS_Store
 # vscode python stuff
 /src/tests/.vscode
-/src/ghhops-server-py/.vscode
 **/.vscode/.ropeproject
 /src/ghhops-server-py/dist
 /src/dist
