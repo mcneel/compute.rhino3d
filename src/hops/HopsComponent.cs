@@ -65,7 +65,7 @@ namespace Hops
 
         protected override string HtmlHelp_Source()
         {
-            return "GOTO:https://developer.rhino3d.com/guides/grasshopper/hops-component/";
+            return "GOTO:https://developer.rhino3d.com/guides/compute/hops-component/";
         }
 
         protected override void RegisterInputParams(GH_InputParamManager pManager)
