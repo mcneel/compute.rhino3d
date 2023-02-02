@@ -3,7 +3,7 @@
 
 param (
     [Parameter(Mandatory=$true)][string] $EmailAddress,
-    [Parameter(Mandatory=$true)][string] $ApiKey,
+    [Parameter(Mandatory=$true)][AllowEmptyString()][string] $ApiKey,
     [Parameter(Mandatory=$true)][string] $RhinoToken,
     [switch] $install = $false
 )
@@ -32,6 +32,10 @@ function SetEnvVar {
     [System.Environment]::SetEnvironmentVariable($name, $value, "Machine")
 }
 #EndRegion funcs
+
+if(!$ApiKey){
+    Write-Warning "ApiKey is not set, we recommend you to set ApiKey for production servers" -WarningAction Inquire
+}
 
 Write-Step 'Set environment variables'
 SetEnvVar 'RHINO_TOKEN' $RhinoToken -secret
