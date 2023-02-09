@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.Hosting;
 
 namespace compute.geometry
 {
@@ -37,7 +38,7 @@ namespace compute.geometry
             _idleSpan = spanSeconds;
         }
 
-        public static void StartTimer(Topshelf.HostControl hctrl)
+        public static void StartTimer(IHost app)
         {
             bool startTimer = false;
             if (_timer == null && (ParentProcesses != null))
@@ -52,7 +53,7 @@ namespace compute.geometry
             if (startTimer)
             {
                 _timer = new System.Threading.Timer(
-                    new System.Threading.TimerCallback(TimerTask), hctrl, 1000, 5000);
+                    new System.Threading.TimerCallback(TimerTask), app, 1000, 5000);
             }
         }
 
@@ -107,9 +108,9 @@ namespace compute.geometry
             {
                 var elapsedTime = DateTime.Now - _startTime;
                 Serilog.Log.Information("Total elapsed time for child process is " + string.Format("{0:D2} days, {1:D2} hrs, {2:D2} mins, {3:D2} secs", elapsedTime.Days, elapsedTime.Hours, elapsedTime.Minutes, elapsedTime.Seconds));
-                var hctrl = timerState as Topshelf.HostControl;
-                if (hctrl != null)
-                    hctrl.Stop();
+                var app = timerState as IHost;
+                if (app != null)
+                    app.StopAsync();
             }
         }
     }

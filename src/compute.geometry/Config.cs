@@ -13,6 +13,11 @@ namespace compute.geometry
         public static string[] Urls { get; set; }
 
         /// <summary>
+        /// Localhost port to use. This is only used on localhost when Urls is empty
+        /// </summary>
+        public static int LocalhostPort { get; set; }
+
+        /// <summary>
         /// RHINO_COMPUTE_KEY: the API key required to make POST requests.
         /// Leave empty to disable.
         /// </summary>

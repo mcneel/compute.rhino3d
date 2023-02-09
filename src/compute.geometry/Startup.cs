@@ -1,49 +1,73 @@
 ﻿using System;
-using System.Threading.Tasks;
-using Microsoft.Owin;
-using Microsoft.Owin.Cors;
-using Owin;
-
-[assembly: OwinStartup(typeof(compute.geometry.Startup))]
+using Carter;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
+using Microsoft.Extensions.DependencyInjection;
+using Serilog;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace compute.geometry
 {
     public class Startup
     {
-        public void Configuration(IAppBuilder app)
+        public void ConfigureServices(IServiceCollection services)
         {
-            app.UseCors(CorsOptions.AllowAll);
-            app.Use<LoggingMiddleware>();
-            app.UseNancy();
-        }
-    }
-
-    /// <summary>
-    /// Custom request logging for debugging.
-    /// </summary>
-    internal class LoggingMiddleware : OwinMiddleware
-    {
-        public LoggingMiddleware(OwinMiddleware next)
-            : base(next)
-        {
-        }
-
-        public override async Task Invoke(IOwinContext ctx)
-        {
-            IOwinRequest req = ctx.Request;
-
-            // invoke the next middleware in the pipeline
-            await Next.Invoke(ctx);
-
-            IOwinResponse res = ctx.Response;
-            string contentLength = res.ContentLength > -1 ? res.ContentLength.ToString() : "-";
-
-            if (req.Uri.AbsolutePath != "/healthcheck" || req.Uri.AbsolutePath != "/favicon.ico")
+            services.AddCors(options =>
             {
-                // log request in apache format
-                string msg = $"{req.RemoteIpAddress} - [{DateTime.Now:o}] \"{req.Method} {req.Uri.AbsolutePath} {req.Protocol}\" {res.StatusCode} {contentLength}";
-                Serilog.Log.Information(msg);
-            }
+                options.AddDefaultPolicy(
+                    builder =>
+                    {
+                        builder.AllowAnyOrigin().AllowAnyHeader();
+                    });
+            });
+            services.AddHealthChecks();
+            services.AddCarter();
         }
+
+        public void Configure(IApplicationBuilder app)
+        {
+            RhinoCoreStartup();
+            
+            app.UseSerilogRequestLogging();
+            app.UseRouting();
+            app.UseCors();
+            //if (!String.IsNullOrEmpty(Config.ApiKey))
+            //    app.UseMiddleware<ApiKeyMiddleware>();
+            app.UseEndpoints(builder =>
+            {
+                builder.MapHealthChecks("/healthcheck");
+                builder.MapCarter();
+            });
+        }
+
+        void RhinoCoreStartup()
+        {
+            Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
+            Environment.SetEnvironmentVariable("RHINO_TOKEN", null, EnvironmentVariableTarget.Process);
+            Rhino.Runtime.HostUtils.OnExceptionReport += (source, ex) => {
+                Log.Error(ex, "An exception occurred while processing request");
+                Logging.LogExceptionData(ex);
+            };
+
+            Rhino.RhinoApp.SendWriteToConsole = true;
+
+            // Load GH at startup so it can get initialized on the main thread
+            Log.Information("(1/2) Loading grasshopper");
+            var pluginObject = Rhino.RhinoApp.GetPlugInObject("Grasshopper");
+            var runheadless = pluginObject?.GetType().GetMethod("RunHeadless");
+            if (runheadless != null)
+                runheadless.Invoke(pluginObject, null);
+
+            Rhino.RhinoApp.SendWriteToConsole = false;
+
+            Log.Information("(2/2) Loading compute plug-ins");
+            var loadComputePlugins = typeof(Rhino.PlugIns.PlugIn).GetMethod("LoadComputeExtensionPlugins");
+            if (loadComputePlugins != null)
+                loadComputePlugins.Invoke(null, null);
+
+            //ApiKey.Initialize(pipelines);
+            //Rhino.Runtime.HostUtils.RegisterComputeEndpoint("grasshopper", typeof(Endpoints.GrasshopperEndpoint));
+        }
+
     }
 }

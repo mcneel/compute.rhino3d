@@ -1049,6 +1049,12 @@ namespace compute.geometry
             if (outputSchema.Values.Count < 1)
                 throw new System.Exceptions.PayAttentionException("Looks like you've missed something..."); // TODO
 
+            // Setting warnings and errors to null ever so slightly shrinks down the json sent back to the client
+            if (outputSchema.Warnings.Count < 1)
+                outputSchema.Warnings = null;
+            if (outputSchema.Errors.Count < 1)
+                outputSchema.Errors = null;
+
             return outputSchema;
         }
 

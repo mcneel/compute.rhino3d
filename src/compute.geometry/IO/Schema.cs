@@ -8,10 +8,10 @@ namespace Resthopper.IO
     {
         public Schema() {}
 
-        [JsonProperty(PropertyName = "absolutetolerance")]
+        [JsonProperty(PropertyName = "absolutetolerance", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public double AbsoluteTolerance { get; set; } = 0;
 
-        [JsonProperty(PropertyName = "angletolerance")]
+        [JsonProperty(PropertyName = "angletolerance", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public double AngleTolerance { get; set; } = 0;
 
         [JsonProperty(PropertyName = "modelunits")]
@@ -29,18 +29,18 @@ namespace Resthopper.IO
         public bool CacheSolve { get; set; } = false;
 
         // Used for nested calls
-        [JsonProperty(PropertyName = "recursionlevel")]
+        [JsonProperty(PropertyName = "recursionlevel", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public int RecursionLevel { get; set; } = 0;
 
         [JsonProperty(PropertyName = "values")]
         public List<DataTree<ResthopperObject>> Values { get; set; } = new List<DataTree<ResthopperObject>>();
 
         // Return warnings from GH
-        [JsonProperty(PropertyName = "warnings")]
+        [JsonProperty(PropertyName = "warnings", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public List<string> Warnings { get; set; } = new List<string>();
 
         // Return errors from GH
-        [JsonProperty(PropertyName = "errors")]
+        [JsonProperty(PropertyName = "errors", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public List<string> Errors { get; set; } = new List<string>();
     }
 

@@ -1,13 +1,14 @@
-﻿using Microsoft.Owin.Hosting;
-using Nancy;
-using Nancy.Routing;
-using Serilog;
-using Serilog.Context;
 using System;
-using System.Net;
-using System.Reflection;
 using System.Text;
-using Topshelf;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using Serilog;
+using Carter;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
 
 namespace compute.geometry
 {
@@ -22,212 +23,150 @@ namespace compute.geometry
             Logging.Init();
 
             RhinoInside.Resolver.Initialize();
+            RhinoInside.Resolver.UseLatest = true;
 #if DEBUG
             // Uncomment the following to debug with core Rhino source. This
             // tells compute to use a different RhinoCore than what RhinoInside thinks
             // should use.
             // (for McNeel devs only and only those devs who use the same path as Steve)
 
-            //string rhinoSystemDir = @"C:\dev\github\mcneel\rhino7\src4\bin\Debug";
-            //if (System.IO.File.Exists(rhinoSystemDir + "\\Rhino.exe"))
-                //RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
+            string rhinoSystemDir = @"C:\dev\github\mcneelv8\rhino\src4\bin\Debug";
+            if (System.IO.File.Exists(rhinoSystemDir + "\\Rhino.exe"))
+                RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
 
 #endif
             StartTime = DateTime.Now;
             Shutdown.RegisterStartTime(StartTime);
             Log.Information($"Child process started at " + StartTime.ToLocalTime().ToString());
+            ParseCommandLineArgs(args);
 
-            var rc = Topshelf.HostFactory.Run(x =>
-            {
-                x.AddCommandLineDefinition("address", address =>
+            var host = Host.CreateDefaultBuilder(args)
+                .UseSerilog()
+                .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    Config.Urls = new string[] { address };
-                });
-                x.AddCommandLineDefinition("port", port => {
-                    int p = int.Parse(port);
-                    Config.Urls = new string[] { $"http://localhost:{p}" };
-                });
-                x.AddCommandLineDefinition("childof", parentProcessHandle =>
-                {
-                    int processId = int.Parse(parentProcessHandle);
-                    Shutdown.RegisterParentProcess(processId);
-                });
-                x.AddCommandLineDefinition("parentport", port =>
-                {
-                    int parentPort = int.Parse(port);
-                    Shutdown.RegisterParentPort(parentPort);
-                });
-                x.AddCommandLineDefinition("idlespan", span =>
-                {
-                    int spanSeconds = int.Parse(span);
-                    Shutdown.RegisterIdleSpan(spanSeconds);
-                });
-                x.AddCommandLineDefinition("rhinosysdir", dir =>
+                    var b = webBuilder.ConfigureKestrel((context, options) =>
+                    {
+                        // Handle requests up to 50 MB
+                        options.Limits.MaxRequestBodySize = null;//Config.MaxRequestSize;
+                        if (Config.LocalhostPort>0)
+                            options.ListenLocalhost(Config.LocalhostPort);
+                    })
+                    //.UseIISIntegration()
+                    .UseStartup<Startup>()
+                    .CaptureStartupErrors(true);
 
-                {
-                    RhinoInside.Resolver.RhinoSystemDirectory = dir;
-                });
-                x.UseSerilog();
-                x.ApplyCommandLine();
-                x.SetStartTimeout(TimeSpan.FromMinutes(1));
-                x.Service<OwinSelfHost>();
-                x.RunAsPrompt(); // prompt for user to run as
-                x.SetDisplayName("rhino.compute");
-            });
+                    //if (port > 0)
+                    //{
+                    //    b.UseUrls($"http://localhost:{port}");
+                    //    ComputeChildren.ParentPort = port;
+                    //}
+
+                }).Build();
+            Shutdown.StartTimer(host);
+            host.Run();
 
             if (RhinoCore != null)
                 RhinoCore.Dispose();
 
             Log.CloseAndFlush();
-
-            var exitCode = (int)Convert.ChangeType(rc, rc.GetTypeCode());
-            Environment.ExitCode = exitCode;
-        }
-    }
-
-    internal class OwinSelfHost : ServiceControl
-    {
-        readonly string[] _bind;
-        IDisposable _host;
-
-        public OwinSelfHost()
-        {
-            _bind = Config.Urls;
         }
 
-        private static void LogVersions()
+        static void ParseCommandLineArgs(string[] args)
         {
-            string compute_version = null, rhino_version = null;
-            try
+            for (int i = 0; i < args.Length; i++)
             {
-                compute_version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
-                rhino_version = typeof(Rhino.RhinoApp).Assembly.GetName().Version.ToString();
-            }
-            catch { }
-            Log.Information("Compute {ComputeVersion}, Rhino {RhinoVersion}", compute_version, rhino_version);
-        }
-
-        public bool Start(HostControl hctrl)
-        {
-            LogVersions();
-            Log.Debug("Rhino system directory: {Path}", RhinoInside.Resolver.RhinoSystemDirectory);
-            Log.Information("Launching RhinoCore library as {User}", Environment.UserName);
-            Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
-
-            Environment.SetEnvironmentVariable("RHINO_TOKEN", null, EnvironmentVariableTarget.Process);
-
-            Rhino.Runtime.HostUtils.OnExceptionReport += (source, ex) => {
-                Log.Error(ex, "An exception occurred while processing request");
-                Logging.LogExceptionData(ex);
-            };
-
-            StartOptions options = new StartOptions();
-            foreach (var url in _bind)
-            {
-                options.Urls.Add(url);
-
-                string[] parts = url.Split(':');
-                if (parts.Length != 3)
+                string[] items = args[i].Split(':');
+                if (items == null || items.Length != 2)
+                    continue;
+                string key = items[0].ToLowerInvariant().TrimStart('-');
+                string value = items[1];
+                switch (key)
                 {
-                    throw new ArgumentException("Invalid host:port format");
-                }
-                string port = parts[2];
-
-                LogContext.PushProperty("Port", port);
-            }
-
-            // Don't log listener urls when this is a child process. It is confusing
-            if (Shutdown.ParentProcesses == null)
-                Log.Information("Starting listener(s): {Urls}", _bind);
-
-            // start listener and unpack HttpListenerException if thrown
-            // (missing urlacl or lack of permissions)
-            try
-            {
-                _host = WebApp.Start<Startup>(options);
-            }
-            catch (TargetInvocationException ex) when (ex.InnerException is HttpListenerException hle)
-            {
-                Log.Error("Exception: " + hle.Message);
-                throw hle;
-            }
-            catch (Exception ex)
-            {
-                Log.Error("Exception: " + ex.Message);
-                throw ex;
-            }
-
-            if (Shutdown.ParentProcesses == null)
-                Log.Information("Listening on {Urls}", _bind);
-                    
-            // when running in a console (not as a service), i.e. when launched as a child process of hops
-            // update console title to differentiate windows (ports) and start parent process shutdown timer
-            if (hctrl is Topshelf.Hosts.ConsoleRunHost)
-            {
-                Shutdown.StartTimer(hctrl);
-            }
-
-            return true;
-        }
-
-        public bool Stop(HostControl hctrl)
-        {
-            _host?.Dispose();
-            return true;
-        }
-    }
-
-    public class RhinoGetModule : NancyModule
-    {
-        public RhinoGetModule(IRouteCacheProvider routeCacheProvider)
-        {
-            Get["/sdk"] = _ =>
-            {
-                var result = new StringBuilder("<!DOCTYPE html><html><body>");
-                var cache = routeCacheProvider.GetCache();
-                result.AppendLine($" <a href=\"/sdk/csharp\">C# SDK</a><BR>");
-                result.AppendLine("<p>API<br>");
-
-                int route_index = 0;
-                foreach (var module in cache)
-                {
-                    foreach (var route in module.Value)
-                    {
-                        var method = route.Item2.Method;
-                        var path = route.Item2.Path;
-                        if (method == "GET")
+                    case "port":
                         {
-                            route_index += 1;
-                            result.AppendLine($"{route_index} <a href='{path}'>{path}</a><BR>");
+                            Config.LocalhostPort = int.Parse(value);
+                            Log.Information($"Parsed port = {Config.LocalhostPort}");
                         }
-                    }
+                        break;
+                    case "address":
+                        {
+                            Config.Urls = new string[] { value };
+                        }
+                        break;
+                    case "childof":
+                        {
+                            int parentId = int.Parse(value);
+                            Shutdown.RegisterParentProcess(parentId);
+                        }
+                        break;
+                    case "parentport":
+                        {
+                            int parentPort = int.Parse(value);
+                            Shutdown.RegisterParentPort(parentPort);
+                        }
+                        break;
+                    case "idlespan":
+                        {
+                            int span = int.Parse(value);
+                            Shutdown.RegisterIdleSpan(span);
+                        }
+                        break;
+                    case "rhinosysdir":
+                        RhinoInside.Resolver.RhinoSystemDirectory = value;
+                        break;
+                    default:
+                        break;
                 }
-
-                result.AppendLine("</p></body></html>");
-                return result.ToString();
-            };
-
-            foreach(var endpoint in GeometryEndPoint.AllEndPoints)
-            {
-                string key = endpoint.PathURL;
-                Get[key] = _ => endpoint.Get(Context);
             }
         }
     }
 
-    public class RhinoPostModule : NancyModule
+
+    public class RhinoGetModule : ICarterModule
     {
-        public RhinoPostModule(IRouteCacheProvider routeCacheProvider)
+        public void AddRoutes(IEndpointRouteBuilder app)
+        {
+            //app.MapGet("/sdk", SdkEndpoint);
+
+            foreach (var endpoint in GeometryEndPoint.AllEndPoints)
+            {
+                app.MapGet(endpoint.PathURL, endpoint.Get);
+            }
+        }
+
+        //static async Task SdkEndpoint(HttpContext context)
+        //{
+        //    var result = new StringBuilder("<!DOCTYPE html><html><body>");
+        //    result.AppendLine($" <a href=\"/sdk/csharp\">C# SDK</a><BR>");
+        //    result.AppendLine("<p>API<br>");
+
+        //    int route_index = 0;
+        //    foreach (var endpoint in GeometryEndPoint.AllEndPoints)
+        //    {
+        //        foreach (var route in module.Value)
+        //        {
+        //            var method = route.Item2.Method;
+        //            var path = route.Item2.Path;
+        //            if (method == "GET")
+        //            {
+        //                route_index += 1;
+        //                result.AppendLine($"{route_index} <a href='{path}'>{path}</a><BR>");
+        //            }
+        //        }
+        //    }
+
+        //    result.AppendLine("</p></body></html>");
+        //    await context.Response.WriteAsync(result.ToString());
+        //}
+    }
+
+    public class RhinoPostModule : ICarterModule
+    {
+        public void AddRoutes(IEndpointRouteBuilder app)
         {
             foreach (var endpoint in GeometryEndPoint.AllEndPoints)
             {
-                string key = endpoint.PathURL;
-                Post[key] = _ =>
-                {
-                    var r = endpoint.Post(Context);
-                    r.ContentType = "application/json";
-                    return r;
-                };
+                app.MapPost(endpoint.PathURL, endpoint.Post);
             }
         }
     }

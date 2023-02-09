@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
-using Nancy;
-using Nancy.Extensions;
 using System.Linq;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
@@ -10,6 +8,9 @@ using System.Runtime.Serialization;
 using Rhino.Geometry;
 using Rhino.Runtime;
 using Newtonsoft.Json.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+
 
 namespace compute.geometry
 {
@@ -232,7 +233,7 @@ namespace compute.geometry
             return funcname;
         }
 
-        public Response Get(NancyContext context)
+        public async Task Get(HttpContext context)
         {
             string funcname = FunctionName();
             var sb = new System.Text.StringBuilder("<!DOCTYPE html><html><body>");
@@ -316,7 +317,7 @@ namespace compute.geometry
                 }
             }
             sb.AppendLine("</p></body></html>");
-            return sb.ToString();
+            await context.Response.WriteAsync(sb.ToString());
         }
 
         enum StopAt : int
@@ -327,13 +328,14 @@ namespace compute.geometry
             CalculationsComplete = 3
         }
 
-        public Response Post(NancyContext context)
+        public async Task Post(HttpContext context)
         {
+            context.Response.ContentType = "application/json";
             DateTime start = DateTime.Now;
             StopAt stopat = StopAt.None;
             bool multiple = false;
             Dictionary<string, string> returnModifiers = null;
-            foreach (string name in context.Request.Query)
+            foreach (string name in context.Request.Query.Keys)
             {
                 if (name.StartsWith("return.", StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -346,21 +348,27 @@ namespace compute.geometry
                 }
                 if (name.Equals("multiple", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    multiple = context.Request.Query[name];
+                    multiple = bool.Parse(context.Request.Query[name][0]);
                     continue;
                 }
                 if (name.Equals("stopat", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    int val = context.Request.Query[name];
+                    int val = int.Parse(context.Request.Query[name][0]);
                     stopat = (StopAt)val;
                 }
             }
             if (StopAt.PostStart == stopat)
-                return $"{(DateTime.Now - start).TotalSeconds}";
+            {
+                await context.Response.WriteAsync($"{(DateTime.Now - start).TotalSeconds}");
+                return;
+            }
 
-            var jsonString = context.Request.Body.AsString();
+            var jsonString = await new System.IO.StreamReader(context.Request.Body).ReadToEndAsync();
             if (StopAt.BodyToString == stopat)
-                return $"{(DateTime.Now - start).TotalSeconds}";
+            {
+                await context.Response.WriteAsync($"{(DateTime.Now - start).TotalSeconds}");
+                return;
+            }
 
             object data = string.IsNullOrWhiteSpace(jsonString) ? null : JsonConvert.DeserializeObject(jsonString);
             var ja = data as Newtonsoft.Json.Linq.JArray;
@@ -382,8 +390,11 @@ namespace compute.geometry
                 resultString = HandlePostHelper(ja, returnModifiers);
 
             if (StopAt.CalculationsComplete == stopat)
-                return $"{(DateTime.Now - start).TotalSeconds}";
-            return resultString;
+            {
+                await context.Response.WriteAsync($"{(DateTime.Now - start).TotalSeconds}");
+                return;
+            }
+            await context.Response.WriteAsync(resultString);
         }
 
         static object ProcessModifiers(object o, Dictionary<string, string> returnModifiers)

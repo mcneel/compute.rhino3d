@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 
+// TODO: Figure out how to add api key support
+/*
 namespace compute.geometry
 {
     static class ApiKey
@@ -41,3 +43,4 @@ namespace compute.geometry
         }
     }
 }
+*/

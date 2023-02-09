@@ -1,30 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using Nancy;
 using GH_IO.Serialization;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
 using Newtonsoft.Json;
 using Grasshopper.Kernel.Data;
 using Resthopper.IO;
-using Grasshopper.Kernel.Parameters;
-using Grasshopper.Kernel.Special;
-using Rhino.Geometry;
 using System.Net;
-using Nancy.Extensions;
 using System.Reflection;
-using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Carter;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
 
 namespace compute.geometry
 {
-    public class ResthopperEndpointsModule : Nancy.NancyModule
+    public class ResthopperEndpointsModule : ICarterModule
     {
-        public ResthopperEndpointsModule(Nancy.Routing.IRouteCacheProvider routeCacheProvider)
+        public void AddRoutes(IEndpointRouteBuilder app)
         {
-            Post["/grasshopper"] = _ => Grasshopper(Context);
-            Post["/io"] = _ => GetIoNames(Context, true);
-            Get["/io"] = _ => GetIoNames(Context, false);
+            app.MapPost("/grasshopper", Grasshopper);
+            app.MapPost("/io", PostIoNames);
+            app.MapGet("/io", GetIoNames);
         }
 
         public static GH_Archive ArchiveFromUrl(string url)
@@ -93,7 +92,7 @@ namespace compute.geometry
 
         static object _ghsolvelock = new object();
 
-        static Response GrasshopperSolveHelper(Schema input, string body, System.Diagnostics.Stopwatch stopwatch)
+        static string GrasshopperSolveHelper(Schema input, string body, System.Diagnostics.Stopwatch stopwatch, HttpContext ctx)
         {
             // load grasshopper file
             GrasshopperDefinition definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
@@ -119,11 +118,10 @@ namespace compute.geometry
             stopwatch.Restart();
             string returnJson = JsonConvert.SerializeObject(output, GeometryResolver.Settings);
             long encodeTime = stopwatch.ElapsedMilliseconds;
-            Response res = returnJson;
-            res.ContentType = "application/json";
-            res = res.WithHeader("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
+
+            ctx.Response.Headers.Add("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
             if (definition.HasErrors)
-                res.StatusCode = Nancy.HttpStatusCode.InternalServerError;
+                ctx.Response.StatusCode = 500; // internal server error
             else
             {
                 if (input.CacheSolve)
@@ -131,13 +129,13 @@ namespace compute.geometry
                     DataCache.SetCachedSolveResults(body, returnJson, definition);
                 }
             }
-            return res;
+            return returnJson;
         }
 
-        static Response Grasshopper(NancyContext ctx)
+        static async Task Grasshopper(HttpContext ctx)
         {
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            string body = ctx.Request.Body.AsString();
+            var body = await new System.IO.StreamReader(ctx.Request.Body).ReadToEndAsync();
             if (body.StartsWith("[") && body.EndsWith("]"))
                 body = body.Substring(1, body.Length - 2);
             Schema input = JsonConvert.DeserializeObject<Schema>(body);
@@ -148,37 +146,55 @@ namespace compute.geometry
                 string cachedReturnJson = DataCache.GetCachedSolveResults(body);
                 if (!string.IsNullOrWhiteSpace(cachedReturnJson))
                 {
-                    Response cachedResponse = cachedReturnJson;
-                    cachedResponse.ContentType = "application/json";
-                    return cachedResponse;
+                    ctx.Response.ContentType = "application/json";
+                    await ctx.Response.WriteAsync(cachedReturnJson);
+                    return;
                 }
             }
 
             // we can't block on recursive calls
+            string json = null;
             if (input.RecursionLevel > 0)
             {
-                return GrasshopperSolveHelper(input, body, stopwatch);
+                json = GrasshopperSolveHelper(input, body, stopwatch, ctx);
+            }
+            else
+            {
+
+                // 5 Feb 2021 S. Baer
+                // Throw a lock around the entire solve process for now. I can easily
+                // repeat multi-threaded issues by creating a catenary component with Hops
+                // that has one point for A and multiple points for B.
+                // We can narrow down this lock over time. As it stands, launching many
+                // compute instances on one computer is going to be a better solution anyway
+                // to deal with solving many times simultaniously.
+                lock (_ghsolvelock)
+                {
+                    json = GrasshopperSolveHelper(input, body, stopwatch, ctx);
+                }
             }
 
-            // 5 Feb 2021 S. Baer
-            // Throw a lock around the entire solve process for now. I can easily
-            // repeat multi-threaded issues by creating a catenary component with Hops
-            // that has one point for A and multiple points for B.
-            // We can narrow down this lock over time. As it stands, launching many
-            // compute instances on one computer is going to be a better solution anyway
-            // to deal with solving many times simultaniously.
-            lock (_ghsolvelock)
+            if (!string.IsNullOrEmpty(json))
             {
-                return GrasshopperSolveHelper(input, body, stopwatch);
+                ctx.Response.ContentType = "application/json";
+                await ctx.Response.WriteAsync(json);
             }
         }
 
-        Response GetIoNames(NancyContext ctx, bool asPost)
+        async Task GetIoNames(HttpContext ctx)
+        {
+            await GetIoNamesHelper(ctx, true);
+        }
+        async Task PostIoNames(HttpContext ctx)
+        {
+            await GetIoNamesHelper(ctx, true);
+        }
+        async Task GetIoNamesHelper(HttpContext ctx, bool asPost)
         {
             GrasshopperDefinition definition;
             if (asPost)
             {
-                string body = ctx.Request.Body.AsString();
+                var body = await new System.IO.StreamReader(ctx.Request.Body).ReadToEndAsync();
                 if (body.StartsWith("[") && body.EndsWith("]"))
                     body = body.Substring(1, body.Length - 2);
 
@@ -193,7 +209,7 @@ namespace compute.geometry
             }
             else
             {
-                string url = Request.Query["Pointer"].ToString();
+                string url = ctx.Request.Query["Pointer"][0].ToString();
                 definition = GrasshopperDefinition.FromUrl(url, true);
             }
 
@@ -213,11 +229,11 @@ namespace compute.geometry
             }
             string jsonResponse = JsonConvert.SerializeObject(responseSchema);
 
-            Response res = jsonResponse;
-            res.ContentType = "application/json";
             Logging.Warnings.Clear();
             Logging.Errors.Clear();
-            return res;
+
+            ctx.Response.ContentType = "application/json";
+            await ctx.Response.WriteAsync(jsonResponse);
         }
 
         public static ResthopperObject GetResthopperPoint(GH_Point goo)
