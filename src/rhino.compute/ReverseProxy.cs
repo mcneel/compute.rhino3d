@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using Serilog;
 
 namespace rhino.compute
 {
-    public class ReverseProxyModule : Carter.CarterModule
+    public class ReverseProxyModule : Carter.ICarterModule
     {
         static bool _initCalled = false;
         static Task _initTask;
@@ -74,20 +76,24 @@ namespace rhino.compute
             _concurrentRequestLogger.Start();
         }
 
-        public ReverseProxyModule()
+        public void AddRoutes(IEndpointRouteBuilder app)
         {
-            Get("/robots.txt", async (req, res) => await res.WriteAsync("User-agent: *\nDisallow: / "));
-            Get("/idlespan", async (req, res) => await res.WriteAsync($"{ComputeChildren.IdleSpan()}"));
-            Get("/", async (req, res) => { InitializeChildren(); await res.WriteAsync("compute.rhino3d"); });
-            Get("/activechildren", async (req, res) => { InitializeChildren(); await res.WriteAsync($"{ComputeChildren.ActiveComputeCount}"); });
-            Get("/launch", LaunchChildren);
-            Get("/favicon.ico", async (req, res) => await res.WriteAsync("Handled"));
+            app.MapGet("/robots.txt", async (context) => await context.Response.WriteAsync("User-agent: *\nDisallow: / "));
+            app.MapGet("/idlespan", async (context) => await context.Response.WriteAsync($"{ComputeChildren.IdleSpan()}"));
+            app.MapGet("/", async (context) => { InitializeChildren(); await context.Response.WriteAsync("compute.rhino3d"); });
+            app.MapGet("/activechildren", async (context) => { InitializeChildren(); await context.Response.WriteAsync($"{ComputeChildren.ActiveComputeCount}"); });
+            app.MapGet("/launch", LaunchChildren);
+            app.MapGet("/favicon.ico", async (context) => await context.Response.WriteAsync("Handled"));
 
             // routes that are proxied to compute.geometry
-            Get("/{*uri}", ReverseProxyGet);
-            Post("/grasshopper", ReverseProxyGrasshopper);
-            Post("/{*uri}", ReverseProxyPost);
+            app.MapGet("/{*uri}", ReverseProxyGet);
+            app.MapPost("/grasshopper", ReverseProxyGrasshopper);
+            app.MapPost("/{*uri}", ReverseProxyPost);
+        }
 
+
+        public ReverseProxyModule()
+        {
             Initialize();
         }
 
