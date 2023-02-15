@@ -966,6 +966,7 @@ namespace Hops
                     GH_Point t = default(GH_Point);
                     if (DA.GetData(inputName, ref t))
                     {
+                        inputCount = 1;
                         dataTree.Append(new ResthopperObject(t.Value), "0");
                     }
                     break;
@@ -973,10 +974,10 @@ namespace Hops
                     List<GH_Point> list = new List<GH_Point>();
                     if (DA.GetDataList(inputName, list))
                     {
+                        inputCount = list.Count;
                         foreach (var item in list)
                         {
                             dataTree.Append(new ResthopperObject(item.Value), "0");
-                            inputCount++;
                         }
                     }
                     break;
@@ -1014,6 +1015,7 @@ namespace Hops
                     IGH_GeometricGoo t = default(IGH_GeometricGoo);
                     if (DA.GetData(inputName, ref t))
                     {
+                        inputCount = 1;
                         var gb = Grasshopper.Kernel.GH_Convert.ToGeometryBase(t);
                         dataTree.Append(new ResthopperObject(gb), "0");
                     }
@@ -1022,6 +1024,7 @@ namespace Hops
                     List<IGH_GeometricGoo> list = new List<IGH_GeometricGoo>();
                     if (DA.GetDataList(inputName, list))
                     {
+                        inputCount = list.Count;
                         foreach (var item in list)
                         {
                             var gb = Grasshopper.Kernel.GH_Convert.ToGeometryBase(item);
@@ -1046,7 +1049,6 @@ namespace Hops
                     break;
             }
         }
-
 
         internal static GH_ParamAccess AccessFromInput(InputParamSchema input)
         {
