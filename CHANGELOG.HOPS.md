@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.5] - 2023-02-15
+### Fixed
+- Fixing a bug. If a user set the At Least to something > 0 (ie. list access), the Hops component wouldn't detect the number of incoming items and would throw an error.
+
 ## [0.15.4] - 2022-11-23
 ### Fixed
 - Fixing release bug to properly bundle all necessary dependencies into a self-contained exectuable
