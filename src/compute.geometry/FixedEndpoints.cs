@@ -1,6 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Reflection;
+using GH_IO.Serialization;
+using GH_IO.Types;
 using Nancy;
 
 namespace compute.geometry
@@ -14,6 +18,8 @@ namespace compute.geometry
             Get["version"] = _ => GetVersion(Context);
             Get["servertime"] = _ => ServerTime(Context);
             Get["sdk/csharp"] = _ => CSharpSdk(Context);
+            Get["plugins/rhino/installed"] = _ => GetInstalledPluginsRhino(Context);
+            Get["plugins/gh/installed"] = _ => GetInstalledPluginsGrasshopper(Context);
         }
 
         static Response HomePage(NancyContext ctx)
@@ -61,6 +67,42 @@ namespace compute.geometry
                 }
             };
             return response.AsAttachment("RhinoCompute.cs", "text/plain" );
+        }
+
+        static Response GetInstalledPluginsRhino(NancyContext ctx)
+        {
+            var rhPluginInfo = new SortedDictionary<string, string>();
+            foreach (var k in Rhino.PlugIns.PlugIn.GetInstalledPlugIns().Keys)
+            {
+                var info = Rhino.PlugIns.PlugIn.GetPlugInInfo(k);
+                //Could also use: info.IsLoaded
+                if (info != null && !info.ShipsWithRhino && !rhPluginInfo.ContainsKey(info.Name))
+                {
+                    rhPluginInfo.Add(info.Name, info.Version);
+                }
+            }
+
+            var response = (Response)Newtonsoft.Json.JsonConvert.SerializeObject(rhPluginInfo);
+            response.ContentType = "application/json";
+            return response;
+        }
+
+        static Response GetInstalledPluginsGrasshopper(NancyContext ctx)
+        {
+            var ghPluginInfo = new SortedDictionary<string, string>();
+            foreach (var obj in Grasshopper.Instances.ComponentServer.ObjectProxies.Where(o => o != null))
+            {
+                var asm = Grasshopper.Instances.ComponentServer.FindAssemblyByObject(obj.Guid);
+                if (asm != null && !string.IsNullOrEmpty(asm.Name) && !asm.IsCoreLibrary && !ghPluginInfo.ContainsKey(asm.Name))
+                {
+                    var version = (string.IsNullOrEmpty(asm.Version)) ? asm.Assembly.GetName().Version.ToString() : asm.Version;
+                    ghPluginInfo.Add(asm.Name, version);
+                }
+            }
+
+            var response = (Response)Newtonsoft.Json.JsonConvert.SerializeObject(ghPluginInfo);
+            response.ContentType = "application/json";
+            return response;
         }
     }
 }
