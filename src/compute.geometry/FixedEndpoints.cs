@@ -20,7 +20,6 @@ namespace compute.geometry
             Get["sdk/csharp"] = _ => CSharpSdk(Context);
             Get["plugins/rhino/installed"] = _ => GetInstalledPluginsRhino(Context);
             Get["plugins/gh/installed"] = _ => GetInstalledPluginsGrasshopper(Context);
-            Post["plugins/gh/inspect"] = _ => PostInspectPluginsGrasshopperFile(Context);
         }
 
         static Response HomePage(NancyContext ctx)
@@ -102,79 +101,6 @@ namespace compute.geometry
             }
 
             var response = (Response)Newtonsoft.Json.JsonConvert.SerializeObject(ghPluginInfo);
-            response.ContentType = "application/json";
-            return response;
-        }
-
-        static Response PostInspectPluginsGrasshopperFile(NancyContext ctx)
-        {
-            var values = new SortedDictionary<string, string>();
-
-            GH_Archive archive = new GH_Archive();
-
-            try
-            {
-                byte[] fileBytes = new byte[64];
-                using (var ms = new MemoryStream())
-                {
-                    ctx.Request.Body.CopyTo(ms);
-                    Array.Clear(fileBytes, 0, fileBytes.Length);
-                    fileBytes = ms.ToArray();
-                }
-
-                archive.Deserialize_Binary(fileBytes);
-            }
-            catch (Exception ex)
-            {
-                return new Nancy.Responses.TextResponse(HttpStatusCode.BadRequest, "Unable to deserialise the body of the request as a Grasshopper archive.  Exception: " + ex.Message);
-            }
-
-            var def = archive.GetRootNode.FindChunk("Definition");
-
-            const string libRootChunkName = "GHALibraries";
-            const string libChunkName = "Library";
-            const string libNameItemName = "Name";
-            const string libVersionItemName = "Version";
-            const string assemblyVersionItemName = "AssemblyVersion";
-
-            if (def.ChunkExists(libRootChunkName))
-            {
-                var libRoot = def.FindChunk(libRootChunkName);
-                for (int i = 0; i < libRoot.ChunkCount; i++)
-                {
-                    if (libRoot.ChunkExists(libChunkName, i))
-                    {
-                        var c = libRoot.FindChunk(libChunkName, i);
-                        if (c.ItemExists(libNameItemName))
-                        {
-                            GH_Item versionItem = null;
-                            if (c.ItemExists(libVersionItemName))
-                            {
-                                var item = c.FindItem(libVersionItemName);
-                                if (item.InternalData != null && !string.IsNullOrEmpty(item.InternalData.ToString()))
-                                {
-                                    versionItem = item;
-                                }
-                            }
-                            if (versionItem == null && c.ItemExists(assemblyVersionItemName))
-                            {
-                                var item = c.FindItem(assemblyVersionItemName);
-                                if (item.InternalData != null && !string.IsNullOrEmpty(item.InternalData.ToString()))
-                                {
-                                    versionItem = item;
-                                }
-                            }
-                            if (versionItem != null)
-                            {
-                                values.Add(c.FindItem(libNameItemName).InternalData.ToString(), versionItem.InternalData.ToString());
-                            }
-                        }
-                    }
-                }
-            }
-
-
-            var response = (Response)Newtonsoft.Json.JsonConvert.SerializeObject(values);
             response.ContentType = "application/json";
             return response;
         }
