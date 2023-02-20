@@ -6,6 +6,9 @@ using Carter;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
+using System.Linq;
+using Newtonsoft.Json.Linq;
+using Rhino.PlugIns;
 
 namespace compute.geometry
 {
@@ -16,6 +19,8 @@ namespace compute.geometry
             app.MapGet("", HomePage);
             app.MapGet("version", GetVersion);
             app.MapGet("servertime", ServerTime);
+            app.MapGet("plugins/rhino/installed", GetInstalledPluginsRhino);
+            app.MapGet("plugins/gh/installed", GetInstalledPluginsGrasshopper);
             //Get["sdk/csharp"] = _ => CSharpSdk(Context);
         }
 
@@ -43,6 +48,40 @@ namespace compute.geometry
             ctx.Response.ContentType = "application/json";
             await ctx.Response.WriteAsJsonAsync(DateTime.UtcNow);
         }
+
+        static async Task GetInstalledPluginsRhino(HttpContext ctx)
+        {
+            var rhPluginInfo = new SortedDictionary<string, string>();
+            foreach (var k in Rhino.PlugIns.PlugIn.GetInstalledPlugIns().Keys)
+            {
+                var info = Rhino.PlugIns.PlugIn.GetPlugInInfo(k);
+                //Could also use: info.IsLoaded
+                if (info != null && !info.ShipsWithRhino && !rhPluginInfo.ContainsKey(info.Name))
+                {
+                    rhPluginInfo.Add(info.Name, info.Version);
+                }
+            }
+
+            ctx.Response.ContentType = "application/json";
+            await ctx.Response.WriteAsJsonAsync(rhPluginInfo);
+        }
+
+        static async Task GetInstalledPluginsGrasshopper(HttpContext ctx)
+        {
+            var ghPluginInfo = new SortedDictionary<string, string>();
+            foreach (var obj in Grasshopper.Instances.ComponentServer.ObjectProxies.Where(o => o != null))
+            {
+                var asm = Grasshopper.Instances.ComponentServer.FindAssemblyByObject(obj.Guid);
+                if (asm != null && !string.IsNullOrEmpty(asm.Name) && !asm.IsCoreLibrary && !ghPluginInfo.ContainsKey(asm.Name))
+                {
+                    var version = (string.IsNullOrEmpty(asm.Version)) ? asm.Assembly.GetName().Version.ToString() : asm.Version;
+                    ghPluginInfo.Add(asm.Name, version);
+                }
+            }
+            ctx.Response.ContentType = "application/json";
+            await ctx.Response.WriteAsJsonAsync(ghPluginInfo);
+        }
+
         /*
         static async Task CSharpSdk(HttpContext ctx)
         {
