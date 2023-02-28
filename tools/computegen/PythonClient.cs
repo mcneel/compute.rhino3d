@@ -105,7 +105,9 @@ def ComputeFetch(endpoint, arglist):
     if apiKey:
         headers['RhinoComputeKey'] = apiKey
     r = requests.post(posturl, data=postdata, headers=headers)
-    return r.json()
+    if r.headers.get('content-type').lower() == 'application/json':
+        return r.json()
+    raise Exception('Error from compute endpoint\n{}'.format(r.text))
 
 
 def PythonEvaluate(script, inputs, output_names):
