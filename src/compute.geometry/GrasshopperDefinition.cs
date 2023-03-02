@@ -1461,7 +1461,11 @@ namespace compute.geometry
                     {
                         var val = info.GetValue(par, null);
                         if (val != null)
-                            return Convert.ToDouble(val);
+                        {
+                            var min = Convert.ToDouble(val);
+                            if(min > double.MinValue + Rhino.RhinoMath.Epsilon)
+                                return min;
+                        }
                     }
 
                     if (p.Sources.Count == 1)
@@ -1486,7 +1490,11 @@ namespace compute.geometry
                     {
                         var val = info.GetValue(par, null);
                         if (val != null)
-                            return Convert.ToDouble(val);
+                        {
+                            var max = Convert.ToDouble(val);
+                            if (max < double.MaxValue - Rhino.RhinoMath.Epsilon)
+                                return max;
+                        }
                     }
 
                     if (p.Sources.Count == 1)
