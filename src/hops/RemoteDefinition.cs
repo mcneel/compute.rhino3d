@@ -1008,11 +1008,10 @@ namespace Hops
             ref List<string> warnings, 
             ref List<string> errors)
         {
-            var tree = new Grasshopper.Kernel.Data.GH_Structure<IGH_GeometricGoo>();
             switch (access)
             {
                 case GH_ParamAccess.item:
-                    IGH_GeometricGoo t = default(IGH_GeometricGoo);
+                    IGH_GeometricGoo t = default(IGH_GeometricGoo);      
                     if (DA.GetData(inputName, ref t))
                     {
                         inputCount = 1;
@@ -1033,6 +1032,7 @@ namespace Hops
                     }
                     break;
                 case GH_ParamAccess.tree:
+                    var tree = new Grasshopper.Kernel.Data.GH_Structure<IGH_GeometricGoo>();
                     if (DA.GetDataTree(inputName, out tree))
                     {
                         foreach (var path in tree.Paths)
@@ -1088,6 +1088,7 @@ namespace Hops
                     
                     var dataTree = new DataTree<Resthopper.IO.ResthopperObject>();
                     dataTree.ParamName = computeName;
+                    
                     schema.Values.Add(dataTree);
                     int inputListCount = 0;
                     switch (param)
