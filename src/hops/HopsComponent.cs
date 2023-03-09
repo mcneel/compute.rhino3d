@@ -216,16 +216,6 @@ namespace Hops
 
             if (TaskList.Count == 0)
             {
-                var hasTreeAccess = false;
-                foreach (var param in this.Params.Input)
-                {
-                    if (param.Access == GH_ParamAccess.tree)
-                    {
-                        hasTreeAccess = true;
-                        break;
-                    }
-                }
-
                 _workingSolveList.StartSolving(_synchronous);
                 if (!_synchronous)
                 {
@@ -237,40 +227,7 @@ namespace Hops
                     for(int i = 0; i < _workingSolveList.Count; i++)
                     {
                         var output = _workingSolveList.SolvedSchema(i);
-                        
-                        if (_workingSolveList.Count > 1)
-                        {
-                            var modifiedOutput = output;
-                            List<DataTree<ResthopperObject>> modifiedValues = new List<DataTree<ResthopperObject>>();
-                            foreach (var value in modifiedOutput.Values)
-                            {
-                                var dataTree = new DataTree<ResthopperObject>();
-                                foreach (var pair in value.InnerTree)
-                                {
-                                    var path = pair.Key.ToString();
-                                    path = path.Replace("{", string.Empty).Replace("}", string.Empty);
-                                    string[] branches = path.Split(';');
-                                    if (Int32.TryParse(branches[branches.Length - 1], out int p))
-                                    {
-                                        branches[branches.Length - 1] = i.ToString();
-                                    }
-                                    if (hasTreeAccess)
-                                        branches.Append(0.ToString());
-                                    var modifiedPath = string.Join(";", branches);
-                                    modifiedPath = modifiedPath.Insert(0, "{").Insert(modifiedPath.Length + 1, "}");
-                                    dataTree.InnerTree = new Dictionary<string, List<ResthopperObject>>() { { modifiedPath, pair.Value } };
-                                }
-
-                                dataTree.ParamName = value.ParamName;
-                                modifiedValues.Add(dataTree);
-                            }
-                            modifiedOutput.Values = modifiedValues;
-                            TaskList.Add(Task.FromResult(modifiedOutput));
-                        }
-                        else
-                        {
-                            TaskList.Add(Task.FromResult(output));
-                        }
+                        TaskList.Add(Task.FromResult(output));
                     }
                 }
             }
