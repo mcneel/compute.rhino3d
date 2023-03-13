@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2023-03-13
+### Added
+
+- Two endpoints to return information about the plugins installed on the machine running the rhino.compute server.
+    - */plugins/rhino/installed* - will return a sorted dictionary of Rhino plugins which are installed.
+    - */plugins/gh/installed* - will return a sorted dictionary of Grasshopper plugins which are installed.
+### Fixed
+- Fixed a bug which prevented the minimum and maximum values to be set on a Contextual Number/Integer parameter if a number slider was used to define the default value. Now, the minimum and maximum value of the slider should be used for that input parameter.
+- Fixed a rather serious bug which prevented the data structure from the output of the Hops component to match the same data structure returned from running native Grasshopper components. This fix should ensure that the data structures returned from Hops are consistent with examples which do not use Hops but contain the same underlying components. [See this thread for more information](https://discourse.mcneel.com/t/hops-output-tree-mismatch/155361).
+
 ## [0.15.5] - 2023-02-15
 ### Fixed
 - Fixing a bug. If a user set the At Least to something > 0 (ie. list access), the Hops component wouldn't detect the number of incoming items and would throw an error.
