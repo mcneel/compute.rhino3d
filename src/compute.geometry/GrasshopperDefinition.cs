@@ -1255,6 +1255,8 @@ namespace compute.geometry
                         break;
                     case Grasshopper.Kernel.Special.GH_NumberSlider paramSlider:
                         return paramSlider.CurrentValue;
+                    case Grasshopper.Kernel.Special.GH_BooleanToggle paramToggle:
+                        return paramToggle.Value;
                     case Grasshopper.Kernel.Special.GH_Panel paramPanel:
                         return paramPanel.UserText;
                     case Grasshopper.Kernel.Special.GH_ValueList paramValueList:
@@ -1320,6 +1322,7 @@ namespace compute.geometry
                 if (p is IGH_ContextualParameter)
                 {
                     var par = p as IGH_ContextualParameter;
+                    var pTypeName = ParamTypeName(p);
                     var pType = par.GetType();
                     var props = pType.GetProperties(BindingFlags.NonPublic | BindingFlags.Instance);
                     var info = props.FirstOrDefault(x => x.Name == "Minimum");
@@ -1329,12 +1332,12 @@ namespace compute.geometry
                         if (val != null)
                         {
                             var min = Convert.ToDouble(val);
-                            if (pType.FullName == "ContextualComponents.GetIntegerParameter")
+                            if (pTypeName == "Integer")
                             {
                                 if (min > int.MinValue + Rhino.RhinoMath.Epsilon)
                                     return min;
                             }
-                            else if (pType.FullName == "ContextualComponents.GetNumberParameter")
+                            else if (pTypeName == "Number")
                             {
                                 if (min > double.MinValue + Rhino.RhinoMath.Epsilon)
                                     return min;
@@ -1358,6 +1361,7 @@ namespace compute.geometry
                 {
                     var par = p as IGH_ContextualParameter;
                     var pType = par.GetType();
+                    var pTypeName = ParamTypeName(p);
                     var props = pType.GetProperties(BindingFlags.NonPublic | BindingFlags.Instance);
                     var info = props.FirstOrDefault(x => x.Name == "Maximum");
                     if(info != null)
@@ -1366,12 +1370,12 @@ namespace compute.geometry
                         if (val != null)
                         {
                             var max = Convert.ToDouble(val);
-                            if (pType.FullName == "ContextualComponents.GetIntegerParameter")
+                            if (pTypeName == "Integer")
                             {
                                 if (max < int.MinValue - Rhino.RhinoMath.Epsilon)
                                     return max;
                             }
-                            else if (pType.FullName == "ContextualComponents.GetNumberParameter")
+                            else if (pTypeName == "Number")
                             {
                                 if (max < double.MinValue - Rhino.RhinoMath.Epsilon)
                                     return max;
