@@ -1329,15 +1329,23 @@ namespace compute.geometry
                         if (val != null)
                         {
                             var min = Convert.ToDouble(val);
-                            if(min > double.MinValue + Rhino.RhinoMath.Epsilon)
-                                return min;
+                            if (pType.FullName == "ContextualComponents.GetIntegerParameter")
+                            {
+                                if (min > int.MinValue + Rhino.RhinoMath.Epsilon)
+                                    return min;
+                            }
+                            else if (pType.FullName == "ContextualComponents.GetNumberParameter")
+                            {
+                                if (min > double.MinValue + Rhino.RhinoMath.Epsilon)
+                                    return min;
+                            }
                         }
                     }
 
                     if (p.Sources.Count == 1)
                         p = p.Sources[0];
                 }
-
+                
                 if (p is GH_NumberSlider paramSlider)
                     return (double)paramSlider.Slider.Minimum;
                 return null;
@@ -1358,8 +1366,16 @@ namespace compute.geometry
                         if (val != null)
                         {
                             var max = Convert.ToDouble(val);
-                            if (max < double.MaxValue - Rhino.RhinoMath.Epsilon)
-                                return max;
+                            if (pType.FullName == "ContextualComponents.GetIntegerParameter")
+                            {
+                                if (max < int.MinValue - Rhino.RhinoMath.Epsilon)
+                                    return max;
+                            }
+                            else if (pType.FullName == "ContextualComponents.GetNumberParameter")
+                            {
+                                if (max < double.MinValue - Rhino.RhinoMath.Epsilon)
+                                    return max;
+                            }
                         }
                     }
 
