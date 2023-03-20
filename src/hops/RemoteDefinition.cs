@@ -201,6 +201,7 @@ namespace Hops
             {
                 string postUrl = Servers.GetDescriptionPostUrl();
                 var schema = new Schema();
+                schema.DataVersion = 8;
                 if (pathType != PathType.InternalizedDefinition)
                 {
                     if(Path.StartsWith("http", StringComparison.OrdinalIgnoreCase))

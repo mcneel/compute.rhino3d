@@ -3,6 +3,8 @@
     <TargetFramework>net7.0</TargetFramework>
     <AssemblyName>compute.geometry</AssemblyName>
     <OutputType>Exe</OutputType>
+    <Platforms>x64</Platforms>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
     <OutputPath>..\bin\Debug\$(AssemblyName)</OutputPath>

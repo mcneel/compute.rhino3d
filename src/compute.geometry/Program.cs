@@ -30,15 +30,17 @@ namespace compute.geometry
             // should use.
             // (for McNeel devs only and only those devs who use the same path as Steve)
 
-            string rhinoSystemDir = @"C:\dev\github\mcneelv8\rhino\src4\bin\Debug";
-            if (System.IO.File.Exists(rhinoSystemDir + "\\Rhino.exe"))
-                RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
+            //string rhinoSystemDir = @"C:\dev\github\mcneelv8\rhino\src4\bin\Debug";
+            //if (System.IO.File.Exists(rhinoSystemDir + "\\Rhino.exe"))
+            //    RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
 
 #endif
             StartTime = DateTime.Now;
             Shutdown.RegisterStartTime(StartTime);
             Log.Information($"Child process started at " + StartTime.ToLocalTime().ToString());
             ParseCommandLineArgs(args);
+
+            RhinoInside.Resolver.LoadRhino();
 
             var host = Host.CreateDefaultBuilder(args)
                 .UseSerilog()

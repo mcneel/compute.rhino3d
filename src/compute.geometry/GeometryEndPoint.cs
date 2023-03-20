@@ -545,11 +545,11 @@ namespace compute.geometry
                                     outParamCount++;
                             }
                         }
-                        catch (Exception ex)
+                        catch (Exception)
                         {
                             if (methodIndex < (_methods.Count() - 1))
                                 continue;
-                            throw ex;
+                            throw;
                         }
                         bool isConst = false;
                         if (!method.IsStatic)
@@ -594,8 +594,8 @@ namespace compute.geometry
                         }
 
                         if (rc.Length == 1)
-                            return Newtonsoft.Json.JsonConvert.SerializeObject(rc[0], GeometryResolver.Settings);
-                        return Newtonsoft.Json.JsonConvert.SerializeObject(rc, GeometryResolver.Settings);
+                            return Newtonsoft.Json.JsonConvert.SerializeObject(rc[0], GeometryResolver.Settings(7));
+                        return Newtonsoft.Json.JsonConvert.SerializeObject(rc, GeometryResolver.Settings(7));
                     }
                 }
             }
@@ -644,7 +644,7 @@ namespace compute.geometry
                         }
                         var rc = constructor.Invoke(parameters);
                         rc = ProcessModifiers(rc, returnModifiers);
-                        return Newtonsoft.Json.JsonConvert.SerializeObject(rc, GeometryResolver.Settings);
+                        return Newtonsoft.Json.JsonConvert.SerializeObject(rc, GeometryResolver.Settings(7));
                     }
                 }
             }
@@ -747,23 +747,22 @@ namespace compute.geometry
 
     public class GeometryResolver : DefaultContractResolver
     {
+        static int _rhinoVersion = 0;
         static JsonSerializerSettings _settings;
-        public static JsonSerializerSettings Settings
+        public static JsonSerializerSettings Settings(int rhinoVersion)
         {
-            get
+            if (_settings == null || rhinoVersion != _rhinoVersion)
             {
-                if (_settings == null)
-                {
-                    _settings = new JsonSerializerSettings { ContractResolver = new GeometryResolver() };
-                    // return V6 ON_Objects for now
-                    var options = new Rhino.FileIO.SerializationOptions();
-                    options.RhinoVersion = 6;
-                    options.WriteUserData = true;
-                    _settings.Context = new System.Runtime.Serialization.StreamingContext(System.Runtime.Serialization.StreamingContextStates.All, options);
-                    _settings.Converters.Add(new ArchivableDictionaryResolver());
-                }
-                return _settings;
+                _settings = new JsonSerializerSettings { ContractResolver = new GeometryResolver() };
+                _rhinoVersion = rhinoVersion;
+                // return V7 ON_Objects for now
+                var options = new Rhino.FileIO.SerializationOptions();
+                options.RhinoVersion = rhinoVersion;
+                options.WriteUserData = true;
+                _settings.Context = new System.Runtime.Serialization.StreamingContext(System.Runtime.Serialization.StreamingContextStates.All, options);
+                _settings.Converters.Add(new ArchivableDictionaryResolver());
             }
+            return _settings;
         }
 
         protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)

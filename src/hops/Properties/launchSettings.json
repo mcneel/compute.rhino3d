@@ -2,7 +2,7 @@
   "profiles": {
     "Hops": {
       "commandName": "Executable",
-      "executablePath": "C:\\dev\\github\\mcneelv8\\rhino\\src4\\bin\\Debug\\Rhino.exe",
+      "executablePath": "C:\\Program Files\\Rhino 8 WIP\\System\\Rhino.exe",
       "nativeDebugging": true
     }
   }

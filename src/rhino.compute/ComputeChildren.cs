@@ -154,7 +154,7 @@ namespace rhino.compute
             // - a sibling directory named compute.geometry
             // - a child directory named compute.geometry
             var parentDirectory = pathToThisAssembly.Directory.Parent;
-            string pathToCompute = System.IO.Path.Combine(parentDirectory.FullName, "compute.geometry", "net7.0", "compute.geometry.exe");
+            string pathToCompute = System.IO.Path.Combine(parentDirectory.FullName, "compute.geometry", "compute.geometry.exe");
 
             if (!System.IO.File.Exists(pathToCompute))
             {
