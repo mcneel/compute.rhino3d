@@ -222,7 +222,7 @@ namespace Hops
                 }
                 else
                 {
-                    for(int i=0; i<_workingSolveList.Count; i++)
+                    for (int i = 0; i < _workingSolveList.Count; i++)
                     {
                         var output = _workingSolveList.SolvedSchema(i);
                         TaskList.Add(Task.FromResult(output));
@@ -254,7 +254,7 @@ namespace Hops
                 if (inputSchema != null)
                 {
                     schema = _remoteDefinition.Solve(inputSchema, _cacheResultsInMemory);
-                    if (_lastCreatedSchema==null)
+                    if (_lastCreatedSchema == null)
                         _lastCreatedSchema = inputSchema;
                 }
                 else
