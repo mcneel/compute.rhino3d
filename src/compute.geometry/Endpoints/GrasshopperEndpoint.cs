@@ -2,6 +2,7 @@
 using Grasshopper.Kernel;
 using System.Collections.Generic;
 
+/*
 namespace compute.geometry.Endpoints
 {
     static class GrasshopperEndpoint
@@ -116,3 +117,4 @@ namespace compute.geometry.Endpoints
         }
     }
 }
+*/

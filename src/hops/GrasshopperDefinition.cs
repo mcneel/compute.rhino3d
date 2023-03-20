@@ -393,6 +393,7 @@ namespace compute.geometry
         public Schema Solve()
         {
             Schema outputSchema = new Schema();
+            outputSchema.DataVersion = 8;
             outputSchema.Algo = "";
 
             foreach(var kvp in _output)

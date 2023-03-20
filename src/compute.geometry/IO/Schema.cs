@@ -17,6 +17,10 @@ namespace Resthopper.IO
         [JsonProperty(PropertyName = "modelunits")]
         public string ModelUnits { get; set; } = Rhino.UnitSystem.Millimeters.ToString();
 
+        // Rhino version of data to be serialized and returned to the client
+        [JsonProperty(PropertyName = "dataversion")]
+        public int DataVersion { get; set; } = 7;
+
         [JsonProperty(PropertyName = "algo")]
         public string Algo { get; set; }
 

@@ -112,11 +112,11 @@ namespace compute.geometry
             definition.SetInputs(input.Values);
             long decodeTime = stopwatch.ElapsedMilliseconds;
             stopwatch.Restart();
-            var output = definition.Solve();
+            var output = definition.Solve(input.DataVersion);
             output.Pointer = definition.CacheKey;
             long solveTime = stopwatch.ElapsedMilliseconds;
             stopwatch.Restart();
-            string returnJson = JsonConvert.SerializeObject(output, GeometryResolver.Settings);
+            string returnJson = JsonConvert.SerializeObject(output, GeometryResolver.Settings(input.DataVersion));
             long encodeTime = stopwatch.ElapsedMilliseconds;
 
             ctx.Response.Headers.Add("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
@@ -236,23 +236,23 @@ namespace compute.geometry
             await ctx.Response.WriteAsync(jsonResponse);
         }
 
-        public static ResthopperObject GetResthopperPoint(GH_Point goo)
+        public static ResthopperObject GetResthopperPoint(GH_Point goo, int rhinoVersion)
         {
             var pt = goo.Value;
 
             ResthopperObject rhObj = new ResthopperObject();
             rhObj.Type = pt.GetType().FullName;
-            rhObj.Data = JsonConvert.SerializeObject(pt, GeometryResolver.Settings);
+            rhObj.Data = JsonConvert.SerializeObject(pt, GeometryResolver.Settings(rhinoVersion));
             return rhObj;
 
         }
-        public static ResthopperObject GetResthopperObject<T>(object goo)
+        public static ResthopperObject GetResthopperObject<T>(object goo, int rhinoVersion)
         {
             var v = (T)goo;
 
             ResthopperObject rhObj = new ResthopperObject();
             rhObj.Type = goo.GetType().FullName;
-            rhObj.Data = JsonConvert.SerializeObject(v, GeometryResolver.Settings);
+            rhObj.Data = JsonConvert.SerializeObject(v, GeometryResolver.Settings(rhinoVersion));
             return rhObj;
         }
         public static void PopulateParam<DataType>(GH_Param<IGH_Goo> Param, Resthopper.IO.DataTree<ResthopperObject> tree)

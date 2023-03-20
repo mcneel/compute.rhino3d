@@ -901,7 +901,7 @@ namespace compute.geometry
 
         }
 
-        public Schema Solve()
+        public Schema Solve(int rhinoVersion)
         {
             HasErrors = false;
             Schema outputSchema = new Schema();
@@ -942,97 +942,97 @@ namespace compute.geometry
                             case GH_Boolean ghValue:
                                 {
                                     bool rhValue = ghValue.Value;
-                                    resthopperObjectList.Add(GetResthopperObject<bool>(rhValue));
+                                    resthopperObjectList.Add(GetResthopperObject<bool>(rhValue, rhinoVersion));
                                 }
                                 break;
                             case GH_Point ghValue:
                                 {
                                     Point3d rhValue = ghValue.Value;
-                                    resthopperObjectList.Add(GetResthopperObject<Point3d>(rhValue));
+                                    resthopperObjectList.Add(GetResthopperObject<Point3d>(rhValue, rhinoVersion));
                                 }
                                 break;
                             case GH_Vector ghValue:
                                 {
                                     Vector3d rhValue = ghValue.Value;
-                                    resthopperObjectList.Add(GetResthopperObject<Vector3d>(rhValue));
+                                    resthopperObjectList.Add(GetResthopperObject<Vector3d>(rhValue, rhinoVersion));
                                 }
                                 break;
                             case GH_Integer ghValue:
                                 {
                                     int rhValue = ghValue.Value;
-                                    resthopperObjectList.Add(GetResthopperObject<int>(rhValue));
+                                    resthopperObjectList.Add(GetResthopperObject<int>(rhValue, rhinoVersion));
                                 }
                                 break;
                             case GH_Number ghValue:
                                 {
                                     double rhValue = ghValue.Value;
-                                    resthopperObjectList.Add(GetResthopperObject<double>(rhValue));
+                                    resthopperObjectList.Add(GetResthopperObject<double>(rhValue, rhinoVersion));
                                 }
                                 break;
                             case GH_String ghValue:
                                 {
                                     string rhValue = ghValue.Value;
-                                    resthopperObjectList.Add(GetResthopperObject<string>(rhValue));
+                                    resthopperObjectList.Add(GetResthopperObject<string>(rhValue, rhinoVersion));
                                 }
                                 break;
                             case GH_SubD ghValue:
                                 {
                                     SubD rhValue = ghValue.Value;
-                                    resthopperObjectList.Add(GetResthopperObject<SubD>(rhValue));
+                                    resthopperObjectList.Add(GetResthopperObject<SubD>(rhValue, rhinoVersion));
                                 }
                                 break;
                             case GH_Line ghValue:
                                 {
                                     Line rhValue = ghValue.Value;
-                                    resthopperObjectList.Add(GetResthopperObject<Line>(rhValue));
+                                    resthopperObjectList.Add(GetResthopperObject<Line>(rhValue, rhinoVersion));
                                 }
                                 break;
                             case GH_Curve ghValue:
                                 {
                                     Curve rhValue = ghValue.Value;
-                                    resthopperObjectList.Add(GetResthopperObject<Curve>(rhValue));
+                                    resthopperObjectList.Add(GetResthopperObject<Curve>(rhValue, rhinoVersion));
                                 }
                                 break;
                             case GH_Circle ghValue:
                                 {
                                     Circle rhValue = ghValue.Value;
-                                    resthopperObjectList.Add(GetResthopperObject<Circle>(rhValue));
+                                    resthopperObjectList.Add(GetResthopperObject<Circle>(rhValue, rhinoVersion));
                                 }
                                 break;
                             case GH_Plane ghValue:
                                 {
                                     Plane rhValue = ghValue.Value;
-                                    resthopperObjectList.Add(GetResthopperObject<Plane>(rhValue));
+                                    resthopperObjectList.Add(GetResthopperObject<Plane>(rhValue, rhinoVersion));
                                 }
                                 break;
                             case GH_Rectangle ghValue:
                                 {
                                     Rectangle3d rhValue = ghValue.Value;
-                                    resthopperObjectList.Add(GetResthopperObject<Rectangle3d>(rhValue));
+                                    resthopperObjectList.Add(GetResthopperObject<Rectangle3d>(rhValue, rhinoVersion));
                                 }
                                 break;
                             case GH_Box ghValue:
                                 {
                                     Box rhValue = ghValue.Value;
-                                    resthopperObjectList.Add(GetResthopperObject<Box>(rhValue));
+                                    resthopperObjectList.Add(GetResthopperObject<Box>(rhValue, rhinoVersion));
                                 }
                                 break;
                             case GH_Surface ghValue:
                                 {
                                     Brep rhValue = ghValue.Value;
-                                    resthopperObjectList.Add(GetResthopperObject<Brep>(rhValue));
+                                    resthopperObjectList.Add(GetResthopperObject<Brep>(rhValue, rhinoVersion));
                                 }
                                 break;
                             case GH_Brep ghValue:
                                 {
                                     Brep rhValue = ghValue.Value;
-                                    resthopperObjectList.Add(GetResthopperObject<Brep>(rhValue));
+                                    resthopperObjectList.Add(GetResthopperObject<Brep>(rhValue, rhinoVersion));
                                 }
                                 break;
                             case GH_Mesh ghValue:
                                 {
                                     Mesh rhValue = ghValue.Value;
-                                    resthopperObjectList.Add(GetResthopperObject<Mesh>(rhValue));
+                                    resthopperObjectList.Add(GetResthopperObject<Mesh>(rhValue, rhinoVersion));
                                 }
                                 break;
                         }
@@ -1259,12 +1259,12 @@ namespace compute.geometry
             return str;
         }
 
-        static ResthopperObject GetResthopperObject<T>(object goo)
+        static ResthopperObject GetResthopperObject<T>(object goo, int rhinoVerion)
         {
             var v = (T)goo;
             ResthopperObject rhObj = new ResthopperObject();
             rhObj.Type = goo.GetType().FullName;
-            rhObj.Data = JsonConvert.SerializeObject(v, GeometryResolver.Settings);
+            rhObj.Data = JsonConvert.SerializeObject(v, GeometryResolver.Settings(rhinoVerion));
             return rhObj;
         }
 
