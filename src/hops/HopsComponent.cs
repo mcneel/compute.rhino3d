@@ -116,14 +116,14 @@ namespace Hops
 
         public int SolveSerialNumber => _solveSerialNumber;
 
-        HTTPRecord _httpRecord;
-        public HTTPRecord HTTPRecord
+        HTTPArchive _httpArchive;
+        public HTTPArchive HTTPArchive
         {
             get
             {
-                if (_httpRecord == null)
-                    _httpRecord = new HTTPRecord();
-                return _httpRecord; 
+                if (_httpArchive == null)
+                    _httpArchive = new HTTPArchive();
+                return _httpArchive; 
             }
         }
 
@@ -669,7 +669,7 @@ for value in values:
 
         void ExportLastIORequest()
         {
-            if (String.IsNullOrEmpty(HTTPRecord.IORequest))
+            if (HTTPArchive.io.Request == null)
             {
                 Eto.Forms.MessageBox.Show("No IO request has been made. Run this component at least once", Eto.Forms.MessageBoxType.Error);
                 return;
@@ -678,13 +678,13 @@ for value in values:
             dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
             if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
             {
-                System.IO.File.WriteAllText(dlg.FileName, HTTPRecord.IORequest);
+                System.IO.File.WriteAllText(dlg.FileName, HTTPArchive.io.Request.ToString());
             }
         }
 
         void ExportLastIOResponse()
         {
-            if (String.IsNullOrEmpty(HTTPRecord.IOResponse))
+            if (HTTPArchive.io.Response == null)
             {
                 Eto.Forms.MessageBox.Show("No IO response has been received. Run this component at least once", Eto.Forms.MessageBoxType.Error);
                 return;
@@ -693,38 +693,38 @@ for value in values:
             dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
             if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
             {
-                System.IO.File.WriteAllText(dlg.FileName, HTTPRecord.IOResponse);
+                System.IO.File.WriteAllText(dlg.FileName, HTTPArchive.io.Response.ToString());
             }
         }
 
         void ExportLastSolveRequest()
         {
-            if (String.IsNullOrEmpty(HTTPRecord.SolveRequest))
-            {
-                Eto.Forms.MessageBox.Show("No solve request has been made. Run this component at least once", Eto.Forms.MessageBoxType.Error);
-                return;
-            }
-            var dlg = new Eto.Forms.SaveFileDialog();
-            dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
-            if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
-            {
-                System.IO.File.WriteAllText(dlg.FileName, HTTPRecord.SolveRequest);
-            }
+            //if (String.IsNullOrEmpty(HTTPArchive.SolveRequest))
+            //{
+            //    Eto.Forms.MessageBox.Show("No solve request has been made. Run this component at least once", Eto.Forms.MessageBoxType.Error);
+            //    return;
+            //}
+            //var dlg = new Eto.Forms.SaveFileDialog();
+            //dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
+            //if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
+            //{
+            //    System.IO.File.WriteAllText(dlg.FileName, HTTPArchive.SolveRequest);
+            //}
         }
 
         void ExportLastSolveResponse()
         {
-            if (String.IsNullOrEmpty(HTTPRecord.SolveResponse))
-            {
-                Eto.Forms.MessageBox.Show("No solve response has been received. Run this component at least once", Eto.Forms.MessageBoxType.Error);
-                return;
-            }
-            var dlg = new Eto.Forms.SaveFileDialog();
-            dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
-            if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
-            {
-                System.IO.File.WriteAllText(dlg.FileName, HTTPRecord.SolveResponse);
-            }
+            //if (String.IsNullOrEmpty(HTTPArchive.SolveResponse))
+            //{
+            //    Eto.Forms.MessageBox.Show("No solve response has been received. Run this component at least once", Eto.Forms.MessageBoxType.Error);
+            //    return;
+            //}
+            //var dlg = new Eto.Forms.SaveFileDialog();
+            //dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
+            //if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
+            //{
+            //    System.IO.File.WriteAllText(dlg.FileName, HTTPArchive.SolveResponse);
+            //}
         }
 
         string _tempPath;
@@ -813,22 +813,22 @@ for value in values:
                     Grasshopper.Instances.ActiveCanvas?.Invalidate();
                     return;
                 }
-                if(HTTPRecord.IOResponseSchema != null && HTTPRecord.IOResponseSchema.Errors.Count > 0)
-                {
-                    foreach(var error in HTTPRecord.IOResponseSchema.Errors)
-                    {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
-                        Grasshopper.Instances.ActiveCanvas?.Invalidate();
-                        return;
-                    }
-                }
-                if(HTTPRecord.IOResponseSchema != null && HTTPRecord.IOResponseSchema.Warnings.Count > 0)
-                {
-                    foreach (var warning in HTTPRecord.IOResponseSchema.Warnings)
-                    {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
-                    }
-                }
+                //if(HTTPArchive.IOResponseSchema != null && HTTPArchive.IOResponseSchema.Errors.Count > 0)
+                //{
+                //    foreach(var error in HTTPArchive.IOResponseSchema.Errors)
+                //    {
+                //        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
+                //        Grasshopper.Instances.ActiveCanvas?.Invalidate();
+                //        return;
+                //    }
+                //}
+                //if(HTTPArchive.IOResponseSchema != null && HTTPArchive.IOResponseSchema.Warnings.Count > 0)
+                //{
+                //    foreach (var warning in HTTPArchive.IOResponseSchema.Warnings)
+                //    {
+                //        AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
+                //    }
+                //}
 
                 if (!string.IsNullOrWhiteSpace(description) && !Description.Equals(description))
                 {

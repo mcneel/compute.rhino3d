@@ -10,6 +10,7 @@ using System.IO;
 using System.Reflection;
 using System.Net.Http;
 using Grasshopper.Kernel.Data;
+using System.Net.Http.Headers;
 
 namespace Hops
 {
@@ -223,29 +224,56 @@ namespace Hops
                 schema.AngleTolerance = GetDocumentAngleTolerance();
                 schema.ModelUnits = GetDocumentUnits();
                 string inputJson = JsonConvert.SerializeObject(schema);
-                string requestContent = "{";
-                requestContent += "\"URL\": \"" + postUrl + "\"," + Environment.NewLine;
-                requestContent += "\"Method\": \"POST" + "\"," + Environment.NewLine;
-                requestContent += "\"Content\": " + inputJson  + Environment.NewLine;
-                requestContent += "}";
-                _parentComponent.HTTPRecord.IORequest = requestContent;
+                //string requestContent = "{";
+                //requestContent += "\"URL\": \"" + postUrl + "\"," + Environment.NewLine;
+                //requestContent += "\"Method\": \"POST" + "\"," + Environment.NewLine;
+                //requestContent += "\"Content\": " + inputJson  + Environment.NewLine;
+                //requestContent += "}";
+                //_parentComponent.HTTPArchive.IORequest = requestContent;
+
                 var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
-                HttpClient client = new HttpClient();
-                if(!String.IsNullOrEmpty(HopsAppSettings.APIKey))
+
+                HttpClient client = new HttpClient(); 
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                client.DefaultRequestHeaders.Add("Date", DateTime.Now.ToString("ddd, dd MMM yyyy HH:mm:ss zzzz"));
+                //if (postUrl.StartsWith("http://"))
+                //{
+                //    var url = postUrl.Substring("http://".Length);
+                //    client.DefaultRequestHeaders.Add("Host", url);
+                //}
+                client.DefaultRequestHeaders.Add("Pragma", "no-cache");
+                //client.DefaultRequestHeaders.Add("CacheControl", "no-cache");
+
+                if (!String.IsNullOrEmpty(HopsAppSettings.APIKey))
+                {
                     client.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(_apiKeyName, HopsAppSettings.APIKey);
+                }  
                 if(HopsAppSettings.HTTPTimeout > 0)
                     client.Timeout = TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout);
+
+
+                _parentComponent.HTTPArchive.io.Request.RequestType = "POST";
+
+                _parentComponent.HTTPArchive.io.Request.Body = schema.Duplicate();
+
                 responseTask = client.PostAsync(postUrl, content);
-                _parentComponent.HTTPRecord.Schema = schema;
+
+                //_parentComponent.HTTPArchive.Schema = schema;
+                
                 contentToDispose = content;
             }
             else
             {
-                string requestContent = "{";
-                requestContent += "\"URL\": \"" + address + "\"," + Environment.NewLine;
-                requestContent += "\"Method\": \"GET" + "\"" + Environment.NewLine;
-                requestContent += "}";
-                _parentComponent.HTTPRecord.IORequest = requestContent;
+                //string requestContent = "{";
+                //requestContent += "\"URL\": \"" + address + "\"," + Environment.NewLine;
+                //requestContent += "\"Method\": \"GET" + "\"" + Environment.NewLine;
+                //requestContent += "}";
+                //_parentComponent.HTTPArchive.IORequest = requestContent;
+
+                _parentComponent.HTTPArchive.io.Request.Headers.Host = address;
+                _parentComponent.HTTPArchive.io.Request.RequestType = "GET";
+
                 responseTask = HttpClient.GetAsync(address);
             }
             if (responseTask != null)
@@ -256,14 +284,17 @@ namespace Hops
                 if (string.IsNullOrEmpty(stringResult))
                 {
                     _pathType = PathType.InvalidUrl; // Looks like a valid but not related URL
-                    _parentComponent.HTTPRecord.IOResponse = "Invalid URL";
+
+                    //_parentComponent.HTTPArchive.IOResponse = "Invalid URL";
+                    _parentComponent.HTTPArchive.io.Response.Status = responseTask.Result.StatusCode.ToString();
+  
                 }
                 else
                 {
-                    _parentComponent.HTTPRecord.IOResponse = stringResult;
+                    //_parentComponent.HTTPArchive.IOResponse = stringResult;
                     responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(stringResult);
                     _cacheKey = responseSchema.CacheKey;
-                    _parentComponent.HTTPRecord.IOResponseSchema = responseSchema;
+                    //_parentComponent.HTTPArchive.IOResponseSchema = responseSchema;
                 }
             }
 
@@ -336,7 +367,7 @@ namespace Hops
                     }
                     _outputParams[outputParamName] = ParamFromIoResponseSchema(output);
                 }
-                _parentComponent.HTTPRecord.IOResponseSchema = responseSchema;
+                //_parentComponent.HTTPArchive.IOResponseSchema = responseSchema;
             }
         }
 
@@ -452,11 +483,11 @@ namespace Hops
                     return cachedResults;
                 }
             }
-            string requestContent = "{";
-            requestContent += "\"URL\": \"" + solveUrl + "\"," + Environment.NewLine;
-            requestContent += "\"content\": " + inputJson + Environment.NewLine;
-            requestContent += "}";
-            _parentComponent.HTTPRecord.SolveRequest = requestContent;
+            //string requestContent = "{";
+            //requestContent += "\"URL\": \"" + solveUrl + "\"," + Environment.NewLine;
+            //requestContent += "\"content\": " + inputJson + Environment.NewLine;
+            //requestContent += "}";
+            //_parentComponent.HTTPArchive.SolveRequest = requestContent;
             using (var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json"))
             {
                 HttpClient client = new HttpClient();
@@ -468,7 +499,7 @@ namespace Hops
                 var responseMessage = postTask.Result;
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-                _parentComponent.HTTPRecord.SolveResponse = stringResult;
+                //_parentComponent.HTTPArchive.SolveResponse = stringResult;
                 Schema schema = SafeSchemaDeserialize(stringResult);
 
                 if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
@@ -480,11 +511,11 @@ namespace Hops
                         string base64 = Convert.ToBase64String(bytes);
                         inputSchema.Algo = base64;
                         inputJson = JsonConvert.SerializeObject(inputSchema);
-                        requestContent = "{";
-                        requestContent += "\"URL\": \"" + solveUrl + "\"," + Environment.NewLine;
-                        requestContent += "\"content\":" + inputJson + Environment.NewLine;
-                        requestContent += "}";
-                        _parentComponent.HTTPRecord.SolveRequest = requestContent;
+                        //requestContent = "{";
+                        //requestContent += "\"URL\": \"" + solveUrl + "\"," + Environment.NewLine;
+                        //requestContent += "\"content\":" + inputJson + Environment.NewLine;
+                        //requestContent += "}";
+                        //_parentComponent.HTTPArchive.SolveRequest = requestContent;
                         var content2 = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
                         HttpClient client2 = new HttpClient();
                         if (!String.IsNullOrEmpty(HopsAppSettings.APIKey))
@@ -495,13 +526,13 @@ namespace Hops
                         responseMessage = postTask.Result;
                         remoteSolvedData = responseMessage.Content;
                         stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-                        _parentComponent.HTTPRecord.SolveResponse = stringResult;
+                        //_parentComponent.HTTPArchive.SolveResponse = stringResult;
                         schema = SafeSchemaDeserialize(stringResult);
                         if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
                         {
                             var badSchema = new Schema();
                             badSchema.Errors.Add("Unable to solve on compute");
-                            _parentComponent.HTTPRecord.Schema = badSchema;
+                            //_parentComponent.HTTPArchive.Schema = badSchema;
                             return badSchema;
                         }
                     }
@@ -511,7 +542,7 @@ namespace Hops
                         {
                             var badSchema = new Schema();
                             badSchema.Errors.Add($"Unable to find file: {Path}");
-                            _parentComponent.HTTPRecord.Schema = badSchema;
+                            //_parentComponent.HTTPArchive.Schema = badSchema;
                             return badSchema;
                         }
                     }
@@ -521,7 +552,7 @@ namespace Hops
                 {
                     var badSchema = new Schema();
                     badSchema.Errors.Add($"Request timeout: {Path}");
-                    _parentComponent.HTTPRecord.Schema = badSchema;
+                    //_parentComponent.HTTPArchive.Schema = badSchema;
                     return badSchema;
                 }
 
@@ -1267,7 +1298,7 @@ namespace Hops
                 var pointer = new Uri(Path).AbsolutePath;
                 schema.Pointer = pointer.Substring(1);
             }
-            _parentComponent.HTTPRecord.Schema = schema;
+            //_parentComponent.HTTPArchive.Schema = schema;
             return schema;
         }
     }

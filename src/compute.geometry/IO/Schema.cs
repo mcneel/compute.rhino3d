@@ -8,6 +8,11 @@ namespace Resthopper.IO
     {
         public Schema() {}
 
+        public Schema Duplicate()
+        {
+            return (Schema)this.MemberwiseClone();
+        }
+
         [JsonProperty(PropertyName = "absolutetolerance", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public double AbsoluteTolerance { get; set; } = 0;
 
@@ -86,18 +91,107 @@ namespace Resthopper.IO
         public List<string> Errors { get; set; } = new List<string>();
     }
 
-    public class HTTPRecord
+    public class HTTPArchive
     {
-        public HTTPRecord()
+        [JsonConstructor]
+        public HTTPArchive()
         {
-
+            io = new IO();
+            solve = new Solve();
         }
-        public string IORequest { get; set; }
-        public string IOResponse { get; set; }
-        public string SolveRequest { get; set; }
-        public string SolveResponse { get; set; }
-        public Schema Schema { get; set; }
-        public IoResponseSchema IOResponseSchema { get; set; }
+        //public string IORequest { get; set; }
+        //public string IOResponse { get; set; }
+        //public string SolveRequest { get; set; }
+        //public string SolveResponse { get; set; }
+
+        [JsonProperty(PropertyName = "io")]
+        public IO io { get; set; }
+
+        [JsonProperty(PropertyName = "solve")]
+        public Solve solve { get; set; }
+
+        //public Schema Schema { get; set; }
+        //public IoResponseSchema IOResponseSchema { get; set; }
+    }
+
+    public class Headers
+    {
+        [JsonConstructor]
+        public Headers() { }
+
+        [JsonProperty(PropertyName = "Host")]
+        public string Host { get; set; }
+
+        [JsonProperty(PropertyName = "Authorization")]
+        public string Authorization { get; set; }
+
+        [JsonProperty(PropertyName = "Date")]
+        public string Date { get; set; }
+
+        [JsonProperty(PropertyName = "CacheControl")]
+        public string CacheControl { get; set; }
+
+        [JsonProperty(PropertyName = "Pragma")]
+        public string Pragma { get; set; }
+    }
+
+    public class Request
+    {
+        [JsonConstructor]
+        public Request() 
+        {
+            Headers = new Headers();
+        }
+
+        [JsonProperty(PropertyName = "body")]
+        public Schema Body { get; set;}
+
+        [JsonProperty(PropertyName = "headers")]
+        public Headers Headers { get; set; }
+
+        [JsonProperty(PropertyName = "requestType")]
+        public string RequestType { get; set; }
+    }
+    public class Response
+    {
+        [JsonConstructor]
+        public Response() { }
+
+        [JsonProperty(PropertyName = "body")]
+        public Schema Body { get; set; }
+
+        [JsonProperty(PropertyName = "headers")]
+        public Headers Headers { get; set; }
+
+        [JsonProperty(PropertyName = "status")]
+        public string Status { get; set; }
+    }
+
+    public class IO
+    {
+        [JsonConstructor]
+        public IO() 
+        {
+            Request = new Request();
+            Response = new Response();
+        }
+
+        [JsonProperty(PropertyName = "request")]
+        public Request Request { get; set; }
+
+        [JsonProperty(PropertyName = "response")]
+        public Response Response { get; set; }
+    }
+    public class Solve
+    {
+        [JsonConstructor]
+        public Solve() { }
+
+        [JsonProperty(PropertyName = "request")]
+        public Request Request { get; set; }
+
+        [JsonProperty(PropertyName = "response")]
+        public Response Response { get; set; }
     }
 
     public class ResthopperObject : IEquatable<ResthopperObject>
