@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Net.Http;
 using Grasshopper.Kernel.Data;
 using System.Net.Http.Headers;
+using System.Linq;
 
 namespace Hops
 {
@@ -198,6 +199,21 @@ namespace Hops
             IoResponseSchema responseSchema = null;
             System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage> responseTask;
             IDisposable contentToDispose = null;
+
+            HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            HttpClient.DefaultRequestHeaders.Add("User-Agent", "Hops-v." + GhaAssemblyInfo.AppVersion);
+            HttpClient.DefaultRequestHeaders.Add("Date", DateTime.Now.ToString("ddd, dd MMM yyyy HH:mm:ss zzzz"));
+            HttpClient.DefaultRequestHeaders.Add("Pragma", "no-cache");
+            HttpClient.DefaultRequestHeaders.Add("CacheControl", "no-cache");
+
+            if (!String.IsNullOrEmpty(HopsAppSettings.APIKey))
+            {
+                HttpClient.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
+                HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(_apiKeyName, HopsAppSettings.APIKey);
+            }
+            if (HopsAppSettings.HTTPTimeout > 0)
+                HttpClient.Timeout = TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout);
+
             if (performPost)
             {
                 string postUrl = Servers.GetDescriptionPostUrl();
@@ -206,9 +222,7 @@ namespace Hops
                 if (pathType != PathType.InternalizedDefinition)
                 {
                     if(Path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
-                    {
                         schema.Pointer = address;
-                    }
                     else
                     {
                         var bytes = System.IO.File.ReadAllBytes(address);
@@ -231,33 +245,23 @@ namespace Hops
                 //requestContent += "}";
                 //_parentComponent.HTTPArchive.IORequest = requestContent;
 
-                var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
+                var content = new StringContent(inputJson, Encoding.UTF8, "application/json");
 
-                HttpClient client = new HttpClient(); 
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                client.DefaultRequestHeaders.Add("Date", DateTime.Now.ToString("ddd, dd MMM yyyy HH:mm:ss zzzz"));
-                //if (postUrl.StartsWith("http://"))
-                //{
-                //    var url = postUrl.Substring("http://".Length);
-                //    client.DefaultRequestHeaders.Add("Host", url);
-                //}
-                client.DefaultRequestHeaders.Add("Pragma", "no-cache");
-                //client.DefaultRequestHeaders.Add("CacheControl", "no-cache");
+                //HttpClient client = new HttpClient();
+                
+                HttpClient.BaseAddress = new Uri(postUrl); 
 
-                if (!String.IsNullOrEmpty(HopsAppSettings.APIKey))
-                {
-                    client.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
-                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(_apiKeyName, HopsAppSettings.APIKey);
-                }  
-                if(HopsAppSettings.HTTPTimeout > 0)
-                    client.Timeout = TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout);
+                _parentComponent.HTTPArchive.io.Request.RequestMethod = "POST";
+                _parentComponent.HTTPArchive.io.Request.URL = postUrl;
+                _parentComponent.HTTPArchive.io.Request.Content = schema.Duplicate();
+                _parentComponent.HTTPArchive.io.Request.Headers.Date = HttpClient.DefaultRequestHeaders.GetValues("Date")?.FirstOrDefault();
+                _parentComponent.HTTPArchive.io.Request.Headers.UserAgent = HttpClient.DefaultRequestHeaders.GetValues("User-Agent")?.FirstOrDefault();
+                _parentComponent.HTTPArchive.io.Request.Headers.Pragma = HttpClient.DefaultRequestHeaders.GetValues("Pragma")?.FirstOrDefault();
+                _parentComponent.HTTPArchive.io.Request.Headers.CacheControl = HttpClient.DefaultRequestHeaders.GetValues("CacheControl")?.FirstOrDefault();
+                _parentComponent.HTTPArchive.io.Request.Headers.Authorization = HttpClient.DefaultRequestHeaders.Authorization?.Parameter;
+                _parentComponent.HTTPArchive.io.Request.Headers.Accept = HttpClient.DefaultRequestHeaders.Accept?.FirstOrDefault()?.MediaType;
 
-
-                _parentComponent.HTTPArchive.io.Request.RequestType = "POST";
-
-                _parentComponent.HTTPArchive.io.Request.Body = schema.Duplicate();
-
-                responseTask = client.PostAsync(postUrl, content);
+                responseTask = HttpClient.PostAsync(postUrl, content);
 
                 //_parentComponent.HTTPArchive.Schema = schema;
                 
@@ -271,8 +275,9 @@ namespace Hops
                 //requestContent += "}";
                 //_parentComponent.HTTPArchive.IORequest = requestContent;
 
-                _parentComponent.HTTPArchive.io.Request.Headers.Host = address;
-                _parentComponent.HTTPArchive.io.Request.RequestType = "GET";
+                HttpClient.BaseAddress = new Uri(address);
+                _parentComponent.HTTPArchive.io.Request.URL = address;
+                _parentComponent.HTTPArchive.io.Request.RequestMethod = "GET";
 
                 responseTask = HttpClient.GetAsync(address);
             }
@@ -280,14 +285,22 @@ namespace Hops
             {
                 var responseMessage = responseTask.Result;
                 var remoteSolvedData = responseMessage.Content;
+                var remoteHeaders = responseMessage.Headers;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
+
+                _parentComponent.HTTPArchive.io.Response.StatusCode = responseTask.Result.StatusCode.ToString();
+                _parentComponent.HTTPArchive.io.Response.Headers.Date = remoteHeaders.Date?.ToString("ddd, dd MMM yyyy HH:mm:ss zzzz");
+                _parentComponent.HTTPArchive.io.Response.Headers.Age = Math.Floor(remoteHeaders.Age?.TotalSeconds ?? 0).ToString();
+                _parentComponent.HTTPArchive.io.Response.Headers.Connection = remoteHeaders.Connection?.FirstOrDefault()?.ToString();
+                _parentComponent.HTTPArchive.io.Response.Headers.CacheControl = remoteHeaders.CacheControl?.ToString();
+                _parentComponent.HTTPArchive.io.Response.Headers.Pragma = remoteHeaders.Pragma?.ToString();
+                _parentComponent.HTTPArchive.io.Response.Headers.Server = remoteHeaders.Server?.ToString();
+                _parentComponent.HTTPArchive.io.Response.Headers.Location = remoteHeaders.Location?.ToString();
+
                 if (string.IsNullOrEmpty(stringResult))
                 {
                     _pathType = PathType.InvalidUrl; // Looks like a valid but not related URL
-
                     //_parentComponent.HTTPArchive.IOResponse = "Invalid URL";
-                    _parentComponent.HTTPArchive.io.Response.Status = responseTask.Result.StatusCode.ToString();
-  
                 }
                 else
                 {
@@ -295,6 +308,7 @@ namespace Hops
                     responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(stringResult);
                     _cacheKey = responseSchema.CacheKey;
                     //_parentComponent.HTTPArchive.IOResponseSchema = responseSchema;
+                    _parentComponent.HTTPArchive.io.Response.Content = responseSchema;
                 }
             }
 

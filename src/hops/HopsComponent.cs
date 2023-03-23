@@ -678,7 +678,7 @@ for value in values:
             dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
             if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
             {
-                System.IO.File.WriteAllText(dlg.FileName, HTTPArchive.io.Request.ToString());
+                System.IO.File.WriteAllText(dlg.FileName, JsonConvert.SerializeObject(HTTPArchive.io.Request));
             }
         }
 
@@ -693,7 +693,7 @@ for value in values:
             dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
             if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
             {
-                System.IO.File.WriteAllText(dlg.FileName, HTTPArchive.io.Response.ToString());
+                System.IO.File.WriteAllText(dlg.FileName, JsonConvert.SerializeObject(HTTPArchive.io.Response));
             }
         }
 
