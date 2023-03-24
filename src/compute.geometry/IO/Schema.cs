@@ -19,38 +19,38 @@ namespace Resthopper.IO
         [JsonProperty(PropertyName = "angletolerance", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public double AngleTolerance { get; set; } = 0;
 
-        [JsonProperty(PropertyName = "modelunits")]
-        public string ModelUnits { get; set; } = Rhino.UnitSystem.Millimeters.ToString();
+        [JsonProperty(PropertyName = "modelunits", DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public string ModelUnits { get; set; }
 
         // Rhino version of data to be serialized and returned to the client
-        [JsonProperty(PropertyName = "dataversion")]
+        [JsonProperty(PropertyName = "dataversion", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public int DataVersion { get; set; } = 7;
 
-        [JsonProperty(PropertyName = "algo")]
+        [JsonProperty(PropertyName = "algo", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string Algo { get; set; }
 
-        [JsonProperty(PropertyName = "pointer")]
+        [JsonProperty(PropertyName = "pointer", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string Pointer { get; set; }
 
         // If true on input, the solve results are cached based on this schema.
         // When true the cache is searched for already computed results and used
-        [JsonProperty(PropertyName = "cachesolve")]
+        [JsonProperty(PropertyName = "cachesolve", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public bool CacheSolve { get; set; } = false;
 
         // Used for nested calls
         [JsonProperty(PropertyName = "recursionlevel", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public int RecursionLevel { get; set; } = 0;
 
-        [JsonProperty(PropertyName = "values")]
+        [JsonProperty(PropertyName = "values", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public List<DataTree<ResthopperObject>> Values { get; set; } = new List<DataTree<ResthopperObject>>();
 
         // Return warnings from GH
         [JsonProperty(PropertyName = "warnings", DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public List<string> Warnings { get; set; } = new List<string>();
+        public List<string> Warnings { get; set; }
 
         // Return errors from GH
         [JsonProperty(PropertyName = "errors", DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public List<string> Errors { get; set; } = new List<string>();
+        public List<string> Errors { get; set; }
     }
 
     public class IoQuerySchema
@@ -62,33 +62,68 @@ namespace Resthopper.IO
 
     public class IoParamSchema
     {
+        [JsonProperty(PropertyName = "Name", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string Name { get; set; }
+
+        [JsonProperty(PropertyName = "Nickname", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string Nickname { get; set; }
+
+        [JsonProperty(PropertyName = "ParamType", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string ParamType { get; set; }
     }
 
     public class InputParamSchema : IoParamSchema
     {
+        [JsonProperty(PropertyName = "Description", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string Description { get; set; }
+
+        [JsonProperty(PropertyName = "AtLeast")]
         public int AtLeast { get; set; } = 1;
+
+        [JsonProperty(PropertyName = "AtMost", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public int AtMost { get; set; } = int.MaxValue;
+
+        [JsonProperty(PropertyName = "TreeAccess", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public bool TreeAccess { get; set; } = false;
+
+        [JsonProperty(PropertyName = "Default", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public object Default { get; set; } = null;
+
+        [JsonProperty(PropertyName = "Minimum", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public object Minimum { get; set; } = null;
+
+        [JsonProperty(PropertyName = "Maximum", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public object Maximum { get; set; } = null;
     }
 
     public class IoResponseSchema
     {
+        [JsonProperty(PropertyName = "Description", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string Description { get; set; }
+
+        [JsonProperty(PropertyName = "CacheKey", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string CacheKey { get; set; }
+
+        [JsonProperty(PropertyName = "InputNames", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public List<string> InputNames { get; set; }
+
+        [JsonProperty(PropertyName = "OutputNames", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public List<string> OutputNames { get; set; }
+
+        [JsonProperty(PropertyName = "Icon", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public string Icon { get; set; }
+
+        [JsonProperty(PropertyName = "Inputs", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public List<InputParamSchema> Inputs { get; set; }
+
+        [JsonProperty(PropertyName = "Outputs", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public List<IoParamSchema> Outputs { get; set; }
-        public List<string> Warnings { get; set; } = new List<string>();
-        public List<string> Errors { get; set; } = new List<string>();
+
+        [JsonProperty(PropertyName = "Warnings", DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public List<string> Warnings { get; set; }
+
+        [JsonProperty(PropertyName = "Errors", DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public List<string> Errors { get; set; } 
     }
 
     public class HTTPArchive
@@ -99,16 +134,8 @@ namespace Resthopper.IO
             io = new IO();
             solve = new Solve();
         }
-        //public string IORequest { get; set; }
-        //public string IOResponse { get; set; }
-        //public string SolveRequest { get; set; }
-        //public string SolveResponse { get; set; }
-
         public IO io { get; set; }
         public Solve solve { get; set; }
-
-        //public Schema Schema { get; set; }
-        //public IoResponseSchema IOResponseSchema { get; set; }
     }
 
     public class RequestHeaders
@@ -187,10 +214,11 @@ namespace Resthopper.IO
         [JsonProperty(PropertyName = "Content")]
         public Schema Content { get; set;}
     }
-    public class IOResponse
+
+    public class Response
     {
         [JsonConstructor]
-        public IOResponse() 
+        public Response()
         {
             Headers = new ResponseHeaders();
         }
@@ -200,25 +228,16 @@ namespace Resthopper.IO
 
         [JsonProperty(PropertyName = "Headers")]
         public ResponseHeaders Headers { get; set; }
+    }
 
+    public class IOResponse : Response
+    {
         [JsonProperty(PropertyName = "Content", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public IoResponseSchema Content { get; set; }
     }
 
-    public class SolveResponse
+    public class SolveResponse : Response
     {
-        [JsonConstructor]
-        public SolveResponse()
-        {
-            Headers = new ResponseHeaders();
-        }
-
-        [JsonProperty(PropertyName = "Status Code")]
-        public string StatusCode { get; set; }
-
-        [JsonProperty(PropertyName = "Headers")]
-        public ResponseHeaders Headers { get; set; }
-
         [JsonProperty(PropertyName = "Content", DefaultValueHandling = DefaultValueHandling.Ignore)]
         public Schema Content { get; set; }
     }

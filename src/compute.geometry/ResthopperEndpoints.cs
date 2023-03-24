@@ -114,6 +114,7 @@ namespace compute.geometry
             stopwatch.Restart();
             var output = definition.Solve(input.DataVersion);
             output.Pointer = definition.CacheKey;
+            output.DataVersion = 8; //input.DataVersion;
             long solveTime = stopwatch.ElapsedMilliseconds;
             stopwatch.Restart();
             string returnJson = JsonConvert.SerializeObject(output, GeometryResolver.Settings(input.DataVersion));
@@ -221,10 +222,14 @@ namespace compute.geometry
             responseSchema.Icon = definition.GetIconAsString();
             foreach (var error in definition.ErrorMessages)
             {
+                if(responseSchema.Errors == null)
+                    responseSchema.Errors = new List<string>();
                 responseSchema.Errors.Add(error);
             }
             foreach (var error in Logging.Errors)
             {
+                if (responseSchema.Errors == null)
+                    responseSchema.Errors = new List<string>();
                 responseSchema.Errors.Add(error);
             }
             string jsonResponse = JsonConvert.SerializeObject(responseSchema);

@@ -282,7 +282,6 @@ namespace Hops
         const string TagSynchronousSolve = "SynchronousSolve";
         const string TagShowEnabled = "ShowInput_Enabled";
         const string TagShowPath = "ShowInput_Path";
-        const string TagInternalizeDefinitionFlag = "InternalizeFlag";
         const string TagInternalizeDefinition = "InternalizeDefinition";
 
         public override bool Write(GH_IWriter writer)
@@ -699,32 +698,32 @@ for value in values:
 
         void ExportLastSolveRequest()
         {
-            //if (String.IsNullOrEmpty(HTTPArchive.SolveRequest))
-            //{
-            //    Eto.Forms.MessageBox.Show("No solve request has been made. Run this component at least once", Eto.Forms.MessageBoxType.Error);
-            //    return;
-            //}
-            //var dlg = new Eto.Forms.SaveFileDialog();
-            //dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
-            //if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
-            //{
-            //    System.IO.File.WriteAllText(dlg.FileName, HTTPArchive.SolveRequest);
-            //}
+            if (HTTPArchive.solve.Request == null)
+            {
+                Eto.Forms.MessageBox.Show("No solve request has been made. Run this component at least once", Eto.Forms.MessageBoxType.Error);
+                return;
+            }
+            var dlg = new Eto.Forms.SaveFileDialog();
+            dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
+            if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
+            {
+                System.IO.File.WriteAllText(dlg.FileName, JsonConvert.SerializeObject(HTTPArchive.solve.Request));
+            }
         }
 
         void ExportLastSolveResponse()
         {
-            //if (String.IsNullOrEmpty(HTTPArchive.SolveResponse))
-            //{
-            //    Eto.Forms.MessageBox.Show("No solve response has been received. Run this component at least once", Eto.Forms.MessageBoxType.Error);
-            //    return;
-            //}
-            //var dlg = new Eto.Forms.SaveFileDialog();
-            //dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
-            //if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
-            //{
-            //    System.IO.File.WriteAllText(dlg.FileName, HTTPArchive.SolveResponse);
-            //}
+            if (HTTPArchive.solve.Response == null)
+            {
+                Eto.Forms.MessageBox.Show("No solve response has been received. Run this component at least once", Eto.Forms.MessageBoxType.Error);
+                return;
+            }
+            var dlg = new Eto.Forms.SaveFileDialog();
+            dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
+            if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
+            {
+                System.IO.File.WriteAllText(dlg.FileName, JsonConvert.SerializeObject(HTTPArchive.solve.Response));
+            }
         }
 
         string _tempPath;
@@ -813,22 +812,22 @@ for value in values:
                     Grasshopper.Instances.ActiveCanvas?.Invalidate();
                     return;
                 }
-                //if(HTTPArchive.IOResponseSchema != null && HTTPArchive.IOResponseSchema.Errors.Count > 0)
-                //{
-                //    foreach(var error in HTTPArchive.IOResponseSchema.Errors)
-                //    {
-                //        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
-                //        Grasshopper.Instances.ActiveCanvas?.Invalidate();
-                //        return;
-                //    }
-                //}
-                //if(HTTPArchive.IOResponseSchema != null && HTTPArchive.IOResponseSchema.Warnings.Count > 0)
-                //{
-                //    foreach (var warning in HTTPArchive.IOResponseSchema.Warnings)
-                //    {
-                //        AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
-                //    }
-                //}
+                if (HTTPArchive.io.Response.Content != null && HTTPArchive.io.Response.Content?.Errors?.Count > 0)
+                {
+                    foreach (var error in HTTPArchive.io.Response.Content.Errors)
+                    {
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
+                        Grasshopper.Instances.ActiveCanvas?.Invalidate();
+                        return;
+                    }
+                }
+                if (HTTPArchive.io.Response.Content != null && HTTPArchive.io.Response.Content?.Warnings?.Count > 0)
+                {
+                    foreach (var warning in HTTPArchive.io.Response.Content.Warnings)
+                    {
+                        AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
+                    }
+                }
 
                 if (!string.IsNullOrWhiteSpace(description) && !Description.Equals(description))
                 {

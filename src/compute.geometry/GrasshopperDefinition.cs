@@ -772,7 +772,8 @@ namespace compute.geometry
         {
             HasErrors = false;
             Schema outputSchema = new Schema();
-            outputSchema.Algo = "";
+            //outputSchema.Algo = null;
+            outputSchema.DataVersion= rhinoVersion;
 
             // solve definition
             Definition.Enabled = true;
@@ -780,6 +781,8 @@ namespace compute.geometry
 
             foreach(string msg in ErrorMessages)
             {
+                if(outputSchema.Errors == null)
+                    outputSchema.Errors= new List<string>();
                 outputSchema.Errors.Add(msg);
             }
 
@@ -917,9 +920,9 @@ namespace compute.geometry
                 throw new System.Exceptions.PayAttentionException("Looks like you've missed something..."); // TODO
 
             // Setting warnings and errors to null ever so slightly shrinks down the json sent back to the client
-            if (outputSchema.Warnings.Count < 1)
+            if (outputSchema.Warnings?.Count < 1)
                 outputSchema.Warnings = null;
-            if (outputSchema.Errors.Count < 1)
+            if (outputSchema.Errors?.Count < 1)
                 outputSchema.Errors = null;
 
             return outputSchema;
@@ -931,6 +934,8 @@ namespace compute.geometry
             {
                 foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Error))
                 {
+                    if (schema.Errors == null)
+                        schema.Errors = new List<string>();
                     string errorMsg = $"{msg}: component \"{obj.Name}\" ({obj.InstanceGuid})";
                     LogError(errorMsg);
                     schema.Errors.Add(errorMsg);
@@ -940,6 +945,8 @@ namespace compute.geometry
                 {
                     foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Warning))
                     {
+                        if (schema.Warnings == null)
+                            schema.Warnings = new List<string>();
                         string warningMsg = $"{msg}: component \"{obj.Name}\" ({obj.InstanceGuid})";
                         LogDebug(warningMsg);
                         schema.Warnings.Add(warningMsg);

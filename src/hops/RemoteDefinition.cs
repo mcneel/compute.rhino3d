@@ -12,6 +12,8 @@ using System.Net.Http;
 using Grasshopper.Kernel.Data;
 using System.Net.Http.Headers;
 using System.Linq;
+using System.Security.Policy;
+using System.Net;
 
 namespace Hops
 {
@@ -34,7 +36,7 @@ namespace Hops
             InvalidUrl //responding, but does not appear to have anything to do with solving
         }
 
-        HopsComponent _parentComponent;
+        public HopsComponent _parentComponent;
         Dictionary<string, Tuple<InputParamSchema, IGH_Param>> _inputParams;
         Dictionary<string, IGH_Param> _outputParams;
         string _description = null;
@@ -162,6 +164,53 @@ namespace Hops
             return _description;
         }
 
+        public void InitRequest(HttpClient client, Request request, string URL, string method)
+        {
+            if (request == null)
+                return;
+            if (client == null)
+                return;
+            client.DefaultRequestHeaders.Clear();
+            client.BaseAddress = new Uri(URL);
+            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            client.DefaultRequestHeaders.Add("User-Agent", "Hops-v." + GhaAssemblyInfo.AppVersion);
+            client.DefaultRequestHeaders.Add("Date", DateTime.Now.ToString("ddd, dd MMM yyyy HH:mm:ss zzzz"));
+            client.DefaultRequestHeaders.Add("Pragma", "no-cache");
+            client.DefaultRequestHeaders.Add("CacheControl", "no-cache");
+            if (HopsAppSettings.HTTPTimeout > 0)
+                client.Timeout = TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout);
+            if (!String.IsNullOrEmpty(HopsAppSettings.APIKey) && method == "POST")
+            {
+                client.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(_apiKeyName, HopsAppSettings.APIKey);
+            }
+
+            request.RequestMethod = method;
+            request.URL = URL;
+            request.Headers.Date = client.DefaultRequestHeaders.GetValues("Date")?.FirstOrDefault();
+            request.Headers.UserAgent = client.DefaultRequestHeaders.GetValues("User-Agent")?.FirstOrDefault();
+            request.Headers.Pragma = client.DefaultRequestHeaders.GetValues("Pragma")?.FirstOrDefault();
+            request.Headers.CacheControl = client.DefaultRequestHeaders.GetValues("CacheControl")?.FirstOrDefault();
+            request.Headers.Authorization = client.DefaultRequestHeaders.Authorization?.Parameter;
+            request.Headers.Accept = client.DefaultRequestHeaders.Accept?.FirstOrDefault()?.MediaType;
+        }
+
+        public void InitResponse(HttpResponseMessage message, Response response, HttpStatusCode status)
+        {
+            if (message == null)
+                return;
+            var headers = message.Headers;
+
+            response.StatusCode = status.ToString();
+            response.Headers.Date = headers.Date?.ToString("ddd, dd MMM yyyy HH:mm:ss zzzz");
+            response.Headers.Age = Math.Floor(headers.Age?.TotalSeconds ?? 0).ToString();
+            response.Headers.Connection = headers.Connection?.FirstOrDefault()?.ToString();
+            response.Headers.CacheControl = headers.CacheControl?.ToString();
+            response.Headers.Pragma = headers.Pragma?.ToString();
+            response.Headers.Server = headers.Server?.ToString();
+            response.Headers.Location = headers.Location?.ToString();
+        }
+
         public void GetRemoteDescription()
         {
             bool performPost = false;
@@ -200,20 +249,6 @@ namespace Hops
             System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage> responseTask;
             IDisposable contentToDispose = null;
 
-            HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            HttpClient.DefaultRequestHeaders.Add("User-Agent", "Hops-v." + GhaAssemblyInfo.AppVersion);
-            HttpClient.DefaultRequestHeaders.Add("Date", DateTime.Now.ToString("ddd, dd MMM yyyy HH:mm:ss zzzz"));
-            HttpClient.DefaultRequestHeaders.Add("Pragma", "no-cache");
-            HttpClient.DefaultRequestHeaders.Add("CacheControl", "no-cache");
-
-            if (!String.IsNullOrEmpty(HopsAppSettings.APIKey))
-            {
-                HttpClient.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
-                HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(_apiKeyName, HopsAppSettings.APIKey);
-            }
-            if (HopsAppSettings.HTTPTimeout > 0)
-                HttpClient.Timeout = TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout);
-
             if (performPost)
             {
                 string postUrl = Servers.GetDescriptionPostUrl();
@@ -238,76 +273,35 @@ namespace Hops
                 schema.AngleTolerance = GetDocumentAngleTolerance();
                 schema.ModelUnits = GetDocumentUnits();
                 string inputJson = JsonConvert.SerializeObject(schema);
-                //string requestContent = "{";
-                //requestContent += "\"URL\": \"" + postUrl + "\"," + Environment.NewLine;
-                //requestContent += "\"Method\": \"POST" + "\"," + Environment.NewLine;
-                //requestContent += "\"Content\": " + inputJson  + Environment.NewLine;
-                //requestContent += "}";
-                //_parentComponent.HTTPArchive.IORequest = requestContent;
-
-                var content = new StringContent(inputJson, Encoding.UTF8, "application/json");
-
-                //HttpClient client = new HttpClient();
-                
-                HttpClient.BaseAddress = new Uri(postUrl); 
-
-                _parentComponent.HTTPArchive.io.Request.RequestMethod = "POST";
-                _parentComponent.HTTPArchive.io.Request.URL = postUrl;
+                HttpClient client = new HttpClient();
+                InitRequest(client, _parentComponent.HTTPArchive.io.Request, postUrl, "POST");
                 _parentComponent.HTTPArchive.io.Request.Content = schema.Duplicate();
-                _parentComponent.HTTPArchive.io.Request.Headers.Date = HttpClient.DefaultRequestHeaders.GetValues("Date")?.FirstOrDefault();
-                _parentComponent.HTTPArchive.io.Request.Headers.UserAgent = HttpClient.DefaultRequestHeaders.GetValues("User-Agent")?.FirstOrDefault();
-                _parentComponent.HTTPArchive.io.Request.Headers.Pragma = HttpClient.DefaultRequestHeaders.GetValues("Pragma")?.FirstOrDefault();
-                _parentComponent.HTTPArchive.io.Request.Headers.CacheControl = HttpClient.DefaultRequestHeaders.GetValues("CacheControl")?.FirstOrDefault();
-                _parentComponent.HTTPArchive.io.Request.Headers.Authorization = HttpClient.DefaultRequestHeaders.Authorization?.Parameter;
-                _parentComponent.HTTPArchive.io.Request.Headers.Accept = HttpClient.DefaultRequestHeaders.Accept?.FirstOrDefault()?.MediaType;
-
+                var content = new StringContent(inputJson, Encoding.UTF8, "application/json");
                 responseTask = HttpClient.PostAsync(postUrl, content);
-
-                //_parentComponent.HTTPArchive.Schema = schema;
-                
                 contentToDispose = content;
             }
             else
             {
-                //string requestContent = "{";
-                //requestContent += "\"URL\": \"" + address + "\"," + Environment.NewLine;
-                //requestContent += "\"Method\": \"GET" + "\"" + Environment.NewLine;
-                //requestContent += "}";
-                //_parentComponent.HTTPArchive.IORequest = requestContent;
-
-                HttpClient.BaseAddress = new Uri(address);
-                _parentComponent.HTTPArchive.io.Request.URL = address;
-                _parentComponent.HTTPArchive.io.Request.RequestMethod = "GET";
-
-                responseTask = HttpClient.GetAsync(address);
+                HttpClient client = new HttpClient();
+                InitRequest(client, _parentComponent.HTTPArchive.io.Request, address, "GET");
+                responseTask = client.GetAsync(address);
             }
             if (responseTask != null)
             {
                 var responseMessage = responseTask.Result;
-                var remoteSolvedData = responseMessage.Content;
-                var remoteHeaders = responseMessage.Headers;
+                var remoteSolvedData = responseMessage.Content;          
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
 
-                _parentComponent.HTTPArchive.io.Response.StatusCode = responseTask.Result.StatusCode.ToString();
-                _parentComponent.HTTPArchive.io.Response.Headers.Date = remoteHeaders.Date?.ToString("ddd, dd MMM yyyy HH:mm:ss zzzz");
-                _parentComponent.HTTPArchive.io.Response.Headers.Age = Math.Floor(remoteHeaders.Age?.TotalSeconds ?? 0).ToString();
-                _parentComponent.HTTPArchive.io.Response.Headers.Connection = remoteHeaders.Connection?.FirstOrDefault()?.ToString();
-                _parentComponent.HTTPArchive.io.Response.Headers.CacheControl = remoteHeaders.CacheControl?.ToString();
-                _parentComponent.HTTPArchive.io.Response.Headers.Pragma = remoteHeaders.Pragma?.ToString();
-                _parentComponent.HTTPArchive.io.Response.Headers.Server = remoteHeaders.Server?.ToString();
-                _parentComponent.HTTPArchive.io.Response.Headers.Location = remoteHeaders.Location?.ToString();
-
+                InitResponse(responseMessage, _parentComponent.HTTPArchive.io.Response, responseTask.Result.StatusCode);
+                
                 if (string.IsNullOrEmpty(stringResult))
                 {
                     _pathType = PathType.InvalidUrl; // Looks like a valid but not related URL
-                    //_parentComponent.HTTPArchive.IOResponse = "Invalid URL";
                 }
                 else
                 {
-                    //_parentComponent.HTTPArchive.IOResponse = stringResult;
                     responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(stringResult);
                     _cacheKey = responseSchema.CacheKey;
-                    //_parentComponent.HTTPArchive.IOResponseSchema = responseSchema;
                     _parentComponent.HTTPArchive.io.Response.Content = responseSchema;
                 }
             }
@@ -381,7 +375,6 @@ namespace Hops
                     }
                     _outputParams[outputParamName] = ParamFromIoResponseSchema(output);
                 }
-                //_parentComponent.HTTPArchive.IOResponseSchema = responseSchema;
             }
         }
 
@@ -470,6 +463,7 @@ namespace Hops
         public Schema Solve(Schema inputSchema, bool useMemoryCache)
         {
             string solveUrl;
+            inputSchema.DataVersion = 8;
             var pathType = GetPathType();
             if (pathType == PathType.NonresponsiveUrl)
                 return null;
@@ -485,7 +479,6 @@ namespace Hops
                 int index = Path.LastIndexOf('/');
                 var authority = new Uri(Path).Authority;
                 solveUrl = "http://" + authority + "/solve";
-                //solveUrl = Path.Substring(0, index + 1) + "solve";
             }
 
             string inputJson = JsonConvert.SerializeObject(inputSchema);
@@ -497,24 +490,21 @@ namespace Hops
                     return cachedResults;
                 }
             }
-            //string requestContent = "{";
-            //requestContent += "\"URL\": \"" + solveUrl + "\"," + Environment.NewLine;
-            //requestContent += "\"content\": " + inputJson + Environment.NewLine;
-            //requestContent += "}";
-            //_parentComponent.HTTPArchive.SolveRequest = requestContent;
+
             using (var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json"))
             {
                 HttpClient client = new HttpClient();
-                if (!String.IsNullOrEmpty(HopsAppSettings.APIKey))
-                    client.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
-                if (HopsAppSettings.HTTPTimeout > 0)
-                    client.Timeout = TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout);
-                var postTask = client.PostAsync(solveUrl, content);
+                InitRequest(client, _parentComponent.HTTPArchive.solve.Request, solveUrl, "POST");
+                _parentComponent.HTTPArchive.solve.Request.Content = inputSchema.Duplicate();
+                var postTask = HttpClient.PostAsync(solveUrl, content);
+
                 var responseMessage = postTask.Result;
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-                //_parentComponent.HTTPArchive.SolveResponse = stringResult;
                 Schema schema = SafeSchemaDeserialize(stringResult);
+                InitResponse(responseMessage, _parentComponent.HTTPArchive.solve.Response, postTask.Result.StatusCode);
+                if(schema != null)
+                    _parentComponent.HTTPArchive.solve.Response.Content = schema.Duplicate();
 
                 if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
                 {
@@ -525,28 +515,27 @@ namespace Hops
                         string base64 = Convert.ToBase64String(bytes);
                         inputSchema.Algo = base64;
                         inputJson = JsonConvert.SerializeObject(inputSchema);
-                        //requestContent = "{";
-                        //requestContent += "\"URL\": \"" + solveUrl + "\"," + Environment.NewLine;
-                        //requestContent += "\"content\":" + inputJson + Environment.NewLine;
-                        //requestContent += "}";
-                        //_parentComponent.HTTPArchive.SolveRequest = requestContent;
                         var content2 = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
                         HttpClient client2 = new HttpClient();
-                        if (!String.IsNullOrEmpty(HopsAppSettings.APIKey))
-                            client2.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
-                        if (HopsAppSettings.HTTPTimeout > 0)
-                            client2.Timeout = TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout);
-                        postTask = client.PostAsync(solveUrl, content2);
+                        InitRequest(client, _parentComponent.HTTPArchive.solve.Request, solveUrl, "POST");
+                        _parentComponent.HTTPArchive.solve.Request.Content = inputSchema.Duplicate();
+                        postTask = HttpClient.PostAsync(solveUrl, content2);
+
                         responseMessage = postTask.Result;
                         remoteSolvedData = responseMessage.Content;
                         stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-                        //_parentComponent.HTTPArchive.SolveResponse = stringResult;
                         schema = SafeSchemaDeserialize(stringResult);
+                        InitResponse(responseMessage, _parentComponent.HTTPArchive.solve.Response, postTask.Result.StatusCode);
+                        if(schema != null)
+                            _parentComponent.HTTPArchive.solve.Response.Content = schema.Duplicate();
+
                         if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
                         {
                             var badSchema = new Schema();
+                            if(badSchema.Errors == null)
+                                badSchema.Errors = new List<string>();
                             badSchema.Errors.Add("Unable to solve on compute");
-                            //_parentComponent.HTTPArchive.Schema = badSchema;
+                            _parentComponent.HTTPArchive.solve.Response.Content = badSchema;
                             return badSchema;
                         }
                     }
@@ -555,8 +544,10 @@ namespace Hops
                         if (!fileExists && string.IsNullOrEmpty(inputSchema.Algo) && GetPathType() == PathType.GrasshopperDefinition)
                         {
                             var badSchema = new Schema();
+                            if (badSchema.Errors == null)
+                                badSchema.Errors = new List<string>();
                             badSchema.Errors.Add($"Unable to find file: {Path}");
-                            //_parentComponent.HTTPArchive.Schema = badSchema;
+                            _parentComponent.HTTPArchive.solve.Response.Content = badSchema;
                             return badSchema;
                         }
                     }
@@ -565,14 +556,16 @@ namespace Hops
                 if (responseMessage.StatusCode == System.Net.HttpStatusCode.RequestTimeout)
                 {
                     var badSchema = new Schema();
+                    if (badSchema.Errors == null)
+                        badSchema.Errors = new List<string>();
                     badSchema.Errors.Add($"Request timeout: {Path}");
-                    //_parentComponent.HTTPArchive.Schema = badSchema;
+                    _parentComponent.HTTPArchive.solve.Response.Content = badSchema;
                     return badSchema;
                 }
 
                 bool rebuildDefinition = (responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError
-                    && schema.Errors.Count > 0
-                    && string.Equals(schema.Errors[0], "Bad inputs", StringComparison.OrdinalIgnoreCase));
+                    && schema.Errors?.Count > 0
+                    && string.Equals(schema.Errors?[0], "Bad inputs", StringComparison.OrdinalIgnoreCase));
                 if (!rebuildDefinition)
                 {
                     if (schema.Values.Count > 0 && schema.Values.Count != _outputParams.Count)
@@ -595,6 +588,8 @@ namespace Hops
                     }
                 }
                 _cacheKey = schema.Pointer;
+                if (schema != null)
+                    _parentComponent.HTTPArchive.solve.Response.Content = schema.Duplicate();
                 return schema;
             }
         }
@@ -672,14 +667,19 @@ namespace Hops
                 else
                     DA.SetDataTree(paramIndex, structure);
             }
-
-            foreach (var error in schema.Errors)
+            if(schema.Errors != null)
             {
-                component.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
+                foreach (var error in schema.Errors)
+                {
+                    component.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
+                }
             }
-            foreach (var warning in schema.Warnings)
+            if(schema.Warnings != null)
             {
-                component.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
+                foreach (var warning in schema.Warnings)
+                {
+                    component.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
+                }
             }
         }
 
