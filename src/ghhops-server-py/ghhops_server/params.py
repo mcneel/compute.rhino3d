@@ -4,7 +4,7 @@ from enum import Enum
 import inspect
 from ghhops_server.base import _HopsEncoder
 from ghhops_server.logger import hlogger
-
+from pprint import pprint
 
 __all__ = (
     "HopsParamAccess",
@@ -193,6 +193,7 @@ class _GHParam:
 
     def from_input(self, input_data):
         """Extract parameter data from serialized input"""
+        pprint(input_data)
         if self.access == HopsParamAccess.TREE:
             paths = input_data["InnerTree"]
             tree = {}
@@ -206,7 +207,7 @@ class _GHParam:
             return tree
 
         data = []
-        for param_value_item in input_data["InnerTree"]["0"]:
+        for param_value_item in input_data["InnerTree"]["{0}"]:
             param_type = param_value_item["type"]
             param_value = param_value_item["data"]
             data.append(self._coerce_value(param_type, param_value))
