@@ -4,7 +4,7 @@ from enum import Enum
 import inspect
 from ghhops_server.base import _HopsEncoder
 from ghhops_server.logger import hlogger
-
+from pprint import pprint
 
 __all__ = (
     "HopsParamAccess",
@@ -193,26 +193,16 @@ class _GHParam:
 
     def from_input(self, input_data):
         """Extract parameter data from serialized input"""
-        if self.access == HopsParamAccess.TREE:
-            paths = input_data["InnerTree"]
-            tree = {}
-            for k, v in paths.items():
-                data = []
-                for param_value_item in v:
-                    param_type = param_value_item["type"]
-                    param_value = param_value_item["data"]
-                    data.append(self._coerce_value(param_type, param_value))
-                tree[k] = data
-            return tree
-
-        data = []
-        for param_value_item in input_data["InnerTree"]["0"]:
-            param_type = param_value_item["type"]
-            param_value = param_value_item["data"]
-            data.append(self._coerce_value(param_type, param_value))
-        if self.access == HopsParamAccess.ITEM:
-            return data[0]
-        return data
+        paths = input_data["InnerTree"]
+        tree = {}
+        for k, v in paths.items():
+            data = []
+            for param_value_item in v:
+                param_type = param_value_item["type"]
+                param_value = param_value_item["data"]
+                data.append(self._coerce_value(param_type, param_value))
+            tree[k] = data
+        return tree
 
     def from_result(self, value):
         """Serialize parameter with given value for output"""
