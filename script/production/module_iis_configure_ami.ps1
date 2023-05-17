@@ -60,6 +60,10 @@ function New-RandomPassword {
 }
 #EndRegion funcs
 
+Write-Host "Generating new API Key"
+$ApiKey = [guid]::NewGuid().Guid
+SetEnvVar 'RHINO_COMPUTE_KEY' $ApiKey
+
 Write-Step "Creating a new user identity"
 $securePassword = New-RandomPassword -MinimumPasswordLength 16 -MaximumPasswordLength 20 -NumberOfAlphaNumericCharacters 6 -ConvertToSecureString
 $localUserAccount = @{
@@ -136,6 +140,9 @@ Start-IISSite -Name $websiteName
 Start-Transcript -Path C:\Users\Administrator\Desktop\ReadMe.txt
 Write-Host
 Write-Host "Congratulations! All components have now been installed."
+Write-Host
+Write-Host "Your Rhino Compute API Key is: $ApiKey"
+Write-Host "You need to send your API Key as a value for RhinoComputeKey header with every request"
 Write-Host
 Write-Host "To install third party plugins follow these steps"
 Write-Host "  1) Log into your VM using these credentials (write these down)"
