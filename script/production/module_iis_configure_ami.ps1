@@ -137,7 +137,7 @@ SetEnvVar 'RHINO_COMPUTE_LOG_PATH' "$rhinoComputePath\logs"
 Write-Step "Starting rhino.compute site" 
 Start-IISSite -Name $websiteName
 
-Start-Transcript -Path C:\Users\Administrator\Desktop\ReadMe.txt
+Start-Transcript -Path $env:USERPROFILE\Desktop\ReadMe.txt
 Write-Host
 Write-Host "Congratulations! All components have now been installed."
 Write-Host
