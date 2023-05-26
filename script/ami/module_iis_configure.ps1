@@ -76,8 +76,9 @@ $localUserAccount = @{
 }
 New-LocalUser @localUserAccount
 
-Write-Step "Adding user to RDP user group"
-Add-LocalGroupMember -Group "Remote Desktop Users" -Member $localUserName
+# Users with RDP access gets in the way of creating AMIs
+# Write-Step "Adding user to RDP user group"
+# Add-LocalGroupMember -Group "Remote Desktop Users" -Member $localUserName
 
 $localUserPassword = (New-Object PSCredential $localUserName,$securePassword).GetNetworkCredential().Password
 
