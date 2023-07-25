@@ -1,12 +1,16 @@
 # The important directories
 
-#### compute.components
+#### rhino.compute
 
-Grasshopper component project (Hops) for communicating with a compute.geometry server.
+The main project – responsible for spinning up/down instances of compute.geometry.exe and proxying HTTP requests to these instances.
 
 #### compute.geometry
 
 The main geometry server project.
+
+#### compute.components
+
+Grasshopper component project (Hops) for communicating with a compute.geometry server.
 
 
 # The other directories
