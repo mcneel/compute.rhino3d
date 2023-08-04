@@ -36,8 +36,8 @@
     <Reference Include="BHoM">
       <HintPath>C:\ProgramData\BHoM\Assemblies\BHoM.dll</HintPath>
     </Reference>
-    <Reference Include="Computing_oM">
-      <HintPath>C:\ProgramData\BHoM\Assemblies\Computing_oM.dll</HintPath>
+    <Reference Include="RemoteCompute_oM">
+      <HintPath>C:\ProgramData\BHoM\Assemblies\RemoteCompute_oM.dll</HintPath>
     </Reference>
     <Reference Include="Eto, Version=2.5.0.0, Culture=neutral, PublicKeyToken=552281e97c755530, processorArchitecture=MSIL">
       <HintPath>..\packages\RhinoCommon.7.0.20314.3001\lib\net45\Eto.dll</HintPath>
