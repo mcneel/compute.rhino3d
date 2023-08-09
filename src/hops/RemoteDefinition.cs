@@ -617,7 +617,7 @@ namespace Hops
                     var localBranch = structure.EnsurePath(path);
                     for (int gooIndex = 0; gooIndex < kv.Value.Count; gooIndex++)
                     {
-                        goo = GooFromReshopperObject(kv.Value[gooIndex]);
+                        goo = GooFromResthopperObject(kv.Value[gooIndex]);
                         localBranch.Add(goo);
                     }
                 }
@@ -637,7 +637,7 @@ namespace Hops
             }
         }
 
-        static IGH_Goo GooFromReshopperObject(ResthopperObject obj)
+        static IGH_Goo GooFromResthopperObject(ResthopperObject obj)
         {
             if (obj.ResolvedData != null)
                 return obj.ResolvedData as Grasshopper.Kernel.Types.IGH_Goo;
