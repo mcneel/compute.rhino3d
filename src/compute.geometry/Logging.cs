@@ -31,7 +31,7 @@ namespace compute.geometry
             var logger = new LoggerConfiguration()
                 .MinimumLevel.Is(level)
                 .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-                .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico']")
+                //.Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico']")
                 .Enrich.FromLogContext()
                 .WriteTo.Console(outputTemplate: "CG {Port} [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
                 .WriteTo.File(new JsonFormatter(renderMessage: true), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);

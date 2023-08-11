@@ -28,7 +28,6 @@ namespace compute.geometry
         {
             RhinoCoreStartup();
             
-            app.UseSerilogRequestLogging();
             app.UseRouting();
             app.UseCors();
             //if (!String.IsNullOrEmpty(Config.ApiKey))
