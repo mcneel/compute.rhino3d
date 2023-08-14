@@ -6,6 +6,8 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
+using compute.geometry;
+using Serilog;
 
 namespace RhinoInside
 {
@@ -23,11 +25,35 @@ namespace RhinoInside
             
             // Force load WindowsBase from the WindowsDesktop set of assemblies
             var path = typeof(int).Assembly.Location;
-            string directory =Path.GetDirectoryName(path);
+            //string directory = Path.GetDirectoryName(path);
+            //string directory = @"C:\dev\github\mcneel\compute.rhino3d\src\dist\compute.geometry";
+            string directory = @"C:\Program Files\dotnet\shared\Microsoft.NETCore.App\7.0.5";
+            Log.Information($"Assembly Directory = {directory}");
             int index = directory.IndexOf("NETCORE", StringComparison.OrdinalIgnoreCase);
-            directory = directory.Substring(0, index) + "WindowsDesktop" + directory.Substring(index + "NETCORE".Length);
-            string windowsBase = Path.Combine(directory, "WindowsBase.dll");
-            Assembly.LoadFrom(windowsBase);
+            if (index > -1)
+            {
+                directory = directory.Substring(0, index) + "WindowsDesktop" + directory.Substring(index + "NETCORE".Length);
+                string windowsBase = Path.Combine(directory, "WindowsBase.dll");
+                var assm = Assembly.LoadFrom(windowsBase);
+            }
+            else
+            {
+                DirectoryInfo dirInfo = new DirectoryInfo(directory);
+                try
+                {
+                    var result = dirInfo.EnumerateFiles("WindowsBase.dll", SearchOption.AllDirectories);
+                    if (result.FirstOrDefault() is FileInfo _windowsBase)
+                    {
+                        Log.Information($"Found WindowsBase.dll at {_windowsBase.FullName}");
+                        Log.Information($"Confirmed to be running in self-contained mode");
+                        var assembly = Assembly.LoadFrom(_windowsBase.FullName);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex.Message);
+                }
+            }
         }
 
         static string _rhinoSystemDirectory;

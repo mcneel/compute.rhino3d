@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Carter;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
@@ -41,7 +42,9 @@ namespace compute.geometry
 
         void RhinoCoreStartup()
         {
+            Log.Information("Entering RhinoCoreStartup Method...");
             Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
+            Log.Information("New RhinoCore Started...");
             Environment.SetEnvironmentVariable("RHINO_TOKEN", null, EnvironmentVariableTarget.Process);
             Rhino.Runtime.HostUtils.OnExceptionReport += (source, ex) => {
                 Log.Error(ex, "An exception occurred while processing request");

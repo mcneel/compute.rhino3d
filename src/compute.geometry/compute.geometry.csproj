@@ -13,6 +13,9 @@
     <OutputPath>..\bin\Release\$(AssemblyName)</OutputPath>
     <PublishDir>..\dist\$(AssemblyName)</PublishDir>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Optimize>True</Optimize>
+  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Carter" Version="7.0.0" />
