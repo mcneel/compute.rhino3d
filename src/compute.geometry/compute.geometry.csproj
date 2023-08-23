@@ -12,6 +12,7 @@
     <PublishSingleFile>False</PublishSingleFile>
     <AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>False</AppendRuntimeIdentifierToOutputPath>
+    <EnableWindowsTargeting>True</EnableWindowsTargeting>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
     <OutputPath>..\bin\Debug\$(AssemblyName)</OutputPath>
