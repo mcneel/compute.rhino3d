@@ -12,6 +12,30 @@
                 "clear": true
             },
             "group": "build"
+        },
+        {
+            "label": "Build",
+            "command": "dotnet build ${workspaceFolder}/src/Hops.sln",
+            "type": "shell",
+            "args": [],
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "reveal": "always",
+                "clear": true
+            },
+            "group": "build"
+        },
+        {
+            "label": "Publish",
+            "command": "dotnet publish ${workspaceFolder}/src/Hops.sln -c Release",
+            "type": "shell",
+            "args": [],
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "reveal": "always",
+                "clear": true
+            },
+            "group": "build"
         }
     ]
 }

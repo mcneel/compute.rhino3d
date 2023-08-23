@@ -6,6 +6,8 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
+using compute.geometry;
+using Serilog;
 
 namespace RhinoInside
 {
@@ -20,14 +22,6 @@ namespace RhinoInside
             if (System.IntPtr.Size != 8)
                 throw new Exception("Only 64 bit applications can use RhinoInside");
             AppDomain.CurrentDomain.AssemblyResolve += ResolveForRhinoAssemblies;
-            
-            // Force load WindowsBase from the WindowsDesktop set of assemblies
-            var path = typeof(int).Assembly.Location;
-            string directory =Path.GetDirectoryName(path);
-            int index = directory.IndexOf("NETCORE", StringComparison.OrdinalIgnoreCase);
-            directory = directory.Substring(0, index) + "WindowsDesktop" + directory.Substring(index + "NETCORE".Length);
-            string windowsBase = Path.Combine(directory, "WindowsBase.dll");
-            Assembly.LoadFrom(windowsBase);
         }
 
         static string _rhinoSystemDirectory;

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Carter;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
@@ -28,7 +29,6 @@ namespace compute.geometry
         {
             RhinoCoreStartup();
             
-            app.UseSerilogRequestLogging();
             app.UseRouting();
             app.UseCors();
             //if (!String.IsNullOrEmpty(Config.ApiKey))

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using GH_IO.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Serilog;
 
 namespace compute.geometry
 {
@@ -90,7 +91,7 @@ namespace compute.geometry
             }
             catch(Exception ex)
             {
-                Serilog.Log.Error(ex, "exception while GC on cache directory");
+                Log.Error(ex, "exception while GC on cache directory");
             }
         }
 
@@ -121,8 +122,8 @@ namespace compute.geometry
                     }
                     catch(Exception ex)
                     {
-                        Serilog.Log.Error($"Unable to read cache file: {filename}");
-                        Serilog.Log.Error(ex, "File error exception");
+                        Log.Error($"Unable to read cache file: {filename}");
+                        Log.Error(ex, "File error exception");
                     }
                 }
                 return null;
@@ -162,8 +163,8 @@ namespace compute.geometry
                     }
                     catch(Exception ex)
                     {
-                        Serilog.Log.Error($"Unable to write cache file: {filename}");
-                        Serilog.Log.Error(ex, "File error exception");
+                        Log.Error($"Unable to write cache file: {filename}");
+                        Log.Error(ex, "File error exception");
                     }
                 }
             }

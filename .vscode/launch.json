@@ -39,6 +39,18 @@
             },
             "cwd": "${workspaceFolder}",
             "console": "internalConsole"
+        },
+        {
+            "name": "Launch compute.geometry",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Build",
+            "program": "${workspaceFolder}/src/bin/Debug/compute.geometry/compute.geometry.exe",
+            "targetArchitecture": "x86_64",
+            "justMyCode": false,
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole"
         }
     ],
     "compounds": []

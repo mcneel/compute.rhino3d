@@ -3,16 +3,21 @@
     <TargetFramework>net7.0</TargetFramework>
     <AssemblyName>rhino.compute</AssemblyName>
     <OutputType>Exe</OutputType>
-    <Platforms>x64</Platforms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <RuntimeFrameworkVersion>7.0.0</RuntimeFrameworkVersion>
+    <RollForward>LatestMinor</RollForward>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <ApplicationIcon>favicon.ico</ApplicationIcon>
     <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
+    <SelfContained>True</SelfContained>
+    <PublishTrimmed>False</PublishTrimmed>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
     <OutputPath>..\bin\Debug\$(AssemblyName)</OutputPath>
     <DefineConstants>TRACE;RHINO_COMPUTE</DefineConstants>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
     <OutputPath>..\bin\Release\$(AssemblyName)</OutputPath>
     <DefineConstants>TRACE;RHINO_COMPUTE</DefineConstants>
     <PublishDir>..\dist\$(AssemblyName)</PublishDir>

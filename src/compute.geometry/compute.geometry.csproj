@@ -1,10 +1,18 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net7.0-windows</TargetFramework>
     <AssemblyName>compute.geometry</AssemblyName>
     <OutputType>Exe</OutputType>
-    <Platforms>x64</Platforms>
-    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <RuntimeFrameworkVersion>7.0.0</RuntimeFrameworkVersion>
+    <RollForward>LatestMinor</RollForward>
+    <UseWpf>True</UseWpf>
+    <UseWindowsForms>True</UseWindowsForms>
+    <SelfContained>False</SelfContained>
+    <PublishSingleFile>False</PublishSingleFile>
+    <AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>False</AppendRuntimeIdentifierToOutputPath>
+    <EnableWindowsTargeting>True</EnableWindowsTargeting>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
     <OutputPath>..\bin\Debug\$(AssemblyName)</OutputPath>
@@ -13,18 +21,22 @@
     <OutputPath>..\bin\Release\$(AssemblyName)</OutputPath>
     <PublishDir>..\dist\$(AssemblyName)</PublishDir>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Optimize>True</Optimize>
+  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Carter" Version="7.0.0" />
-    <PackageReference Include="Grasshopper" Version="8.0.23031.14305-wip" />
+    <PackageReference Include="Grasshopper" Version="8.0.23031.14305-wip" ExcludeAssets="runtime"/>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
-    <PackageReference Include="RhinoCommon" Version="8.0.23031.14305-wip" />
-    <PackageReference Include="Serilog" Version="2.12.0" />
+    <PackageReference Include="RhinoCommon" Version="8.0.23031.14305-wip" ExcludeAssets="runtime"/>
+    <PackageReference Include="Serilog" Version="3.0.2-dev-02044" />
     <PackageReference Include="Serilog.AspNetCore" Version="6.1.0" />
     <PackageReference Include="Serilog.Expressions" Version="3.4.1" />
     <PackageReference Include="Serilog.Sinks.Console" Version="4.1.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
     <PackageReference Include="System.Management" Version="7.0.0" />
     <PackageReference Include="System.Runtime.Caching" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Windows.Compatibility" Version="7.0.0" />
   </ItemGroup>
 </Project>

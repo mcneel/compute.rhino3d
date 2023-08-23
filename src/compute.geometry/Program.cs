@@ -43,7 +43,6 @@ namespace compute.geometry
             RhinoInside.Resolver.LoadRhino();
 
             var host = Host.CreateDefaultBuilder(args)
-                .UseSerilog()
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     var b = webBuilder.ConfigureKestrel((context, options) =>
@@ -63,7 +62,9 @@ namespace compute.geometry
                     //    ComputeChildren.ParentPort = port;
                     //}
 
-                }).Build();
+                })
+                .UseSerilog(Log.Logger)
+                .Build();
             Shutdown.StartTimer(host);
             host.Run();
 

@@ -287,7 +287,7 @@ namespace Hops
 
                         if (svg != null)
                         {
-                            var method = typeof(Rhino.UI.DrawingUtilities).GetMethod("BitmapFromSvg");
+                            var method = typeof(Rhino.UI.DrawingUtilities).GetMethod("BitmapFromSvg", new[] {typeof(string), typeof(int), typeof(int)} );
                             if (method != null)
                             {
                                 _customIcon = method.Invoke(null, new object[] { svg, 24, 24 }) as System.Drawing.Bitmap;
