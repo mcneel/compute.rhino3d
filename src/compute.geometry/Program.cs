@@ -19,10 +19,6 @@ namespace compute.geometry
 
         static void Main(string[] args)
         {
-            //Uncomment these two lines to attach to remote debugger
-            //Console.WriteLine("Waiting to attach to debugger...");
-            //Console.ReadLine();
-
             Config.Load();
             Logging.Init();
 
@@ -66,7 +62,9 @@ namespace compute.geometry
                     //    ComputeChildren.ParentPort = port;
                     //}
 
-                }).Build();
+                })
+                .UseSerilog(Log.Logger)
+                .Build();
             Shutdown.StartTimer(host);
             host.Run();
 

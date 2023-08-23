@@ -53,6 +53,8 @@ namespace compute.geometry
 
 #if DEBUG
             Debug = true;
+#elif RELEASE
+            Debug = false;
 #endif
             Debug = GetEnvironmentVariable(RHINO_COMPUTE_DEBUG, Debug);
 
