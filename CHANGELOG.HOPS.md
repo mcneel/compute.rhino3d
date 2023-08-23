@@ -4,14 +4,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.16.1] - 2023-03-22
+## [0.16.2] - 2023-08-23
+
+### Added
+
+- Added support for Rectangle3d as a data type returned from rhino.compute.
+
+### Fixed
+
+- Rhino.Compute and Compute.Geometry now target the .NET 7 Framework. This makes compute now compatible with Rhino 8.
+- Fixed many minor bugs.
+
+## [0.16.1] - 2023-03-23
 
 ### Added
 
 - Two endpoints to return information about the plugins installed on the machine running the rhino.compute server.
     - /plugins/rhino/installed - will return a sorted dictionary of Rhino plugins which are installed.
     - /plugins/gh/installed - will return a sorted dictionary of Grasshopper plugins which are installed.
-- Rhino.Compute and Compute.Geometry now target the .NET 7 Framework. This makes compute now compatible with Rhino 8.
 
 ### Fixed
 
