@@ -1,7 +1,7 @@
 # This script installs IIS and the features required to
 # run rhino.compute.
 #
-# * Make sure you run this script from a Powershel Admin Prompt!
+# * Make sure you run this script from a Powershell Admin Prompt!
 # * Make sure Powershell Execution Policy is bypassed to run these scripts:
 Set-ExecutionPolicy Bypass -Scope Process -Force
 
