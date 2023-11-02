@@ -1,15 +1,15 @@
 # Setup/Install script for installing Rhino
 #Requires -RunAsAdministrator
 
-# This script installs the latest version of Rhino.
-# * Make sure you run this script from a Powershell Admin Prompt!
-# * Make sure Powershell Execution Policy is bypassed to run these scripts:
-Set-ExecutionPolicy Bypass -Scope Process -Force
-
 param (
     [Parameter(Mandatory=$true)][string] $EmailAddress,
     [switch] $install = $false
 )
+
+# This script installs the latest version of Rhino.
+# * Make sure you run this script from a Powershell Admin Prompt!
+# * Make sure Powershell Execution Policy is bypassed to run these scripts:
+Set-ExecutionPolicy Bypass -Scope Process -Force
 
 #Region funcs
 function Write-Step { 
