@@ -63,7 +63,4 @@ try {
     Start-Process -FilePath $rhino7Setup -ArgumentList '-passive', '-norestart' -Wait
     # delete installer
     Remove-Item $rhino7Setup
-}
-finally {
-    
-}
+}finally {}
