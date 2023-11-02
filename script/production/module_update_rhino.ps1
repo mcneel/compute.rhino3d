@@ -1,3 +1,5 @@
+Set-ExecutionPolicy Bypass -Scope Process -Force
+
 param (
     [Parameter(Mandatory=$true)][string] $EmailAddress
 )
@@ -29,16 +31,13 @@ Write-Host @"
 
 try {
     Write-Step 'Checking for update'
-
-    $rhino7DownloadUrl = "https://www.rhino3d.com/download/rhino-for-windows/7/latest/direct?email=$EmailAddress"
+    $rhino7DownloadUrl = "https://www.rhino3d.com/download/rhino-for-windows/7/latest/direct/?email=$EmailAddress"
     if ((Get-Host).Version.Major -gt 5) {
         $uri = (Invoke-WebRequest -Method 'GET' -MaximumRedirection 0 -Uri $rhino7DownloadUrl -ErrorAction Ignore -SkipHttpErrorCheck).Headers.Location
     } else {
         $uri = (Invoke-WebRequest -Method 'GET' -MaximumRedirection 0 -Uri $rhino7DownloadUrl -ErrorAction Ignore).Headers.Location
     }
-    $packageName = [System.IO.Path]::GetFileName($uri)
     $packageVersion = [Version][System.IO.Path]::GetFileNameWithoutExtension($uri).split('_')[-1]
-
     $installedVersion = [Version] (get-itemproperty -Path HKLM:\SOFTWARE\McNeel\Rhinoceros\7.0\Install -name "version").Version
 
     if ($installedVersion -ge $packageVersion) {
