@@ -64,3 +64,6 @@ try {
     # delete installer
     Remove-Item $rhino7Setup
 }
+finally {
+    
+}
