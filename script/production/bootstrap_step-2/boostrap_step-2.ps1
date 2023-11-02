@@ -13,6 +13,11 @@ function Write-Step {
 }
 #EndRegion funcs
 
+$ErrorActionPreference="SilentlyContinue"
+Stop-Transcript | out-null
+$ErrorActionPreference = "Continue"
+Start-Transcript -path C:\bootstrap_step-2_log.txt -append
+
 #In case if $PSScriptRoot is empty (version of powershell V.2).  
 if(!$PSScriptRoot){ $PSScriptRoot = Split-Path $MyInvocation.MyCommand.Path -Parent } 
 
@@ -42,3 +47,4 @@ Write-Host "Root Script Path:" $PSScriptRoot
 & "$PSScriptRoot\module_hostingbundle.ps1"
 & "$PSScriptRoot\module_iis_configure.ps1"
 
+Stop-Transcript
