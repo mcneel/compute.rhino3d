@@ -1,7 +1,14 @@
+# Setup/Install script for installing Rhino
+#Requires -RunAsAdministrator
+
+# This script installs the latest version of Rhino.
+# * Make sure you run this script from a Powershell Admin Prompt!
+# * Make sure Powershell Execution Policy is bypassed to run these scripts:
 Set-ExecutionPolicy Bypass -Scope Process -Force
 
 param (
-    [Parameter(Mandatory=$true)][string] $EmailAddress
+    [Parameter(Mandatory=$true)][string] $EmailAddress,
+    [switch] $install = $false
 )
 
 #Region funcs
@@ -45,24 +52,15 @@ try {
         exit 1
     }
 
-    Write-Step 'Creating temp directory'
-    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName())
-    $null = New-Item -ItemType Directory -Path $tempDir -Force -ErrorAction SilentlyContinue
+    # Download and install Rhino
+    Write-Step 'Download latest Rhino 7'
+    $rhino7Setup = "rhino7_setup.exe"
+    Download $rhino7DownloadUrl $rhino7Setup
+    # TODO: print rhino version
 
-    Write-Step "Downloading Rhino version $packageVersion"
-    $packagePath = Join-Path -Path $tempDir -ChildPath $packageName
-    Download $rhino7DownloadUrl $packagePath
-
-    # Automated install
-    # https://wiki.mcneel.com/rhino/installingrhino/6
-    $process = Start-Process -FilePath $packagePath -ArgumentList "-quiet", "-norestart" -Wait -PassThru
-    if ($process.exitcode -ne 0) {
-        throw "Install failed, please rerun install and ensure you have administrator rights"
-    }
-}
-finally {
-    Write-Step 'Deleting temp directory'
-    if((-not [string]::IsNullOrEmpty($tempDir)) -and (Test-Path -Path $tempDir)) {
-        Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
-    }
+    Write-Step 'Installing Rhino'
+    # automated install (https://wiki.mcneel.com/rhino/installingrhino/6)
+    Start-Process -FilePath $rhino7Setup -ArgumentList '-passive', '-norestart' -Wait
+    # delete installer
+    Remove-Item $rhino7Setup
 }
