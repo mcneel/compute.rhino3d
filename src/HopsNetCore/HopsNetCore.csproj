@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <StartProgram>C:\Program Files\Rhino 8 WIP\System\Rhino.exe</StartProgram>
+    <StartProgram>C:\Program Files\Rhino 8\System\Rhino.exe</StartProgram>
     <StartArguments></StartArguments>
     <StartAction>Program</StartAction>
   </PropertyGroup>

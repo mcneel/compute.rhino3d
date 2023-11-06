@@ -408,6 +408,24 @@ namespace compute.geometry
                                         .Invoke(contextualParameter, new object[] { inputTree });
                                 }
                                 break;
+                            case "Plane":
+                                {
+                                    Grasshopper.DataTree<GH_Plane> inputTree = new Grasshopper.DataTree<GH_Plane>();
+                                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
+                                    {
+                                        GH_Path path = GetPath(entree.Key);
+                                        for (int i = 0; i < entree.Value.Count; i++)
+                                        {
+                                            ResthopperObject restobj = entree.Value[i];
+                                            var p = new GH_Plane(JsonConvert.DeserializeObject<Rhino.Geometry.Plane>(restobj.Data));
+                                            inputTree.Add(p, path);
+                                        }
+                                    }
+                                    contextualParameter.GetType()
+                                        .GetMethod("AssignContextualDataTree")?
+                                        .Invoke(contextualParameter, new object[] { inputTree });
+                                }
+                                break;
                             case "Line":
                                 {
                                     Grasshopper.DataTree<GH_Line> inputTree = new Grasshopper.DataTree<GH_Line>();
