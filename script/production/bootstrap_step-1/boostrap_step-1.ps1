@@ -13,7 +13,12 @@ function Write-Step {
 }
 #EndRegion funcs
 
-#In case if $PSScriptRoot is empty (version of powershell V.2).  
+$ErrorActionPreference="SilentlyContinue"
+Stop-Transcript | out-null
+$ErrorActionPreference = "Continue"
+Start-Transcript -path C:\bootstrap_step-1_log.txt -append
+
+#In case $PSScriptRoot is empty (version of powershell V.2).  
 if(!$PSScriptRoot){ $PSScriptRoot = Split-Path $MyInvocation.MyCommand.Path -Parent } 
 
 Write-Host @"
@@ -23,7 +28,7 @@ Write-Host @"
   #                                       #
   #    B O O T S T R A P   S C R I P T    #
   #                                       #
-  #                STEP 2                 #
+  #                STEP 1                 #
   #                                       #
   # # # # # # # # # # # # # # # # # # # # #
 "@
@@ -38,7 +43,12 @@ if ($os -notlike '*server*') {
 Write-Host "Root Script Path:" $PSScriptRoot
 
 # These scripts should be run in this order
-& "$PSScriptRoot\module_compute.ps1"
-& "$PSScriptRoot\module_hostingbundle.ps1"
-& "$PSScriptRoot\module_iis_configure.ps1"
+& "$PSScriptRoot\module_rhino.ps1"
+& "$PSScriptRoot\module_firewall.ps1"
+& "$PSScriptRoot\module_iis_install.ps1"
+
+Write-Step 'Restart Windows to complete setup!'
+Write-Host 'Rebooting in 5 seconds...'
+Stop-Transcript
+shutdown /r /t 5
 

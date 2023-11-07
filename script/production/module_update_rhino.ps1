@@ -1,6 +1,15 @@
+# Setup/Install script for installing Rhino
+#Requires -RunAsAdministrator
+
 param (
-    [Parameter(Mandatory=$true)][string] $EmailAddress
+    [Parameter(Mandatory=$true)][string] $EmailAddress,
+    [switch] $install = $false
 )
+
+# This script installs the latest version of Rhino.
+# * Make sure you run this script from a Powershell Admin Prompt!
+# * Make sure Powershell Execution Policy is bypassed to run these scripts:
+Set-ExecutionPolicy Bypass -Scope Process -Force
 
 #Region funcs
 function Write-Step { 
@@ -29,40 +38,29 @@ Write-Host @"
 
 try {
     Write-Step 'Checking for update'
-    $rhino7DownloadUrl = "https://www.rhino3d.com/download/rhino-for-windows/7/latest/direct?email=$EmailAddress"
+    $rhinoDownloadUrl = "https://www.rhino3d.com/download/rhino-for-windows/8/latest/direct/?email=$EmailAddress"
     if ((Get-Host).Version.Major -gt 5) {
-        $uri = (Invoke-WebRequest -Method 'GET' -MaximumRedirection 0 -Uri $rhino7DownloadUrl -ErrorAction Ignore -SkipHttpErrorCheck).Headers.Location
+        $uri = (Invoke-WebRequest -Method 'GET' -MaximumRedirection 0 -Uri $rhinoDownloadUrl -ErrorAction Ignore -SkipHttpErrorCheck).Headers.Location
     } else {
-        $uri = (Invoke-WebRequest -Method 'GET' -MaximumRedirection 0 -Uri $rhino7DownloadUrl -ErrorAction Ignore).Headers.Location
+        $uri = (Invoke-WebRequest -Method 'GET' -MaximumRedirection 0 -Uri $rhinoDownloadUrl -ErrorAction Ignore).Headers.Location
     }
-    $packageName = [System.IO.Path]::GetFileName($uri)
     $packageVersion = [Version][System.IO.Path]::GetFileNameWithoutExtension($uri).split('_')[-1]
-
-    $installedVersion = [Version] (get-itemproperty -Path HKLM:\SOFTWARE\McNeel\Rhinoceros\7.0\Install -name "version").Version
+    $installedVersion = [Version] (get-itemproperty -Path HKLM:\SOFTWARE\McNeel\Rhinoceros\8.0\Install -name "version").Version
 
     if ($installedVersion -ge $packageVersion) {
         Write-Host "Latest version avaliable is already installed! ($installedVersion >= $packageVersion)" -ForegroundColor Red
         exit 1
     }
 
-    Write-Step 'Creating temp directory'
-    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName())
-    $null = New-Item -ItemType Directory -Path $tempDir -Force -ErrorAction SilentlyContinue
+    # Download and install Rhino
+    Write-Step 'Download latest Rhino 8'
+    $rhinoSetup = "rhino_setup.exe"
+    Download $rhinoDownloadUrl $rhinoSetup
+    # TODO: print rhino version
 
-    Write-Step "Downloading Rhino version $packageVersion"
-    $packagePath = Join-Path -Path $tempDir -ChildPath $packageName
-    Download $rhino7DownloadUrl $packagePath
-
-    # Automated install
-    # https://wiki.mcneel.com/rhino/installingrhino/6
-    $process = Start-Process -FilePath $packagePath -ArgumentList "-quiet", "-norestart" -Wait -PassThru
-    if ($process.exitcode -ne 0) {
-        throw "Install failed, please rerun install and ensure you have administrator rights"
-    }
-}
-finally {
-    Write-Step 'Deleting temp directory'
-    if((-not [string]::IsNullOrEmpty($tempDir)) -and (Test-Path -Path $tempDir)) {
-        Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
-    }
-}
+    Write-Step 'Installing Rhino'
+    # automated install (https://wiki.mcneel.com/rhino/installingrhino/6)
+    Start-Process -FilePath $rhinoSetup -ArgumentList '-passive', '-norestart' -Wait
+    # delete installer
+    Remove-Item $rhinoSetup
+}finally {}
