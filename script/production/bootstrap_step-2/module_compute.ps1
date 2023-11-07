@@ -27,8 +27,23 @@ $giturl = "$gitPrefix/$actionurl"
 
 $response = Invoke-RestMethod -Method Get -Uri $giturl
 $artifacts = $response.artifacts
-$latest = $artifacts[0]
-$artifactID = $latest.id
+$artifactID = -1
+$matchingBranch = "7.x"
+
+for($i=0; $i -lt $artifacts.Length; $i++){
+    $latest = $artifacts[$i]
+    $artifactID = $latest.id
+    $artifactBranch = $latest.workflow_run.head_branch 
+    if ($artifactBranch -eq $matchingBranch) {
+        break
+    }
+}
+
+if ($artifactID -lt 0){
+    Write-Host "Unable to find the latest $matchingBranch build artifact." -ForegroundColor Red
+    exit 1
+}
+
 $downloadurl = "$nightlyPrefix/$actionurl/$artifactID.zip"
 
 if ((Test-Path $appDirectory)) {
