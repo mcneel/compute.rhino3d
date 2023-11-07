@@ -41,14 +41,16 @@ if ($PSBoundParameters.ContainsKey('ApiKey')) {
 SetEnvVar 'RHINO_COMPUTE_URLS' 'http://+:80'
 
 # Download and install Rhino
-Write-Step 'Download latest Rhino 7'
-$rhino7DownloadUrl = "https://www.rhino3d.com/download/rhino-for-windows/7/latest/direct?email=$EmailAddress"
-$rhino7Setup = "rhino7_setup.exe"
-Download $rhino7DownloadUrl $rhino7Setup
-# TODO: print rhino version
+Write-Step 'Download latest Rhino 8'
+$rhinoDownloadUrl = "https://www.rhino3d.com/download/rhino-for-windows/8/latest/direct?email=$EmailAddress"
+$rhinoSetup = "rhino_setup.exe"
+Download $rhinoDownloadUrl $rhinoSetup
 
 Write-Step 'Installing Rhino'
 # automated install (https://wiki.mcneel.com/rhino/installingrhino/6)
-Start-Process -FilePath $rhino7Setup -ArgumentList '-passive', '-norestart' -Wait
+Start-Process -FilePath $rhinoSetup -ArgumentList '-passive', '-norestart' -Wait
 # delete installer
-Remove-Item $rhino7Setup
+Remove-Item $rhinoSetup
+# print installed version number
+$installedVersion = [Version] (get-itemproperty -Path HKLM:\SOFTWARE\McNeel\Rhinoceros\8.0\Install -name "version").Version
+Write-Step "Successfully installed $installedVersion"
