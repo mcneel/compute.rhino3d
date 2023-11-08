@@ -47,7 +47,7 @@ $rhinoSetup = "rhino_setup.exe"
 Download $rhinoDownloadUrl $rhinoSetup
 
 # Set firewall rule to allow installation
-New-NetFirewallRule -DisplayName "Rhino 8" -Direction Inbound -Program $rhinoSetup -Action Allow
+New-NetFirewallRule -DisplayName "Rhino 8 Installer" -Direction Inbound -Program $rhinoSetup -Action Allow
 
 Write-Step 'Installing Rhino'
 # Automated install (https://wiki.mcneel.com/rhino/installingrhino/8)
