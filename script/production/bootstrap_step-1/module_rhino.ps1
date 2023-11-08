@@ -48,7 +48,7 @@ Download $rhinoDownloadUrl $rhinoSetup
 
 Write-Step 'Installing Rhino'
 # automated install (https://wiki.mcneel.com/rhino/installingrhino/8)
-Start-Process -FilePath $rhinoSetup -Wait
+Start-Process -FilePath $rhinoSetup -ArgumentList '-passive' -Wait
 # delete installer
 Remove-Item $rhinoSetup
 # print installed version number
