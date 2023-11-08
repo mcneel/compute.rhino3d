@@ -24,15 +24,16 @@ if( ![System.IO.Directory]::Exists( $temp_path ) )
 }
 
 # Download and install .NET Hosting Bundle
-Write-Step 'Download ASP.NET Core 5.0 Hosting Bundle'
-$hb_installer_url = "https://download.visualstudio.microsoft.com/download/pr/08a0bb65-6004-4099-8289-945f1681d946/f77d62d5e200693bec1416d4aefa97f7/dotnet-hosting-5.0.13-win.exe"
+Write-Step 'Download ASP.NET Core 7.0 Hosting Bundle'
+
+$hb_installer_url = "https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-aspnetcore-7.0.13-windows-hosting-bundle-installer"
 $hb_intaller_filename = [System.IO.Path]::GetFileName( $hb_installer_url )
 $hb_installer_filepath = $temp_path + $hb_intaller_filename
 Download $hb_installer_url $hb_installer_filepath
 Write-Output ""
 Write-Output "$hb_intaller_filename downloaded"
 Write-Output ""
-Write-Step 'Installing ASP.NET Core 5.0 Hosting Bundle'
+Write-Step 'Installing ASP.NET Core 7.0 Hosting Bundle'
 $result = Start-Process -FilePath $hb_installer_filepath -ArgumentList '/repair', '/quiet', '/norestart' -NoNewWindow -Wait -PassThru
 If($result.Exitcode -Eq 0)
 {
