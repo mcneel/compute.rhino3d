@@ -38,7 +38,7 @@ Write-Host @"
 
 try {
     Write-Step 'Checking for update'
-    $rhinoDownloadUrl = "https://www.rhino3d.com/download/rhino-for-windows/8/latest/direct/?email=$EmailAddress"
+    $rhinoDownloadUrl = "https://www.rhino3d.com/www-api/download/direct/?slug=rhino-for-windows/8/latest/?email=$EmailAddress"
     if ((Get-Host).Version.Major -gt 5) {
         $uri = (Invoke-WebRequest -Method 'GET' -MaximumRedirection 0 -Uri $rhinoDownloadUrl -ErrorAction Ignore -SkipHttpErrorCheck).Headers.Location
     } else {
