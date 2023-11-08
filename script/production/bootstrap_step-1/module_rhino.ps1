@@ -42,7 +42,7 @@ SetEnvVar 'RHINO_COMPUTE_URLS' 'http://+:80'
 
 # Download and install Rhino
 Write-Step 'Download latest Rhino 8'
-$rhinoDownloadUrl = "https://www.rhino3d.com/download/rhino-for-windows/8/latest/direct?email=$EmailAddress"
+$rhinoDownloadUrl = "https://www.rhino3d.com/www-api/download/direct/?slug=rhino-for-windows/8/latest/?email=$EmailAddress" 
 $rhinoSetup = "rhino_setup.exe"
 Download $rhinoDownloadUrl $rhinoSetup
 
