@@ -48,19 +48,34 @@ $giturl = "$gitPrefix/$actionurl"
 
 $response = Invoke-RestMethod -Method Get -Uri $giturl
 $artifacts = $response.artifacts
-$latest = $artifacts[0]
-$artifactID = $latest.id
-$downloadurl = "$nightlyPrefix/$actionurl/$artifactID.zip"
+$artifactID = -1
+$matchingBranch = "7.x"
 
-if (-Not (Test-Path -Path $physicalPathRoot)){
-    New-Item $physicalPathRoot -ItemType Directory
+for($i=0; $i -lt $artifacts.Length; $i++){
+    $latest = $artifacts[$i]
+    $artifactID = $latest.id
+    $artifactBranch = $latest.workflow_run.head_branch 
+    if ($artifactBranch -eq $matchingBranch) {
+        break
+    }
 }
 
-if ((Test-Path -Path $physicalPathRoot)) {
+if ($artifactID -lt 0){
+    Write-Host "Unable to find the latest $matchingBranch build artifact." -ForegroundColor Red
+    exit 1
+}
+
+$downloadurl = "$nightlyPrefix/$actionurl/$artifactID.zip"
+
+if (-Not (Test-Path -Path $appDirectory)){
+    New-Item $appDirectory -ItemType Directory
+}
+
+if ((Test-Path $appDirectory)) {
     Write-Step "Download and unzip latest build of compute from $downloadurl"
-    Download $downloadurl "$physicalPathRoot/compute.zip"
-    Expand-Archive "$physicalPathRoot/compute.zip" -DestinationPath $physicalPathRoot
-    Remove-Item "$physicalPathRoot/compute.zip"
+    Download $downloadurl "$appDirectory/compute.zip"
+    Expand-Archive "$appDirectory/compute.zip" -DestinationPath $appDirectory
+    Remove-Item "$appDirectory/compute.zip"
 }
 
 Write-Step "Starting the IIS Service"
