@@ -26,7 +26,7 @@ if( ![System.IO.Directory]::Exists( $temp_path ) )
 # Download and install .NET Hosting Bundle
 Write-Step 'Download ASP.NET Core 7.0 Hosting Bundle'
 
-$hb_installer_url = "https://dotnet.microsoft.com/en-us/download/dotnet/thank-you/runtime-aspnetcore-7.0.13-windows-hosting-bundle-installer"
+$hb_installer_url = "https://download.visualstudio.microsoft.com/download/pr/215095b0-dc0a-4e79-8815-3f72af83d054/3e7b7f99dffe2393a2210472c8c126a8/dotnet-hosting-7.0.13-win.exe"
 $hb_intaller_filename = [System.IO.Path]::GetFileName( $hb_installer_url )
 $hb_installer_filepath = $temp_path + $hb_intaller_filename
 Download $hb_installer_url $hb_installer_filepath
