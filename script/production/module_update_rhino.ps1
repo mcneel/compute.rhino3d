@@ -59,8 +59,8 @@ try {
     # TODO: print rhino version
 
     Write-Step 'Installing Rhino'
-    # automated install (https://wiki.mcneel.com/rhino/installingrhino/6)
-    Start-Process -FilePath $rhinoSetup -ArgumentList '-passive', '-norestart' -Wait
+    # automated install (https://wiki.mcneel.com/rhino/installingrhino/8)
+    Start-Process -FilePath $rhinoSetup -Wait
     # delete installer
     Remove-Item $rhinoSetup
 }finally {}
