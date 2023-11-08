@@ -42,13 +42,18 @@ SetEnvVar 'RHINO_COMPUTE_URLS' 'http://+:80'
 
 # Download and install Rhino
 Write-Step 'Download latest Rhino 7'
-$rhino7DownloadUrl = "https://www.rhino3d.com/download/rhino-for-windows/7/latest/direct?email=$EmailAddress"
+$rhino7DownloadUrl = "https://www.rhino3d.com/www-api/download/direct/?slug=rhino-for-windows/7/latest/direct?email=$EmailAddress"
 $rhino7Setup = "rhino7_setup.exe"
 Download $rhino7DownloadUrl $rhino7Setup
-# TODO: print rhino version
+
+# Set firewall rule to allow installation
+New-NetFirewallRule -DisplayName "Rhino 7 Installer" -Direction Inbound -Program $rhino7Setup -Action Allow
 
 Write-Step 'Installing Rhino'
-# automated install (https://wiki.mcneel.com/rhino/installingrhino/6)
+# automated install (https://wiki.mcneel.com/rhino/installingrhino/7)
 Start-Process -FilePath $rhino7Setup -ArgumentList '-passive', '-norestart' -Wait
 # delete installer
 Remove-Item $rhino7Setup
+# Print installed version number
+$installedVersion = [Version] (get-itemproperty -Path HKLM:\SOFTWARE\McNeel\Rhinoceros\7.0\Install -name "version").Version
+Write-Step "Successfully installed $installedVersion"
