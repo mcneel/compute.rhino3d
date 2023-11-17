@@ -920,6 +920,78 @@ namespace compute.geometry
                                     resthopperObjectList.Add(GetResthopperObject<Mesh>(rhValue, rhinoVersion));
                                 }
                                 break;
+                            case GH_Extrusion ghValue:
+                                {
+                                    Extrusion rhValue = ghValue.Value;
+                                    resthopperObjectList.Add(GetResthopperObject<Extrusion>(rhValue, rhinoVersion));
+                                }
+                                break;
+                            case GH_PointCloud ghValue:
+                                {
+                                    PointCloud rhValue = ghValue.Value;
+                                    resthopperObjectList.Add(GetResthopperObject<PointCloud>(rhValue, rhinoVersion));
+                                }
+                                break;
+                            case GH_InstanceReference ghValue:
+                                {
+                                    InstanceReferenceGeometry rhValue = ghValue.Value;
+                                    resthopperObjectList.Add(GetResthopperObject<InstanceReferenceGeometry>(rhValue, rhinoVersion));
+                                }
+                                break;
+                            case GH_Hatch ghValue:
+                                {
+                                    Hatch rhValue = ghValue.Value;
+                                    resthopperObjectList.Add(GetResthopperObject<Hatch>(rhValue, rhinoVersion));
+                                }
+                                break;
+                            case GH_LinearDimension ghValue:
+                                {
+                                    LinearDimension rhValue = ghValue.Value;
+                                    resthopperObjectList.Add(GetResthopperObject<LinearDimension>(rhValue, rhinoVersion));
+                                }
+                                break;
+                            case GH_RadialDimension ghValue:
+                                {
+                                    RadialDimension rhValue = ghValue.Value;
+                                    resthopperObjectList.Add(GetResthopperObject<RadialDimension>(rhValue, rhinoVersion));
+                                }
+                                break;
+                            case GH_AngularDimension ghValue:
+                                {
+                                    AngularDimension rhValue = ghValue.Value;
+                                    resthopperObjectList.Add(GetResthopperObject<AngularDimension>(rhValue, rhinoVersion));
+                                }
+                                break;
+                            case GH_OrdinateDimension ghValue:
+                                {
+                                    OrdinateDimension rhValue = ghValue.Value;
+                                    resthopperObjectList.Add(GetResthopperObject<OrdinateDimension>(rhValue, rhinoVersion));
+                                }
+                                break;
+                            case GH_Leader ghValue:
+                                {
+                                    Leader rhValue = ghValue.Value;
+                                    resthopperObjectList.Add(GetResthopperObject<Leader>(rhValue, rhinoVersion));
+                                }
+                                break;
+                            case GH_TextEntity ghValue:
+                                {
+                                    TextEntity rhValue = ghValue.Value;
+                                    resthopperObjectList.Add(GetResthopperObject<TextEntity>(rhValue, rhinoVersion));
+                                }
+                                break;
+                            case GH_TextDot ghValue:
+                                {
+                                    TextDot rhValue = ghValue.Value;
+                                    resthopperObjectList.Add(GetResthopperObject<TextDot>(rhValue, rhinoVersion));
+                                }
+                                break;
+                            case GH_Centermark ghValue:
+                                {
+                                    Centermark rhValue = ghValue.Value;
+                                    resthopperObjectList.Add(GetResthopperObject<Centermark>(rhValue, rhinoVersion));
+                                }
+                                break;
                         }
                     }
 
@@ -1149,7 +1221,16 @@ namespace compute.geometry
             var v = (T)goo;
             ResthopperObject rhObj = new ResthopperObject();
             rhObj.Type = goo.GetType().FullName;
-            rhObj.Data = JsonConvert.SerializeObject(v, GeometryResolver.Settings(rhinoVerion));
+
+            if (v is GeometryBase geometry)
+            {
+                rhObj.Data = geometry.ToJSON(new Rhino.FileIO.SerializationOptions() { RhinoVersion = rhinoVerion });
+            }
+            else
+            {
+                rhObj.Data = JsonConvert.SerializeObject(v, GeometryResolver.Settings(rhinoVerion));
+            }
+
             return rhObj;
         }
 

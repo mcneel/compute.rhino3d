@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using Rhino.Geometry;
 
 namespace Resthopper.IO
 {
@@ -118,11 +119,18 @@ namespace Resthopper.IO
 
         public ResthopperObject(object obj)
         {
+            if(obj is GeometryBase geometry)
+            {
+                Data = geometry.ToJSON(new Rhino.FileIO.SerializationOptions() { RhinoVersion = 7});
+            }
+            else
+            {
 #if COMPUTE_CORE
-            Data = JsonConvert.SerializeObject(obj, compute.geometry.GeometryResolver.Settings);
+                Data = JsonConvert.SerializeObject(obj, compute.geometry.GeometryResolver.Settings);
 #else
-            Data = JsonConvert.SerializeObject(obj);//, compute.geometry.GeometryResolver.Settings);
+                Data = JsonConvert.SerializeObject(obj);//, compute.geometry.GeometryResolver.Settings);
 #endif
+            }
             Type = obj.GetType().FullName;
         }
 
