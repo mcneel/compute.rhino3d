@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Http;
 using Carter;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
+using Rhino.Geometry;
 
 namespace compute.geometry
 {

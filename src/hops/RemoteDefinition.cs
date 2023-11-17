@@ -721,20 +721,60 @@ namespace Hops
                 case "Rhino.Geometry.NurbsCurve":
                 case "Rhino.Geometry.PolylineCurve":
                 case "Rhino.Geometry.SubD":
+                case "Rhino.Geometry.PointCloud":
+                case "Rhino.Geometry.InstanceReferenceGeometry":
+                case "Rhino.Geometry.Hatch":
+                case "Rhino.Geometry.LinearDimension":
+                case "Rhino.Geometry.AngularDimension":
+                case "Rhino.Geometry.RadialDimension":
+                case "Rhino.Geometry.OrdinateDimension":
+                case "Rhino.Geometry.TextEntity":
+                case "Rhino.Geometry.TextDot":
+                case "Rhino.Geometry.Leader":
                     {
                         Dictionary<string, string> dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(data);
                         var geometry = Rhino.Runtime.CommonObject.FromJSON(dict);
-                        Surface surface = geometry as Surface;
-                        if (surface != null)
-                            geometry = surface.ToBrep();
-                        if (geometry is Brep)
-                            return new Grasshopper.Kernel.Types.GH_Brep(geometry as Brep);
+                        if (geometry is Extrusion)
+                            return new Grasshopper.Kernel.Types.GH_Extrusion(geometry as Extrusion);
+                        if (geometry is Surface)
+                            return new Grasshopper.Kernel.Types.GH_Surface(geometry as Surface);
+                        if (geometry is Brep brep)
+                        {
+                           if(brep.Faces.Count > 1)
+                           {
+                                return new Grasshopper.Kernel.Types.GH_Brep(brep);
+                           }
+                           else
+                           {
+                                return new Grasshopper.Kernel.Types.GH_Surface(brep);
+                           }
+                        }   
                         if (geometry is Curve)
                             return new Grasshopper.Kernel.Types.GH_Curve(geometry as Curve);
                         if (geometry is Mesh)
                             return new Grasshopper.Kernel.Types.GH_Mesh(geometry as Mesh);
                         if (geometry is SubD)
                             return new Grasshopper.Kernel.Types.GH_SubD(geometry as SubD);
+                        if (geometry is PointCloud)
+                            return new Grasshopper.Kernel.Types.GH_PointCloud(geometry as PointCloud);
+                        if (geometry is InstanceReferenceGeometry)
+                            return new Grasshopper.Kernel.Types.GH_InstanceReference(geometry as InstanceReferenceGeometry);
+                        if (geometry is Hatch)
+                            return new Grasshopper.Kernel.Types.GH_Hatch(geometry as Hatch);
+                        if (geometry is LinearDimension)
+                            return new Grasshopper.Kernel.Types.GH_LinearDimension(geometry as LinearDimension);
+                        if (geometry is AngularDimension)
+                            return new Grasshopper.Kernel.Types.GH_AngularDimension(geometry as AngularDimension);
+                        if (geometry is RadialDimension)
+                            return new Grasshopper.Kernel.Types.GH_RadialDimension(geometry as RadialDimension);
+                        if (geometry is OrdinateDimension)
+                            return new Grasshopper.Kernel.Types.GH_OrdinateDimension(geometry as OrdinateDimension);
+                        if (geometry is TextEntity)
+                            return new Grasshopper.Kernel.Types.GH_TextEntity(geometry as TextEntity);
+                        if (geometry is TextDot)
+                            return new Grasshopper.Kernel.Types.GH_TextDot(geometry as TextDot);
+                        if (geometry is Leader)
+                            return new Grasshopper.Kernel.Types.GH_Leader(geometry as Leader);
                     }
                     break;
             }
