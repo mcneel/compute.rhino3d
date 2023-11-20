@@ -1223,13 +1223,9 @@ namespace compute.geometry
             rhObj.Type = goo.GetType().FullName;
 
             if (v is GeometryBase geometry)
-            {
                 rhObj.Data = geometry.ToJSON(new Rhino.FileIO.SerializationOptions() { RhinoVersion = rhinoVerion });
-            }
             else
-            {
                 rhObj.Data = JsonConvert.SerializeObject(v, GeometryResolver.Settings(rhinoVerion));
-            }
 
             return rhObj;
         }
