@@ -610,7 +610,13 @@ namespace compute.geometry
             var v = (T)goo;
             ResthopperObject rhObj = new ResthopperObject();
             rhObj.Type = goo.GetType().FullName;
-            rhObj.Data = JsonConvert.SerializeObject(v);//, GeometryResolver.Settings);
+            //rhObj.Data = JsonConvert.SerializeObject(v);//, GeometryResolver.Settings);
+
+            if (v is GeometryBase geometry)
+                rhObj.Data = geometry.ToJSON(new Rhino.FileIO.SerializationOptions());
+            else
+                rhObj.Data = JsonConvert.SerializeObject(v);
+            
             return rhObj;
         }
 
