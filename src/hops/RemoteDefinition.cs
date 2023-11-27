@@ -713,6 +713,12 @@ namespace Hops
                         obj.ResolvedData = vectorResult;
                         return vectorResult;
                     }
+                case "Rhino.Geometry.Box":
+                    {
+                        var boxResult = new Grasshopper.Kernel.Types.GH_Box(JsonConvert.DeserializeObject<Box>(data));
+                        obj.ResolvedData = boxResult;
+                        return boxResult;
+                    }
                 case "Rhino.Geometry.Brep":
                 case "Rhino.Geometry.Curve":
                 case "Rhino.Geometry.Extrusion":
