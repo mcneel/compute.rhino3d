@@ -992,7 +992,8 @@ for value in values:
                                     paramIndex = mgr.AddTextParameter(name, nickname, inputDescription, access, input.Default.ToString());
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_GenericObject _:
-                                throw new Exception("generic param not supported");
+                                paramIndex = mgr.AddGenericParameter(name, nickname, inputDescription, access);
+                                break;
                             case Grasshopper.Kernel.Parameters.Param_Geometry _:
                                 paramIndex = mgr.AddGeometryParameter(name, nickname, inputDescription, access);
                                 break;

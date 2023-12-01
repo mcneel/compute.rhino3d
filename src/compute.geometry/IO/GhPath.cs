@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using GH_IO.Serialization;
+using Grasshopper.Kernel.Types;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
@@ -80,17 +82,66 @@ namespace Resthopper.IO
         }
     }
 
-
-    public class DataTree<T> 
+    public class ValueTree
     {
+        public string ParamName { get; set; }
+    }
 
+    public class GooTree : ValueTree
+    {
+        [JsonIgnore]
+        public Grasshopper.Kernel.Data.GH_Structure<IGH_Goo> Tree;
+        public string InnerTree
+        {
+            get 
+            {
+                var base64 = string.Empty;
+                var archive = new GH_Archive();
+                archive.CreateNewRoot(true);
+                var chunk = archive.GetRootNode;
+
+                foreach (var list in Tree.Branches)
+                {
+                    for (int i = 0; i < list.Count; i++)
+                    {
+                        var goo = list[i];
+                        // Removing ref ID in order to send as internalized geometry
+                        if (goo is IGH_GeometricGoo geometricGoo)
+                        {
+                            geometricGoo = geometricGoo.DuplicateGeometry();
+                            geometricGoo.ReferenceID = Guid.Empty;
+                            list[i] = geometricGoo;
+                        }
+                    }
+                }
+
+                Tree.Write(chunk);
+                var binary = archive.Serialize_Binary();
+                base64 = Convert.ToBase64String(binary);
+                return base64;
+            }
+            set 
+            {
+                var base64 = value;
+                var binary = Convert.FromBase64String(base64);
+                var archive = new GH_Archive();
+                archive.Deserialize_Binary(binary);
+                var chunk = archive.GetRootNode;
+                Tree = new Grasshopper.Kernel.Data.GH_Structure<IGH_Goo>();
+                Tree.Read(chunk);
+            }
+        }
+    }
+
+    public class DataTree<T> : ValueTree
+    {
         public DataTree() {
             _tree = new Dictionary<string, List<T>>();
             //_GhPathIndexer = new Dictionary<int, GhPath>();
         }
 
         private Dictionary<string, List<T>> _tree;
-        public string ParamName { get; set; }
+
         //Dictionary<int, GhPath> _GhPathIndexer;
 
 

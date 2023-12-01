@@ -30,9 +30,9 @@ namespace compute.geometry
             // should use.
             // (for McNeel devs only and only those devs who use the same path as Andy)
 
-            //string rhinoSystemDir = @"C:\dev\github\mcneel\rhino8\src4\bin\Debug";
-            //if (System.IO.File.Exists(rhinoSystemDir + "\\Rhino.exe"))
-            //    RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
+            string rhinoSystemDir = @"C:\dev\github\mcneel\rhino8\src4\bin\Debug";
+            if (System.IO.File.Exists(rhinoSystemDir + "\\Rhino.exe"))
+                RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
 
 #endif
             StartTime = DateTime.Now;

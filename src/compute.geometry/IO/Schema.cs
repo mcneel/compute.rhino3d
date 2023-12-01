@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Grasshopper.Kernel.Types;
 using Newtonsoft.Json;
 using Rhino.Geometry;
 
@@ -39,6 +40,9 @@ namespace Resthopper.IO
 
         [JsonProperty(PropertyName = "values")]
         public List<DataTree<ResthopperObject>> Values { get; set; } = new List<DataTree<ResthopperObject>>();
+
+        [JsonProperty(PropertyName = "goos")]
+        public List<GooTree> Goos { get; set; } = new List<GooTree>();
 
         // Return warnings from GH
         [JsonProperty(PropertyName = "warnings", DefaultValueHandling = DefaultValueHandling.Ignore)]
