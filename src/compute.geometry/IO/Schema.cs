@@ -6,6 +6,11 @@ using Rhino.Geometry;
 
 namespace Resthopper.IO
 {
+    public enum SchemaDataFormat
+    {
+        Resthopper = 0,
+        Grasshopper = 1
+    }
     public class Schema
     {
         public Schema() {}
@@ -22,6 +27,10 @@ namespace Resthopper.IO
         // Rhino version of data to be serialized and returned to the client
         [JsonProperty(PropertyName = "dataversion")]
         public int DataVersion { get; set; } = 7;
+
+        // Format of the data being serialized/deserialized
+        [JsonProperty(PropertyName = "dataformat")]
+        public SchemaDataFormat DataFormat { get; set; } = SchemaDataFormat.Resthopper;
 
         [JsonProperty(PropertyName = "algo")]
         public string Algo { get; set; }
@@ -41,8 +50,8 @@ namespace Resthopper.IO
         [JsonProperty(PropertyName = "values")]
         public List<DataTree<ResthopperObject>> Values { get; set; } = new List<DataTree<ResthopperObject>>();
 
-        [JsonProperty(PropertyName = "goos")]
-        public List<GooTree> Goos { get; set; } = new List<GooTree>();
+        [JsonProperty(PropertyName = "values-grasshopper")]
+        public GrasshopperValues GrasshopperValues { get; set; } = new GrasshopperValues();
 
         // Return warnings from GH
         [JsonProperty(PropertyName = "warnings", DefaultValueHandling = DefaultValueHandling.Ignore)]

@@ -8,6 +8,7 @@ using GH_IO.Serialization;
 using Grasshopper.Kernel.Types;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using Rhino.Geometry;
 
 namespace Resthopper.IO
 {
@@ -82,63 +83,69 @@ namespace Resthopper.IO
         }
     }
 
-    public class ValueTree
-    {
-        public string ParamName { get; set; }
-    }
-
-    public class GooTree : ValueTree
+    public class GrasshopperValues
     {
         [JsonIgnore]
-        public Grasshopper.Kernel.Data.GH_Structure<IGH_Goo> Tree;
-        public string InnerTree
+        public readonly Dictionary<string, Grasshopper.Kernel.Data.GH_Structure<IGH_Goo>> Values = new Dictionary<string, Grasshopper.Kernel.Data.GH_Structure<IGH_Goo>>();
+        public string Data 
         {
-            get 
+            get
             {
-                var base64 = string.Empty;
                 var archive = new GH_Archive();
                 archive.CreateNewRoot(true);
                 var chunk = archive.GetRootNode;
 
-                foreach (var list in Tree.Branches)
+                foreach (var entry in Values)
                 {
-                    for (int i = 0; i < list.Count; i++)
+                    var param = chunk.CreateChunk(entry.Key);
+
+                    foreach (var list in entry.Value.Branches)
                     {
-                        var goo = list[i];
-                        // Removing ref ID in order to send as internalized geometry
-                        if (goo is IGH_GeometricGoo geometricGoo)
+                        for (int i = 0; i < list.Count; i++)
                         {
-                            geometricGoo = geometricGoo.DuplicateGeometry();
-                            geometricGoo.ReferenceID = Guid.Empty;
-                            list[i] = geometricGoo;
+                            var goo = list[i];
+                            // Removing ref ID in order to send as internalized geometry
+                            if (goo is IGH_GeometricGoo geometricGoo && geometricGoo.IsReferencedGeometry)
+                            {
+                                geometricGoo = geometricGoo.DuplicateGeometry();
+                                geometricGoo.ReferenceID = Guid.Empty;
+                                list[i] = geometricGoo;
+                            }
                         }
                     }
+
+                    entry.Value.Write(param);
                 }
 
-                Tree.Write(chunk);
                 var binary = archive.Serialize_Binary();
-                base64 = Convert.ToBase64String(binary);
-                return base64;
+                return Convert.ToBase64String(binary);
             }
-            set 
+            set
             {
+                Values.Clear();
                 var base64 = value;
                 var binary = Convert.FromBase64String(base64);
                 var archive = new GH_Archive();
                 archive.Deserialize_Binary(binary);
                 var chunk = archive.GetRootNode;
-                Tree = new Grasshopper.Kernel.Data.GH_Structure<IGH_Goo>();
-                Tree.Read(chunk);
+                foreach (var param in chunk.Chunks)
+                {
+                    var values = new Grasshopper.Kernel.Data.GH_Structure<IGH_Goo>();
+                    values.Read(param as GH_IReader);
+                    Values.Add(param.Name, values);
+                }
             }
         }
     }
 
-    public class DataTree<T> : ValueTree
+    public class DataTree<T>
     {
         public DataTree() {
             _tree = new Dictionary<string, List<T>>();
             //_GhPathIndexer = new Dictionary<int, GhPath>();
         }
+
+        public string ParamName { get; set; }
 
         private Dictionary<string, List<T>> _tree;
 

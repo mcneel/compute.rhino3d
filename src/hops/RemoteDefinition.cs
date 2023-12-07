@@ -556,95 +556,101 @@ namespace Hops
 
         public void SetComponentOutputs(Schema schema, IGH_DataAccess DA, List<IGH_Param> outputParams, HopsComponent component)
         {
-            foreach(var goo in schema.Goos)
+            if(schema.DataFormat == SchemaDataFormat.Grasshopper)
             {
-                string outputParamName = goo.ParamName;
-                if (outputParamName.StartsWith("RH_OUT:"))
+                foreach (var param in schema.GrasshopperValues.Values)
                 {
-                    var chunks = outputParamName.Split(new char[] { ':' });
-                    outputParamName = chunks[chunks.Length - 1];
-                }
-                int paramIndex = 0;
-                for (int i = 0; i < outputParams.Count; i++)
-                {
-                    if (outputParams[i].Name.Equals(outputParamName))
+                    string outputParamName = param.Key;
+                    if (outputParamName.StartsWith("RH_OUT:"))
                     {
-                        paramIndex = i;
-                        break;
+                        var chunks = outputParamName.Split(new char[] { ':' });
+                        outputParamName = chunks[chunks.Length - 1];
                     }
+                    int paramIndex = 0;
+                    for (int i = 0; i < outputParams.Count; i++)
+                    {
+                        if (outputParams[i].Name.Equals(outputParamName))
+                        {
+                            paramIndex = i;
+                            break;
+                        }
+                    }
+                    DA.SetDataTree(paramIndex, param.Value);
                 }
-                DA.SetDataTree(paramIndex, goo.Tree);
             }
-            foreach (var datatree in schema.Values)
+            else
             {
-                string outputParamName = datatree.ParamName;
-                if (outputParamName.StartsWith("RH_OUT:"))
+                foreach (var datatree in schema.Values)
                 {
-                    var chunks = outputParamName.Split(new char[] { ':' });
-                    outputParamName = chunks[chunks.Length - 1];
-                }
-                int paramIndex = 0;
-                for (int i = 0; i < outputParams.Count; i++)
-                {
-                    if (outputParams[i].Name.Equals(outputParamName))
+                    string outputParamName = datatree.ParamName;
+                    if (outputParamName.StartsWith("RH_OUT:"))
                     {
-                        paramIndex = i;
-                        break;
+                        var chunks = outputParamName.Split(new char[] { ':' });
+                        outputParamName = chunks[chunks.Length - 1];
                     }
-                }
-
-                var structure = new Grasshopper.Kernel.Data.GH_Structure<Grasshopper.Kernel.Types.IGH_Goo>();
-                Grasshopper.Kernel.Types.IGH_Goo goo = null;
-
-                //Determine if the data coming into any of the inputs is a Data Tree
-                bool hasDataTreeAsInput = false;
-                foreach(var param in component.Params.Input)
-                {
-                    if(param.VolatileData.PathCount > 1)
+                    int paramIndex = 0;
+                    for (int i = 0; i < outputParams.Count; i++)
                     {
-                        hasDataTreeAsInput = true;
-                        break;
-                    }
-                }
-
-                foreach (var kv in datatree.InnerTree)
-                {
-                    var tokens = kv.Key.Trim(new char[] { '{', '}' }).Split(';');
-                    List<int> elements = new List<int>();
-                    if (datatree.InnerTree.Count == 1 && !hasDataTreeAsInput)
-                    {
-                        for (int i = 0; i < tokens.Length; i++)
+                        if (outputParams[i].Name.Equals(outputParamName))
                         {
-                            if (i < tokens.Length - 1)
+                            paramIndex = i;
+                            break;
+                        }
+                    }
+
+                    var structure = new Grasshopper.Kernel.Data.GH_Structure<Grasshopper.Kernel.Types.IGH_Goo>();
+                    Grasshopper.Kernel.Types.IGH_Goo goo = null;
+
+                    //Determine if the data coming into any of the inputs is a Data Tree
+                    bool hasDataTreeAsInput = false;
+                    foreach (var param in component.Params.Input)
+                    {
+                        if (param.VolatileData.PathCount > 1)
+                        {
+                            hasDataTreeAsInput = true;
+                            break;
+                        }
+                    }
+
+                    foreach (var kv in datatree.InnerTree)
+                    {
+                        var tokens = kv.Key.Trim(new char[] { '{', '}' }).Split(';');
+                        List<int> elements = new List<int>();
+                        if (datatree.InnerTree.Count == 1 && !hasDataTreeAsInput)
+                        {
+                            for (int i = 0; i < tokens.Length; i++)
                             {
-                                if (!string.IsNullOrWhiteSpace(tokens[i]))
-                                    elements.Add(int.Parse(tokens[i]));
+                                if (i < tokens.Length - 1)
+                                {
+                                    if (!string.IsNullOrWhiteSpace(tokens[i]))
+                                        elements.Add(int.Parse(tokens[i]));
+                                }
+                                else
+                                    elements.Add(DA.Iteration);
                             }
-                            else
-                                elements.Add(DA.Iteration);
                         }
-                    }
-                    else
-                    {
-                        foreach (var token in tokens)
+                        else
                         {
-                            if (!string.IsNullOrWhiteSpace(token))
-                                elements.Add(int.Parse(token));
+                            foreach (var token in tokens)
+                            {
+                                if (!string.IsNullOrWhiteSpace(token))
+                                    elements.Add(int.Parse(token));
+                            }
+                        }
+
+                        var path = new Grasshopper.Kernel.Data.GH_Path(elements.ToArray());
+                        var localBranch = structure.EnsurePath(path);
+                        for (int gooIndex = 0; gooIndex < kv.Value.Count; gooIndex++)
+                        {
+                            goo = GooFromResthopperObject(kv.Value[gooIndex]);
+                            localBranch.Add(goo);
                         }
                     }
-
-                    var path = new Grasshopper.Kernel.Data.GH_Path(elements.ToArray());
-                    var localBranch = structure.EnsurePath(path);
-                    for (int gooIndex = 0; gooIndex < kv.Value.Count; gooIndex++)
-                    {
-                        goo = GooFromResthopperObject(kv.Value[gooIndex]);
-                        localBranch.Add(goo);
-                    }
+                    if (structure.DataCount == 1)
+                        DA.SetData(paramIndex, goo);
+                    else
+                        DA.SetDataTree(paramIndex, structure);
                 }
-                if (structure.DataCount == 1)
-                    DA.SetData(paramIndex, goo);
-                else
-                    DA.SetDataTree(paramIndex, structure);
             }
 
             foreach (var error in schema.Errors)
@@ -1250,6 +1256,7 @@ namespace Hops
             warnings = new List<string>();
             errors = new List<string>();
             var schema = new Resthopper.IO.Schema();
+            schema.DataFormat = SchemaDataFormat.Grasshopper;
             schema.RecursionLevel = recursionLevel;
             schema.AbsoluteTolerance = GetDocumentTolerance();
             schema.AngleTolerance = GetDocumentAngleTolerance();
@@ -1266,12 +1273,11 @@ namespace Hops
                     string computeName = input.Name;
                     int inputListCount = 0;
                     GH_ParamAccess access = AccessFromInput(input);
-                    if(param is Grasshopper.Kernel.Parameters.Param_GenericObject)
+                    if(schema.DataFormat == SchemaDataFormat.Grasshopper)
                     {
                         var goos = new Grasshopper.Kernel.Data.GH_Structure<IGH_Goo>();
                         CollectDataHelper(DA, _parentComponent, inputName, input, access, ref inputListCount, goos, ref warnings, ref errors);
-                        schema.Goos.Add(new GooTree() { Tree = goos, ParamName = computeName });
-                        break;
+                        schema.GrasshopperValues.Values.Add(computeName, goos);
                     }
                     else
                     {

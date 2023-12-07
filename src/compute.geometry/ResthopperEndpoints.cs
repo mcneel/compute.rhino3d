@@ -113,7 +113,7 @@ namespace compute.geometry
             definition.SetInputs(input);
             long decodeTime = stopwatch.ElapsedMilliseconds;
             stopwatch.Restart();
-            var output = definition.Solve(input.DataVersion);
+            var output = definition.Solve(input.DataVersion, input.DataFormat);
             output.Pointer = definition.CacheKey;
             long solveTime = stopwatch.ElapsedMilliseconds;
             stopwatch.Restart();
