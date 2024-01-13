@@ -67,15 +67,15 @@ if ($artifactID -lt 0){
 
 $downloadurl = "$nightlyPrefix/$actionurl/$artifactID.zip"
 
-if (-Not (Test-Path -Path $appDirectory)){
-    New-Item $appDirectory -ItemType Directory
+if (-Not (Test-Path -Path $physicalPathRoot)){
+    New-Item $physicalPathRoot -ItemType Directory
 }
 
-if ((Test-Path $appDirectory)) {
+if ((Test-Path $physicalPathRoot)) {
     Write-Step "Download and unzip latest build of compute from $downloadurl"
-    Download $downloadurl "$appDirectory/compute.zip"
-    Expand-Archive "$appDirectory/compute.zip" -DestinationPath $appDirectory
-    Remove-Item "$appDirectory/compute.zip"
+    Download $downloadurl "$physicalPathRoot/compute.zip"
+    Expand-Archive "$physicalPathRoot/compute.zip" -DestinationPath $physicalPathRoot
+    Remove-Item "$physicalPathRoot/compute.zip"
 }
 
 Write-Step "Starting the IIS Service"
