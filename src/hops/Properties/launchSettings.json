@@ -2,7 +2,11 @@
   "profiles": {
     "Hops": {
       "commandName": "Executable",
-      "executablePath": "C:\\Program Files\\Rhino 8 WIP\\System\\Rhino.exe",
+      "executablePath": "C:\\Program Files\\Rhino 8\\System\\Rhino.exe",
+      "commandLineArgs": "/netfx",
+      "environmentVariables": {
+        "RHINO_PACKAGE_DIRS": "$(SolutionDir)bin\\Debug"
+      },
       "nativeDebugging": true
     }
   }
