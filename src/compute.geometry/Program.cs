@@ -9,6 +9,9 @@ using Serilog;
 using Carter;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace compute.geometry
 {
@@ -124,12 +127,11 @@ namespace compute.geometry
         }
     }
 
-
     public class RhinoGetModule : ICarterModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            //app.MapGet("/sdk", SdkEndpoint);
+            app.MapGet("/sdk", SdkEndpoint);
 
             foreach (var endpoint in GeometryEndPoint.AllEndPoints)
             {
@@ -137,30 +139,22 @@ namespace compute.geometry
             }
         }
 
-        //static async Task SdkEndpoint(HttpContext context)
-        //{
-        //    var result = new StringBuilder("<!DOCTYPE html><html><body>");
-        //    result.AppendLine($" <a href=\"/sdk/csharp\">C# SDK</a><BR>");
-        //    result.AppendLine("<p>API<br>");
+        static async Task SdkEndpoint(HttpContext context)
+        {
+            var result = new StringBuilder("<!DOCTYPE html><html><body>");
+            //result.AppendLine($" <a href=\"/sdk/csharp\">C# SDK</a><BR>");
+            result.AppendLine("<p>API<br>");
 
-        //    int route_index = 0;
-        //    foreach (var endpoint in GeometryEndPoint.AllEndPoints)
-        //    {
-        //        foreach (var route in module.Value)
-        //        {
-        //            var method = route.Item2.Method;
-        //            var path = route.Item2.Path;
-        //            if (method == "GET")
-        //            {
-        //                route_index += 1;
-        //                result.AppendLine($"{route_index} <a href='{path}'>{path}</a><BR>");
-        //            }
-        //        }
-        //    }
+            int route_index = 0;
 
-        //    result.AppendLine("</p></body></html>");
-        //    await context.Response.WriteAsync(result.ToString());
-        //}
+            foreach (var endpoint in GeometryEndPoint.AllEndPoints)
+            {
+                route_index += 1;
+                result.AppendLine($"{route_index} <a href='{endpoint.PathURL}'>{endpoint.Path}</a><BR>");
+            }
+            result.AppendLine("</p></body></html>");
+            await context.Response.WriteAsync(result.ToString());
+        }
     }
 
     public class RhinoPostModule : ICarterModule

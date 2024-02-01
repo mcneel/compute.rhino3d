@@ -1085,6 +1085,14 @@ for value in values:
                             case Grasshopper.Kernel.Special.GH_NumberSlider _:
                                 paramIndex = mgr.AddNumberParameter(name, nickname, inputDescription, access);
                                 break;
+
+                            default:
+                                param.Name = name;
+                                param.Description = inputDescription;
+                                param.Access = access;
+                                param.NickName = nickname;
+                                paramIndex = mgr.AddParameter(param);
+                                break;
                         }
 
                         if (paramIndex >= 0 && inputSources.TryGetValue(name, out List<IGH_Param> rehookInputs))

@@ -93,8 +93,8 @@ namespace Resthopper.IO
             {
                 var archive = new GH_Archive();
                 archive.CreateNewRoot(true);
-                var chunk = archive.GetRootNode;
-
+                var root = archive.GetRootNode;
+                var chunk = root.CreateChunk("Values");  
                 foreach (var entry in Values)
                 {
                     var param = chunk.CreateChunk(entry.Key);
@@ -111,12 +111,15 @@ namespace Resthopper.IO
                                 geometricGoo.ReferenceID = Guid.Empty;
                                 list[i] = geometricGoo;
                             }
+                            else if(goo is IGH_ReferencedData refData && refData.IsReferencedData)
+                            {
+                                var modelData = refData as Grasshopper.Rhinoceros.ModelData;
+                                list[i] = modelData.ToAttributes().ToModelData();
+                            }
                         }
                     }
-
                     entry.Value.Write(param);
                 }
-
                 var binary = archive.Serialize_Binary();
                 return Convert.ToBase64String(binary);
             }
@@ -127,7 +130,8 @@ namespace Resthopper.IO
                 var binary = Convert.FromBase64String(base64);
                 var archive = new GH_Archive();
                 archive.Deserialize_Binary(binary);
-                var chunk = archive.GetRootNode;
+                var root = archive.GetRootNode;
+                var chunk = root.FindChunk("Values");
                 foreach (var param in chunk.Chunks)
                 {
                     var values = new Grasshopper.Kernel.Data.GH_Structure<IGH_Goo>();

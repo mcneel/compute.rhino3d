@@ -220,6 +220,7 @@ namespace compute.geometry
             var responseSchema = definition.GetInputsAndOutputs();
             responseSchema.CacheKey = definition.CacheKey;
             responseSchema.Icon = definition.GetIconAsString();
+            responseSchema.SupportedDataFormats = new List<SchemaDataFormat> { SchemaDataFormat.Resthopper, SchemaDataFormat.Grasshopper};
             foreach (var error in definition.ErrorMessages)
             {
                 responseSchema.Errors.Add(error);

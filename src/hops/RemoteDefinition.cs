@@ -10,6 +10,7 @@ using System.IO;
 using System.Reflection;
 using System.Net.Http;
 using Grasshopper.Kernel.Data;
+using System.Linq;
 
 namespace Hops
 {
@@ -42,6 +43,8 @@ namespace Hops
         public byte[] _internalizedDefinition = null;
         const string _apiKeyName = "RhinoComputeKey";
         public PathType? _pathType;
+        SchemaDataFormat _dataFormat = SchemaDataFormat.Resthopper;
+
         public static RemoteDefinition Create(string path, HopsComponent parentComponent)
         {
             var rc = new RemoteDefinition(path, parentComponent);
@@ -201,7 +204,6 @@ namespace Hops
             {
                 string postUrl = Servers.GetDescriptionPostUrl();
                 var schema = new Schema();
-                schema.DataVersion = 8;
                 if (pathType != PathType.InternalizedDefinition)
                 {
                     if(Path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
@@ -264,6 +266,16 @@ namespace Hops
                     responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(stringResult);
                     _cacheKey = responseSchema.CacheKey;
                     _parentComponent.HTTPRecord.IOResponseSchema = responseSchema;
+                    if(responseSchema.SupportedDataFormats != null && responseSchema.SupportedDataFormats.Count > 0)
+                    {
+                        _dataFormat = responseSchema.SupportedDataFormats?.Max() ?? SchemaDataFormat.Resthopper;
+                        if (_dataFormat > SchemaDataFormat.Grasshopper)
+                            _dataFormat = SchemaDataFormat.Grasshopper;
+                    }
+                    else
+                    {
+                        _dataFormat = SchemaDataFormat.Resthopper;
+                    }   
                 }
             }
 
@@ -556,7 +568,7 @@ namespace Hops
 
         public void SetComponentOutputs(Schema schema, IGH_DataAccess DA, List<IGH_Param> outputParams, HopsComponent component)
         {
-            if(schema.DataFormat == SchemaDataFormat.Grasshopper)
+            if(_dataFormat == SchemaDataFormat.Grasshopper)
             {
                 foreach (var param in schema.GrasshopperValues.Values)
                 {
@@ -578,7 +590,7 @@ namespace Hops
                     DA.SetDataTree(paramIndex, param.Value);
                 }
             }
-            else
+            else if (_dataFormat == SchemaDataFormat.Resthopper)
             {
                 foreach (var datatree in schema.Values)
                 {
@@ -881,6 +893,7 @@ namespace Hops
                 _params.Add(new Grasshopper.Kernel.Parameters.Param_Time());
                 _params.Add(new Grasshopper.Kernel.Parameters.Param_Transform());
                 _params.Add(new Grasshopper.Kernel.Parameters.Param_Vector());
+                _params.Add(new Grasshopper.Rhinoceros.Model.Params.Param_ModelObject());
             }
             foreach(var p in _params)
             {
@@ -1256,11 +1269,11 @@ namespace Hops
             warnings = new List<string>();
             errors = new List<string>();
             var schema = new Resthopper.IO.Schema();
-            schema.DataFormat = SchemaDataFormat.Grasshopper;
             schema.RecursionLevel = recursionLevel;
             schema.AbsoluteTolerance = GetDocumentTolerance();
             schema.AngleTolerance = GetDocumentAngleTolerance();
             schema.ModelUnits = GetDocumentUnits();
+            schema.DataFormat = _dataFormat;
 
             schema.CacheSolve = cacheSolveOnServer;
             var inputs = GetInputParams();
@@ -1273,7 +1286,7 @@ namespace Hops
                     string computeName = input.Name;
                     int inputListCount = 0;
                     GH_ParamAccess access = AccessFromInput(input);
-                    if(schema.DataFormat == SchemaDataFormat.Grasshopper)
+                    if(_dataFormat == SchemaDataFormat.Grasshopper)
                     {
                         var goos = new Grasshopper.Kernel.Data.GH_Structure<IGH_Goo>();
                         CollectDataHelper(DA, _parentComponent, inputName, input, access, ref inputListCount, goos, ref warnings, ref errors);

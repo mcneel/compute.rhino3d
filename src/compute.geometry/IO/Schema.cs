@@ -24,11 +24,11 @@ namespace Resthopper.IO
         [JsonProperty(PropertyName = "modelunits")]
         public string ModelUnits { get; set; } = Rhino.UnitSystem.Millimeters.ToString();
 
-        // Rhino version of data to be serialized and returned to the client
+        // Rhino version of data that the server is capable of processing
         [JsonProperty(PropertyName = "dataversion")]
         public int DataVersion { get; set; } = 7;
 
-        // Format of the data being serialized/deserialized
+        // Format of the data that the server is capable of processing
         [JsonProperty(PropertyName = "dataformat")]
         public SchemaDataFormat DataFormat { get; set; } = SchemaDataFormat.Resthopper;
 
@@ -98,6 +98,10 @@ namespace Resthopper.IO
         public List<IoParamSchema> Outputs { get; set; }
         public List<string> Warnings { get; set; } = new List<string>();
         public List<string> Errors { get; set; } = new List<string>();
+
+        // List of supported data formats from the server
+        [JsonProperty(PropertyName = "supporteddataformats")]
+        public List<SchemaDataFormat> SupportedDataFormats { get; set; } = new List<SchemaDataFormat>();
     }
 
     public class HTTPRecord

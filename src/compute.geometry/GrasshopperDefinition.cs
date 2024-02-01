@@ -806,7 +806,6 @@ namespace compute.geometry
             HasErrors = false;
             Schema outputSchema = new Schema();
             outputSchema.Algo = string.Empty;
-            outputSchema.DataFormat = format;
 
             // solve definition
             Definition.Enabled = true;
@@ -825,12 +824,12 @@ namespace compute.geometry
                 if (param == null)
                     continue;
 
-                if(format == SchemaDataFormat.Grasshopper)
+                if (format == SchemaDataFormat.Grasshopper)
                 {
                     var data = (GH_Structure<IGH_Goo>)param.VolatileData;
                     outputSchema.GrasshopperValues.Values.Add(kvp.Key, data);
                 }
-                else
+                else if (format == SchemaDataFormat.Resthopper)
                 {
                     // Get data
                     var outputTree = new DataTree<ResthopperObject>();
