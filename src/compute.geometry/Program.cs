@@ -9,6 +9,7 @@ using Serilog;
 using Carter;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
+using System.Runtime.InteropServices;
 
 namespace compute.geometry
 {
@@ -129,38 +130,50 @@ namespace compute.geometry
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            //app.MapGet("/sdk", SdkEndpoint);
-
+            app.MapGet("/sdk", context => SdkEndpoint(context, app));
+            
             foreach (var endpoint in GeometryEndPoint.AllEndPoints)
             {
                 app.MapGet(endpoint.PathURL, endpoint.Get);
             }
         }
 
-        //static async Task SdkEndpoint(HttpContext context)
-        //{
-        //    var result = new StringBuilder("<!DOCTYPE html><html><body>");
-        //    result.AppendLine($" <a href=\"/sdk/csharp\">C# SDK</a><BR>");
-        //    result.AppendLine("<p>API<br>");
+        static async Task SdkEndpoint(HttpContext context, IEndpointRouteBuilder app)
+        {
+            var result = new StringBuilder("<!DOCTYPE html><html><body>");
+            result.AppendLine("<p>API<br>");
+            int route_index = 0;
+            var sources = app.DataSources;
+            var getHeader = "HTTP: GET";
+            var postHeader = "HTTP: POST";
+            foreach (var source in sources)
+            {
+                if (source == null) continue;
+                foreach (var endpoint in source.Endpoints)  
+                {
+                    if (endpoint.DisplayName == "Health checks" || endpoint.DisplayName == "HTTP: GET  => HomePage")
+                        continue;
+                    route_index += 1;
+                    var method = endpoint.RequestDelegate;
+                    var displayName = endpoint.DisplayName;
+                    var path = endpoint.DisplayName;
+                    if (path.Contains(getHeader))
+                        path = path.Substring(getHeader.Length);
+                    else if (path.Contains(postHeader))
+                        path = path.Substring(postHeader.Length);
 
-        //    int route_index = 0;
-        //    foreach (var endpoint in GeometryEndPoint.AllEndPoints)
-        //    {
-        //        foreach (var route in module.Value)
-        //        {
-        //            var method = route.Item2.Method;
-        //            var path = route.Item2.Path;
-        //            if (method == "GET")
-        //            {
-        //                route_index += 1;
-        //                result.AppendLine($"{route_index} <a href='{path}'>{path}</a><BR>");
-        //            }
-        //        }
-        //    }
-
-        //    result.AppendLine("</p></body></html>");
-        //    await context.Response.WriteAsync(result.ToString());
-        //}
+                    path.Trim();
+                    result.AppendLine($"{route_index} <a href='{path}'>{displayName}</a><BR>");
+                }
+            }           
+            //foreach (var endpoint in GeometryEndPoint.AllEndPoints)
+            //{
+            //    route_index += 1;
+            //    result.AppendLine($"{route_index} <a href='{endpoint.PathURL}'>{endpoint.Path}</a><BR>");
+            //}
+            result.AppendLine("</p></body></html>");
+            await context.Response.WriteAsync(result.ToString());
+        }
     }
 
     public class RhinoPostModule : ICarterModule
