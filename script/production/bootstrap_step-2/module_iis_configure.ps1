@@ -3,9 +3,6 @@ $websiteName = "Rhino.Compute"
 $physicalPathRoot = "C:\inetpub\wwwroot\aspnet_client\system_web\4_0_30319"
 $rhinoComputePath = "$physicalPathRoot\rhino.compute"
 $computeGeometryPath = "$physicalPathRoot\compute.geometry"
-$rhinoPackagesPath = "C:\ProgramData\McNeel\Rhinoceros\packages"
-$userPackagesPath = "C:\Users\$env:UserName\AppData\Roaming\McNeel\Rhinoceros\packages"
-$appPoolPackagesPath = "C:\Users\RhinoComputeAppPool\AppData\Roaming\McNeel\Rhinoceros"
 $localUserName = "RhinoComputeUser"
 
 Import-Module WebAdministration
