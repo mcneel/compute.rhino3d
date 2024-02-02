@@ -6,6 +6,7 @@ $rhinoComputePath = "$physicalPathRoot\rhino.compute"
 $computeGeometryPath = "$physicalPathRoot\compute.geometry"
 $rhinoComputeExe = "$rhinoComputePath\rhino.compute.exe"
 $computeGeometryExe = "$computeGeometryPath\compute.geometry.exe"
+$appPoolName = "RhinoComputeAppPool"
 $websiteName = "Rhino.Compute"
 
 #Region funcs
@@ -93,6 +94,10 @@ if ((Test-Path $physicalPathRoot)) {
     Expand-Archive "$physicalPathRoot/compute.zip" -DestinationPath $physicalPathRoot
     Remove-Item "$physicalPathRoot/compute.zip"
 }
+
+Write-Step "Granting application pool permissions on compute directories" 
+cmd /c icacls $rhinoComputePath /grant ("IIS AppPool\$appPoolName" + ':(OI)(CI)F') /t /c /q 
+cmd /c icacls $computeGeometryPath /grant ("IIS AppPool\$appPoolName"+ ':(OI)(CI)F') /t /c /q 
 
 Write-Step "Starting the IIS Service"
 net start w3svc
