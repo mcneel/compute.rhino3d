@@ -4,6 +4,8 @@
 $physicalPathRoot = "C:\inetpub\wwwroot\aspnet_client\system_web\4_0_30319"
 $rhinoComputePath = "$physicalPathRoot\rhino.compute"
 $computeGeometryPath = "$physicalPathRoot\compute.geometry"
+$rhinoComputeExe = "$rhinoComputePath\rhino.compute.exe"
+$computeGeometryExe = "$computeGeometryPath\compute.geometry.exe"
 $websiteName = "Rhino.Compute"
 
 #Region funcs
@@ -33,13 +35,27 @@ Write-Host @"
   # # # # # # # # # # # # # # # # # # # # #
 "@
 
-Write-Step "Stopping any running IIS services"
+# check that compute exists
+if (((Test-Path "$computeGeometryExe") -eq $false) -or ((Test-Path "$rhinoComputeExe") -eq $false)) {
+    Write-Host "The rhino.compute or compute.geometry executable file could not be found." -ForegroundColor Red
+    Write-Host "Please run the bootstrap script first!" -ForegroundColor Red
+    exit 1
+}
+
+Write-Step "Stopping the IIS services"
 net stop was /y
 
-if ((Test-Path -Path $physicalPathRoot)) {
-    Write-Step "Removing any existing Rhino.Compute build directories"
-    Remove-Item -LiteralPath $physicalPathRoot -Force -Recurse
+Write-Step 'Create backup'
+$backupDir = "$physicalPathRoot\rhino.compute-backup"
+if ((Test-Path "$backupDir") -eq $true) {
+    Write-Host "Deleting '$backupDir'"
+    Remove-Item -Recurse -Force "$backupDir"
 }
+New-Item -ItemType Directory -Force -Path $backupDir
+Write-Host "Moving $rhinoComputePath to $backupDir\rhino.compute"
+Move-Item -Path $rhinoComputePath -Destination $backupDir 
+Write-Host "Moving $computeGeometryPath to $backupDir\compute.geometry"
+Move-Item -Path $computeGeometryPath -Destination $backupDir 
 
 $gitPrefix = 'https://api.github.com/repos'
 $nightlyPrefix = 'https://nightly.link'
@@ -67,15 +83,15 @@ if ($artifactID -lt 0){
 
 $downloadurl = "$nightlyPrefix/$actionurl/$artifactID.zip"
 
-if (-Not (Test-Path -Path $appDirectory)){
-    New-Item $appDirectory -ItemType Directory
+if (-Not (Test-Path -Path $physicalPathRoot)){
+    New-Item $physicalPathRoot -ItemType Directory
 }
 
-if ((Test-Path $appDirectory)) {
+if ((Test-Path $physicalPathRoot)) {
     Write-Step "Download and unzip latest build of compute from $downloadurl"
-    Download $downloadurl "$appDirectory/compute.zip"
-    Expand-Archive "$appDirectory/compute.zip" -DestinationPath $appDirectory
-    Remove-Item "$appDirectory/compute.zip"
+    Download $downloadurl "$physicalPathRoot/compute.zip"
+    Expand-Archive "$physicalPathRoot/compute.zip" -DestinationPath $physicalPathRoot
+    Remove-Item "$physicalPathRoot/compute.zip"
 }
 
 Write-Step "Starting the IIS Service"
