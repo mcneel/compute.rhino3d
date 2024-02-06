@@ -2,7 +2,12 @@
 # https://github.com/actions/virtual-environments/tree/main/images
 
 name: workflow ci
-on: [push, pull_request, workflow_dispatch]
+on: 
+  push: 
+  pull_request: 
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
 
 jobs:
 
