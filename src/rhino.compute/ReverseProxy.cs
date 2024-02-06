@@ -142,12 +142,10 @@ namespace rhino.compute
                     }
                 }
             }
-
             if (method == HttpMethod.Get)
             {
                 return await _client.GetAsync(proxyUrl);
             }
-
             throw new System.NotSupportedException("Only GET and POST are currently supported for reverse proxy");
         }
 
