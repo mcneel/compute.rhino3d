@@ -60,7 +60,7 @@ jobs:
           echo ${{ steps.revision.outputs.revision }}
           (get-content .\src\compute.geometry\FixedEndpoints.cs).replace('git_sha = null', 'git_sha = "${{ steps.revision.outputs.revision }}"') | set-content .\src\compute.geometry\FixedEndpoints.cs
       - name: build
-        run: dotnet publish src/compute.sln -c Release -p:PublishTrimmed=true --self-contained true -r win-x64
+        run: dotnet publish src/compute.sln -c Release --self-contained true -r win-x64
       - name: artifacts
         if: github.ref == 'refs/heads/7.x'
         uses: actions/upload-artifact@v2
