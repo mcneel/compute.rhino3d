@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.5] - 2024-02-29
+
+### Fixed
+
+- Calling the /sdk endpoint in Rhino.Compute would not return anything. This has now been fixed and it will now return a full list of all SDK methods available in Rhino.Compute.
+- Fixed the module_update_compute.ps1 powershell script which can be run to update existing production environments to the latest version of Rhino.Compute.
+- Fixed a bug where the RhinoCode scripting plugin was not being loaded properly in Rhino.Compute.
+- Added some parameters to the launch settings to be able to debug Rhino.Compute in .NET 4.8.
+
 ## [0.16.4] - 2023-11-27
 
 ### Added
