@@ -31,7 +31,7 @@ namespace compute.geometry
         public void Configure(IApplicationBuilder app)
         {
             RhinoCoreStartup();
-            
+
             app.UseRouting();
             app.UseCors();
             //if (!String.IsNullOrEmpty(Config.ApiKey))
@@ -47,7 +47,8 @@ namespace compute.geometry
         {
             Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
             Environment.SetEnvironmentVariable("RHINO_TOKEN", null, EnvironmentVariableTarget.Process);
-            Rhino.Runtime.HostUtils.OnExceptionReport += (source, ex) => {
+            Rhino.Runtime.HostUtils.OnExceptionReport += (source, ex) =>
+            {
                 Log.Error(ex, "An exception occurred while processing request");
                 Logging.LogExceptionData(ex);
             };
