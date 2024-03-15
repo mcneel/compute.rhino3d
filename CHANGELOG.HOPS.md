@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.6] - 2024-03-15
+
+### Fixed
+
+- Fixing another bug to handle how the RhinoCode scripting plugin is loaded in Rhino.Compute. This plugin is now loaded first before Grasshopper or other compute related plugins.
+
 ## [0.16.5] - 2024-02-29
 
 ### Fixed
