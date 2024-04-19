@@ -9,7 +9,7 @@
 
 For more information, see https://www.rhino3d.com/compute.
 
-Compute is built on top of Rhino 7 for Windows and can run anywhere Rhino 7 for Windows can run.
+Compute is built on top of Rhino 8 for Windows and can run anywhere Rhino 8 for Windows can run.
 
 🛠 Start with ["Developing with Rhino Compute"](https://developer.rhino3d.com/guides/compute/development/) to run Compute locally for testing and debugging.
 
