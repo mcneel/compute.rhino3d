@@ -21,7 +21,6 @@ namespace compute.geometry
             app.MapGet("servertime", ServerTime);
             app.MapGet("plugins/rhino/installed", GetInstalledPluginsRhino);
             app.MapGet("plugins/gh/installed", GetInstalledPluginsGrasshopper);
-            //Get["sdk/csharp"] = _ => CSharpSdk(Context);
         }
 
         static void HomePage(HttpContext context)
@@ -81,31 +80,6 @@ namespace compute.geometry
             ctx.Response.ContentType = "application/json";
             await ctx.Response.WriteAsJsonAsync(ghPluginInfo);
         }
-
-        /*
-        static async Task CSharpSdk(HttpContext ctx)
-        {
-            string content = "";
-            using (var resourceStream = typeof(FixedEndPointsModule).Assembly.GetManifestResourceStream("compute.geometry.RhinoCompute.cs"))
-            {
-                var stream = new System.IO.StreamReader(resourceStream);
-                content = stream.ReadToEnd();
-                stream.Close();
-            }
-
-            var response = new Response();
-
-            response.Headers.Add("Content-Disposition", "attachment; filename=RhinoCompute.cs");
-            response.ContentType = "text/plain";
-            response.Contents = stream => {
-                using (var writer = new System.IO.StreamWriter(stream))
-                {
-                    writer.Write(content);
-                }
-            };
-            return response.AsAttachment("RhinoCompute.cs", "text/plain" );
-        }
-        */
     }
 }
 

@@ -4,12 +4,13 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using Serilog;
 using Carter;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
-using System.Runtime.InteropServices;
+
+using System.IO;
+
 
 namespace compute.geometry
 {
@@ -125,22 +126,47 @@ namespace compute.geometry
         }
     }
 
-
     public class RhinoGetModule : ICarterModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/sdk", context => SdkEndpoint(context, app));
-            
+            app.MapGet("/sdk/csharp", context => CSharpSdk(context));
+
             foreach (var endpoint in GeometryEndPoint.AllEndPoints)
             {
                 app.MapGet(endpoint.PathURL, endpoint.Get);
             }
         }
 
+        static async Task CSharpSdk(HttpContext context)
+        {
+            context.Response.ContentType = "text/plain";
+            string fileContents;
+            using (Stream resourceStream = typeof(FixedEndPointsModule).Assembly.GetManifestResourceStream("compute.geometry.RhinoCompute.cs"))
+            {
+                if (resourceStream != null)
+                {
+                    using (StreamReader reader = new StreamReader(resourceStream))
+                    {
+                        fileContents = await reader.ReadToEndAsync();
+                    }
+                }
+                else
+                {
+                    context.Response.StatusCode = 404;
+                    return;
+                }
+            }
+            var result = new StringBuilder();
+            result.AppendLine(fileContents);
+            await context.Response.WriteAsync(result.ToString());
+        }
+
         static async Task SdkEndpoint(HttpContext context, IEndpointRouteBuilder app)
         {
             var result = new StringBuilder("<!DOCTYPE html><html><body>");
+            result.AppendLine($" <a href=\"/sdk/csharp\">C# SDK</a><BR>");
             result.AppendLine("<p>API<br>");
             int route_index = 0;
             var sources = app.DataSources;
@@ -166,11 +192,6 @@ namespace compute.geometry
                     result.AppendLine($"{route_index} <a href='{path}'>{displayName}</a><BR>");
                 }
             }           
-            //foreach (var endpoint in GeometryEndPoint.AllEndPoints)
-            //{
-            //    route_index += 1;
-            //    result.AppendLine($"{route_index} <a href='{endpoint.PathURL}'>{endpoint.Path}</a><BR>");
-            //}
             result.AppendLine("</p></body></html>");
             await context.Response.WriteAsync(result.ToString());
         }
