@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.7] - 2024-04-22
+
+### Added
+
+- Added the RhinoCompute.cs file to the compute.geometry 8.x repo. This is referenced in several guides and tutorials and had been omitted during the refactoring process when we moved from 7.x to 8.x. In addition, a new endpoint was added called `/sdk/csharp` which will allow you to view and/or download the contents of this file for use in your own projects.
+
 ## [0.16.6] - 2024-03-15
 
 ### Fixed
