@@ -12,7 +12,7 @@ namespace Rhino.Compute
 {
     public static class ComputeServer
     {
-        public static string WebAddress { get; set; } = "https://compute.rhino3d.com";
+        public static string WebAddress { get; set; } = "http://localhost:6500";
         public static string AuthToken { get; set; }
         public static string ApiKey { get; set; }
         public static string Version => "{{VERSION}}";
