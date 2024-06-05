@@ -25,7 +25,7 @@ namespace compute.geometry
             Logging.Init();
 
             RhinoInside.Resolver.Initialize();
-            RhinoInside.Resolver.UseLatest = true;
+            RhinoInside.Resolver.UseLatest = false;
 #if DEBUG
             // Uncomment the following to debug with core Rhino source. This
             // tells compute to use a different RhinoCore than what RhinoInside thinks
@@ -40,10 +40,11 @@ namespace compute.geometry
             StartTime = DateTime.Now;
             Shutdown.RegisterStartTime(StartTime);
             Log.Information($"Child process started at " + StartTime.ToLocalTime().ToString());
+
             ParseCommandLineArgs(args);
 
             RhinoInside.Resolver.LoadRhino();
-
+            LogVersions();
             var host = Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
@@ -124,7 +125,20 @@ namespace compute.geometry
                 }
             }
         }
+        private static void LogVersions()
+        {
+            string compute_version = null, rhino_version = null;
+            try
+            {
+                compute_version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
+                rhino_version = typeof(Rhino.RhinoApp).Assembly.GetName().Version.ToString();
+            }
+            catch { }
+            Log.Information("Compute {ComputeVersion}, Rhino {RhinoVersion}", compute_version, rhino_version);
+            Log.Debug("Rhino system directory: {Path}", RhinoInside.Resolver.RhinoSystemDirectory);
+        }
     }
+
 
     public class RhinoGetModule : ICarterModule
     {
