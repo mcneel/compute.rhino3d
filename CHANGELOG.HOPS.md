@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.8] - 2024-06-05
+
+### Fixed
+
+- The Rhino.Inside.Resolver was set to automatically look for the latest build of Rhino which was causing some conflicts if users had installed Rhino 9 WIP. The default path for the 8.x build of rhino.compute should now look for that latest build of Rhino 8 when trying to resolve Rhino.Inside.
+
+### Added
+
+- A few additional lines of logging information were added to display the the current build of Rhino.Compute and Rhino as well as the working system path. 
+
 ## [0.16.7] - 2024-04-22
 
 ### Added
