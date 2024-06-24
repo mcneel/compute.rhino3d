@@ -56,7 +56,7 @@ requests while the child processes are launching.")]
         static System.Diagnostics.Process _parentProcess;
         static System.Timers.Timer _selfDestructTimer;
         public static IConfiguration Configuration { get; } = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
+            .SetBasePath(AppContext.BaseDirectory)
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
             .AddEnvironmentVariables()
             .Build();
@@ -70,6 +70,18 @@ requests while the child processes are launching.")]
             .Enrich.FromLogContext()
             .WriteTo.Console()
             .CreateLogger();
+
+            var arguments = Environment.GetEnvironmentVariable("RHINO_COMPUTE_ARGUMENTS");
+            if (!string.IsNullOrEmpty(arguments))
+            {
+                args = arguments.Split(" ");
+            }
+            
+            var rhinoPath = Environment.GetEnvironmentVariable("RHINO_DYLD_LIBRARY_PATH");
+            if (rhinoPath != null)
+            {
+                Environment.SetEnvironmentVariable("DYLD_LIBRARY_PATH", rhinoPath);
+            }
 
             int port = -1;
             Parser.Default.ParseArguments<Options>(args).WithParsed(o =>

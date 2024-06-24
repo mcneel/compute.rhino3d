@@ -6,7 +6,8 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "Build Hops",
-            "program": "/Applications/RhinoWIP.app/Contents/MacOS/Rhinoceros",
+            // "program": "/Applications/Rhino 8.app/Contents/MacOS/Rhinoceros",
+            "program": "/Users/curtis/Library/Developer/Xcode/DerivedData/MacRhino-dalqjlsjnqqsltdayygnhqhgntxb/Build/Products/Debug/Rhinoceros.app/Contents/MacOS/Rhinoceros",
             "args": [],
             "env": {
                 "GRASSHOPPER_PLUGINS": "${workspaceFolder}/src/hops/bin/Debug/Hops.gha"
@@ -45,13 +46,49 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "Build",
-            "program": "${workspaceFolder}/src/bin/Debug/compute.geometry/compute.geometry.exe",
-            "targetArchitecture": "x86_64",
+            "windows": {
+                "program": "${workspaceFolder}/src/bin/Debug/compute.geometry/compute.geometry.exe",
+                "targetArchitecture": "x86_64",
+            },
+            "osx": {
+                "program": "${workspaceFolder}/src/bin/Debug/compute.geometry/osx-arm64/compute.geometry",
+                "env": {
+                    // "DYLD_LIBRARY_PATH": "/Users/curtis/Library/Developer/Xcode/DerivedData/MacRhino-dalqjlsjnqqsltdayygnhqhgntxb/Build/Products/Debug/Rhinoceros.app/Contents/Frameworks"
+                    "DYLD_LIBRARY_PATH": "/Applications/Rhino 8.app/Contents/Frameworks"
+                }
+            },
             "justMyCode": false,
             "args": [],
             "cwd": "${workspaceFolder}",
-            "console": "internalConsole"
-        }
+            "console": "integratedTerminal",
+            
+        },
+        {
+            "name": "Launch compute.geometry C++",
+            "type": "cppdbg",
+            "request": "launch",
+            "preLaunchTask": "Build",
+            "osx": {
+                "program": "${workspaceFolder}/src/bin/Debug/compute.geometry/compute.geometry",
+            },
+            "args": [
+                // "-runscript=\"grasshopper\""
+            ],
+            "stopAtEntry": false,
+            "targetArchitecture": "arm64",
+            "cwd": "${workspaceFolder}/src/bin/Debug/compute.geometry",
+            "externalConsole": false,
+            "miDebuggerArgs": "--local-lldbinit ",
+            "MIMode": "lldb",
+            "environment": [
+                { "name": "DYLD_LIBRARY_PATH", "value": "/Users/curtis/Library/Developer/Xcode/DerivedData/MacRhino-dalqjlsjnqqsltdayygnhqhgntxb/Build/Products/Debug/Rhinoceros.app/Contents/Frameworks"}
+                { "name": "DOTNET_gcConcurrent", "value": "0" },
+                { "name": "DOTNET_EnableDiagnostics", "value": "0" },
+                { "name": "DOTNET_TC_QuickJit", "value": "1" },
+                // { "name": "DYLD_PRINT_LIBRARIES", "value": "1" }
+            ]
+        },
+        
     ],
     "compounds": []
 }

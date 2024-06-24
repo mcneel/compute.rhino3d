@@ -42,8 +42,8 @@ namespace Hops
 
         static HopsComponent()
         {
-            if (!Rhino.Runtime.HostUtils.RunningOnWindows)
-                return;
+            // if (!Rhino.Runtime.HostUtils.RunningOnWindows)
+            //     return;
             if (Rhino.RhinoApp.IsRunningHeadless)
                 return;
             if (Hops.HopsAppSettings.Servers.Length > 0)

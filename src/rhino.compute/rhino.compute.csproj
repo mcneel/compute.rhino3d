@@ -4,6 +4,7 @@
     <AssemblyName>rhino.compute</AssemblyName>
     <OutputType>Exe</OutputType>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <RuntimeIdentifiers>win-x64;osx-arm64;osx-x64</RuntimeIdentifiers>
     <RuntimeFrameworkVersion>7.0.0</RuntimeFrameworkVersion>
     <RollForward>LatestMinor</RollForward>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -11,7 +12,6 @@
     <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>
     <SelfContained>True</SelfContained>
     <PublishTrimmed>False</PublishTrimmed>
-    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
     <OutputPath>..\bin\Debug\$(AssemblyName)</OutputPath>
@@ -20,7 +20,7 @@
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
     <OutputPath>..\bin\Release\$(AssemblyName)</OutputPath>
     <DefineConstants>TRACE;RHINO_COMPUTE</DefineConstants>
-    <PublishDir>..\dist\$(AssemblyName)</PublishDir>
+    <PublishDir>..\dist\$(OutputFramework)\$(AssemblyName)</PublishDir>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,4 +35,10 @@
     <PackageReference Include="Serilog.Sinks.Console" Version="4.1.0" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
   </ItemGroup>
+  
+  <Target Name="BuildMac" AfterTargets="AfterBuild" Condition="$(RuntimeIdentifier) == 'win-x64'">
+    <MSBuild Projects="$(MSBuildProjectFile)" Properties="RuntimeIdentifier=osx-arm64" />
+    <MSBuild Projects="$(MSBuildProjectFile)" Properties="RuntimeIdentifier=osx-x64" />
+  </Target>
+  
 </Project>
