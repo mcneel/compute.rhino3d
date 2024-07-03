@@ -46,14 +46,16 @@ namespace compute.geometry
         void RhinoCoreStartup()
         {
             Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
+
+            if (Config.Debug)
+                Rhino.RhinoApp.SendWriteToConsole = true;
+            
             Environment.SetEnvironmentVariable("RHINO_TOKEN", null, EnvironmentVariableTarget.Process);
             Rhino.Runtime.HostUtils.OnExceptionReport += (source, ex) =>
             {
                 Log.Error(ex, "An exception occurred while processing request");
                 Logging.LogExceptionData(ex);
             };
-
-            Rhino.RhinoApp.SendWriteToConsole = true;
 
             // NOTE:
             // eirannejad 10/02/2024 (COMPUTE-268)
@@ -95,7 +97,6 @@ namespace compute.geometry
             if (runheadless != null)
                 runheadless.Invoke(pluginObject, null);
 
-            Rhino.RhinoApp.SendWriteToConsole = false;
 
             Log.Information("(3/3) Loading compute plug-ins");
             var loadComputePlugins = typeof(Rhino.PlugIns.PlugIn).GetMethod("LoadComputeExtensionPlugins");
