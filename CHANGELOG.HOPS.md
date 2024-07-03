@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.9] - 2024-07-03
+
+### Fixed
+
+- Fixed a bug where setting the environment variable RHINO_COMPUTE_DEBUG to True would not in effect add any additional logging information to the console output. The default for this is True when running in debug mode, and False when running Rhino.Compute in release mode. Override this setting by creating an environment variable called RHINO_COMPUTE_DEBUG and setting the value to True or False. Note, this change will only work when targeting builds of Rhino >= 8.10.
+
 ## [0.16.8] - 2024-06-05
 
 ### Fixed
@@ -12,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- A few additional lines of logging information were added to display the the current build of Rhino.Compute and Rhino as well as the working system path. 
+- A few additional lines of logging information were added to display the the current build of Rhino.Compute and Rhino as well as the working system path.
 
 ## [0.16.7] - 2024-04-22
 
