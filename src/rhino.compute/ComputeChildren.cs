@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Serilog;
 
 namespace rhino.compute
@@ -153,12 +154,14 @@ namespace rhino.compute
             // compute.geometry is allowed to be either in:
             // - a sibling directory named compute.geometry
             // - a child directory named compute.geometry
-            var parentDirectory = pathToThisAssembly.Directory.Parent;
-            string pathToCompute = System.IO.Path.Combine(parentDirectory.FullName, "compute.geometry", "compute.geometry.exe");
+            var parentDirectory = pathToThisAssembly.Directory.Parent.Parent;
+            string geometryExecutable = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "compute.geometry.exe" : "compute.geometry";
+            string runtimeIdentifier = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "win-x64" : RuntimeInformation.ProcessArchitecture == Architecture.Arm64 ? "osx-arm64" : "osx-x64";
+            string pathToCompute = System.IO.Path.Combine(parentDirectory.FullName, "compute.geometry", runtimeIdentifier, geometryExecutable);
 
             if (!System.IO.File.Exists(pathToCompute))
             {
-                pathToCompute = System.IO.Path.Combine(pathToThisAssembly.Directory.FullName, "compute.geometry", "compute.geometry.exe");
+                pathToCompute = System.IO.Path.Combine(pathToThisAssembly.Directory.FullName, "compute.geometry", runtimeIdentifier, geometryExecutable);
                 if (!System.IO.File.Exists(pathToCompute))
                     return;
             }
@@ -188,6 +191,7 @@ namespace rhino.compute
             }
 
             var startInfo = new ProcessStartInfo(pathToCompute);
+            startInfo.UseShellExecute = false;
             var rhinoProcess = Process.GetCurrentProcess();
             string commandLineArgs = $"-port:{port} -childof:{rhinoProcess.Id}";
             if (!string.IsNullOrEmpty(RhinoSysDir))

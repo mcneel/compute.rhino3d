@@ -1,30 +1,32 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net7.0-windows</TargetFramework>
+    <TargetFrameworks>net7.0;net7.0-windows</TargetFrameworks>
     <AssemblyName>compute.geometry</AssemblyName>
     <OutputType>Exe</OutputType>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <RuntimeFrameworkVersion>7.0.0</RuntimeFrameworkVersion>
     <RollForward>LatestMinor</RollForward>
-    <UseWpf>True</UseWpf>
-    <UseWindowsForms>True</UseWindowsForms>
     <SelfContained>False</SelfContained>
     <PublishSingleFile>False</PublishSingleFile>
     <AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
-    <AppendRuntimeIdentifierToOutputPath>False</AppendRuntimeIdentifierToOutputPath>
     <EnableWindowsTargeting>True</EnableWindowsTargeting>
     <Version>8.0.0</Version>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-    <OutputPath>..\bin\Debug\$(AssemblyName)</OutputPath>
+  
+  <PropertyGroup Condition="$(TargetFramework) == 'net7.0-windows'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <UseWpf>True</UseWpf>
+    <UseWindowsForms>True</UseWindowsForms>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)'=='Release'">
-    <OutputPath>..\bin\Release\$(AssemblyName)</OutputPath>
+  <PropertyGroup Condition="$(TargetFramework) == 'net7.0'">
+    <RuntimeIdentifiers>osx-x64;osx-arm64</RuntimeIdentifiers>
+    <ProduceOnlyReferenceAssembly Condition="$(RuntimeIdentifier) == ''">true</ProduceOnlyReferenceAssembly>
+  </PropertyGroup>
+  
+  <PropertyGroup>
+    <OutputPath Condition="$(ProduceOnlyReferenceAssembly) != 'true'">..\bin\$(Configuration)\$(AssemblyName)</OutputPath>
     <PublishDir>..\dist\$(AssemblyName)</PublishDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Optimize>True</Optimize>
-  </PropertyGroup>
+  
   <ItemGroup>
     <Compile Remove="RhinoCompute.cs" />
   </ItemGroup>
@@ -46,6 +48,17 @@
     <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
     <PackageReference Include="System.Management" Version="7.0.0" />
     <PackageReference Include="System.Runtime.Caching" Version="7.0.0" />
-    <PackageReference Include="Microsoft.Windows.Compatibility" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Windows.Compatibility" Version="7.0.0" Condition="$(TargetFramework) == 'net7.0-windows'" />
   </ItemGroup>
+  
+  <Target Name="After" AfterTargets="AfterBuild" Condition="$(TargetFramework) == 'net7.0'">
+    <Delete Files="$(OutputPath)System.Drawing.Common.dll" />
+  </Target>
+  
+  <Target Name="BuildMac" AfterTargets="AfterBuild" Condition="$(RuntimeIdentifier) == 'win-x64'">
+    <MSBuild Projects="$(MSBuildProjectFile)" Properties="RuntimeIdentifier=osx-arm64;TargetFramework=net7.0" />
+    <MSBuild Projects="$(MSBuildProjectFile)" Properties="RuntimeIdentifier=osx-x64;TargetFramework=net7.0" />
+  </Target>
+  
+  
 </Project>

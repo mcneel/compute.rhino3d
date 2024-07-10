@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -62,6 +63,10 @@ namespace RhinoInside
             if (name == "Microsoft.macOS")
                 return null;
 
+            // only use the plain name to resolve assemblies, not the full name.
+            var assemblyName = new AssemblyName(name);
+            name = assemblyName.Name;
+
             string path = null;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
@@ -98,6 +103,7 @@ namespace RhinoInside
 
         static string FindRhinoSystemDirectory()
         {
+            
             var major = Assembly.GetExecutingAssembly().GetName().Version.Major;
 
             if (RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
@@ -134,7 +140,80 @@ namespace RhinoInside
                     }
                 }
             }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                // TODO: detect the app location
+                var path = "/Applications/Rhino 8.app";
+                // var path = "/Users/curtis/Library/Developer/Xcode/DerivedData/MacRhino-dalqjlsjnqqsltdayygnhqhgntxb/Build/Products/Debug/Rhinoceros.app";
+                
+                path = Path.Combine(path, "Contents", "Frameworks");
+                if (Directory.Exists(path))
+                {
+                    return path;
+                }
+            }
+
             return null;
+        }
+
+        public static bool RelaunchIfNeeded()
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                return false;
+
+            const string RHCORE_LIB = "RhCore.framework/Versions/A/RhCore";
+            bool found = false;
+            var libPaths = Environment.GetEnvironmentVariable("DYLD_LIBRARY_PATH")?.Split(";").ToList();
+            if (libPaths != null)
+            {
+                foreach (var libPath in libPaths)
+                {
+                    if (File.Exists(Path.Combine(libPath, RHCORE_LIB)))
+                    {
+                        // found Rhino! Let's use it.
+                        RhinoSystemDirectory = libPath;
+                        Console.WriteLine($"Using Rhino from {RhinoSystemDirectory}");
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                Console.WriteLine("DYLD_LIBRARY_PATH is null");
+            }
+            
+            if (!found)
+            {
+                Console.WriteLine("DYLD_LIBRARY_PATH not set, launching as child process");
+                
+                string systemDirectory = RhinoSystemDirectory;
+                if (!File.Exists(Path.Combine(systemDirectory, RHCORE_LIB)))
+                {
+                    Console.WriteLine("Could not find Rhino");
+                    return true;
+                }
+                
+                // executable has the same name without the .dll extension
+                var executable = Assembly.GetEntryAssembly().Location;
+                if (executable.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                    executable = executable.Substring(0, executable.Length - 4);
+                var startInfo = new ProcessStartInfo
+                {
+                    UseShellExecute = false,
+                    FileName = executable
+                };
+                foreach (var arg in Environment.GetCommandLineArgs())
+                {
+                    startInfo.ArgumentList.Add(arg);
+                }
+                startInfo.Environment.Add("DYLD_LIBRARY_PATH", systemDirectory);
+                var process = Process.Start(startInfo);
+                process.WaitForExit();
+                return true;
+            }
+            return false;
         }
 
         public static void LoadRhino()
@@ -158,19 +237,29 @@ namespace RhinoInside
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 rhinoLibraryHandle = NativeLibrary.Load(Path.Combine(systemDirectory, "RhinoLibrary.framework/Versions/A/RhinoLibrary"));
+                AssemblyLoadContext.Default.ResolvingUnmanagedDll += ResolvingUnmanagedDll;
             }
             else
             {
                 throw new Exception("Unsupported platform");
             }
 
-            nint handle = NativeLibrary.GetExport(rhinoLibraryHandle, "RhLibRegisterDotNetInitializer");
+            IntPtr handle = NativeLibrary.GetExport(rhinoLibraryHandle, "RhLibRegisterDotNetInitializer");
             var setLoaderProc = Marshal.GetDelegateForFunctionPointer<SetLoaderProc>(handle);
 
             //Action load = () => ExecuteLoadProc(rhinoContext);
             Action load = () => ExecuteLoadProc(AssemblyLoadContext.Default);
             GCHandle functionPointer = GCHandle.Alloc(load);
             setLoaderProc(load);
+        }
+
+        private static IntPtr ResolvingUnmanagedDll(Assembly assembly, string unmanagedDllName)
+        {
+            var systemDirectory = RhinoSystemDirectory;
+            if (unmanagedDllName == "RhinoLibrary")
+                return NativeLibrary.Load(Path.Combine(systemDirectory, "RhinoLibrary.framework/Versions/A/RhinoLibrary"));
+
+            return IntPtr.Zero;
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]

@@ -46,14 +46,14 @@ namespace Hops
             };
             _lblCacheCount.Text = $"({Hops.MemoryCache.EntryCount} items in cache)";
 
-            if (Rhino.Runtime.HostUtils.RunningOnOSX)
-            {
-                _hideWorkerWindows.Visible = false;
-                _launchWorkerAtStart.Visible = false;
-                _childComputeCount.Visible = false;
-                _updateChildCountButton.Visible = false;
-            }
-            else if (Rhino.Runtime.HostUtils.RunningOnWindows)
+            // if (Rhino.Runtime.HostUtils.RunningOnOSX)
+            // {
+            //     _hideWorkerWindows.Visible = false;
+            //     _launchWorkerAtStart.Visible = false;
+            //     _childComputeCount.Visible = false;
+            //     _updateChildCountButton.Visible = false;
+            // }
+            // else if (Rhino.Runtime.HostUtils.RunningOnWindows)
             {
                 _hideWorkerWindows.Checked = HopsAppSettings.HideWorkerWindows;
                 _hideWorkerWindows.CheckedChanged += (s, e) =>
@@ -99,7 +99,7 @@ namespace Hops
                     HopsUIHelper.MinGroupBoxHeight += extraSpace;
                     HopsUIHelper.MinControlHeight -= 32;
                     _gpboxFunctionMgr.Height += extraSpace;
-                    _gpboxFunctionMgr.Top -= 74;
+                    // _gpboxFunctionMgr.Top -= 74;
                     Size = new System.Drawing.Size(Size.Width, _gpboxFunctionMgr.Bottom + 4);
                 }
                 

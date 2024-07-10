@@ -21,6 +21,9 @@ namespace compute.geometry
 
         static void Main(string[] args)
         {
+            if (RhinoInside.Resolver.RelaunchIfNeeded())
+                return;
+            
             Config.Load();
             Logging.Init();
 

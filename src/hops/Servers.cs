@@ -2,7 +2,11 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using Rhino;
+using Rhino.Runtime;
 
 namespace Hops
 {
@@ -118,7 +122,7 @@ namespace Hops
                     }
                 }
 
-                if (string.IsNullOrEmpty(url) && Rhino.Runtime.HostUtils.RunningOnWindows)
+                if (string.IsNullOrEmpty(url)) // && Rhino.Runtime.HostUtils.RunningOnWindows)
                 {
                     _computeServerQueue = new Queue<ComputeServer>();
                     if (_computeServerQueue.Count == 0)
@@ -194,7 +198,9 @@ namespace Hops
                 string pathToGha = typeof(Servers).Assembly.Location;
                 dir = System.IO.Path.GetDirectoryName(pathToGha);
             }
-            string pathToRhinoCompute = System.IO.Path.Combine(dir, "rhino.compute", "rhino.compute.exe");
+            string computeExecutable = HostUtils.RunningOnWindows ? "rhino.compute.exe" : "rhino.compute";
+            string runtimeIdentifier = HostUtils.RunningOnWindows ? "win-x64" : RuntimeInformation.ProcessArchitecture == Architecture.Arm64 ? "osx-arm64" : "osx-x64";
+            string pathToRhinoCompute = System.IO.Path.Combine(dir, "rhino.compute", runtimeIdentifier, computeExecutable);
             if (!System.IO.File.Exists(pathToRhinoCompute))
             {
                 // debug builds are in net5.0 directory
@@ -208,6 +214,11 @@ namespace Hops
             if (childCount < 1)
                 childCount = 1;
             int thisProc = Process.GetCurrentProcess().Id;
+            
+            // Ensure we use this rhino when running on Mac
+            if (HostUtils.RunningOnOSX)
+                startInfo.Environment.Add("DYLD_LIBRARY_PATH", RhinoApp.GetExecutableDirectory().Parent.GetDirectories("Frameworks").FirstOrDefault()?.FullName);
+                
             startInfo.Arguments = $"--childof {thisProc} --childcount {childCount} --port {RhinoComputePort} --spawn-on-startup";
             startInfo.WindowStyle = Hops.HopsAppSettings.HideWorkerWindows ? ProcessWindowStyle.Hidden : ProcessWindowStyle.Minimized;
             // uncomment next line to ease debugging
@@ -220,6 +231,18 @@ namespace Hops
             // set to false.
             startInfo.UseShellExecute = true;
             startInfo.CreateNoWindow = Hops.HopsAppSettings.HideWorkerWindows;
+            
+            if (HostUtils.RunningOnOSX && !Hops.HopsAppSettings.HideWorkerWindows)
+            {
+                startInfo.UseShellExecute = false;
+                // launching Terminal.app clears out DYLD_LIBRARY_PATH and doesn't support passing arguments
+                startInfo.Environment["RHINO_COMPUTE_ARGUMENTS"] = startInfo.Arguments;
+                startInfo.Environment["RHINO_DYLD_LIBRARY_PATH"] = RhinoApp.GetExecutableDirectory().Parent.GetDirectories("Frameworks").FirstOrDefault()?.FullName;
+                startInfo.Arguments = $"-W -g -n -a Terminal.app \"{startInfo.FileName}\"";
+                startInfo.FileName = "/usr/bin/open";
+            }
+            
+            
             string assemblyPath = Assembly.GetExecutingAssembly().Location;
             // 6 April 2022 - S. Baer (COMPUTE-241)
             // When grasshopper memory loads assemblies, the above line results in an
