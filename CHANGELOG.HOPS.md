@@ -4,6 +4,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.9] - 2024-07-03
+
+### Fixed
+
+- Fixed a bug where setting the environment variable RHINO_COMPUTE_DEBUG to True would not in effect add any additional logging information to the console output. The default for this is True when running in debug mode, and False when running Rhino.Compute in release mode. Override this setting by creating an environment variable called RHINO_COMPUTE_DEBUG and setting the value to True or False. Note, this change will only work when targeting builds of Rhino >= 8.10.
+
+## [0.16.8] - 2024-06-05
+
+### Fixed
+
+- The Rhino.Inside.Resolver was set to automatically look for the latest build of Rhino which was causing some conflicts if users had installed Rhino 9 WIP. The default path for the 8.x build of rhino.compute should now look for that latest build of Rhino 8 when trying to resolve Rhino.Inside.
+
+### Added
+
+- A few additional lines of logging information were added to display the the current build of Rhino.Compute and Rhino as well as the working system path.
+
+## [0.16.7] - 2024-04-22
+
+### Added
+
+- Added the RhinoCompute.cs file to the compute.geometry 8.x repo. This is referenced in several guides and tutorials and had been omitted during the refactoring process when we moved from 7.x to 8.x. In addition, a new endpoint was added called `/sdk/csharp` which will allow you to view and/or download the contents of this file for use in your own projects.
+
+## [0.16.6] - 2024-03-15
+
+### Fixed
+
+- Fixing another bug to handle how the RhinoCode scripting plugin is loaded in Rhino.Compute. This plugin is now loaded first before Grasshopper or other compute related plugins.
+
+## [0.16.5] - 2024-02-29
+
+### Fixed
+
+- Calling the /sdk endpoint in Rhino.Compute would not return anything. This has now been fixed and it will now return a full list of all SDK methods available in Rhino.Compute.
+- Fixed the module_update_compute.ps1 powershell script which can be run to update existing production environments to the latest version of Rhino.Compute.
+- Fixed a bug where the RhinoCode scripting plugin was not being loaded properly in Rhino.Compute.
+- Added some parameters to the launch settings to be able to debug Rhino.Compute in .NET 4.8.
+
 ## [0.16.4] - 2023-11-27
 
 ### Added

@@ -17,8 +17,6 @@ using Newtonsoft.Json;
 using System.Linq;
 using Serilog;
 using System.Reflection;
-using System.Text.RegularExpressions;
-using System.Collections;
 
 namespace compute.geometry
 {
@@ -826,7 +824,12 @@ namespace compute.geometry
 
                 if (format == SchemaDataFormat.Grasshopper)
                 {
-                    var data = (GH_Structure<IGH_Goo>)param.VolatileData;
+                    var data = new GH_Structure<IGH_Goo>();
+                    foreach (var item in param.VolatileData.AllData(false))
+                    {
+                        data.Append(item);
+                    }
+
                     outputSchema.GrasshopperValues.Values.Add(kvp.Key, data);
                 }
                 else if (format == SchemaDataFormat.Resthopper)

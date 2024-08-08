@@ -4,14 +4,12 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using Serilog;
 using Carter;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
+using System.IO;
+
 
 namespace compute.geometry
 {
@@ -26,7 +24,7 @@ namespace compute.geometry
             Logging.Init();
 
             RhinoInside.Resolver.Initialize();
-            RhinoInside.Resolver.UseLatest = true;
+            RhinoInside.Resolver.UseLatest = false;
 #if DEBUG
             // Uncomment the following to debug with core Rhino source. This
             // tells compute to use a different RhinoCore than what RhinoInside thinks
@@ -41,10 +39,11 @@ namespace compute.geometry
             StartTime = DateTime.Now;
             Shutdown.RegisterStartTime(StartTime);
             Log.Information($"Child process started at " + StartTime.ToLocalTime().ToString());
+
             ParseCommandLineArgs(args);
 
             RhinoInside.Resolver.LoadRhino();
-
+            LogVersions();
             var host = Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
@@ -125,13 +124,26 @@ namespace compute.geometry
                 }
             }
         }
+        private static void LogVersions()
+        {
+            string compute_version = null, rhino_version = null;
+            try
+            {
+                compute_version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
+                rhino_version = typeof(Rhino.RhinoApp).Assembly.GetName().Version.ToString();
+            }
+            catch { }
+            Log.Information("Compute {ComputeVersion}, Rhino {RhinoVersion}", compute_version, rhino_version);
+            Log.Debug("Rhino system directory: {Path}", RhinoInside.Resolver.RhinoSystemDirectory);
+        }
     }
 
     public class RhinoGetModule : ICarterModule
     {
         public void AddRoutes(IEndpointRouteBuilder app)
         {
-            app.MapGet("/sdk", SdkEndpoint);
+            app.MapGet("/sdk", context => SdkEndpoint(context, app));
+            app.MapGet("/sdk/csharp", context => CSharpSdk(context));
 
             foreach (var endpoint in GeometryEndPoint.AllEndPoints)
             {
@@ -139,19 +151,59 @@ namespace compute.geometry
             }
         }
 
-        static async Task SdkEndpoint(HttpContext context)
+        static async Task CSharpSdk(HttpContext context)
+        {
+            context.Response.ContentType = "text/plain";
+            string fileContents;
+            using (Stream resourceStream = typeof(FixedEndPointsModule).Assembly.GetManifestResourceStream("compute.geometry.RhinoCompute.cs"))
+            {
+                if (resourceStream != null)
+                {
+                    using (StreamReader reader = new StreamReader(resourceStream))
+                    {
+                        fileContents = await reader.ReadToEndAsync();
+                    }
+                }
+                else
+                {
+                    context.Response.StatusCode = 404;
+                    return;
+                }
+            }
+            var result = new StringBuilder();
+            result.AppendLine(fileContents);
+            await context.Response.WriteAsync(result.ToString());
+        }
+
+        static async Task SdkEndpoint(HttpContext context, IEndpointRouteBuilder app)
         {
             var result = new StringBuilder("<!DOCTYPE html><html><body>");
-            //result.AppendLine($" <a href=\"/sdk/csharp\">C# SDK</a><BR>");
+            result.AppendLine($" <a href=\"/sdk/csharp\">C# SDK</a><BR>");
             result.AppendLine("<p>API<br>");
-
             int route_index = 0;
-
-            foreach (var endpoint in GeometryEndPoint.AllEndPoints)
+            var sources = app.DataSources;
+            var getHeader = "HTTP: GET";
+            var postHeader = "HTTP: POST";
+            foreach (var source in sources)
             {
-                route_index += 1;
-                result.AppendLine($"{route_index} <a href='{endpoint.PathURL}'>{endpoint.Path}</a><BR>");
-            }
+                if (source == null) continue;
+                foreach (var endpoint in source.Endpoints)  
+                {
+                    if (endpoint.DisplayName == "Health checks" || endpoint.DisplayName == "HTTP: GET  => HomePage")
+                        continue;
+                    route_index += 1;
+                    var method = endpoint.RequestDelegate;
+                    var displayName = endpoint.DisplayName;
+                    var path = endpoint.DisplayName;
+                    if (path.Contains(getHeader))
+                        path = path.Substring(getHeader.Length);
+                    else if (path.Contains(postHeader))
+                        path = path.Substring(postHeader.Length);
+
+                    path.Trim();
+                    result.AppendLine($"{route_index} <a href='{path}'>{displayName}</a><BR>");
+                }
+            }           
             result.AppendLine("</p></body></html>");
             await context.Response.WriteAsync(result.ToString());
         }

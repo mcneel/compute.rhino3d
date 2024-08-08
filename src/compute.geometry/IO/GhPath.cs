@@ -27,7 +27,6 @@ namespace Resthopper.IO
             this.Path = new int[] { path };
         }
 
-
         public GhPath(int[] path)
         {
             this.Path = path;
@@ -74,8 +73,7 @@ namespace Resthopper.IO
                 this.Path[j] = path[j];
             }
             this.Path[path.Length] = i;
-        }
-        
+        }    
 
         public bool LastIndexSame(int i)
         {
@@ -91,6 +89,12 @@ namespace Resthopper.IO
         {
             get
             {
+                //var options = new Dictionary<string, object>
+                //{
+                //    ["Archive.Context"] = GH_Archive.Context.All
+                //};
+                //var archive = new GH_Archive(options);
+
                 var archive = new GH_Archive();
                 archive.CreateNewRoot(true);
                 var root = archive.GetRootNode;
@@ -107,9 +111,9 @@ namespace Resthopper.IO
                             // Removing ref ID in order to send as internalized geometry
                             if (goo is IGH_GeometricGoo geometricGoo && geometricGoo.IsReferencedGeometry)
                             {
-                                geometricGoo = geometricGoo.DuplicateGeometry();
-                                geometricGoo.ReferenceID = Guid.Empty;
-                                list[i] = geometricGoo;
+                                //geometricGoo = geometricGoo.DuplicateGeometry();
+                                //geometricGoo.ReferenceID = Guid.Empty;
+                                //list[i] = geometricGoo;
                             }
                             else if(goo is IGH_ReferencedData refData && refData.IsReferencedData)
                             {
@@ -128,6 +132,11 @@ namespace Resthopper.IO
                 Values.Clear();
                 var base64 = value;
                 var binary = Convert.FromBase64String(base64);
+                //var options = new Dictionary<string, object>
+                //{
+                //    ["Archive.Context"] = GH_Archive.Context.All
+                //};
+                //var archive = new GH_Archive(options);
                 var archive = new GH_Archive();
                 archive.Deserialize_Binary(binary);
                 var root = archive.GetRootNode;
