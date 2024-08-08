@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
+using System.Threading;
 using Serilog;
 
 namespace rhino.compute
@@ -189,6 +191,7 @@ namespace rhino.compute
 
             var startInfo = new ProcessStartInfo(pathToCompute);
             var rhinoProcess = Process.GetCurrentProcess();
+            Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
             string commandLineArgs = $"-port:{port} -childof:{rhinoProcess.Id}";
             if (!string.IsNullOrEmpty(RhinoSysDir))
             {
