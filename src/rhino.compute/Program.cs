@@ -10,6 +10,8 @@ namespace rhino.compute
     using Serilog.Events;
     using Microsoft.Extensions.Configuration;
     using System.IO;
+    using System.Globalization;
+    using System.Threading;
 
     public class Program
     {
@@ -63,6 +65,7 @@ requests while the child processes are launching.")]
 
         public static void Main(string[] args)
         {
+            Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
             Config.Load();
             Log.Logger = new LoggerConfiguration()
             .ReadFrom.Configuration(Configuration)
