@@ -12,7 +12,6 @@ using Newtonsoft.Json;
 using Rhino.Geometry;
 using System.Threading.Tasks;
 using System.IO;
-using Rhino;
 
 namespace Hops
 {
@@ -1085,6 +1084,10 @@ for value in values:
                                 paramIndex = mgr.AddNumberParameter(name, nickname, inputDescription, access);
                                 break;
                         }
+
+                        //make this parameter optional if user specified AtLeast value of zero
+                        if (input.AtLeast == 0)
+                            Params.Input[paramIndex].Optional = true;
 
                         if (paramIndex >= 0 && inputSources.TryGetValue(name, out List<IGH_Param> rehookInputs))
                         {
