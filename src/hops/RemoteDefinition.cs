@@ -683,6 +683,12 @@ namespace Hops
                         obj.ResolvedData = circleResult;
                         return circleResult;
                     }
+                case "Rhino.Geometry.Arc":
+                    {
+                        var arcResult = new Grasshopper.Kernel.Types.GH_Arc(JsonConvert.DeserializeObject<Arc>(data));
+                        obj.ResolvedData = arcResult;
+                        return arcResult;
+                    }
                 case "Rhino.Geometry.Line":
                     {
                         var lineResult = new Grasshopper.Kernel.Types.GH_Line(JsonConvert.DeserializeObject<Line>(data));
