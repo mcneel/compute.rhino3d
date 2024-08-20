@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.11] - 2024-08-20
+
+### Fixed
+
+- Fixed an issue with default values. Previously, default values would only work on some parameter types and only if a single value was set via persistent data. Now, any parameter type (except for model objects) will work as setting a default value and you can pass in an item, list, or data tree as your default value.
+
+### Added
+
+- Added the ability to make some parameters act as Optional inputs. If you use a Context Get component and set the AtLeast value to 0, then that parameter will be treated as an Optional input.
+
 ## [0.16.10] - 2024-08-08
 
 ### Fixed
