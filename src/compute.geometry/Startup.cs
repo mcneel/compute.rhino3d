@@ -1,11 +1,8 @@
 ﻿using System;
-using System.IO;
 using Carter;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace compute.geometry
 {

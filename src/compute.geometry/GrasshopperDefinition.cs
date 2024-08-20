@@ -334,6 +334,8 @@ namespace compute.geometry
                     var treeAccess = Convert.ToBoolean(contextualParameter.GetType().GetProperty("TreeAccess")?.GetValue(contextualParameter, null));
                     if (contextualParameter != null)
                     {
+                        if (contextualParameter.AtLeast == 0)
+                            (contextualParameter as IGH_Param).Optional = true;
                         switch (ParamTypeName(inputGroup.Param))
                         {
                             case "Boolean":

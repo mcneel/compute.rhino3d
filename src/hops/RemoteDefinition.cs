@@ -928,7 +928,10 @@ namespace Hops
             int pathIndex = 0;
             if (component?.Params.Input[paramIndex].VolatileData?.PathCount > 1)
                 pathIndex = DA.Iteration;
-            return component?.Params.Input[paramIndex].VolatileData?.Paths[pathIndex].ToString();
+            if (component?.Params.Input[paramIndex].VolatileData?.Paths.Count > 0)
+                return component?.Params.Input[paramIndex].VolatileData?.Paths?[pathIndex].ToString();
+            else
+                return null;
         }
 
         static void CollectDataHelper<T>(IGH_DataAccess DA,
