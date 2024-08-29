@@ -14,9 +14,9 @@ using System.Threading.Tasks;
 using System.IO;
 using Grasshopper.Kernel.Types;
 using Grasshopper.Kernel.Data;
-using System.Linq;
 using Rhino;
 using System.Drawing;
+using Grasshopper;
 
 namespace Hops
 {
@@ -458,7 +458,7 @@ namespace Hops
             tsi.Enabled = !_showPathInput;
             menu.Items.Add(tsi);
 
-            tsi = HopsFunctionMgr.AddFunctionMgrControl(this);
+            tsi = AddFunctionMgrControl();
             if (tsi != null)
                 menu.Items.Add(tsi);
 
@@ -531,6 +531,124 @@ namespace Hops
             tsi = new ToolStripMenuItem("Last Solve response...", null, (s, e) => { ExportLastSolveResponse(); });
             restAPITsi.DropDownItems.Add(tsi);
         }
+
+        public ToolStripMenuItem AddFunctionMgrControl()
+        {
+            HopsAppSettings.InitFunctionSources();
+            if (HopsAppSettings.FunctionSources.Count <= 0)
+                return null;
+            ToolStripMenuItem mainMenu = new ToolStripMenuItem("Available Functions", null, null, "Available Functions");
+            mainMenu.DropDownItems.Clear();
+            foreach (var row in HopsAppSettings.FunctionSources)
+            {
+                ToolStripMenuItem menuItem = new ToolStripMenuItem(row.SourceName, null, null, row.SourceName);
+                GenerateFunctionPathMenu(menuItem, row);
+                if (menuItem.DropDownItems.Count > 0)
+                    mainMenu.DropDownItems.Add(menuItem);
+            }
+            //InitThumbnailViewer();
+            return mainMenu;
+        }
+
+        private void GenerateFunctionPathMenu(ToolStripMenuItem menu, FunctionSourceRow row)
+        {
+            if (String.IsNullOrEmpty(row.SourceName) || String.IsNullOrEmpty(row.SourcePath))
+                return;
+            if (row.SourcePath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var getTask = HopsFunctionMgr.HttpClient.GetAsync(row.SourcePath);
+                    if (getTask != null)
+                    {
+                        var responseMessage = getTask.Result;
+                        var remoteSolvedData = responseMessage.Content;
+                        var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
+                        if (string.IsNullOrEmpty(stringResult))
+                        {
+                            //invalid URL
+                            return;
+                        }
+                        else
+                        {
+                            var response = JsonConvert.DeserializeObject<FunctionMgr_Schema[]>(stringResult);
+                            if (response != null)
+                            {
+                                UriFunctionPathInfo functionPaths = new UriFunctionPathInfo(row.SourcePath, true);
+                                functionPaths.isRoot = true;
+                                functionPaths.RootURL = row.SourcePath;
+                                if (!String.IsNullOrEmpty(response[0].Uri))
+                                {
+                                    //If the Schema Uri exists, then the response is likely from the ghhops_server.
+                                    //Otherwise, let's assume the response is from the appserver
+                                    foreach (FunctionMgr_Schema obj in response)
+                                    {
+                                        HopsFunctionMgr.SeekFunctionMenuDirs(functionPaths, obj.Uri, obj.Uri, row);
+                                    }
+                                }
+                                else if (!String.IsNullOrEmpty(response[0].Name))
+                                {
+                                    foreach (FunctionMgr_Schema obj in response)
+                                    {
+                                        HopsFunctionMgr.SeekFunctionMenuDirs(functionPaths, "/" + obj.Name, "/" + obj.Name, row);
+                                    }
+                                }
+                                if (functionPaths.Paths.Count != 0)
+                                    functionPaths.BuildMenus(menu, new MouseEventHandler(tsm_UriClick));
+                            }
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                }
+            }
+            else if (Directory.Exists(row.SourcePath))
+            {
+                FunctionPathInfo functionPaths = new FunctionPathInfo(row.SourcePath, true);
+                functionPaths.isRoot = true;
+
+                HopsFunctionMgr.SeekFunctionMenuDirs(functionPaths);
+                if (functionPaths.Paths.Count != 0)
+                {
+                    functionPaths.BuildMenus(menu, tsm_FileClick, HopsFunctionMgr.tsm_HoverEnter, HopsFunctionMgr.tsm_HoverExit);
+                    functionPaths.RemoveEmptyMenuItems(menu, tsm_FileClick, HopsFunctionMgr.tsm_HoverEnter, HopsFunctionMgr.tsm_HoverExit);
+                }
+            }
+        }
+
+        private void tsm_FileClick(object sender, MouseEventArgs e)
+        {
+            if (!(sender is ToolStripItem))
+                return;
+            ToolStripItem ti = sender as ToolStripItem;
+
+            switch (e.Button)
+            {
+                case MouseButtons.Left:
+                    RemoteDefinitionLocation = ti.Name;
+                    this.ExpireSolution(true);
+                    break;
+                case MouseButtons.Right:
+                    try
+                    {
+                        Instances.DocumentEditor.ScriptAccess_OpenDocument(ti.Name);
+                    }
+                    catch (Exception) { }
+                    break;
+            }
+            
+        }
+
+        private void tsm_UriClick(object sender, MouseEventArgs e)
+        {
+            if (!(sender is ToolStripItem))
+                return;
+            ToolStripItem ti = sender as ToolStripItem;
+            RemoteDefinitionLocation = ti.Tag as string;
+            this.ExpireSolution(true);
+        }
+
 
         /// <summary>
         /// Used for supporting double click on the component. 
