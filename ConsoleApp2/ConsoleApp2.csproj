@@ -95,5 +95,13 @@
       <Name>RhinoCompute_oM</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <Reference Include="RemoteCompute_Engine">
+      <HintPath>C:\ProgramData\BHoM\Assemblies\RemoteCompute_Engine.dll</HintPath>
+    </Reference>
+    <Reference Include="RemoteCompute_oM">
+      <HintPath>C:\ProgramData\BHoM\Assemblies\RemoteCompute_oM.dll</HintPath>
+    </Reference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
