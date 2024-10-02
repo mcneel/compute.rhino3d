@@ -16,11 +16,17 @@ namespace compute.geometry
         public static IDisposable RhinoCore { get; set; }
         public static DateTime StartTime { get; set; }
 
+        static Program()
+        {
+            RhinoInside.Resolver.Initialize();
+        }
+
         static void Main(string[] args)
         {
             Config.Load();
             Logging.Init();
 
+            //System.IO.Directory.SetCurrentDirectory(RhinoInside.Resolver.RhinoSystemDirectory);
             RhinoInside.Resolver.Initialize();
 
             LogVersions();

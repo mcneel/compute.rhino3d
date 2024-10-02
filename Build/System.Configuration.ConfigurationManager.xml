@@ -1,0 +1,666 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>System.Configuration.ConfigurationManager</name>
+    </assembly>
+    <members>
+        <member name="P:System.SR.Parameter_Invalid">
+            <summary>The parameter '{0}' is invalid.</summary>
+        </member>
+        <member name="P:System.SR.Parameter_NullOrEmpty">
+            <summary>The string parameter '{0}' cannot be null or empty.</summary>
+        </member>
+        <member name="P:System.SR.Property_NullOrEmpty">
+            <summary>The value assigned to property '{0}' cannot be null or empty.</summary>
+        </member>
+        <member name="P:System.SR.Property_Invalid">
+            <summary>The value assigned to property '{0}' is invalid.</summary>
+        </member>
+        <member name="P:System.SR.Unexpected_Error">
+            <summary>An unexpected error occurred in '{0}'.</summary>
+        </member>
+        <member name="P:System.SR.Wrapped_exception_message">
+            <summary>{0}: {1}</summary>
+        </member>
+        <member name="P:System.SR.Config_error_loading_XML_file">
+            <summary>An error occurred loading a configuration file</summary>
+        </member>
+        <member name="P:System.SR.Config_exception_creating_section_handler">
+            <summary>An error occurred creating the configuration section handler for {0}</summary>
+        </member>
+        <member name="P:System.SR.Config_exception_creating_section">
+            <summary>An error occurred creating the configuration section for {0}</summary>
+        </member>
+        <member name="P:System.SR.Config_tag_name_invalid">
+            <summary>Invalid format for a section or section group name</summary>
+        </member>
+        <member name="P:System.SR.Config_add_configurationsection_already_added">
+            <summary>Cannot add a ConfigurationSection that already belongs to the Configuration.</summary>
+        </member>
+        <member name="P:System.SR.Config_add_configurationsection_already_exists">
+            <summary>Cannot add a ConfigurationSection with the same name that already exists.</summary>
+        </member>
+        <member name="P:System.SR.Config_add_configurationsection_in_location_config">
+            <summary>Cannot add a ConfigurationSection to a Configuration with a location.</summary>
+        </member>
+        <member name="P:System.SR.Config_add_configurationsectiongroup_already_added">
+            <summary>Cannot add a ConfigurationSectionGroup that already belongs to the Configuration.</summary>
+        </member>
+        <member name="P:System.SR.Config_add_configurationsectiongroup_already_exists">
+            <summary>Cannot add a ConfigurationSectionGroup with the same name that already exists.</summary>
+        </member>
+        <member name="P:System.SR.Config_add_configurationsectiongroup_in_location_config">
+            <summary>Cannot add a ConfigurationSectionGroup to a Configuration with a location.</summary>
+        </member>
+        <member name="P:System.SR.Config_allow_exedefinition_error_application">
+            <summary>It is an error to use a section registered as allowExeDefinition='MachineToApplication' beyond the application, in the user's config.  (This is the default behavior if not specified)</summary>
+        </member>
+        <member name="P:System.SR.Config_allow_exedefinition_error_machine">
+            <summary>It is an error to use a section registered as allowExeDefinition='MachineOnly' beyond machine.config.</summary>
+        </member>
+        <member name="P:System.SR.Config_allow_exedefinition_error_roaminguser">
+            <summary>It is an error to use a section registered as allowExeDefinition='MachineToRoamingUser' beyond the roaming user config, in the local user config.</summary>
+        </member>
+        <member name="P:System.SR.Config_appsettings_declaration_invalid">
+            <summary>The configuration section 'appSettings' has an unexpected declaration.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_attribute_locked">
+            <summary>The attribute '{0}' has been locked in a higher level configuration.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_collection_item_locked_cannot_clear">
+            <summary>A collection item has been locked in a higher level configuration. The collection may not be cleared.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_collection_item_locked">
+            <summary>The collection item has been locked in a higher level configuration and may not be changed.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_cannot_add_items_above_inherited_items">
+            <summary>This collection does not permit items to be added in or above the inherited items.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_cannot_add_items_below_inherited_items">
+            <summary>This collection does not permit items to be added in or below the inherited items.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_cannot_remove_inherited_items">
+            <summary>Inherited items may not be removed.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_collection_elements_may_not_be_removed">
+            <summary>Elements of this collection may not be removed.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_collection_entry_already_exists">
+            <summary>The entry '{0}' has already been added.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_collection_entry_already_removed">
+            <summary>Entry already removed.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_collection_entry_not_found">
+            <summary>The entry '{0}' is not in the collection.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_element_cannot_have_multiple_child_elements">
+            <summary>The element &lt;{0}&gt; may only appear once in this section.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_element_locked">
+            <summary>The element '{0}' has been locked in a higher level configuration.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_expected_to_find_element">
+            <summary>Expected to find an element.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_invalid_attribute_to_lock">
+            <summary>The attribute '{0}' is not valid in the locked list for this section. The following attributes can be locked: {1}. Multiple attributes may be listed separated by commas.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_invalid_attribute_to_lock_by_add">
+            <summary>The attribute '{0}' is not valid in the locked list for this section. The following attributes can be locked: {1}.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_invalid_element_key">
+            <summary>Invalid key value.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_invalid_element_to_lock">
+            <summary>The element '{0}' is not valid in the locked list for this section. The following elements can be locked: {1}. Multiple elements may be listed separated by commas.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_invalid_element_to_lock_by_add">
+            <summary>The element '{0}' is not valid in the locked list for this section. The following elements can be locked: {1}.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_property_is_not_a_configuration_element">
+            <summary>Property '{0}' is not a ConfigurationElement.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_read_only">
+            <summary>The configuration is read only.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_required_attribute_locked">
+            <summary>The attribute '{0}' is required and is locked at a higher level configuration. The configuration with the lock should lock the entire element if it needs to lock required attributes.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_required_attribute_lock_attempt">
+            <summary>The attribute '{0}' is required and cannot be locked. The configuration should lock the entire element if it needs to lock required attributes.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_required_attribute_missing">
+            <summary>Required attribute '{0}' not found.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_section_invalid_content">
+            <summary>The configuration section cannot contain a CDATA or text element.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_unrecognized_attribute">
+            <summary>Unrecognized attribute '{0}'. Note that attribute names are case-sensitive.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_unrecognized_element">
+            <summary>Unrecognized element.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_unrecognized_element_name">
+            <summary>Unrecognized element '{0}'.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_value_cannot_contain">
+            <summary>The value may not contain the '{0}' character.</summary>
+        </member>
+        <member name="P:System.SR.Config_cannot_edit_configurationsection_in_location_config">
+            <summary>ConfigurationSection properties for a &lt;section&gt; declaration cannot be edited in a Configuration with a location.</summary>
+        </member>
+        <member name="P:System.SR.Config_cannot_edit_configurationsection_parentsection">
+            <summary>ConfigurationSection properties can not be edited for the parent section of another section (ie. a section retrieved by calling GetParentSection on a section)</summary>
+        </member>
+        <member name="P:System.SR.Config_cannot_edit_configurationsection_when_location_locked">
+            <summary>ConfigurationSection properties for a location section cannot be edited when allowLocation=false.</summary>
+        </member>
+        <member name="P:System.SR.Config_cannot_edit_configurationsection_when_locked">
+            <summary>ConfigurationSection properties cannot be edited when locked.</summary>
+        </member>
+        <member name="P:System.SR.Config_cannot_edit_configurationsection_when_not_attached">
+            <summary>ConfigurationSection cannot be edited before being added to a section group belonging to an instance of class Configuration.</summary>
+        </member>
+        <member name="P:System.SR.Config_cannot_edit_configurationsection_when_it_is_implicit">
+            <summary>ConfigurationSection cannot be edited because it is a built-in section.</summary>
+        </member>
+        <member name="P:System.SR.Config_cannot_edit_configurationsection_when_it_is_undeclared">
+            <summary>ConfigurationSection cannot be edited because it is not declared.</summary>
+        </member>
+        <member name="P:System.SR.Config_cannot_edit_configurationsectiongroup_in_location_config">
+            <summary>ConfigurationSectionGroup properties for a &lt;sectionGroup&gt; declaration cannot be edited in a Configuration with a location.</summary>
+        </member>
+        <member name="P:System.SR.Config_cannot_edit_configurationsectiongroup_when_not_attached">
+            <summary>ConfigurationSectionGroup cannot be edited before being added to a section group belonging to an instance of class Configuration.</summary>
+        </member>
+        <member name="P:System.SR.Config_cannot_edit_locationattriubtes">
+            <summary>AllowOverride and InheritInChildApplications can not be set in the exe configuration, these settings have no meaning there.</summary>
+        </member>
+        <member name="P:System.SR.Config_cannot_open_config_source">
+            <summary>Unable to open configSource file '{0}'.</summary>
+        </member>
+        <member name="P:System.SR.Config_client_config_init_error">
+            <summary>Configuration system failed to initialize</summary>
+        </member>
+        <member name="P:System.SR.Config_client_config_too_many_configsections_elements">
+            <summary>Only one &lt;configSections&gt; element allowed per config file and if present must be the first child of the root &lt;configuration&gt; element.</summary>
+        </member>
+        <member name="P:System.SR.Config_configmanager_open_noexe">
+            <summary>exePath must be specified when not running inside a stand alone exe.</summary>
+        </member>
+        <member name="P:System.SR.Config_configsection_parentnotvalid">
+            <summary>This is not valid for the parent section of another section (ie. a section retrieved by calling GetParentSection on a section)</summary>
+        </member>
+        <member name="P:System.SR.Config_connectionstrings_declaration_invalid">
+            <summary>The configuration section 'connectionStrings' has an unexpected declaration.</summary>
+        </member>
+        <member name="P:System.SR.Config_data_read_count_mismatch">
+            <summary>Data read count is not equal to data available.</summary>
+        </member>
+        <member name="P:System.SR.Config_element_no_context">
+            <summary>This element is not currently associated with any context</summary>
+        </member>
+        <member name="P:System.SR.Config_empty_lock_attributes_except">
+            <summary>The '{0}' attribute cannot be an empty string. {1}="*" may be used to lock all attributes.</summary>
+        </member>
+        <member name="P:System.SR.Config_empty_lock_element_except">
+            <summary>The '{0}' attribute cannot be an empty string. {1}="*" may be used to lock all elements.</summary>
+        </member>
+        <member name="P:System.SR.Config_exception_in_config_section_handler">
+            <summary>An error occurred executing the configuration section handler for {0}.</summary>
+        </member>
+        <member name="P:System.SR.Config_file_doesnt_have_root_configuration">
+            <summary>Configuration file {0} does not have root &lt;configuration&gt; tag</summary>
+        </member>
+        <member name="P:System.SR.Config_file_has_changed">
+            <summary>The configuration file has been changed by another program.</summary>
+        </member>
+        <member name="P:System.SR.Config_getparentconfigurationsection_first_instance">
+            <summary>GetParentSection can only be applied to ConfigurationSections from the first instance of a Configuration.</summary>
+        </member>
+        <member name="P:System.SR.Config_inconsistent_location_attributes">
+            <summary>Error in configuration section "{0}": AllowLocation is false and either AllowOverride or InheritInChildApplications is true.</summary>
+        </member>
+        <member name="P:System.SR.Config_invalid_attributes_for_write">
+            <summary>Unable to open file '{0}' for writing because it is read-only or hidden.</summary>
+        </member>
+        <member name="P:System.SR.Config_invalid_boolean_attribute">
+            <summary>The property '{0}' must have value 'true' or 'false'.</summary>
+        </member>
+        <member name="P:System.SR.Config_invalid_node_type">
+            <summary>Invalid node type.</summary>
+        </member>
+        <member name="P:System.SR.Config_location_location_not_allowed">
+            <summary>&lt;location&gt; sections are allowed only within &lt;configuration&gt; sections.</summary>
+        </member>
+        <member name="P:System.SR.Config_location_path_invalid_character">
+            <summary>&lt;location&gt; path attribute must be a relative virtual path.  It cannot contain any of '?' ':' '\\' '*' '"' '&lt;' '&gt;' or '|'.</summary>
+        </member>
+        <member name="P:System.SR.Config_location_path_invalid_first_character">
+            <summary>&lt;location&gt; path attribute must be a relative virtual path.  It cannot start with any of ' ' '.' '/' or '\\'.</summary>
+        </member>
+        <member name="P:System.SR.Config_location_path_invalid_last_character">
+            <summary>&lt;location&gt; path attribute must be a relative virtual path.  It cannot end with any of ' ' '.' '/' or '\\'.</summary>
+        </member>
+        <member name="P:System.SR.Config_missing_required_attribute">
+            <summary>The '{0}' attribute must be specified on the '{1}' tag.</summary>
+        </member>
+        <member name="P:System.SR.Config_more_data_than_expected">
+            <summary>More data than expected.</summary>
+        </member>
+        <member name="P:System.SR.Config_name_value_file_section_file_invalid_root">
+            <summary>The root element must match the name of the section referencing the file, '{0}'</summary>
+        </member>
+        <member name="P:System.SR.Config_namespace_invalid">
+            <summary>Namespace of '{0}' on configuration element is invalid, only '{1}' is valid.</summary>
+        </member>
+        <member name="P:System.SR.Config_no_stream_to_write">
+            <summary>A configuration file cannot be created for the requested Configuration object.</summary>
+        </member>
+        <member name="P:System.SR.Config_not_allowed_to_encrypt_this_section">
+            <summary>This configuration section cannot be encrypted.</summary>
+        </member>
+        <member name="P:System.SR.Config_object_is_null">
+            <summary>Configuration section handler returned a null object.</summary>
+        </member>
+        <member name="P:System.SR.Config_operation_not_runtime">
+            <summary>This operation does not apply at runtime.</summary>
+        </member>
+        <member name="P:System.SR.Config_properties_may_not_be_derived_from_configuration_section">
+            <summary>The Configuration property '{0}' may not be derived from ConfigurationSection.</summary>
+        </member>
+        <member name="P:System.SR.Config_provider_must_implement_type">
+            <summary>Provider must implement the class '{0}'.</summary>
+        </member>
+        <member name="P:System.SR.Config_root_section_group_cannot_be_edited">
+            <summary>The RootSectionGroup cannot be edited</summary>
+        </member>
+        <member name="P:System.SR.Config_section_allow_definition_attribute_invalid">
+            <summary>The 'allowDefinition' attribute must be one of the following values: Everywhere, MachineOnly, MachineToWebRoot, MachineToApplication.</summary>
+        </member>
+        <member name="P:System.SR.Config_section_allow_exe_definition_attribute_invalid">
+            <summary>The 'allowExeDefinition' attribute must be one of the following values: MachineOnly, MachineToApplication, MachineToRoamingUser, MachineToLocalUser.</summary>
+        </member>
+        <member name="P:System.SR.Config_section_cannot_be_used_in_location">
+            <summary>This section is not allowed in &lt;location&gt; elements.  This section has been marked allowLocation="false".</summary>
+        </member>
+        <member name="P:System.SR.Config_section_locked">
+            <summary>This configuration section cannot be used at this path.  This happens when the site administrator has locked access to this section using &lt;location allowOverride="false"&gt; from an inherited configuration file.</summary>
+        </member>
+        <member name="P:System.SR.Config_sections_must_be_unique">
+            <summary>Sections must only appear once per config file.  See the help topic &lt;location&gt; for exceptions.</summary>
+        </member>
+        <member name="P:System.SR.Config_source_cannot_be_shared">
+            <summary>The configSource file '{0}' can only be used by one type of section, and may not be the same as the configuration file.</summary>
+        </member>
+        <member name="P:System.SR.Config_source_parent_conflict">
+            <summary>The configSource file '{0}' is also used in a parent, this is not allowed.</summary>
+        </member>
+        <member name="P:System.SR.Config_source_file_format">
+            <summary>The format of a configSource file must be an element containing the name of the section.</summary>
+        </member>
+        <member name="P:System.SR.Config_source_invalid_format">
+            <summary>The configSource attribute must be a relative physical path.</summary>
+        </member>
+        <member name="P:System.SR.Config_source_invalid_chars">
+            <summary>The configSource attribute must be a relative physical path, so the '/' character is not allowed.</summary>
+        </member>
+        <member name="P:System.SR.Config_source_requires_file">
+            <summary>The 'configSource' property may not be set in a configuration that has no associated file.</summary>
+        </member>
+        <member name="P:System.SR.Config_source_syntax_error">
+            <summary>A section using 'configSource' may contain no other attributes or elements.</summary>
+        </member>
+        <member name="P:System.SR.Config_system_already_set">
+            <summary>The configuration system has already been initialized.</summary>
+        </member>
+        <member name="P:System.SR.Config_tag_name_already_defined">
+            <summary>Section or group name '{0}' is already defined. Updates to this may only occur at the configuration level where it is defined.</summary>
+        </member>
+        <member name="P:System.SR.Config_tag_name_already_defined_at_this_level">
+            <summary>Section or group name '{0}' is already defined. This can not be defined multiple times.</summary>
+        </member>
+        <member name="P:System.SR.Config_tag_name_cannot_be_location">
+            <summary>The section name 'location' is reserved for &lt;location&gt; sections.</summary>
+        </member>
+        <member name="P:System.SR.Config_tag_name_cannot_begin_with_config">
+            <summary>Section names beginning with config are reserved.</summary>
+        </member>
+        <member name="P:System.SR.Config_type_doesnt_inherit_from_type">
+            <summary>Type '{0}' does not inherit from '{1}'.</summary>
+        </member>
+        <member name="P:System.SR.Config_unexpected_element_end">
+            <summary>Unexpected end of element {0}.</summary>
+        </member>
+        <member name="P:System.SR.Config_unexpected_element_name">
+            <summary>Unexpected element name {0}.</summary>
+        </member>
+        <member name="P:System.SR.Config_unexpected_node_type">
+            <summary>expected XmlNodeType.Element, type is {0}.</summary>
+        </member>
+        <member name="P:System.SR.Config_unrecognized_configuration_section">
+            <summary>Unrecognized configuration section {0}.</summary>
+        </member>
+        <member name="P:System.SR.Config_write_failed">
+            <summary>Unable to save config to file '{0}'.</summary>
+        </member>
+        <member name="P:System.SR.Converter_timespan_not_in_second">
+            <summary>The expected format is an integer value in seconds.</summary>
+        </member>
+        <member name="P:System.SR.Converter_unsupported_value_type">
+            <summary>The converter cannot convert values with type '{0}'.</summary>
+        </member>
+        <member name="P:System.SR.Decryption_failed">
+            <summary>Failed to decrypt using provider '{0}'. Error message from the provider: {1}</summary>
+        </member>
+        <member name="P:System.SR.Default_value_conversion_error_from_string">
+            <summary>The default value of the property '{0}' cannot be parsed. The error is: {1}</summary>
+        </member>
+        <member name="P:System.SR.Default_value_wrong_type">
+            <summary>The default value for the property '{0}' has different type than the one of the property itself.</summary>
+        </member>
+        <member name="P:System.SR.DPAPI_bad_data">
+            <summary>The data specified for decryption is bad.</summary>
+        </member>
+        <member name="P:System.SR.Empty_attribute">
+            <summary>The '{0}' attribute cannot be an empty string.</summary>
+        </member>
+        <member name="P:System.SR.EncryptedNode_not_found">
+            <summary>The section is marked as being protected. However, the &lt;EncryptedData&gt; child node was not found in the section's node. Make sure that the section is correctly encrypted.</summary>
+        </member>
+        <member name="P:System.SR.EncryptedNode_is_in_invalid_format">
+            <summary>The section is marked as being protected, but it does not have the correct format. It should contain only the &lt;EncryptedData&gt; child node.</summary>
+        </member>
+        <member name="P:System.SR.Encryption_failed">
+            <summary>Failed to encrypt the section '{0}' using provider '{1}'. Error message from the provider: {2}</summary>
+        </member>
+        <member name="P:System.SR.IndexOutOfRange">
+            <summary>Index {0} is out of range.</summary>
+        </member>
+        <member name="P:System.SR.Invalid_enum_value">
+            <summary>The enumeration value must be one of the following: {0}.</summary>
+        </member>
+        <member name="P:System.SR.Must_add_to_config_before_protecting_it">
+            <summary>The configuration section must be added to a configuration hierarchy before you can protect it.</summary>
+        </member>
+        <member name="P:System.SR.No_converter">
+            <summary>Unable to find a converter that supports conversion to/from string for the property '{0}' of type '{1}'.</summary>
+        </member>
+        <member name="P:System.SR.No_exception_information_available">
+            <summary>No information about the exception is available.</summary>
+        </member>
+        <member name="P:System.SR.Property_name_reserved">
+            <summary>A configuration property cannot have the name '{0}' because it starts with the reserved prefix 'config' or 'lock'.</summary>
+        </member>
+        <member name="P:System.SR.Item_name_reserved">
+            <summary>A configuration item alias for '{0}' cannot have the name '{1}' because it starts with the reserved prefix 'config' or 'lock'.</summary>
+        </member>
+        <member name="P:System.SR.Basicmap_item_name_reserved">
+            <summary>A configuration item cannot have the name '{0}' because it starts with the reserved prefix 'config' or 'lock'.</summary>
+        </member>
+        <member name="P:System.SR.ProtectedConfigurationProvider_not_found">
+            <summary>The protection provider '{0}' was not found.</summary>
+        </member>
+        <member name="P:System.SR.Regex_validator_error">
+            <summary>The value does not conform to the validation regex string '{0}'.</summary>
+        </member>
+        <member name="P:System.SR.String_null_or_empty">
+            <summary>The string cannot be null or empty.</summary>
+        </member>
+        <member name="P:System.SR.Subclass_validator_error">
+            <summary>The type '{0}' must be derived from the type '{1}'.</summary>
+        </member>
+        <member name="P:System.SR.Top_level_conversion_error_from_string">
+            <summary>The value of the property '{0}' cannot be parsed. The error is: {1}</summary>
+        </member>
+        <member name="P:System.SR.Top_level_conversion_error_to_string">
+            <summary>The value of the property '{0}' cannot be converted to string. The error is: {1}</summary>
+        </member>
+        <member name="P:System.SR.Top_level_validation_error">
+            <summary>The value for the property '{0}' is not valid. The error is: {1}</summary>
+        </member>
+        <member name="P:System.SR.Type_cannot_be_resolved">
+            <summary>The type '{0}' cannot be resolved. Please verify the spelling is correct or that the full type name is provided.</summary>
+        </member>
+        <member name="P:System.SR.TypeNotPublic">
+            <summary>Unable to load type '{0}' because it is not public.</summary>
+        </member>
+        <member name="P:System.SR.Unrecognized_initialization_value">
+            <summary>The configuration setting '{0}' was not recognized.</summary>
+        </member>
+        <member name="P:System.SR.Validation_scalar_range_violation_not_different">
+            <summary>The value must be different than {0}.</summary>
+        </member>
+        <member name="P:System.SR.Validation_scalar_range_violation_not_equal">
+            <summary>The value must be equal to {0}.</summary>
+        </member>
+        <member name="P:System.SR.Validation_scalar_range_violation_not_in_range">
+            <summary>The value must be inside the range {0}-{1}.</summary>
+        </member>
+        <member name="P:System.SR.Validation_scalar_range_violation_not_outside_range">
+            <summary>The value must not be in the range {0}-{1}.</summary>
+        </member>
+        <member name="P:System.SR.Validator_Attribute_param_not_validator">
+            <summary>Only types derived from {0} are valid validator types.</summary>
+        </member>
+        <member name="P:System.SR.Validator_does_not_support_elem_type">
+            <summary>The supplied validator does not support validating the configuration element type {0}.</summary>
+        </member>
+        <member name="P:System.SR.Validator_does_not_support_prop_type">
+            <summary>The supplied validator does not support the type of the property '{0}'.</summary>
+        </member>
+        <member name="P:System.SR.Validator_element_not_valid">
+            <summary>The configuration element '{0}' is not valid. The error is: {1}</summary>
+        </member>
+        <member name="P:System.SR.Validator_method_not_found">
+            <summary>The supplied method name '{0}' was not found. The callback method must be a public static void method with one object parameter.</summary>
+        </member>
+        <member name="P:System.SR.Validator_min_greater_than_max">
+            <summary>The upper range limit value must be greater than the lower range limit value.</summary>
+        </member>
+        <member name="P:System.SR.Validator_scalar_resolution_violation">
+            <summary>The value must have a resolution of {0}.</summary>
+        </member>
+        <member name="P:System.SR.Validator_string_invalid_chars">
+            <summary>The string cannot contain any of the following characters: '{0}'.</summary>
+        </member>
+        <member name="P:System.SR.Validator_string_max_length">
+            <summary>The string must be no more than {0} characters long.</summary>
+        </member>
+        <member name="P:System.SR.Validator_string_min_length">
+            <summary>The string must be at least {0} characters long.</summary>
+        </member>
+        <member name="P:System.SR.Validator_value_type_invalid">
+            <summary>The supplied value is not of type which the validator can process.</summary>
+        </member>
+        <member name="P:System.SR.Validator_multiple_validator_attributes">
+            <summary>Multiple validator attributes are not currently supported. The property '{0}' has more than one validator attribute associated with it.</summary>
+        </member>
+        <member name="P:System.SR.Validator_timespan_value_must_be_positive">
+            <summary>The time span value must be positive.</summary>
+        </member>
+        <member name="P:System.SR.WrongType_of_Protected_provider">
+            <summary>The type specified does not extend ProtectedConfigurationProvider class.</summary>
+        </member>
+        <member name="P:System.SR.Config_element_locking_not_supported">
+            <summary>Locking of elements or attributes within a configuration section is not supported for legacy section '{0}'.</summary>
+        </member>
+        <member name="P:System.SR.Protection_provider_syntax_error">
+            <summary>A section using 'configProtectionProvider' may contain no other attributes.</summary>
+        </member>
+        <member name="P:System.SR.Protection_provider_invalid_format">
+            <summary>The configProtectionProvider attribute cannot be an empty string.</summary>
+        </member>
+        <member name="P:System.SR.Cannot_declare_or_remove_implicit_section">
+            <summary>The section '{0}' is a built-in section.  It cannot be declared by the user.</summary>
+        </member>
+        <member name="P:System.SR.Config_reserved_attribute">
+            <summary>The attribute '{0}' cannot be specified because its name starts with the reserved prefix 'config' or 'lock'.</summary>
+        </member>
+        <member name="P:System.SR.Filename_in_SaveAs_is_used_already">
+            <summary>The file name '{0}' is invalid because the same file name is already referenced by the configuration hierarchy you have opened.</summary>
+        </member>
+        <member name="P:System.SR.Provider_Already_Initialized">
+            <summary>This provider instance has already been initialized.</summary>
+        </member>
+        <member name="P:System.SR.Config_provider_name_null_or_empty">
+            <summary>Provider name cannot be null or empty.</summary>
+        </member>
+        <member name="P:System.SR.CollectionReadOnly">
+            <summary>Collection is read-only.</summary>
+        </member>
+        <member name="P:System.SR.Config_source_not_under_config_dir">
+            <summary>The configSource '{0}' is invalid. It must refer to a file in the same directory or in a subdirectory as the configuration file.</summary>
+        </member>
+        <member name="P:System.SR.Config_source_invalid">
+            <summary>The configSource attribute is invalid.</summary>
+        </member>
+        <member name="P:System.SR.Location_invalid_inheritInChildApplications_in_machine_or_root_web_config">
+            <summary>InheritInChildApplications cannot be set to "false" if the location path is referring to machine.config or the root web.config.</summary>
+        </member>
+        <member name="P:System.SR.Cannot_change_both_AllowOverride_and_OverrideMode">
+            <summary>Changing both AllowOverride and OverrideMode is not supported for compatibility reasons. Please use only one or the other.</summary>
+        </member>
+        <member name="P:System.SR.Config_section_override_mode_attribute_invalid">
+            <summary>The 'overrideMode' and 'overrideModeDefault' attributes must be one of the following values: Inherited, Allow, Deny.</summary>
+        </member>
+        <member name="P:System.SR.Invalid_override_mode_declaration">
+            <summary>A &lt;location&gt; tag may contain only one of the 'allowOverride' or 'overrideMode' attributes.</summary>
+        </member>
+        <member name="P:System.SR.Machine_config_file_not_found">
+            <summary>The machine.config file '{0}' was not found.</summary>
+        </member>
+        <member name="P:System.SR.ObjectDisposed_StreamClosed">
+            <summary>Cannot access a closed stream.</summary>
+        </member>
+        <member name="P:System.SR.Unable_to_convert_type_from_string">
+            <summary>Could not find a type-converter to convert object if type '{0}' from string.</summary>
+        </member>
+        <member name="P:System.SR.Unable_to_convert_type_to_string">
+            <summary>Could not find a type-converter to convert object if type '{0}' to string.</summary>
+        </member>
+        <member name="P:System.SR.Could_not_create_from_default_value">
+            <summary>The property '{0}' could not be created from it's default value. Error message: {1}</summary>
+        </member>
+        <member name="P:System.SR.Could_not_create_from_default_value_2">
+            <summary>The property '{0}' could not be created from it's default value because the default value is of a different type.</summary>
+        </member>
+        <member name="P:System.SR.UserSettingsNotSupported">
+            <summary>The current configuration system does not support user-scoped settings.</summary>
+        </member>
+        <member name="P:System.SR.SettingsSaveFailed">
+            <summary>Failed to save settings: {0}</summary>
+        </member>
+        <member name="P:System.SR.SettingsSaveFailedNoSection">
+            <summary>Failed to save settings: unable to access the configuration section.</summary>
+        </member>
+        <member name="P:System.SR.UnknownUserLevel">
+            <summary>Unknown ConfigurationUserLevel specified.</summary>
+        </member>
+        <member name="P:System.SR.BothScopeAttributes">
+            <summary>The setting {0} has both an ApplicationScopedSettingAttribute and a UserScopedSettingAttribute.</summary>
+        </member>
+        <member name="P:System.SR.NoScopeAttributes">
+            <summary>The setting {0} does not have either an ApplicationScopedSettingAttribute or UserScopedSettingAttribute.</summary>
+        </member>
+        <member name="P:System.SR.SettingsPropertyNotFound">
+            <summary>The settings property '{0}' was not found.</summary>
+        </member>
+        <member name="P:System.SR.SettingsPropertyReadOnly">
+            <summary>The settings property '{0}' is read-only.</summary>
+        </member>
+        <member name="P:System.SR.SettingsPropertyWrongType">
+            <summary>The settings property '{0}' is of a non-compatible type.</summary>
+        </member>
+        <member name="P:System.SR.ProviderInstantiationFailed">
+            <summary>Failed to instantiate provider: {0}.</summary>
+        </member>
+        <member name="P:System.SR.ProviderTypeLoadFailed">
+            <summary>Failed to load provider type: {0}.</summary>
+        </member>
+        <member name="P:System.SR.AppSettingsReaderNoKey">
+            <summary>The key '{0}' does not exist in the appSettings configuration section.</summary>
+        </member>
+        <member name="P:System.SR.AppSettingsReaderCantParse">
+            <summary>The value '{0}' was found in the appSettings configuration section for key '{1}', and this value is not a valid {2}.</summary>
+        </member>
+        <member name="P:System.SR.AppSettingsReaderEmptyString">
+            <summary>(empty string)</summary>
+        </member>
+        <member name="P:System.SR.Config_invalid_integer_attribute">
+            <summary>The '{0}' attribute must be set to an integer value.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_required_attribute_empty">
+            <summary>Required attribute '{0}' cannot be empty.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_elements_only">
+            <summary>Only elements allowed.</summary>
+        </member>
+        <member name="P:System.SR.Config_base_no_child_nodes">
+            <summary>Child nodes not allowed.</summary>
+        </member>
+        <member name="P:System.SR.InvalidNullEmptyArgument">
+            <summary>Argument {0} cannot be null or zero-length.</summary>
+        </member>
+        <member name="P:System.SR.DuplicateFileName">
+            <summary>The file name '{0}' was already in the collection.</summary>
+        </member>
+        <member name="T:System.Runtime.Versioning.OSPlatformAttribute">
+            <summary>
+            Base type for all platform-specific API attributes.
+            </summary>
+        </member>
+        <member name="T:System.Runtime.Versioning.TargetPlatformAttribute">
+            <summary>
+            Records the platform that the project targeted.
+            </summary>
+        </member>
+        <member name="T:System.Runtime.Versioning.SupportedOSPlatformAttribute">
+             <summary>
+             Records the operating system (and minimum version) that supports an API. Multiple attributes can be
+             applied to indicate support on multiple operating systems.
+             </summary>
+             <remarks>
+             Callers can apply a <see cref="T:System.Runtime.Versioning.SupportedOSPlatformAttribute" />
+             or use guards to prevent calls to APIs on unsupported operating systems.
+            
+             A given platform should only be specified once.
+             </remarks>
+        </member>
+        <member name="T:System.Runtime.Versioning.UnsupportedOSPlatformAttribute">
+            <summary>
+            Marks APIs that were removed in a given operating system version.
+            </summary>
+            <remarks>
+            Primarily used by OS bindings to indicate APIs that are only available in
+            earlier versions.
+            </remarks>
+        </member>
+        <member name="T:System.Runtime.Versioning.SupportedOSPlatformGuardAttribute">
+             <summary>
+             Annotates a custom guard field, property or method with a supported platform name and optional version.
+             Multiple attributes can be applied to indicate guard for multiple supported platforms.
+             </summary>
+             <remarks>
+             Callers can apply a <see cref="T:System.Runtime.Versioning.SupportedOSPlatformGuardAttribute" /> to a field, property or method
+             and use that field, property or method in a conditional or assert statements in order to safely call platform specific APIs.
+            
+             The type of the field or property should be boolean, the method return type should be boolean in order to be used as platform guard.
+             </remarks>
+        </member>
+        <member name="T:System.Runtime.Versioning.UnsupportedOSPlatformGuardAttribute">
+             <summary>
+             Annotates the custom guard field, property or method with an unsupported platform name and optional version.
+             Multiple attributes can be applied to indicate guard for multiple unsupported platforms.
+             </summary>
+             <remarks>
+             Callers can apply a <see cref="T:System.Runtime.Versioning.UnsupportedOSPlatformGuardAttribute" /> to a field, property or method
+             and use that  field, property or method in a conditional or assert statements as a guard to safely call APIs unsupported on those platforms.
+            
+             The type of the field or property should be boolean, the method return type should be boolean in order to be used as platform guard.
+             </remarks>
+        </member>
+    </members>
+</doc>
