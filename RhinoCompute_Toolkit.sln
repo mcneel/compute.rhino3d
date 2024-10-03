@@ -3,15 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32922.545
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RhinoCompute_WebService", "RhinoCompute\RhinoCompute_WebService.csproj", "{EF929848-7ABE-43E4-838A-0908FC90556D}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RhinoCompute_oM", "RhinoCompute_oM\RhinoCompute_oM.csproj", "{56A5F5AD-A351-416F-A9CA-3850536BC267}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RhinoCompute_Engine", "RhinoCompute_Engine\RhinoCompute_Engine.csproj", "{AAAB403E-3A80-4408-9932-B7819FB81DDE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloWorld", "..\rhino-developer-samples\rhino.inside\dotnet\SampleHelloWorld\HelloWorld.csproj", "{E279A641-7002-47FF-A0EE-694CAB972A5C}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp2", "ConsoleApp2\ConsoleApp2.csproj", "{C1F8FC8D-8121-4BBA-AF6A-B1B23E2EC0AF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RhinoCompute_WebService", "RhinoCompute_WebService\RhinoCompute_WebService.csproj", "{C1F8FC8D-8121-4BBA-AF6A-B1B23E2EC0AF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,14 +17,6 @@ Global
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{EF929848-7ABE-43E4-838A-0908FC90556D}.Debug|Any CPU.ActiveCfg = Debug|x64
-		{EF929848-7ABE-43E4-838A-0908FC90556D}.Debug|Any CPU.Build.0 = Debug|x64
-		{EF929848-7ABE-43E4-838A-0908FC90556D}.Debug|x64.ActiveCfg = Debug|x64
-		{EF929848-7ABE-43E4-838A-0908FC90556D}.Debug|x64.Build.0 = Debug|x64
-		{EF929848-7ABE-43E4-838A-0908FC90556D}.Release|Any CPU.ActiveCfg = Release|x64
-		{EF929848-7ABE-43E4-838A-0908FC90556D}.Release|Any CPU.Build.0 = Release|x64
-		{EF929848-7ABE-43E4-838A-0908FC90556D}.Release|x64.ActiveCfg = Release|x64
-		{EF929848-7ABE-43E4-838A-0908FC90556D}.Release|x64.Build.0 = Release|x64
 		{56A5F5AD-A351-416F-A9CA-3850536BC267}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{56A5F5AD-A351-416F-A9CA-3850536BC267}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{56A5F5AD-A351-416F-A9CA-3850536BC267}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -45,14 +33,6 @@ Global
 		{AAAB403E-3A80-4408-9932-B7819FB81DDE}.Release|Any CPU.Build.0 = Release|Any CPU
 		{AAAB403E-3A80-4408-9932-B7819FB81DDE}.Release|x64.ActiveCfg = Release|Any CPU
 		{AAAB403E-3A80-4408-9932-B7819FB81DDE}.Release|x64.Build.0 = Release|Any CPU
-		{E279A641-7002-47FF-A0EE-694CAB972A5C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E279A641-7002-47FF-A0EE-694CAB972A5C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E279A641-7002-47FF-A0EE-694CAB972A5C}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{E279A641-7002-47FF-A0EE-694CAB972A5C}.Debug|x64.Build.0 = Debug|Any CPU
-		{E279A641-7002-47FF-A0EE-694CAB972A5C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E279A641-7002-47FF-A0EE-694CAB972A5C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E279A641-7002-47FF-A0EE-694CAB972A5C}.Release|x64.ActiveCfg = Release|Any CPU
-		{E279A641-7002-47FF-A0EE-694CAB972A5C}.Release|x64.Build.0 = Release|Any CPU
 		{C1F8FC8D-8121-4BBA-AF6A-B1B23E2EC0AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C1F8FC8D-8121-4BBA-AF6A-B1B23E2EC0AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C1F8FC8D-8121-4BBA-AF6A-B1B23E2EC0AF}.Debug|x64.ActiveCfg = Debug|Any CPU

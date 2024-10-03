@@ -65,6 +65,13 @@ namespace BH.Engine.Computing.RhinoCompute
                     continue;
                 }
 
+                // BHoM enums also show irrelevant error message, even if they work. We skip those.
+                if (obj.GetType().FullName == "BH.UI.Grasshopper.Components.CreateEnumComponent" 
+                    && msg == "Object reference not set to an instance of an object.")
+                {
+                    continue;
+                }
+
                 string msgToAdd = $"{messageLevel} message from component named `{obj.Name}`:";
                 msgToAdd += $"\n\t{msg}`";
 
