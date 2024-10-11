@@ -17,6 +17,7 @@ using Grasshopper.Kernel.Data;
 using Rhino;
 using System.Drawing;
 using Grasshopper;
+using System.Security.Policy;
 
 namespace Hops
 {
@@ -367,15 +368,22 @@ namespace Hops
                         {
                             if (!File.Exists(path))
                             {
-                                // See if the file is in the same directoy as this definition. If it
-                                // is then use that file. NOTE: This will change the saved path for
-                                // for this component when we save the GH definition again. That may or
-                                // may not be a problem; I'm not sure yet.
-                                string parentDirectory = Path.GetDirectoryName(reader.ArchiveLocation);
-                                string remoteFileName = Path.GetFileName(path);
-                                string filePath = Path.Combine(parentDirectory, remoteFileName);
-                                if (File.Exists(filePath))
-                                    path = filePath;
+                                if(path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    RemoteDefinitionLocation = path;
+                                }
+                                else
+                                {
+                                    // See if the file is in the same directory as this definition. If it
+                                    // is then use that file. NOTE: This will change the saved path for
+                                    // for this component when we save the GH definition again. That may or
+                                    // may not be a problem; I'm not sure yet.
+                                    string parentDirectory = Path.GetDirectoryName(reader.ArchiveLocation);
+                                    string remoteFileName = Path.GetFileName(path);
+                                    string filePath = Path.Combine(parentDirectory, remoteFileName);
+                                    if (File.Exists(filePath))
+                                        path = filePath;
+                                }
                             }
                         }
                         RemoteDefinitionLocation = path;
