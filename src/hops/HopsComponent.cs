@@ -17,7 +17,6 @@ using Grasshopper.Kernel.Data;
 using Rhino;
 using System.Drawing;
 using Grasshopper;
-using System.Security.Policy;
 
 namespace Hops
 {
