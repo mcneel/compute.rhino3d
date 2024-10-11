@@ -52,7 +52,7 @@ jobs:
     if: ${{ needs.check_src.outputs.any_changed == 'true' || needs.check_workflow.outputs.any_changed == 'true' }}
     steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: revision
@@ -68,7 +68,7 @@ jobs:
         run: dotnet publish src/compute.sln -c Release
       - name: artifacts
         if: github.ref == 'refs/heads/8.x'
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           path: src/dist
           name: rhino.compute
