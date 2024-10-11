@@ -31,7 +31,8 @@ namespace Hops
                 textbox.Text = Path;
             }
             var filePickButton = new Rhino.UI.Controls.ImageButton();
-            filePickButton.Image = Rhino.Resources.Assets.Rhino.Eto.Bitmaps.TryGet(Rhino.Resources.ResourceIds.FolderopenPng, new Eto.Drawing.Size(24, 24));
+            filePickButton.ToolTip = "Select an existing Grasshopper definition";
+            filePickButton.Image = Rhino.Resources.Assets.Rhino.Eto.Icons.TryGet(Rhino.Resources.ResourceIds.FolderopenPng, new Eto.Drawing.Size(24, 24));
             filePickButton.Click += (sender, e) =>
             {
                 var dlg = new Eto.Forms.OpenFileDialog();
