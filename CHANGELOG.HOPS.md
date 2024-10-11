@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.14] - 2024-10-11
+
+### Fixed
+
+- Definitions which had nested Hops components in them which pointed to a URL were not deserializing the definition at the URL destination correctly. This was fixed.
+
+- Fixed a bug where the open file icon shown in the Set Definition dialog was blurry.
+
 ## [0.16.13] - 2024-08-29
 
 ### Fixed
