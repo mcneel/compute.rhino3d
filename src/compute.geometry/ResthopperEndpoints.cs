@@ -15,6 +15,7 @@ using Carter;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Rhino.Geometry;
+using Rhino;
 
 namespace compute.geometry
 {
@@ -74,6 +75,19 @@ namespace compute.geometry
 
             SetDefaultTolerances(input.AbsoluteTolerance, input.AngleTolerance);
             SetDefaultUnits(input.ModelUnits);
+
+            // Instantiate headless doc
+            if (Config.CreateHeadlessDoc)
+            {
+                RhinoDoc.ActiveDoc = RhinoDoc.CreateHeadless(null);
+                RhinoDoc.ActiveDoc.ModelAbsoluteTolerance = input.AbsoluteTolerance;
+                RhinoDoc.ActiveDoc.ModelAngleToleranceDegrees = input.AngleTolerance;
+
+                if (Enum.TryParse(input.ModelUnits, out UnitSystem units))
+                {
+                    RhinoDoc.ActiveDoc.ModelUnitSystem = units;
+                }
+            }
 
             int recursionLevel = input.RecursionLevel + 1;
             definition.Definition.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(recursionLevel));
