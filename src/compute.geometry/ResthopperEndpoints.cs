@@ -112,6 +112,11 @@ namespace compute.geometry
                     DataCache.SetCachedSolveResults(body, returnJson, definition);
                 }
             }
+
+            // Dispose headless doc
+            if (RhinoDoc.ActiveDoc is object)
+                RhinoDoc.ActiveDoc.Dispose();
+
             return returnJson;
         }
 
