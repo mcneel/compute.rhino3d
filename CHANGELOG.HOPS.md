@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.19] - 2025-01-27
+
+### Added
+
+- It is now possible for Rhino.Compute to create a headless document to be used during the solve routine. To use this feature, create a local environment variable called RHINO_COMPUTE_CREATE_HEADLESS_DOC.The value of this variable can be set to either true or false with false being the default. Each time the GrasshopperSolveHelper method of the ResthopperEndpointsModule is invoked, it checks whether Config.CreateHeadlessDoc is set to true. If it is, a brand new headless document is instantiated with tolerances and units determined by the input object. This feature is useful for third party plugins which may make calls to the Rhino Document to retrieve properties such as tolerances or units. Prior to this feature, these requests would result in an error. Now, a plugin may utilize this information for calculations.
+
 ## [0.16.18] - 2025-01-06
 
 ### Fixed
