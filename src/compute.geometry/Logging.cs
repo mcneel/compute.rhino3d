@@ -2,7 +2,7 @@
 using System.IO;
 using Serilog;
 using Serilog.Events;
-using Serilog.Formatting.Json;
+using Serilog.Templates;
 
 namespace compute.geometry
 {
@@ -31,9 +31,8 @@ namespace compute.geometry
             var logger = new LoggerConfiguration()
                 .MinimumLevel.Is(level)
                 .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-                .Enrich.FromLogContext()
                 .WriteTo.Console(outputTemplate: "CG {Port} [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
-                .WriteTo.File(new JsonFormatter(renderMessage: true), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
+                .WriteTo.File(new ExpressionTemplate("CG {Port} [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
 
             Log.Logger = logger.CreateLogger();
 

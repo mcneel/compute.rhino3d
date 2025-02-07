@@ -34,8 +34,6 @@ namespace compute.geometry
 
             app.UseRouting();
             app.UseCors();
-            //if (!String.IsNullOrEmpty(Config.ApiKey))
-            //    app.UseMiddleware<ApiKeyMiddleware>();
             app.UseEndpoints(builder =>
             {
                 builder.MapHealthChecks("/healthcheck");
