@@ -18,9 +18,34 @@ using Rhino;
 using System.Drawing;
 using Grasshopper;
 using Grasshopper.Kernel.Expressions;
+using Serilog.Events;
+using Serilog.Templates;
+using Serilog;
 
 namespace Hops
 {
+    public class HopsLog : GH_AssemblyPriority
+    {
+        public static ILogger Log { get; private set; }
+        public override GH_LoadingInstruction PriorityLoad()
+        {
+            Config.Load();
+
+            var path = System.IO.Path.Combine(Config.LogPath, $"log-hops-inside-{System.Diagnostics.Process.GetCurrentProcess().ProcessName}-.txt");
+            var limit = Config.LogRetainDays;
+            var level = Config.Debug ? LogEventLevel.Debug : LogEventLevel.Information;
+
+            var loggerConfig = new LoggerConfiguration()
+            .MinimumLevel.Is(level)
+            .WriteTo.File(new ExpressionTemplate("HC   [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
+            Log = loggerConfig.CreateLogger();
+
+            Log.Information($"Hops logging started at {DateTime.Now.ToLocalTime()}");
+
+            return GH_LoadingInstruction.Proceed;
+        }
+    }
+
     [Guid("C69BB52C-88BA-4640-B69F-188D111029E8")]
     public class HopsComponent : GH_TaskCapableComponent<Schema>, IGH_VariableParameterComponent
     {
@@ -145,10 +170,11 @@ namespace Hops
             if (_isHeadless && _solveRecursionLevel > HopsAppSettings.RecursionLimit)
             {
                 // Don't allow hops components to run on compute for now. Recursive calls will lock
-                AddRuntimeMessage(
+                HopsAddRuntimeMessage(
                     GH_RuntimeMessageLevel.Error,
                     $"Hops recursion level beyond limit of {HopsAppSettings.RecursionLimit}. Please help us understand why you need this by emailing steve@mcneel.com");
                 return;
+
             }
 
             if (_showPathInput && DA.Iteration == 0)
@@ -156,7 +182,7 @@ namespace Hops
                 string path = "";
                 if (!DA.GetData("_Path", ref path))
                 {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "No URL or path defined for definition");
+                    HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "No URL or path defined for definition");
                     return;
                 }
 
@@ -169,7 +195,7 @@ namespace Hops
 
             if (string.IsNullOrWhiteSpace(RemoteDefinitionLocation)  && _remoteDefinition?.InternalizedDefinition == null)
             {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "No URL or path defined for definition");
+                HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "No URL or path defined for definition");
                 return;
             }
 
@@ -199,7 +225,7 @@ namespace Hops
                 {
                     foreach (var warning in warnings)
                     {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
+                        HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
                     }
                     return;
                 }
@@ -207,7 +233,7 @@ namespace Hops
                 {
                     foreach (var error in errors)
                     {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
+                        HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
                     }
                     return;
                 }
@@ -247,7 +273,7 @@ namespace Hops
                 {
                     foreach (var warning in warnings)
                     {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
+                        HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
                     }
                     return;
                 }
@@ -255,7 +281,7 @@ namespace Hops
                 {
                     foreach (var error in errors)
                     {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
+                        HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
                     }
                     return;
                 }
@@ -355,10 +381,9 @@ namespace Hops
                     }
                     catch(Exception ex)
                     {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unable to deserialize internalized grasshopper definition. " + ex.Message);
+                        HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unable to deserialize internalized grasshopper definition. " + ex.Message);
                     }
                 }
-
 
                 // set remote definition location last as it will need all of the
                 // previous values to define inputs and outputs
@@ -369,18 +394,34 @@ namespace Hops
                         var pathType = RemoteDefinition.GetPathType(path);
                         if (pathType == RemoteDefinition.PathType.GrasshopperDefinition)
                         {
-                            if (!File.Exists(path) && !path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                            if (!File.Exists(path) && !RemoteDefinition.IsWebUrl(path))
                             {
+                                HopsLog.Log.Debug($"{path} does not exist. Trying to find it in the same directory as the definition.");
                                 // See if the file is in the same directory as this definition. If it
                                 // is then use that file. NOTE: This will change the saved path for
                                 // for this component when we save the GH definition again. That may or
                                 // may not be a problem; I'm not sure yet.
                                 string parentDirectory = Path.GetDirectoryName(reader.ArchiveLocation);
-                                string remoteFileName = Path.GetFileName(path);
-                                string filePath = Path.Combine(parentDirectory, remoteFileName);
-                                if (File.Exists(filePath))
-                                    path = filePath;
-                               
+                                if (!String.IsNullOrEmpty(parentDirectory) && Directory.Exists(parentDirectory))
+                                {
+                                    string remoteFileName = Path.GetFileName(path);
+                                    if (!string.IsNullOrEmpty(remoteFileName))
+                                    {
+                                        string filePath = Path.Combine(parentDirectory, remoteFileName);
+                                        if (File.Exists(filePath))
+                                        {
+                                            path = filePath;
+                                        }
+                                        else
+                                        {
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Warning, $"Remote definition not found: {path}. Check that the file path exists.");
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Warning, $"Remote definition not found: {path}. Check that the file path exists.");
+                                }
                             }
                         }
                         RemoteDefinitionLocation = path;
@@ -693,7 +734,7 @@ namespace Hops
                 }
                 catch(Exception ex)
                 {
-                    _component.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, ex.Message);
+                    _component.HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, ex.Message);
                 }
                 return base.RespondToMouseDoubleClick(sender, e);
             }
@@ -890,7 +931,6 @@ for value in values:
                 // Always rebuild the remote definition information when setting this property.
                 // This way you can poke the path button to force a refresh in case the situation
                 // on the server has changed.
-                //if (!string.Equals(RemoteDefinitionLocation, value, StringComparison.OrdinalIgnoreCase))
                 {
                     if(_remoteDefinition != null)
                     {
@@ -900,6 +940,7 @@ for value in values:
                     if (!string.IsNullOrWhiteSpace(value))
                     {
                         _remoteDefinition = RemoteDefinition.Create(value, this);
+                        HopsLog.Log.Debug($"Remote definition location set to {value}");
                         DefineInputsAndOutputs();
                     }
                 }
@@ -920,6 +961,30 @@ for value in values:
             }
         }
 
+        public void HopsAddRuntimeMessage(GH_RuntimeMessageLevel level, string message)
+        {
+            if(HopsLog.Log is object)
+            {
+                switch (level)
+                {
+                    case GH_RuntimeMessageLevel.Remark:
+                        HopsLog.Log.Information(message);
+                        break;
+                    case GH_RuntimeMessageLevel.Warning:
+                        HopsLog.Log.Warning(message);
+                        break;
+                    case GH_RuntimeMessageLevel.Error:
+                        HopsLog.Log.Error(message);
+                        break;
+                    default:
+                        HopsLog.Log.Debug(message);
+                        break;
+                }
+            }
+
+            AddRuntimeMessage(level, message);
+        }
+
         void DefineInputsAndOutputs()
         {
             if (_remoteDefinition != null)
@@ -929,14 +994,14 @@ for value in values:
 
                 if (_remoteDefinition.IsNotResponingUrl())
                 {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unable to connect to server");
+                    HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unable to connect to server");
                     Grasshopper.Instances.ActiveCanvas?.Invalidate();
                     return;
                 }
 
                 if (_remoteDefinition.IsInvalidUrl())
                 {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Path appears valid, but to something that is not Hops related");
+                    HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Path appears valid, but to something that is not Hops related");
                     Grasshopper.Instances.ActiveCanvas?.Invalidate();
                     return;
                 }
@@ -944,7 +1009,7 @@ for value in values:
                 {
                     foreach(var error in HTTPRecord.IOResponseSchema.Errors)
                     {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
+                        HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
                         Grasshopper.Instances.ActiveCanvas?.Invalidate();
                         return;
                     }
@@ -953,7 +1018,7 @@ for value in values:
                 {
                     foreach (var warning in HTTPRecord.IOResponseSchema.Warnings)
                     {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
+                        HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
                     }
                 }
 
@@ -1038,6 +1103,8 @@ for value in values:
                 bool recompute = false;
                 if (buildInputs && inputs != null)
                 {
+                    HopsLog.Log.Debug($"Hops component rebuilding input parameters...");
+
                     var mgr = CreateInputManager();
 
                     if (_showPathInput)
@@ -1111,7 +1178,7 @@ for value in values:
                                         }
                                         catch (Exception e)
                                         {
-                                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                                         }                                     
                                     }
                                 }
@@ -1149,7 +1216,7 @@ for value in values:
                                         }
                                         catch (Exception e)
                                         {
-                                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                                         }
                                     }
                                 }
@@ -1188,7 +1255,7 @@ for value in values:
                                         }
                                         catch (Exception e)
                                         {
-                                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                                         }
                                     }
                                 }
@@ -1227,7 +1294,7 @@ for value in values:
                                         }
                                         catch (Exception e)
                                         {
-                                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                                         }
                                     }
                                 }
@@ -1266,7 +1333,7 @@ for value in values:
                                         }
                                         catch (Exception e)
                                         {
-                                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                                         }
                                     } 
                                 }
@@ -1335,7 +1402,7 @@ for value in values:
                                         }
                                         catch (Exception e)
                                         {
-                                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                                         }
                                     } 
                                 }
@@ -1436,7 +1503,7 @@ for value in values:
                                         }
                                         catch (Exception e)
                                         {
-                                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                                         }
                                     }
                                 }
@@ -1475,7 +1542,7 @@ for value in values:
                                         }
                                         catch (Exception e)
                                         {
-                                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                                         }
                                     }
                                 }
@@ -1519,7 +1586,7 @@ for value in values:
                                         }
                                         catch (Exception e)
                                         {
-                                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                                         }
                                     }
                                 }
@@ -1582,7 +1649,7 @@ for value in values:
                                         }
                                         catch (Exception e)
                                         {
-                                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                                         }
                                     } 
                                 }
@@ -1646,7 +1713,7 @@ for value in values:
                                         }
                                         catch (Exception e)
                                         {
-                                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                                         }
                                     }
                                 }  
@@ -1686,7 +1753,7 @@ for value in values:
                                         }
                                         catch (Exception e)
                                         {
-                                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                                         }
                                     }
                                 }   
@@ -1725,7 +1792,7 @@ for value in values:
                                         }
                                         catch (Exception e)
                                         {
-                                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                                         }
                                     }
                                 }    
@@ -1764,7 +1831,7 @@ for value in values:
                                         }
                                         catch (Exception e)
                                         {
-                                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                                         }
                                     } 
                                 }
@@ -1835,7 +1902,7 @@ for value in values:
                                         }
                                         catch (Exception e)
                                         {
-                                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                                         }
                                     }
                                 }
@@ -1874,7 +1941,7 @@ for value in values:
                                         }
                                         catch (Exception e)
                                         {
-                                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                                         }
                                     }
                                 }
@@ -1940,7 +2007,7 @@ for value in values:
                                         }
                                         catch (Exception e)
                                         {
-                                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                                         }
                                     }
                                 }
@@ -1978,7 +2045,7 @@ for value in values:
                                         }
                                         catch (Exception e)
                                         {
-                                            AddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
                                         }
                                     }   
                                 }
@@ -2000,6 +2067,8 @@ for value in values:
                 }
                 if (buildOutputs && outputs != null)
                 {
+                    HopsLog.Log.Debug($"Hops component rebuilding output parameters...");
+
                     var mgr = CreateOutputManager();
                     foreach (var kv in outputs)
                     {

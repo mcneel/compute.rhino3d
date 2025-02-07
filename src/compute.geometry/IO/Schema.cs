@@ -25,6 +25,9 @@ namespace Resthopper.IO
         [JsonProperty(PropertyName = "algo")]
         public string Algo { get; set; }
 
+        [JsonProperty(PropertyName = "filename")]
+        public string FileName { get; set; }
+
         [JsonProperty(PropertyName = "pointer")]
         public string Pointer { get; set; }
 
@@ -77,6 +80,7 @@ namespace Resthopper.IO
     public class IoResponseSchema
     {
         public string Description { get; set; }
+        public string FileName { get; set; }
         public string CacheKey { get; set; }
         public List<string> InputNames { get; set; }
         public List<string> OutputNames { get; set; }

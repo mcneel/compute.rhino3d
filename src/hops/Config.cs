@@ -2,26 +2,10 @@
 using System.Collections.Generic;
 using System.IO;
 
-namespace rhino.compute
+namespace Hops
 {
     static class Config
     {
-        /// <summary>
-        /// RHINO_COMPUTE_KEY: the API key required to make POST requests.
-        /// Leave empty to disable.
-        /// </summary>
-        public static string ApiKey { get; private set; }
-
-        /// <summary>
-        /// RHINO_COMPUTE_TIMEOUT: time in seconds for a time out from the client
-        /// </summary>
-        public static int ReverseProxyRequestTimeout { get; private set; }
-
-        /// <summary>
-        /// RHINO_COMPUTE_REQUEST_LIMIT: maximum allowed size of any request body in bytes.
-        /// </summary>
-        public static long MaxRequestSize { get; private set; }
-
         /// <summary>
         /// RHINO_COMPUTE_LOG_PATH: the directory in which to write logs.
         /// </summary>
@@ -43,9 +27,6 @@ namespace rhino.compute
         /// </summary>
         public static void Load()
         {
-            ApiKey = GetEnvironmentVariable<string>(RHINO_COMPUTE_KEY, null);
-            ReverseProxyRequestTimeout = GetEnvironmentVariable<int>(RHINO_COMPUTE_TIMEOUT, 100);
-            MaxRequestSize = GetEnvironmentVariable<long>(RHINO_COMPUTE_MAX_REQUEST_SIZE, 52428800);
             LogPath = GetEnvironmentVariable(RHINO_COMPUTE_LOG_PATH, Path.Combine(Path.GetTempPath(), "Compute", "Logs"));
             LogRetainDays = GetEnvironmentVariable(RHINO_COMPUTE_LOG_RETAIN_DAYS, 10);
 
@@ -59,9 +40,6 @@ namespace rhino.compute
 
         #region private
         // environment variables
-        const string RHINO_COMPUTE_KEY = "RHINO_COMPUTE_KEY";
-        const string RHINO_COMPUTE_TIMEOUT = "RHINO_COMPUTE_TIMEOUT";
-        const string RHINO_COMPUTE_MAX_REQUEST_SIZE = "RHINO_COMPUTE_MAX_REQUEST_SIZE";
         const string RHINO_COMPUTE_LOG_PATH = "RHINO_COMPUTE_LOG_PATH";
         const string RHINO_COMPUTE_LOG_RETAIN_DAYS = "RHINO_COMPUTE_LOG_RETAIN_DAYS";
         const string RHINO_COMPUTE_DEBUG = "RHINO_COMPUTE_DEBUG";

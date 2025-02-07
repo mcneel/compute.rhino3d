@@ -9,7 +9,7 @@ using Resthopper.IO;
 using System.IO;
 using System.Reflection;
 using System.Net.Http;
-using Grasshopper.Kernel.Data;
+using System.Diagnostics;
 
 namespace Hops
 {
@@ -42,11 +42,47 @@ namespace Hops
         public byte[] _internalizedDefinition = null;
         const string _apiKeyName = "RhinoComputeKey";
         public PathType? _pathType;
+        public string _filename = string.Empty;
+
+        public static bool IsWebUrl(string path)
+        {
+            if (Uri.TryCreate(path, UriKind.Absolute, out Uri uriResult))
+            {
+                return uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps;
+            }
+            return false;
+        }
+        private static bool IsGrasshopperDefinition(string filename)
+        {
+            if (!String.IsNullOrEmpty(filename))
+            {
+                var extension = System.IO.Path.GetExtension(filename);
+                if (extension == ".gh" || extension == ".ghx")
+                    return true;
+            }
+            return false;
+        }
+
         public static RemoteDefinition Create(string path, HopsComponent parentComponent)
         {
             var rc = new RemoteDefinition(path, parentComponent);
-            if(path != null)
+            if (path != null)
                 RemoteDefinitionCache.Add(rc);
+
+            var filename = String.Empty;
+            if (!IsWebUrl(path))
+            {
+                filename = System.IO.Path.GetFileName(path);
+            } 
+            else
+            {
+                Uri uri = new Uri(path);
+                filename = uri.Segments[uri.Segments.Length - 1];
+            }
+            if (IsGrasshopperDefinition(filename))
+            {
+                rc._filename = filename;
+            }
             return rc;
         }
 
@@ -103,7 +139,7 @@ namespace Hops
                 return PathType.ComponentGuid;
            
             PathType rc = PathType.GrasshopperDefinition;
-            if (path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            if (IsWebUrl(path))
             {
                 try
                 {
@@ -170,8 +206,7 @@ namespace Hops
             {
                 case PathType.GrasshopperDefinition:
                     {
-                        if (Path.StartsWith("http", StringComparison.OrdinalIgnoreCase) ||
-                            File.Exists(Path))
+                        if (IsWebUrl(Path) || File.Exists(Path))
                         {
                             address = Path;
                             performPost = true;
@@ -204,14 +239,21 @@ namespace Hops
                 schema.DataVersion = 8;
                 if (pathType != PathType.InternalizedDefinition)
                 {
-                    if(Path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                    if(IsWebUrl(Path))
                     {
                         schema.Pointer = address;
                     }
                     else
                     {
-                        var bytes = System.IO.File.ReadAllBytes(address);
-                        schema.Algo = Convert.ToBase64String(bytes);
+                        if (File.Exists(address))
+                        {
+                            var bytes = System.IO.File.ReadAllBytes(address);
+                            schema.Algo = Convert.ToBase64String(bytes);
+                        }
+                        else
+                        {
+                            HopsLog.Log.Error($"File not found: {address}");
+                        }    
                     }
                 }
                 else
@@ -222,6 +264,7 @@ namespace Hops
                 schema.AbsoluteTolerance = GetDocumentTolerance();
                 schema.AngleTolerance = GetDocumentAngleTolerance();
                 schema.ModelUnits = GetDocumentUnits();
+                schema.FileName = _filename;
                 string inputJson = JsonConvert.SerializeObject(schema);
                 string requestContent = "{";
                 requestContent += "\"URL\": \"" + postUrl + "\"," + Environment.NewLine;
@@ -234,7 +277,11 @@ namespace Hops
                 if(!String.IsNullOrEmpty(HopsAppSettings.APIKey))
                     client.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
                 if(HopsAppSettings.HTTPTimeout > 0)
-                    client.Timeout = TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout);
+                    client.Timeout = TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout);    
+                var fileNameMsg = String.Empty;
+                if (!String.IsNullOrEmpty(_filename))
+                    fileNameMsg = $" with {_filename}";            
+                HopsLog.Log.Debug($"Sending POST request to {postUrl}{fileNameMsg}");
                 responseTask = client.PostAsync(postUrl, content);
                 _parentComponent.HTTPRecord.Schema = schema;
                 contentToDispose = content;
@@ -250,7 +297,9 @@ namespace Hops
             }
             if (responseTask != null)
             {
+                var sw = Stopwatch.StartNew();
                 var responseMessage = responseTask.Result;
+                HopsLog.Log.Debug($"Received response {responseMessage.StatusCode} in {sw.ElapsedMilliseconds}ms");
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
                 if (string.IsNullOrEmpty(stringResult))
@@ -261,8 +310,9 @@ namespace Hops
                 else
                 {
                     _parentComponent.HTTPRecord.IOResponse = stringResult;
-                    responseSchema = JsonConvert.DeserializeObject<Resthopper.IO.IoResponseSchema>(stringResult);
+                    responseSchema = JsonConvert.DeserializeObject<IoResponseSchema>(stringResult);
                     _cacheKey = responseSchema.CacheKey;
+                    _filename = responseSchema.FileName;
                     _parentComponent.HTTPRecord.IOResponseSchema = responseSchema;
                 }
             }
@@ -314,6 +364,17 @@ namespace Hops
                     {
                     }
                 }
+
+                var inputSuffix = String.Empty;
+                var outputSuffix = String.Empty;
+                var fileNameMsg = String.Empty;
+                if (responseSchema.InputNames.Count > 1)
+                    inputSuffix = "s";
+                if (responseSchema.OutputNames.Count > 1)
+                    outputSuffix = "s";
+                if (!String.IsNullOrEmpty(responseSchema.FileName))
+                    fileNameMsg = $" in {responseSchema.FileName}";
+                HopsLog.Log.Debug($"Compute.Geometry found {responseSchema.InputNames.Count} input{inputSuffix} and {responseSchema.OutputNames.Count} output{outputSuffix}{fileNameMsg}");
                 _inputParams = new Dictionary<string, Tuple<InputParamSchema, IGH_Param>>();
                 _outputParams = new Dictionary<string, IGH_Param>();
                 foreach (var input in responseSchema.Inputs)
@@ -409,7 +470,6 @@ namespace Hops
                 return _httpClient;
             }
         }
-
         static Schema SafeSchemaDeserialize(string data)
         {
             try
@@ -421,7 +481,6 @@ namespace Hops
             }
             return null;
         }
-
         public Schema Solve(Schema inputSchema, bool useMemoryCache)
         {
             string solveUrl;
@@ -440,9 +499,9 @@ namespace Hops
                 int index = Path.LastIndexOf('/');
                 var authority = new Uri(Path).Authority;
                 solveUrl = "http://" + authority + "/solve";
-                //solveUrl = Path.Substring(0, index + 1) + "solve";
             }
 
+            if (!string.IsNullOrEmpty(_filename)) inputSchema.FileName = _filename;
             string inputJson = JsonConvert.SerializeObject(inputSchema);
             if (useMemoryCache && inputSchema.Algo == null)
             {
@@ -465,12 +524,17 @@ namespace Hops
                 if (HopsAppSettings.HTTPTimeout > 0)
                     client.Timeout = TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout);
                 var postTask = client.PostAsync(solveUrl, content);
+                var fileNameMsg = String.Empty;
+                if (!String.IsNullOrEmpty(inputSchema.FileName))
+                    fileNameMsg = $" with {inputSchema.FileName} input values";                
+                HopsLog.Log.Debug($"Sending POST request to {solveUrl}{fileNameMsg}");
+                var sw = Stopwatch.StartNew();
                 var responseMessage = postTask.Result;
+                HopsLog.Log.Debug($"Received response {responseMessage.StatusCode} in {sw.ElapsedMilliseconds}ms");
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
                 _parentComponent.HTTPRecord.SolveResponse = stringResult;
                 Schema schema = SafeSchemaDeserialize(stringResult);
-
                 if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
                 {
                     bool fileExists = File.Exists(Path);
@@ -479,6 +543,7 @@ namespace Hops
                         var bytes = System.IO.File.ReadAllBytes(Path);
                         string base64 = Convert.ToBase64String(bytes);
                         inputSchema.Algo = base64;
+                        inputSchema.FileName = System.IO.Path.GetFileName(Path);
                         inputJson = JsonConvert.SerializeObject(inputSchema);
                         requestContent = "{";
                         requestContent += "\"URL\": \"" + solveUrl + "\"," + Environment.NewLine;
@@ -492,7 +557,13 @@ namespace Hops
                         if (HopsAppSettings.HTTPTimeout > 0)
                             client2.Timeout = TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout);
                         postTask = client.PostAsync(solveUrl, content2);
+                        var fileNameMsg2 = String.Empty;
+                        if (!String.IsNullOrEmpty(inputSchema.FileName))
+                            fileNameMsg2 = $" with {inputSchema.FileName} input values";
+                        HopsLog.Log.Debug($"Sending POST request to {solveUrl}{fileNameMsg2}");
+                        var sw2 = Stopwatch.StartNew();
                         responseMessage = postTask.Result;
+                        HopsLog.Log.Debug($"Received response {responseMessage.StatusCode} in {sw2.ElapsedMilliseconds}ms");
                         remoteSolvedData = responseMessage.Content;
                         stringResult = remoteSolvedData.ReadAsStringAsync().Result;
                         _parentComponent.HTTPRecord.SolveResponse = stringResult;
@@ -500,7 +571,9 @@ namespace Hops
                         if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
                         {
                             var badSchema = new Schema();
-                            badSchema.Errors.Add("Unable to solve on compute");
+                            var errorMsg = "Unable to solve on compute";
+                            HopsLog.Log.Error(errorMsg);
+                            badSchema.Errors.Add(errorMsg);
                             _parentComponent.HTTPRecord.Schema = badSchema;
                             return badSchema;
                         }
@@ -510,7 +583,9 @@ namespace Hops
                         if (!fileExists && string.IsNullOrEmpty(inputSchema.Algo) && GetPathType() == PathType.GrasshopperDefinition)
                         {
                             var badSchema = new Schema();
-                            badSchema.Errors.Add($"Unable to find file: {Path}");
+                            var errorMsg = $"Unable to find file: {Path}";
+                            HopsLog.Log.Error(errorMsg);
+                            badSchema.Errors.Add(errorMsg);
                             _parentComponent.HTTPRecord.Schema = badSchema;
                             return badSchema;
                         }
@@ -520,7 +595,9 @@ namespace Hops
                 if (responseMessage.StatusCode == System.Net.HttpStatusCode.RequestTimeout)
                 {
                     var badSchema = new Schema();
-                    badSchema.Errors.Add($"Request timeout: {Path}");
+                    var errorMsg = $"Request timeout: {Path}";
+                    HopsLog.Log.Error(errorMsg);
+                    badSchema.Errors.Add(errorMsg);
                     _parentComponent.HTTPRecord.Schema = badSchema;
                     return badSchema;
                 }
@@ -556,85 +633,89 @@ namespace Hops
 
         public void SetComponentOutputs(Schema schema, IGH_DataAccess DA, List<IGH_Param> outputParams, HopsComponent component)
         {
-            foreach (var datatree in schema.Values)
+            if(schema.Values.Count > 0)
             {
-                string outputParamName = datatree.ParamName;
-                if (outputParamName.StartsWith("RH_OUT:"))
+                HopsLog.Log.Debug($"Setting output values...");
+                foreach (var datatree in schema.Values)
                 {
-                    var chunks = outputParamName.Split(new char[] { ':' });
-                    outputParamName = chunks[chunks.Length - 1];
-                }
-                int paramIndex = 0;
-                for (int i = 0; i < outputParams.Count; i++)
-                {
-                    if (outputParams[i].Name.Equals(outputParamName))
+                    string outputParamName = datatree.ParamName;
+                    if (outputParamName.StartsWith("RH_OUT:"))
                     {
-                        paramIndex = i;
-                        break;
+                        var chunks = outputParamName.Split(new char[] { ':' });
+                        outputParamName = chunks[chunks.Length - 1];
                     }
-                }
-
-                var structure = new Grasshopper.Kernel.Data.GH_Structure<Grasshopper.Kernel.Types.IGH_Goo>();
-                Grasshopper.Kernel.Types.IGH_Goo goo = null;
-
-                //Determine if the data coming into any of the inputs is a Data Tree
-                bool hasDataTreeAsInput = false;
-                foreach(var param in component.Params.Input)
-                {
-                    if(param.VolatileData.PathCount > 1)
+                    int paramIndex = 0;
+                    for (int i = 0; i < outputParams.Count; i++)
                     {
-                        hasDataTreeAsInput = true;
-                        break;
-                    }
-                }
-
-                foreach (var kv in datatree.InnerTree)
-                {
-                    var tokens = kv.Key.Trim(new char[] { '{', '}' }).Split(';');
-                    List<int> elements = new List<int>();
-                    if (datatree.InnerTree.Count == 1 && !hasDataTreeAsInput)
-                    {
-                        for (int i = 0; i < tokens.Length; i++)
+                        if (outputParams[i].Name.Equals(outputParamName))
                         {
-                            if (i < tokens.Length - 1)
+                            paramIndex = i;
+                            break;
+                        }
+                    }
+
+                    var structure = new Grasshopper.Kernel.Data.GH_Structure<Grasshopper.Kernel.Types.IGH_Goo>();
+                    Grasshopper.Kernel.Types.IGH_Goo goo = null;
+
+                    //Determine if the data coming into any of the inputs is a Data Tree
+                    bool hasDataTreeAsInput = false;
+                    foreach (var param in component.Params.Input)
+                    {
+                        if (param.VolatileData.PathCount > 1)
+                        {
+                            hasDataTreeAsInput = true;
+                            break;
+                        }
+                    }
+
+                    foreach (var kv in datatree.InnerTree)
+                    {
+                        var tokens = kv.Key.Trim(new char[] { '{', '}' }).Split(';');
+                        List<int> elements = new List<int>();
+                        if (datatree.InnerTree.Count == 1 && !hasDataTreeAsInput)
+                        {
+                            for (int i = 0; i < tokens.Length; i++)
                             {
-                                if (!string.IsNullOrWhiteSpace(tokens[i]))
-                                    elements.Add(int.Parse(tokens[i]));
+                                if (i < tokens.Length - 1)
+                                {
+                                    if (!string.IsNullOrWhiteSpace(tokens[i]))
+                                        elements.Add(int.Parse(tokens[i]));
+                                }
+                                else
+                                    elements.Add(DA.Iteration);
                             }
-                            else
-                                elements.Add(DA.Iteration);
                         }
-                    }
-                    else
-                    {
-                        foreach (var token in tokens)
+                        else
                         {
-                            if (!string.IsNullOrWhiteSpace(token))
-                                elements.Add(int.Parse(token));
+                            foreach (var token in tokens)
+                            {
+                                if (!string.IsNullOrWhiteSpace(token))
+                                    elements.Add(int.Parse(token));
+                            }
+                        }
+
+                        var path = new Grasshopper.Kernel.Data.GH_Path(elements.ToArray());
+                        var localBranch = structure.EnsurePath(path);
+                        for (int gooIndex = 0; gooIndex < kv.Value.Count; gooIndex++)
+                        {
+                            goo = GooFromResthopperObject(kv.Value[gooIndex]);
+                            localBranch.Add(goo);
                         }
                     }
-
-                    var path = new Grasshopper.Kernel.Data.GH_Path(elements.ToArray());
-                    var localBranch = structure.EnsurePath(path);
-                    for (int gooIndex = 0; gooIndex < kv.Value.Count; gooIndex++)
-                    {
-                        goo = GooFromResthopperObject(kv.Value[gooIndex]);
-                        localBranch.Add(goo);
-                    }
+                    if (structure.DataCount == 1)
+                        DA.SetData(paramIndex, goo);
+                    else
+                        DA.SetDataTree(paramIndex, structure);
                 }
-                if (structure.DataCount == 1)
-                    DA.SetData(paramIndex, goo);
-                else
-                    DA.SetDataTree(paramIndex, structure);
             }
-
+            
             foreach (var error in schema.Errors)
             {
-                component.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
+                component.HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
             }
             foreach (var warning in schema.Warnings)
             {
-                component.AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
+                component.HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
             }
         }
 
@@ -817,7 +898,7 @@ namespace Hops
                 }
             }
 
-            throw new Exception("unable to convert resthopper data");
+            throw new Exception("Unable to convert resthopper data");
         }
 
         static List<IGH_Param> _params;
@@ -1184,18 +1265,22 @@ namespace Hops
             schema.AbsoluteTolerance = GetDocumentTolerance();
             schema.AngleTolerance = GetDocumentAngleTolerance();
             schema.ModelUnits = GetDocumentUnits();
-
+            schema.FileName = _filename;
             schema.CacheSolve = cacheSolveOnServer;
             var inputs = GetInputParams();
             if (inputs != null)
             {
+                var msg = String.Empty;
+                if (!String.IsNullOrEmpty(schema.FileName))
+                    msg = $" for {schema.FileName}";
+                HopsLog.Log.Debug($"Collecting input values{msg}...");
+
                 foreach (var kv in inputs)
                 {
                     var (input, param) = kv.Value;
                     string inputName = kv.Key;
                     string computeName = input.Name;
-                    GH_ParamAccess access = AccessFromInput(input);
-                    
+                    GH_ParamAccess access = AccessFromInput(input);                
                     var dataTree = new DataTree<Resthopper.IO.ResthopperObject>();
                     dataTree.ParamName = computeName;
                     schema.Values.Add(dataTree);
@@ -1314,9 +1399,17 @@ namespace Hops
                     if (access == GH_ParamAccess.list)
                     {
                         if (inputListCount < input.AtLeast)
-                            warnings.Add($"{input.Name} requires at least {input.AtLeast} items");
+                        {
+                            var atLeastMsg = $"{input.Name} requires at least {input.AtLeast} items";
+                            HopsLog.Log.Warning(atLeastMsg);
+                            warnings.Add(atLeastMsg);
+                        }   
                         if (inputListCount > input.AtMost)
-                            warnings.Add($"{input.Name} requires at most {input.AtMost} items");
+                        {
+                            var atMostMsg = $"{input.Name} requires at most {input.AtMost} items";
+                            HopsLog.Log.Warning(atMostMsg);
+                            warnings.Add(atMostMsg);
+                        }
                     }
                 }
             }
@@ -1345,7 +1438,7 @@ namespace Hops
             // we are only interested in caching definitions which reference
             // gh/ghx files so we can use file watchers to make sure everything
             // is in sync
-            if (definition.Path.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            if (RemoteDefinition.IsWebUrl(definition.Path))
                 return;
             if (!File.Exists(definition.Path))
                 return;
@@ -1432,7 +1525,5 @@ namespace Hops
 
             }
         }
-
-
     }
 }

@@ -1039,7 +1039,7 @@ namespace compute.geometry
                     foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Warning))
                     {
                         string warningMsg = $"{msg}: component \"{obj.Name}\" ({obj.InstanceGuid})";
-                        LogDebug(warningMsg);
+                        Log.Warning(warningMsg);
                         schema.Warnings.Add(warningMsg);
                     }
                     foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Remark))

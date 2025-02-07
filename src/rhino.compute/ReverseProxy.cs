@@ -21,8 +21,8 @@ namespace rhino.compute
                 return;
             _initCalled = true;
 
-            Log.Information($"Initiliazing reverse proxy at {DateTime.Now.ToLocalTime()}");
-            Log.Information($"Spawn children at startup is set to {ComputeChildren.SpawnOnStartup}");
+            Log.Debug($"Initiliazing reverse proxy at {DateTime.Now.ToLocalTime()}");
+            Log.Debug($"Spawn children at startup is set to {ComputeChildren.SpawnOnStartup}");
 
             _client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
             _client.DefaultRequestHeaders.Add("User-Agent", $"compute.rhino3d-proxy/1.0.0");
