@@ -1137,6 +1137,17 @@ for value in values:
                         string inputDescription = name;
                         if (!string.IsNullOrWhiteSpace(input.Description))
                             inputDescription = input.Description;
+
+                        if (input.Minimum != null)
+                        {
+                            inputDescription += $"\n Minimum: {input.Minimum}";
+                        }
+
+                        if (input.Maximum != null)
+                        {
+                            inputDescription += $"\n Maximum: {input.Maximum}";
+                        }
+
                         string nickname = name;
                         if (!string.IsNullOrWhiteSpace(input.Nickname))
                             nickname = input.Nickname;

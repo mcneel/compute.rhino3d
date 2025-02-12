@@ -980,15 +980,17 @@ namespace Hops
             {
                 try
                 {
-                    if (Convert.ToDouble(item) < Convert.ToDouble(schema.Minimum))
+                    double schemaMinimum = Convert.ToDouble(schema.Minimum);
+                    if (Convert.ToDouble(item) < schemaMinimum)
                     {
-                        errors.Add(String.Format("{0} value must be greater than the specified minimum value of the parameter", name));
+                        errors.Add($"{name} value must be greater than the specified minimum value ({schemaMinimum}) of the parameter");
                         return false;
                     }
                 }
-                catch (Exception ex) { 
-                    errors.Add(ex.ToString()); 
-                    return false; 
+                catch (Exception ex)
+                {
+                    errors.Add(ex.ToString());
+                    return false;
                 }
 
             }
@@ -996,15 +998,17 @@ namespace Hops
             {
                 try
                 {
-                    if (Convert.ToDouble(item) > Convert.ToDouble(schema.Maximum))
+                    double schemaMaximum = Convert.ToDouble(schema.Maximum);
+                    if (Convert.ToDouble(item) > schemaMaximum)
                     {
-                        errors.Add(String.Format("{0} value must be smaller than the specified maximum value of the parameter", name));
+                        errors.Add($"{name} value must be smaller than the specified maximum value ({schemaMaximum}) of the parameter");
                         return false;
                     }
                 }
-                catch (Exception ex) { 
-                    errors.Add(ex.ToString()); 
-                    return false; 
+                catch (Exception ex)
+                {
+                    errors.Add(ex.ToString());
+                    return false;
                 }
             }
             return true;
