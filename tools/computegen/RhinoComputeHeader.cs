@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
 using Rhino.Collections;
 using System.Runtime.Serialization;
+using System.Threading.Tasks;
 
 namespace Rhino.Compute
 {
@@ -24,9 +25,6 @@ namespace Rhino.Compute
 
         public static T PostWithConverter<T>(string function, JsonConverter converter, params object[] postData)
         {
-            if (string.IsNullOrWhiteSpace(AuthToken) && WebAddress.Equals("https://compute.rhino3d.com"))
-                throw new UnauthorizedAccessException("AuthToken must be set for compute.rhino3d.com");
-
             for( int i=0; i<postData.Length; i++ )
             {
                 if( postData[i]!=null &&
@@ -53,9 +51,6 @@ namespace Rhino.Compute
 
         public static T0 Post<T0, T1>(string function, out T1 out1, params object[] postData)
         {
-            if (string.IsNullOrWhiteSpace(AuthToken) && WebAddress.Equals("https://compute.rhino3d.com"))
-                throw new UnauthorizedAccessException("AuthToken must be set for compute.rhino3d.com");
-
             string json = Newtonsoft.Json.JsonConvert.SerializeObject(postData);
             var response = DoPost(function, json);
             using (var streamReader = new StreamReader(response.GetResponseStream()))
@@ -70,9 +65,6 @@ namespace Rhino.Compute
 
         public static T0 Post<T0, T1, T2>(string function, out T1 out1, out T2 out2, params object[] postData)
         {
-            if (string.IsNullOrWhiteSpace(AuthToken) && WebAddress.Equals("https://compute.rhino3d.com"))
-                throw new UnauthorizedAccessException("AuthToken must be set for compute.rhino3d.com");
-
             string json = Newtonsoft.Json.JsonConvert.SerializeObject(postData);
             var response = DoPost(function, json);
             using (var streamReader = new StreamReader(response.GetResponseStream()))
@@ -86,10 +78,9 @@ namespace Rhino.Compute
             }
         }
 
-        // run all requests through here
+        // run all synchronous requests through here
         private static System.Net.WebResponse DoPost(string function, string json)
         {
-
             if (!function.StartsWith("/")) // add leading /
                 function = "/" + function; // if not present
 
@@ -114,6 +105,87 @@ namespace Rhino.Compute
             }
 
             return request.GetResponse();
+        }
+
+        public static async Task<T> PostAsync<T>(string function, params object[] postData)
+        {
+            return await PostAsyncWithConverter<T>(function, null, postData);
+        }
+
+        public static async Task<T> PostAsyncWithConverter<T>(string function, JsonConverter converter, params object[] postData)
+        {
+            for (int i = 0; i < postData.Length; i++)
+            {
+                if (postData[i] != null &&
+                    postData[i].GetType().IsGenericType &&
+                    postData[i].GetType().GetGenericTypeDefinition() == typeof(Remote<>))
+                {
+                    var mi = postData[i].GetType().GetMethod("JsonObject");
+                    postData[i] = mi.Invoke(postData[i], null);
+                }
+            }
+
+            string json = converter == null ?
+                JsonConvert.SerializeObject(postData, Formatting.None) :
+                JsonConvert.SerializeObject(postData, Formatting.None, converter);
+
+            var response = await DoPostAsync(function, json);
+            var result = await response.Content.ReadAsStringAsync();
+            if (converter == null)
+                return JsonConvert.DeserializeObject<T>(result);
+            return JsonConvert.DeserializeObject<T>(result, converter);
+        }
+
+        public static async Task<(T0, T1)> PostAsync<T0, T1>(string function, params object[] postData)
+        {
+            string json = Newtonsoft.Json.JsonConvert.SerializeObject(postData);
+            var response = await DoPostAsync(function, json);
+            var jsonString = await response.Content.ReadAsStringAsync();
+            object data = Newtonsoft.Json.JsonConvert.DeserializeObject(jsonString);
+            var ja = data as Newtonsoft.Json.Linq.JArray;
+            T0 out0 = ja[0].ToObject<T0>();
+            T1 out1 = ja[1].ToObject<T1>();
+            return (out0, out1);
+        }
+
+        public static async Task<(T0, T1, T2)> PostAsync<T0, T1, T2>(string function, params object[] postData)
+        {
+            string json = Newtonsoft.Json.JsonConvert.SerializeObject(postData);
+            var response = await DoPostAsync(function, json);
+            var jsonString = await response.Content.ReadAsStringAsync();
+            object data = Newtonsoft.Json.JsonConvert.DeserializeObject(jsonString);
+            var ja = data as Newtonsoft.Json.Linq.JArray;
+            T0 out0 = ja[0].ToObject<T0>();
+            T1 out1 = ja[1].ToObject<T1>();
+            T2 out2 = ja[2].ToObject<T2>();
+            return (out0, out1, out2);
+        }
+
+        // run all asynchronous requests through here
+        private static async Task<System.Net.Http.HttpResponseMessage> DoPostAsync(string function, string json)
+        {
+            if (!function.StartsWith("/")) // add leading /
+              function = "/" + function; // if not present
+
+            string uri = $"{WebAddress}{function}".ToLower();
+            using (var client = new System.Net.Http.HttpClient())
+            {
+                client.DefaultRequestHeaders.Add("User-Agent", $"compute.rhino3d.cs/{Version}");
+                client.DefaultRequestHeaders
+                .Accept
+                .Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+
+                // try auth token (compute.rhino3d.com only)
+                if (!string.IsNullOrWhiteSpace(AuthToken))
+                    client.DefaultRequestHeaders.Add("Authorization", "Bearer " + AuthToken);
+
+                // try api key (self-hosted compute)
+                if (!string.IsNullOrWhiteSpace(ApiKey))
+                    client.DefaultRequestHeaders.Add("RhinoComputeKey", ApiKey);
+
+                var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
+                return await client.PostAsync(uri, content);
+            }
         }
 
         public static string ApiAddress(Type t, string function)
@@ -210,3 +282,4 @@ namespace Rhino.Compute
             return ComputeServer.PostWithConverter<ArchivableDictionary>(ApiAddress(), new ArchivableDictionaryResolver(), script, input);
         }
     }
+
