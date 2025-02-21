@@ -79,7 +79,7 @@ namespace rhino.compute
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/robots.txt", async (context) => await context.Response.WriteAsync("User-agent: *\nDisallow: / "));
-            app.MapGet("/idlespan", async (context) => await context.Response.WriteAsync($"{ComputeChildren.IdleSpan()}"));
+            app.MapGet("/idlespan", async (context) => { Serilog.Log.Debug($"Request received to /idlespan endpoint"); await context.Response.WriteAsync($"{ComputeChildren.IdleSpan()}"); });
             app.MapGet("/", async (context) => { InitializeChildren(); await context.Response.WriteAsync("compute.rhino3d"); });
             app.MapGet("/activechildren", async (context) => { InitializeChildren(); await context.Response.WriteAsync($"{ComputeChildren.ActiveComputeCount}"); });
             app.MapGet("/launch", LaunchChildren);

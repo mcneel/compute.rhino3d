@@ -194,6 +194,7 @@ namespace rhino.compute
             var rhinoProcess = Process.GetCurrentProcess();
             Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
             string commandLineArgs = $"-port:{port} -childof:{rhinoProcess.Id}";
+            Log.Information($"Starting compute.geometry instance on port {port}");
             if (!string.IsNullOrEmpty(RhinoSysDir))
             {
                 commandLineArgs += $" -rhinosysdir:\"{RhinoSysDir}\"";
