@@ -1140,12 +1140,12 @@ for value in values:
 
                         if (input.Minimum != null)
                         {
-                            inputDescription += $"\n Minimum: {input.Minimum}";
+                            inputDescription += $"\nMinimum: {input.Minimum}";
                         }
 
                         if (input.Maximum != null)
                         {
-                            inputDescription += $"\n Maximum: {input.Maximum}";
+                            inputDescription += $"\nMaximum: {input.Maximum}";
                         }
 
                         string nickname = name;
