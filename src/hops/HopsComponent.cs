@@ -21,6 +21,8 @@ using Grasshopper.Kernel.Expressions;
 using Serilog.Events;
 using Serilog.Templates;
 using Serilog;
+using System.Globalization;
+using System.Linq;
 
 namespace Hops
 {
@@ -1140,12 +1142,18 @@ for value in values:
 
                         if (input.Minimum != null)
                         {
-                            inputDescription += $"\nMinimum: {input.Minimum}";
+                            double min = Convert.ToDouble(input.Minimum);
+                            int digits = min.ToString(System.Globalization.CultureInfo.InvariantCulture).SkipWhile(c => c != '.').Skip(1).Count();
+                            string formatter = digits < 1 ? "N1" : "N" + digits.ToString();
+                            inputDescription += $"\nMinimum: {min.ToString(formatter, System.Globalization.CultureInfo.InvariantCulture)}";
                         }
 
                         if (input.Maximum != null)
                         {
-                            inputDescription += $"\nMaximum: {input.Maximum}";
+                            double max = Convert.ToDouble(input.Maximum);
+                            int digits = max.ToString(System.Globalization.CultureInfo.InvariantCulture).SkipWhile(c => c != '.').Skip(1).Count();
+                            string formatter = digits < 1 ? "N1" : "N" + digits.ToString();
+                            inputDescription += $"\nMaximum: {max.ToString(formatter, System.Globalization.CultureInfo.InvariantCulture)}";
                         }
 
                         string nickname = name;
