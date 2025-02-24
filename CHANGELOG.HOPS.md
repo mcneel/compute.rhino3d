@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.22] - 2025-02-24
+
+### Added
+
+- The Hops component will now display the Minimum and Maximum values on the input parameter tooltip. In addition, the error message that is displayed if a user exceeds the Minimum or Maximum bounds will also indicate what the numeric bounds are for further clarification.
+
 ## [0.16.21] - 2025-02-21
 
 ### Added
