@@ -10,6 +10,7 @@ using System.IO;
 using System.Reflection;
 using System.Net.Http;
 using System.Diagnostics;
+using System.Linq;
 
 namespace Hops
 {
@@ -980,10 +981,12 @@ namespace Hops
             {
                 try
                 {
-                    double schemaMinimum = Convert.ToDouble(schema.Minimum);
-                    if (Convert.ToDouble(item) < schemaMinimum)
+                    double min = Convert.ToDouble(schema.Minimum);
+                    int digits = min.ToString(System.Globalization.CultureInfo.InvariantCulture).SkipWhile(c => c != '.').Skip(1).Count();
+                    string formatter = digits < 1 ? "N1" : "N" + digits.ToString();
+                    if (Convert.ToDouble(item) < min)
                     {
-                        errors.Add($"{name} value must be greater than the specified minimum value ({schemaMinimum}) of the parameter");
+                        errors.Add($"{name} value must be greater than the specified minimum value ({min.ToString(formatter, System.Globalization.CultureInfo.InvariantCulture)}) of the parameter");
                         return false;
                     }
                 }
@@ -998,10 +1001,12 @@ namespace Hops
             {
                 try
                 {
-                    double schemaMaximum = Convert.ToDouble(schema.Maximum);
-                    if (Convert.ToDouble(item) > schemaMaximum)
+                    double max = Convert.ToDouble(schema.Maximum);
+                    int digits = max.ToString(System.Globalization.CultureInfo.InvariantCulture).SkipWhile(c => c != '.').Skip(1).Count();
+                    string formatter = digits < 1 ? "N1" : "N" + digits.ToString();
+                    if (Convert.ToDouble(item) > max)
                     {
-                        errors.Add($"{name} value must be smaller than the specified maximum value ({schemaMaximum}) of the parameter");
+                        errors.Add($"{name} value must be smaller than the specified maximum value ({max.ToString(formatter, System.Globalization.CultureInfo.InvariantCulture)}) of the parameter");
                         return false;
                     }
                 }
