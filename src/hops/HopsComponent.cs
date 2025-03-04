@@ -21,7 +21,6 @@ using Grasshopper.Kernel.Expressions;
 using Serilog.Events;
 using Serilog.Templates;
 using Serilog;
-using System.Globalization;
 using System.Linq;
 
 namespace Hops
@@ -33,13 +32,14 @@ namespace Hops
         {
             Config.Load();
 
-            var path = System.IO.Path.Combine(Config.LogPath, $"log-hops-inside-{System.Diagnostics.Process.GetCurrentProcess().ProcessName}-.txt");
+            var date = System.DateTime.Now;
+            var path = System.IO.Path.Combine(Config.LogPath, $"log-hops-inside-{System.Diagnostics.Process.GetCurrentProcess().ProcessName}-{date:yyyyMMdd}.txt");
             var limit = Config.LogRetainDays;
             var level = Config.Debug ? LogEventLevel.Debug : LogEventLevel.Information;
 
             var loggerConfig = new LoggerConfiguration()
             .MinimumLevel.Is(level)
-            .WriteTo.File(new ExpressionTemplate("HC   [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
+            .WriteTo.File(new ExpressionTemplate("HC   [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path);
             Log = loggerConfig.CreateLogger();
 
             Log.Information($"Hops logging started at {DateTime.Now.ToLocalTime()}");
