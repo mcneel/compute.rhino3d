@@ -75,6 +75,7 @@ namespace compute.geometry
             if (string.IsNullOrWhiteSpace(url))
                 return null;
             GrasshopperDefinition rc = DataCache.GetCachedDefinition(url);
+            string fileName = null;
 
             if (rc != null)
             {
@@ -92,19 +93,22 @@ namespace compute.geometry
                 if (archive == null)
                     return null;
 
+                Uri uri = new Uri(url);
+                fileName = uri.Segments[uri.Segments.Length - 1];
+
                 rc = Construct(archive);
                 rc.CacheKey = url;
                 rc.IsLocalFileDefinition = !url.StartsWith("http", StringComparison.OrdinalIgnoreCase) && File.Exists(url);
             }
             if (cache)
             {
-                DataCache.SetCachedDefinition(url, rc, null);
+                DataCache.SetCachedDefinition(url, rc, null, fileName);
                 rc.InDataCache = true;
             }
             return rc;
         }
 
-        public static GrasshopperDefinition FromBase64String(string data, bool cache)
+        public static GrasshopperDefinition FromBase64String(string data, bool cache, string fileName = null)
         {
             var archive = ArchiveFromBase64String(data);
             if (archive == null)
@@ -116,7 +120,7 @@ namespace compute.geometry
                 rc.CacheKey = DataCache.CreateCacheKey(data);
                 if (cache)
                 {
-                    DataCache.SetCachedDefinition(rc.CacheKey, rc, data);
+                    DataCache.SetCachedDefinition(rc.CacheKey, rc, data, fileName);
                     rc.InDataCache = true;
                 }
             }

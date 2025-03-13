@@ -80,7 +80,7 @@ namespace compute.geometry
             GrasshopperDefinition definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
             if (definition == null && !string.IsNullOrWhiteSpace(input.Algo))
             {
-                definition = GrasshopperDefinition.FromBase64String(input.Algo, true);
+                definition = GrasshopperDefinition.FromBase64String(input.Algo, true, input.FileName);
             }
             if (definition == null)
             {
@@ -223,7 +223,7 @@ namespace compute.geometry
                 definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
                 if (definition == null)
                 {
-                    definition = GrasshopperDefinition.FromBase64String(input.Algo, true);
+                    definition = GrasshopperDefinition.FromBase64String(input.Algo, true, input.FileName);
                 }
             }
             else
@@ -313,7 +313,7 @@ namespace compute.geometry
             JArray data = new JArray();
             foreach (var key in keys)
             {
-                data.Add(new JObject(new JProperty("key", key)));
+                data.Add(key);
             }
             ctx.Response.ContentType = "application /json";
             await ctx.Response.WriteAsync(data.ToString());
@@ -328,9 +328,10 @@ namespace compute.geometry
             {
                 var definition = DataCache.GetCachedDefinition(key);
                 var algo = GrasshopperDefinition.ToBase64String(definition);
+                var fileName = DataCache.GetCachedDefinitionFileName(key);
                 if (!string.IsNullOrWhiteSpace(algo))
                 {
-                    JObject obj = new JObject(new JProperty("key", key), new JProperty("definition", algo));
+                    JObject obj = new JObject(new JProperty("key", key), new JProperty("filename", fileName), new JProperty("definition", algo));
                     data.Add(obj);
                     //convert algo back into a definition as a test
                     //var archive = GrasshopperDefinition.ArchiveFromBase64String(algo);

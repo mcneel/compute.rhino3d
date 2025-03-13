@@ -13,6 +13,7 @@ namespace compute.geometry
         {
             public GrasshopperDefinition Definition{ get; set;}
             public uint WatchedFileRuntimeSerialNumber { get; set; }
+            public string FileName { get; set; }
         }
 
         class CachedResults
@@ -105,6 +106,16 @@ namespace compute.geometry
             return null;
         }
 
+        public static string GetCachedDefinitionFileName(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                return null;
+            var def = System.Runtime.Caching.MemoryCache.Default.Get(key) as CachedDefinition;
+            if (def == null)
+                return null;
+            return def.FileName;
+        }
+
         public static GrasshopperDefinition GetCachedDefinition(string key)
         {
             if (string.IsNullOrWhiteSpace(key))
@@ -139,31 +150,32 @@ namespace compute.geometry
             return def.Definition;
         }
 
-        public static void SetCachedDefinition(string key, GrasshopperDefinition definition, string data)
+        public static void SetCachedDefinition(string key, GrasshopperDefinition definition, string data, string fileName)
         {
             CachedDefinition cachedef = new CachedDefinition
             {
                 Definition = definition,
-                WatchedFileRuntimeSerialNumber = GrasshopperDefinition.WatchedFileRuntimeSerialNumber
+                WatchedFileRuntimeSerialNumber = GrasshopperDefinition.WatchedFileRuntimeSerialNumber,
+                FileName = fileName
             };
             System.Runtime.Caching.MemoryCache.Default.Set(key, cachedef, CachePolicy);
 
             if (!string.IsNullOrWhiteSpace(data))
             {
-                string filename = DefinitionCacheFileName(key);
-                if (filename != null && !System.IO.File.Exists(filename))
+                string cacheName = DefinitionCacheFileName(key);
+                if (cacheName != null && !System.IO.File.Exists(cacheName))
                 {
                     try
                     {
                         if (!System.IO.Directory.Exists(DefinitionCacheDirectory))
                             System.IO.Directory.CreateDirectory(DefinitionCacheDirectory);
 
-                        System.IO.File.WriteAllText(filename, data);
+                        System.IO.File.WriteAllText(cacheName, data);
                         System.Threading.Tasks.Task.Run(() => DataCache.CGCacheDirectory());
                     }
                     catch(Exception ex)
                     {
-                        Log.Error($"Unable to write cache file: {filename}");
+                        Log.Error($"Unable to write cache file: {cacheName}");
                         Log.Error(ex, "File error exception");
                     }
                 }
