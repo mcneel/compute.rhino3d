@@ -123,6 +123,16 @@ namespace compute.geometry
             return rc;
         }
 
+        public static string ToBase64String(GrasshopperDefinition definition)
+        {
+            var archive = GrasshopperDefinition.ArchiveFromDefinition(definition.Definition);
+            if (archive is object)
+            {
+                return ArchiveToBase64String(archive);
+            }
+            return string.Empty;
+        }
+
         private static GrasshopperDefinition Construct(Guid componentId)
         {
             var component = Grasshopper.Instances.ComponentServer.EmitObject(componentId) as GH_Component;
@@ -1191,6 +1201,24 @@ namespace compute.geometry
                     return xmlArchive;
             }
             return null;
+        }
+
+        public static GH_Archive ArchiveFromDefinition(GH_Document doc)
+        {
+            var archive = new GH_Archive();
+            if (archive.AppendObject(doc, "Definition"))
+            {
+              return archive;
+            }
+            return null;
+        }
+
+        public static string ArchiveToBase64String(GH_Archive archive)
+        {
+            if (archive == null)
+                return null;
+            byte[] byteArray = archive.Serialize_Binary();
+            return Convert.ToBase64String(byteArray);
         }
 
         public static GH_Archive ArchiveFromBase64String(string blob)

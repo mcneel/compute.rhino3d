@@ -16,6 +16,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Rhino.Geometry;
 using Rhino;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Tab;
+using System.Web.Services.Description;
+using Newtonsoft.Json.Linq;
 
 namespace compute.geometry
 {
@@ -26,6 +29,9 @@ namespace compute.geometry
             app.MapPost("/grasshopper", Grasshopper);
             app.MapPost("/io", PostIoNames);
             app.MapGet("/io", GetIoNames);
+            app.MapGet("/getAllCachedKeys", GetAllCachedKeys);
+            app.MapGet("/getAllCachedDefinitions", GetAllCachedDefinitions);
+            app.MapGet("/getAllCachedResults", GetAllCachedResults);
         }
 
         static void SetDefaultTolerances(double absoluteTolerance, double angleToleranceDegrees)
@@ -299,7 +305,57 @@ namespace compute.geometry
                 }
 
             }
+        }
 
+        async Task GetAllCachedKeys(HttpContext ctx)
+        {
+            var keys = DataCache.GetAllCacheKeys();
+            JArray data = new JArray();
+            foreach (var key in keys)
+            {
+                data.Add(new JObject(new JProperty("key", key)));
+            }
+            ctx.Response.ContentType = "application /json";
+            await ctx.Response.WriteAsync(data.ToString());
+            return;
+        }
+
+        async Task GetAllCachedDefinitions(HttpContext ctx)
+        {
+            var keys = DataCache.GetAllCacheKeys();
+            JArray data = new JArray();
+            foreach (var key in keys)
+            {
+                var definition = DataCache.GetCachedDefinition(key);
+                var algo = GrasshopperDefinition.ToBase64String(definition);
+                if (!string.IsNullOrWhiteSpace(algo))
+                {
+                    JObject obj = new JObject(new JProperty("key", key), new JProperty("definition", algo));
+                    data.Add(obj);
+                    //convert algo back into a definition as a test
+                    //var archive = GrasshopperDefinition.ArchiveFromBase64String(algo);
+                    //archive.WriteToFile(@"C:\Users\andyo\Desktop\test.gh", true, false);
+                }
+            }
+            ctx.Response.ContentType = "application /json";
+            await ctx.Response.WriteAsync(data.ToString());
+            return;
+        }
+
+        async Task GetAllCachedResults(HttpContext ctx)
+        {
+            var keys = DataCache.GetAllCachedResultsKeys();
+            JArray data = new JArray();
+            foreach (var key in keys)
+            {
+                var results = DataCache.GetCachedSolveResults(key);
+                JObject obj = new JObject(new JProperty("inputs", key), new JProperty("results", results));
+                data.Add(obj);
+              
+            }
+            ctx.Response.ContentType = "application /json";
+            await ctx.Response.WriteAsync(data.ToString());
+            return;
         }
 
         // strip bom from string -- [239, 187, 191] in byte array == (char)65279

@@ -170,6 +170,29 @@ namespace compute.geometry
             }
         }
 
+        public static List<string> GetAllCacheKeys()
+        {
+            var keys = new List<string>();
+            foreach (var item in System.Runtime.Caching.MemoryCache.Default)
+            {
+                if (!LooksLikeACacheKey(item.Key)) continue;
+                keys.Add(item.Key);
+            }
+            return keys;
+        }
+
+        public static List<string> GetAllCachedResultsKeys()
+        {
+            var keys = new List<string>();
+            foreach (var item in System.Runtime.Caching.MemoryCache.Default)
+            {
+                if (LooksLikeACacheKey(item.Key))
+                    continue;
+                keys.Add(item.Key);
+            }
+            return keys;
+        }
+
         public static string GetCachedSolveResults(string key)
         {
             if (string.IsNullOrWhiteSpace(key))
