@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using GH_IO.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Serilog;
@@ -14,6 +13,8 @@ namespace compute.geometry
             public GrasshopperDefinition Definition{ get; set;}
             public uint WatchedFileRuntimeSerialNumber { get; set; }
             public string FileName { get; set; }
+            public string[] Inputs { get; set; }
+            public string[] Outputs { get; set; }
         }
 
         class CachedResults
@@ -116,6 +117,26 @@ namespace compute.geometry
             return def.FileName;
         }
 
+        public static string[] GetCachedDefinitionInputs(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                return null;
+            var def = System.Runtime.Caching.MemoryCache.Default.Get(key) as CachedDefinition;
+            if (def == null)
+                return null;
+            return def.Inputs;
+        }
+
+        public static string[] GetCachedDefinitionOutputs(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                return null;
+            var def = System.Runtime.Caching.MemoryCache.Default.Get(key) as CachedDefinition;
+            if (def == null)
+                return null;
+            return def.Outputs;
+        }
+
         public static GrasshopperDefinition GetCachedDefinition(string key)
         {
             if (string.IsNullOrWhiteSpace(key))
@@ -148,6 +169,17 @@ namespace compute.geometry
                 }
             }
             return def.Definition;
+        }
+
+        public static void SetCachedDefinitionInputsAndOutputs(string key, string[] inputs, string[] outputs)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                return;
+            var def = System.Runtime.Caching.MemoryCache.Default.Get(key) as CachedDefinition;
+            if (def == null)
+                return;
+            def.Inputs = inputs;
+            def.Outputs = outputs;
         }
 
         public static void SetCachedDefinition(string key, GrasshopperDefinition definition, string data, string fileName)

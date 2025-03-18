@@ -1,24 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using GH_IO.Serialization;
 using Grasshopper.Kernel;
 using Grasshopper.Kernel.Types;
 using Newtonsoft.Json;
 using Grasshopper.Kernel.Data;
 using Resthopper.IO;
-using System.Net;
 using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Carter;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
-using Rhino.Geometry;
 using Rhino;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Tab;
-using System.Web.Services.Description;
 using Newtonsoft.Json.Linq;
+using System.Linq;
 
 namespace compute.geometry
 {
@@ -29,9 +25,11 @@ namespace compute.geometry
             app.MapPost("/grasshopper", Grasshopper);
             app.MapPost("/io", PostIoNames);
             app.MapGet("/io", GetIoNames);
-            app.MapGet("/getAllCachedKeys", GetAllCachedKeys);
-            app.MapGet("/getAllCachedDefinitions", GetAllCachedDefinitions);
-            app.MapGet("/getAllCachedResults", GetAllCachedResults);
+            app.MapGet("/getCachedKeys", GetCachedKeys);
+            app.MapGet("/getCachedResults", GetCachedResults);
+            app.MapGet("/getCachedInputs/{CacheKey?}", GetCachedInputsWithKey);
+            app.MapGet("/getCachedOutputs/{CacheKey?}", GetCachedOutputsWithKey);
+            app.MapGet("/getCachedDefinitions/{CacheKey?}", GetCachedDefinitionsWithKey);
         }
 
         static void SetDefaultTolerances(double absoluteTolerance, double angleToleranceDegrees)
@@ -239,7 +237,7 @@ namespace compute.geometry
             }
                 
             var responseSchema = definition.GetInputsAndOutputs();
-
+            
             var inputSuffix = String.Empty;
             var outputSuffix = String.Empty;
             var fileNameMsg = String.Empty;
@@ -254,6 +252,12 @@ namespace compute.geometry
             responseSchema.CacheKey = definition.CacheKey;
             responseSchema.Icon = definition.GetIconAsString();
             responseSchema.FileName = fileName;
+
+            var inputParams = responseSchema.Inputs.Select(input => JsonConvert.SerializeObject(input)).ToArray();
+            var outputParams = responseSchema.Outputs.Select(output => JsonConvert.SerializeObject(output)).ToArray();
+
+            DataCache.SetCachedDefinitionInputsAndOutputs(definition.CacheKey, inputParams, outputParams);
+
             foreach (var error in definition.ErrorMessages)
             {
                 responseSchema.Errors.Add(error);
@@ -270,6 +274,8 @@ namespace compute.geometry
             ctx.Response.ContentType = "application/json";
             await ctx.Response.WriteAsync(jsonResponse);
         }
+
+
 
         public static ResthopperObject GetResthopperPoint(GH_Point goo, int rhinoVersion)
         {
@@ -307,7 +313,7 @@ namespace compute.geometry
             }
         }
 
-        async Task GetAllCachedKeys(HttpContext ctx)
+        async Task GetCachedKeys(HttpContext ctx)
         {
             var keys = DataCache.GetAllCacheKeys();
             JArray data = new JArray();
@@ -320,53 +326,110 @@ namespace compute.geometry
             return;
         }
 
-        async Task GetAllCachedDefinitions(HttpContext ctx)
+        async Task GetCachedDefinitionsWithKey(HttpContext ctx)
         {
-            var keys = DataCache.GetAllCacheKeys();
+            List<string> keys = new List<string>();
+            var k = ctx.Request.Query["CacheKey"].ToString();
+            if (!String.IsNullOrEmpty(k))
+            {
+                k = k.Trim(' ', '\t', '\n', '\v', '\f', '\r', '"', (char)39);
+                keys.Add(k);
+            }
+            else
+            {
+                keys = DataCache.GetAllCacheKeys();
+            }
+
             JArray data = new JArray();
             foreach (var key in keys)
             {
                 var definition = DataCache.GetCachedDefinition(key);
                 var algo = GrasshopperDefinition.ToBase64String(definition);
                 var fileName = DataCache.GetCachedDefinitionFileName(key);
+                var inputs = DataCache.GetCachedDefinitionInputs(key);
+                var outputs = DataCache.GetCachedDefinitionOutputs(key);
                 if (!string.IsNullOrWhiteSpace(algo))
                 {
-                    JObject obj = new JObject(new JProperty("key", key), new JProperty("filename", fileName), new JProperty("definition", algo));
+                    JObject obj = new JObject(
+                        new JProperty("CacheKey", key),
+                        new JProperty("FileName", fileName),
+                        new JProperty("Algo", algo),
+                        new JProperty("Inputs", inputs),
+                        new JProperty("Outputs", outputs));
+
                     data.Add(obj);
-                    //convert algo back into a definition as a test
-                    //var archive = GrasshopperDefinition.ArchiveFromBase64String(algo);
-                    //archive.WriteToFile(@"C:\Users\andyo\Desktop\test.gh", true, false);
                 }
             }
-            ctx.Response.ContentType = "application /json";
+            ctx.Response.ContentType = "application/json";
+            await ctx.Response.WriteAsync(data.ToString());
+            return;
+        }
+        async Task GetCachedInputsWithKey(HttpContext ctx)
+        {
+            List<string> keys = new List<string>();
+            var k = ctx.Request.Query["CacheKey"].ToString();
+            if (!String.IsNullOrEmpty(k))
+            {
+                k = k.Trim(' ', '\t', '\n', '\v', '\f', '\r', '"', (char)39);
+                keys.Add(k);
+            }
+            else
+            {
+                keys = DataCache.GetAllCacheKeys();
+            }
+
+            JArray data = new JArray();
+            foreach (var key in keys)
+            {
+                JObject obj = new JObject(
+                    new JProperty("Inputs", DataCache.GetCachedDefinitionInputs(key)));
+                data.Add(obj);   
+            }
+            ctx.Response.ContentType = "application/json";
             await ctx.Response.WriteAsync(data.ToString());
             return;
         }
 
-        async Task GetAllCachedResults(HttpContext ctx)
+        async Task GetCachedOutputsWithKey(HttpContext ctx)
+        {
+            List<string> keys = new List<string>();
+            var k = ctx.Request.Query["CacheKey"].ToString();
+            if (!String.IsNullOrEmpty(k))
+            {
+                k = k.Trim(' ', '\t', '\n', '\v', '\f', '\r', '"', (char)39);
+                keys.Add(k);
+            }
+            else
+            {
+                keys = DataCache.GetAllCacheKeys();
+            }
+
+            JArray data = new JArray();
+            foreach (var key in keys)
+            {
+                JObject obj = new JObject(
+                    new JProperty("Outputs", DataCache.GetCachedDefinitionOutputs(key)));
+                data.Add(obj);
+            }
+            ctx.Response.ContentType = "application/json";
+            await ctx.Response.WriteAsync(data.ToString());
+            return;
+        }
+
+        async Task GetCachedResults(HttpContext ctx)
         {
             var keys = DataCache.GetAllCachedResultsKeys();
             JArray data = new JArray();
             foreach (var key in keys)
             {
                 var results = DataCache.GetCachedSolveResults(key);
-                JObject obj = new JObject(new JProperty("inputs", key), new JProperty("results", results));
+                JObject obj = new JObject(new JProperty("Inputs", key), new JProperty("Results", results));
                 data.Add(obj);
-              
+
             }
             ctx.Response.ContentType = "application /json";
             await ctx.Response.WriteAsync(data.ToString());
             return;
-        }
-
-        // strip bom from string -- [239, 187, 191] in byte array == (char)65279
-        // https://stackoverflow.com/a/54894929/1902446
-        static string StripBom(string str)
-        {
-            if (!string.IsNullOrEmpty(str) && str[0] == (char)65279)
-                str = str.Substring(1);
-
-            return str;
         }
     }
 }
