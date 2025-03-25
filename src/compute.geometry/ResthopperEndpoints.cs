@@ -253,10 +253,7 @@ namespace compute.geometry
             responseSchema.Icon = definition.GetIconAsString();
             responseSchema.FileName = fileName;
 
-            var inputParams = responseSchema.Inputs.Select(input => JsonConvert.SerializeObject(input)).ToArray();
-            var outputParams = responseSchema.Outputs.Select(output => JsonConvert.SerializeObject(output)).ToArray();
-
-            DataCache.SetCachedDefinitionInputsAndOutputs(definition.CacheKey, inputParams, outputParams);
+            DataCache.SetCachedDefinitionInputsAndOutputs(definition.CacheKey, responseSchema.Inputs, responseSchema.Outputs);
 
             foreach (var error in definition.ErrorMessages)
             {
@@ -274,7 +271,6 @@ namespace compute.geometry
             ctx.Response.ContentType = "application/json";
             await ctx.Response.WriteAsync(jsonResponse);
         }
-
 
 
         public static ResthopperObject GetResthopperPoint(GH_Point goo, int rhinoVersion)
@@ -346,8 +342,8 @@ namespace compute.geometry
                 var definition = DataCache.GetCachedDefinition(key);
                 var algo = GrasshopperDefinition.ToBase64String(definition);
                 var fileName = DataCache.GetCachedDefinitionFileName(key);
-                var inputs = DataCache.GetCachedDefinitionInputs(key);
-                var outputs = DataCache.GetCachedDefinitionOutputs(key);
+                var inputs = JToken.Parse(JsonConvert.SerializeObject(DataCache.GetCachedDefinitionInputs(key)));
+                var outputs = JToken.Parse(JsonConvert.SerializeObject(DataCache.GetCachedDefinitionOutputs(key)));
                 if (!string.IsNullOrWhiteSpace(algo))
                 {
                     JObject obj = new JObject(
@@ -382,7 +378,7 @@ namespace compute.geometry
             foreach (var key in keys)
             {
                 JObject obj = new JObject(
-                    new JProperty("Inputs", DataCache.GetCachedDefinitionInputs(key)));
+                    new JProperty("Inputs", JToken.Parse(JsonConvert.SerializeObject(DataCache.GetCachedDefinitionInputs(key)))));
                 data.Add(obj);   
             }
             ctx.Response.ContentType = "application/json";
@@ -408,7 +404,7 @@ namespace compute.geometry
             foreach (var key in keys)
             {
                 JObject obj = new JObject(
-                    new JProperty("Outputs", DataCache.GetCachedDefinitionOutputs(key)));
+                    new JProperty("Outputs", JToken.Parse(JsonConvert.SerializeObject(DataCache.GetCachedDefinitionOutputs(key)))));
                 data.Add(obj);
             }
             ctx.Response.ContentType = "application/json";

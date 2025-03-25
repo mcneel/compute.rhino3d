@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Resthopper.IO;
 using Serilog;
 
 namespace compute.geometry
@@ -13,8 +14,8 @@ namespace compute.geometry
             public GrasshopperDefinition Definition{ get; set;}
             public uint WatchedFileRuntimeSerialNumber { get; set; }
             public string FileName { get; set; }
-            public string[] Inputs { get; set; }
-            public string[] Outputs { get; set; }
+            public List<InputParamSchema> Inputs { get; set; }
+            public List<IoParamSchema> Outputs { get; set; }
         }
 
         class CachedResults
@@ -117,7 +118,7 @@ namespace compute.geometry
             return def.FileName;
         }
 
-        public static string[] GetCachedDefinitionInputs(string key)
+        public static List<InputParamSchema> GetCachedDefinitionInputs(string key)
         {
             if (string.IsNullOrWhiteSpace(key))
                 return null;
@@ -127,7 +128,7 @@ namespace compute.geometry
             return def.Inputs;
         }
 
-        public static string[] GetCachedDefinitionOutputs(string key)
+        public static List<IoParamSchema> GetCachedDefinitionOutputs(string key)
         {
             if (string.IsNullOrWhiteSpace(key))
                 return null;
@@ -171,7 +172,7 @@ namespace compute.geometry
             return def.Definition;
         }
 
-        public static void SetCachedDefinitionInputsAndOutputs(string key, string[] inputs, string[] outputs)
+        public static void SetCachedDefinitionInputsAndOutputs(string key, List<InputParamSchema> inputs, List<IoParamSchema> outputs)
         {
             if (string.IsNullOrWhiteSpace(key))
                 return;
