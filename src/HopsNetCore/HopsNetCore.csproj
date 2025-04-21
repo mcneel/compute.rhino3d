@@ -8,11 +8,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Grasshopper" Version="9.0.25105.12305-wip" />
+    <PackageReference Include="RhinoCommon" Version="9.0.25105.12305-wip" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\hops\Hops.csproj" />
   </ItemGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <StartProgram>C:\dev\github\mcneel\rhino8\src4\bin\Debug\Rhino.exe</StartProgram>
+    <StartProgram>C:\Program Files\Rhino 9 WIP\System\Rhino.exe</StartProgram>
     <StartArguments></StartArguments>
     <StartAction>Program</StartAction>
   </PropertyGroup>
