@@ -4,6 +4,97 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.23] - 2025-03-04
+
+### Added
+
+- Downgrading Serilog references to the minimum necessary in order to maintain compatability with Revit in the Hops project.
+
+## [0.16.22] - 2025-02-24
+
+### Added
+
+- The Hops component will now display the Minimum and Maximum values on the input parameter tooltip. In addition, the error message that is displayed if a user exceeds the Minimum or Maximum bounds will also indicate what the numeric bounds are for further clarification.
+
+## [0.16.21] - 2025-02-21
+
+### Added
+
+- Added more detailed logging information to capture the idlespan value and the shutdown procedure. If the environment variable RHINO_COMPUTE_DEBUG is set to True, then you should see additional information regarding the registered idlespan value and how it is used during the shutdown procedure.
+
+## [0.16.20] - 2025-02-07
+
+### Fixed
+
+- Logging has been refactored in all three projects (ie. Rhino.Compute, Compute.Geometry, and Hops) to be more consistent and robust. Setting an environment variable RHINO_COMPUTE_DEBUG to True (default is False) will now add much more verbose logging information to both the console and file outputs. A log output has also been added to the Hops project to receive logging information relevant to the Hops component. You can customize where these logs are saved by setting an environment variable RHINO_COMPUTE_LOG_PATH with the directory path for the log files. If this variable is left blank, the default log path will be C:\Users\UserName\AppData\Local\Temp\Compute\Logs.
+
+## [0.16.19] - 2025-01-27
+
+### Added
+
+- It is now possible for Rhino.Compute to create a headless document to be used during the solve routine. To use this feature, create a local environment variable called RHINO_COMPUTE_CREATE_HEADLESS_DOC.The value of this variable can be set to either true or false with false being the default. Each time the GrasshopperSolveHelper method of the ResthopperEndpointsModule is invoked, it checks whether Config.CreateHeadlessDoc is set to true. If it is, a brand new headless document is instantiated with tolerances and units determined by the input object. This feature is useful for third party plugins which may make calls to the Rhino Document to retrieve properties such as tolerances or units. Prior to this feature, these requests would result in an error. Now, a plugin may utilize this information for calculations.
+
+## [0.16.18] - 2025-01-06
+
+### Fixed
+
+- Fixed a bug where custom endpoints which pointed to functions which did not contain an argument would result in a duplicate. When this endpoint would be called, the duplicate would cause an AmbiguousMatchException to be thrown.
+- Changed the `RollForward` value in both the Rhino.Compute and Compute.Geometry csproj files to use `Major` instead of `LatestMinor`. This change means that these projects will use .NET 7 if the framework is installed, but if not it will roll forward to .NET 8 or 9 (which ever is the latest major version installed on the machine). Read more at https://learn.microsoft.com/en-us/dotnet/core/versions/selection.
+
+## [0.16.17] - 2024-11-19
+
+### Fixed
+
+- Startup.cs now loads the Commands.rhp so that certain features such as the gltf exporter will work properly inside rhino.compute. This is a temporary solution until the gltf exporter code is moved into Rhinocommon or Rhino.UI.
+
+## [0.16.16] - 2024-11-07
+
+### Fixed
+
+- Fixed a bug where the /launch endpoint would return a NullReference exception.
+- Added a line to the ComputeChildren.cs to clear the startInfo environmentVariable for "ASPNETCORE_HOSTINGSTARTUPASSEMBLIES" when Rhino.Compute starts up the child process Compute.Geometry. This was causing issues while debugging in newer version of Visual Studio.
+- Fixed a bug where the ComputeRecursionLevel property was not always being set.
+
+## [0.16.15] - 2024-11-07
+
+### Fixed
+
+- Fixed a bug where system directory paths were not being parsed correctly as a command line argument.
+
+## [0.16.14] - 2024-10-30
+
+### Fixed
+
+- Minor bug fixes. Fixed a bug where the open file icon shown in the Set Definition dialog was blurry.
+
+## [0.16.13] - 2024-08-29
+
+### Fixed
+
+- Fixed a bug in the Function Source Manager which was causing the document to expire incorrectly when multiple functions were instantiated by the Hops component.
+
+## [0.16.12] - 2024-08-28
+
+### Fixed
+
+- In the change made to version 0.16.11, the schema of the default input values were changed to a DataTree<ResthopperObject>. However, this change broke some code in instances where people would be sending the older style of values as defaults. The changes made in this build (0.16.12) will now properly handle the deserialization of values sent either as a DataTree<ResthopperObject> or as the older style of default values.
+
+## [0.16.11] - 2024-08-20
+
+### Fixed
+
+- Fixed an issue with default values. Previously, default values would only work on some parameter types and only if a single value was set via persistent data. Now, any parameter type (except for model objects) will work as setting a default value and you can pass in an item, list, or data tree as your default value.
+
+### Added
+
+- Added the ability to make some parameters act as Optional inputs. If you use a Context Get component and set the AtLeast value to 0, then that parameter will be treated as an Optional input.
+
+## [0.16.10] - 2024-08-08
+
+### Fixed
+
+- Adding a fix to enfoce the localization culture of Compute.Geometry to use the CultureInfo("en-US"). This should hopefully fix some issues where users from various countries have trouble with strings converting to numbers because of comma and/or decimal separators.
+
 ## [0.16.9] - 2024-07-03
 
 ### Fixed

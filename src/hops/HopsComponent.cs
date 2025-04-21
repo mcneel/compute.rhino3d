@@ -12,10 +12,42 @@ using Newtonsoft.Json;
 using Rhino.Geometry;
 using System.Threading.Tasks;
 using System.IO;
+using Grasshopper.Kernel.Types;
+using Grasshopper.Kernel.Data;
 using Rhino;
+using System.Drawing;
+using Grasshopper;
+using Grasshopper.Kernel.Expressions;
+using Serilog.Events;
+using Serilog.Templates;
+using Serilog;
+using System.Linq;
 
 namespace Hops
 {
+    public class HopsLog : GH_AssemblyPriority
+    {
+        public static ILogger Log { get; private set; }
+        public override GH_LoadingInstruction PriorityLoad()
+        {
+            Config.Load();
+
+            var date = System.DateTime.Now;
+            var path = System.IO.Path.Combine(Config.LogPath, $"log-hops-inside-{System.Diagnostics.Process.GetCurrentProcess().ProcessName}-{date:yyyyMMdd}.txt");
+            var limit = Config.LogRetainDays;
+            var level = Config.Debug ? LogEventLevel.Debug : LogEventLevel.Information;
+
+            var loggerConfig = new LoggerConfiguration()
+            .MinimumLevel.Is(level)
+            .WriteTo.File(new ExpressionTemplate("HC   [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path);
+            Log = loggerConfig.CreateLogger();
+
+            Log.Information($"Hops logging started at {DateTime.Now.ToLocalTime()}");
+
+            return GH_LoadingInstruction.Proceed;
+        }
+    }
+
     [Guid("C69BB52C-88BA-4640-B69F-188D111029E8")]
     public class HopsComponent : GH_TaskCapableComponent<Schema>, IGH_VariableParameterComponent
     {
@@ -84,12 +116,15 @@ namespace Hops
             _enabledThisSolve = true;
             _lastCreatedSchema = null;
             _solveRecursionLevel = 0;
-            var doc = OnPingDocument();
 
-            if (_isHeadless && doc != null)
+            if (_isHeadless &&
+                    OnPingDocument() is GH_Document doc)
             {
-                // compute will set the ComputeRecursionLevel 
-                _solveRecursionLevel = doc.ConstantServer["ComputeRecursionLevel"]._Int;
+                if (doc.ConstantServer.TryGetValue("ComputeRecursionLevel", out GH_Variant recursionLevel))
+                    // compute will set the ComputeRecursionLevel 
+                    _solveRecursionLevel = recursionLevel._Int;
+                else
+                    _solveRecursionLevel = HopsAppSettings.RecursionLimit;
             }
 
             if (!_solvedCallback)
@@ -137,10 +172,11 @@ namespace Hops
             if (_isHeadless && _solveRecursionLevel > HopsAppSettings.RecursionLimit)
             {
                 // Don't allow hops components to run on compute for now. Recursive calls will lock
-                AddRuntimeMessage(
+                HopsAddRuntimeMessage(
                     GH_RuntimeMessageLevel.Error,
                     $"Hops recursion level beyond limit of {HopsAppSettings.RecursionLimit}. Please help us understand why you need this by emailing steve@mcneel.com");
                 return;
+
             }
 
             if (_showPathInput && DA.Iteration == 0)
@@ -148,7 +184,7 @@ namespace Hops
                 string path = "";
                 if (!DA.GetData("_Path", ref path))
                 {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "No URL or path defined for definition");
+                    HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "No URL or path defined for definition");
                     return;
                 }
 
@@ -161,7 +197,7 @@ namespace Hops
 
             if (string.IsNullOrWhiteSpace(RemoteDefinitionLocation)  && _remoteDefinition?.InternalizedDefinition == null)
             {
-                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "No URL or path defined for definition");
+                HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "No URL or path defined for definition");
                 return;
             }
 
@@ -191,7 +227,7 @@ namespace Hops
                 {
                     foreach (var warning in warnings)
                     {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
+                        HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
                     }
                     return;
                 }
@@ -199,7 +235,7 @@ namespace Hops
                 {
                     foreach (var error in errors)
                     {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
+                        HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
                     }
                     return;
                 }
@@ -239,7 +275,7 @@ namespace Hops
                 {
                     foreach (var warning in warnings)
                     {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
+                        HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
                     }
                     return;
                 }
@@ -247,7 +283,7 @@ namespace Hops
                 {
                     foreach (var error in errors)
                     {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
+                        HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
                     }
                     return;
                 }
@@ -347,10 +383,9 @@ namespace Hops
                     }
                     catch(Exception ex)
                     {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unable to deserialize internalized grasshopper definition. " + ex.Message);
+                        HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unable to deserialize internalized grasshopper definition. " + ex.Message);
                     }
                 }
-
 
                 // set remote definition location last as it will need all of the
                 // previous values to define inputs and outputs
@@ -361,17 +396,34 @@ namespace Hops
                         var pathType = RemoteDefinition.GetPathType(path);
                         if (pathType == RemoteDefinition.PathType.GrasshopperDefinition)
                         {
-                            if (!File.Exists(path))
+                            if (!File.Exists(path) && !RemoteDefinition.IsWebUrl(path))
                             {
-                                // See if the file is in the same directoy as this definition. If it
+                                HopsLog.Log.Debug($"{path} does not exist. Trying to find it in the same directory as the definition.");
+                                // See if the file is in the same directory as this definition. If it
                                 // is then use that file. NOTE: This will change the saved path for
                                 // for this component when we save the GH definition again. That may or
                                 // may not be a problem; I'm not sure yet.
                                 string parentDirectory = Path.GetDirectoryName(reader.ArchiveLocation);
-                                string remoteFileName = Path.GetFileName(path);
-                                string filePath = Path.Combine(parentDirectory, remoteFileName);
-                                if (File.Exists(filePath))
-                                    path = filePath;
+                                if (!String.IsNullOrEmpty(parentDirectory) && Directory.Exists(parentDirectory))
+                                {
+                                    string remoteFileName = Path.GetFileName(path);
+                                    if (!string.IsNullOrEmpty(remoteFileName))
+                                    {
+                                        string filePath = Path.Combine(parentDirectory, remoteFileName);
+                                        if (File.Exists(filePath))
+                                        {
+                                            path = filePath;
+                                        }
+                                        else
+                                        {
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Warning, $"Remote definition not found: {path}. Check that the file path exists.");
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Warning, $"Remote definition not found: {path}. Check that the file path exists.");
+                                }
                             }
                         }
                         RemoteDefinitionLocation = path;
@@ -454,7 +506,7 @@ namespace Hops
             tsi.Enabled = !_showPathInput;
             menu.Items.Add(tsi);
 
-            tsi = HopsFunctionMgr.AddFunctionMgrControl(this);
+            tsi = AddFunctionMgrControl();
             if (tsi != null)
                 menu.Items.Add(tsi);
 
@@ -528,6 +580,124 @@ namespace Hops
             restAPITsi.DropDownItems.Add(tsi);
         }
 
+        public ToolStripMenuItem AddFunctionMgrControl()
+        {
+            HopsAppSettings.InitFunctionSources();
+            if (HopsAppSettings.FunctionSources.Count <= 0)
+                return null;
+            ToolStripMenuItem mainMenu = new ToolStripMenuItem("Available Functions", null, null, "Available Functions");
+            mainMenu.DropDownItems.Clear();
+            foreach (var row in HopsAppSettings.FunctionSources)
+            {
+                ToolStripMenuItem menuItem = new ToolStripMenuItem(row.SourceName, null, null, row.SourceName);
+                GenerateFunctionPathMenu(menuItem, row);
+                if (menuItem.DropDownItems.Count > 0)
+                    mainMenu.DropDownItems.Add(menuItem);
+            }
+            //InitThumbnailViewer();
+            return mainMenu;
+        }
+
+        private void GenerateFunctionPathMenu(ToolStripMenuItem menu, FunctionSourceRow row)
+        {
+            if (String.IsNullOrEmpty(row.SourceName) || String.IsNullOrEmpty(row.SourcePath))
+                return;
+            if (row.SourcePath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var getTask = HopsFunctionMgr.HttpClient.GetAsync(row.SourcePath);
+                    if (getTask != null)
+                    {
+                        var responseMessage = getTask.Result;
+                        var remoteSolvedData = responseMessage.Content;
+                        var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
+                        if (string.IsNullOrEmpty(stringResult))
+                        {
+                            //invalid URL
+                            return;
+                        }
+                        else
+                        {
+                            var response = JsonConvert.DeserializeObject<FunctionMgr_Schema[]>(stringResult);
+                            if (response != null)
+                            {
+                                UriFunctionPathInfo functionPaths = new UriFunctionPathInfo(row.SourcePath, true);
+                                functionPaths.isRoot = true;
+                                functionPaths.RootURL = row.SourcePath;
+                                if (!String.IsNullOrEmpty(response[0].Uri))
+                                {
+                                    //If the Schema Uri exists, then the response is likely from the ghhops_server.
+                                    //Otherwise, let's assume the response is from the appserver
+                                    foreach (FunctionMgr_Schema obj in response)
+                                    {
+                                        HopsFunctionMgr.SeekFunctionMenuDirs(functionPaths, obj.Uri, obj.Uri, row);
+                                    }
+                                }
+                                else if (!String.IsNullOrEmpty(response[0].Name))
+                                {
+                                    foreach (FunctionMgr_Schema obj in response)
+                                    {
+                                        HopsFunctionMgr.SeekFunctionMenuDirs(functionPaths, "/" + obj.Name, "/" + obj.Name, row);
+                                    }
+                                }
+                                if (functionPaths.Paths.Count != 0)
+                                    functionPaths.BuildMenus(menu, new MouseEventHandler(tsm_UriClick));
+                            }
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                }
+            }
+            else if (Directory.Exists(row.SourcePath))
+            {
+                FunctionPathInfo functionPaths = new FunctionPathInfo(row.SourcePath, true);
+                functionPaths.isRoot = true;
+
+                HopsFunctionMgr.SeekFunctionMenuDirs(functionPaths);
+                if (functionPaths.Paths.Count != 0)
+                {
+                    functionPaths.BuildMenus(menu, tsm_FileClick, HopsFunctionMgr.tsm_HoverEnter, HopsFunctionMgr.tsm_HoverExit);
+                    functionPaths.RemoveEmptyMenuItems(menu, tsm_FileClick, HopsFunctionMgr.tsm_HoverEnter, HopsFunctionMgr.tsm_HoverExit);
+                }
+            }
+        }
+
+        private void tsm_FileClick(object sender, MouseEventArgs e)
+        {
+            if (!(sender is ToolStripItem))
+                return;
+            ToolStripItem ti = sender as ToolStripItem;
+
+            switch (e.Button)
+            {
+                case MouseButtons.Left:
+                    RemoteDefinitionLocation = ti.Name;
+                    this.ExpireSolution(true);
+                    break;
+                case MouseButtons.Right:
+                    try
+                    {
+                        Instances.DocumentEditor.ScriptAccess_OpenDocument(ti.Name);
+                    }
+                    catch (Exception) { }
+                    break;
+            }
+            
+        }
+
+        private void tsm_UriClick(object sender, MouseEventArgs e)
+        {
+            if (!(sender is ToolStripItem))
+                return;
+            ToolStripItem ti = sender as ToolStripItem;
+            RemoteDefinitionLocation = ti.Tag as string;
+            this.ExpireSolution(true);
+        }
+
+
         /// <summary>
         /// Used for supporting double click on the component. 
         /// </summary>
@@ -566,7 +736,7 @@ namespace Hops
                 }
                 catch(Exception ex)
                 {
-                    _component.AddRuntimeMessage(GH_RuntimeMessageLevel.Error, ex.Message);
+                    _component.HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, ex.Message);
                 }
                 return base.RespondToMouseDoubleClick(sender, e);
             }
@@ -763,7 +933,6 @@ for value in values:
                 // Always rebuild the remote definition information when setting this property.
                 // This way you can poke the path button to force a refresh in case the situation
                 // on the server has changed.
-                //if (!string.Equals(RemoteDefinitionLocation, value, StringComparison.OrdinalIgnoreCase))
                 {
                     if(_remoteDefinition != null)
                     {
@@ -773,6 +942,7 @@ for value in values:
                     if (!string.IsNullOrWhiteSpace(value))
                     {
                         _remoteDefinition = RemoteDefinition.Create(value, this);
+                        HopsLog.Log.Debug($"Remote definition location set to {value}");
                         DefineInputsAndOutputs();
                     }
                 }
@@ -793,6 +963,30 @@ for value in values:
             }
         }
 
+        public void HopsAddRuntimeMessage(GH_RuntimeMessageLevel level, string message)
+        {
+            if(HopsLog.Log is object)
+            {
+                switch (level)
+                {
+                    case GH_RuntimeMessageLevel.Remark:
+                        HopsLog.Log.Information(message);
+                        break;
+                    case GH_RuntimeMessageLevel.Warning:
+                        HopsLog.Log.Warning(message);
+                        break;
+                    case GH_RuntimeMessageLevel.Error:
+                        HopsLog.Log.Error(message);
+                        break;
+                    default:
+                        HopsLog.Log.Debug(message);
+                        break;
+                }
+            }
+
+            AddRuntimeMessage(level, message);
+        }
+
         void DefineInputsAndOutputs()
         {
             if (_remoteDefinition != null)
@@ -802,14 +996,14 @@ for value in values:
 
                 if (_remoteDefinition.IsNotResponingUrl())
                 {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unable to connect to server");
+                    HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unable to connect to server");
                     Grasshopper.Instances.ActiveCanvas?.Invalidate();
                     return;
                 }
 
                 if (_remoteDefinition.IsInvalidUrl())
                 {
-                    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Path appears valid, but to something that is not Hops related");
+                    HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Path appears valid, but to something that is not Hops related");
                     Grasshopper.Instances.ActiveCanvas?.Invalidate();
                     return;
                 }
@@ -817,7 +1011,7 @@ for value in values:
                 {
                     foreach(var error in HTTPRecord.IOResponseSchema.Errors)
                     {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
+                        HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
                         Grasshopper.Instances.ActiveCanvas?.Invalidate();
                         return;
                     }
@@ -826,7 +1020,7 @@ for value in values:
                 {
                     foreach (var warning in HTTPRecord.IOResponseSchema.Warnings)
                     {
-                        AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
+                        HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
                     }
                 }
 
@@ -911,7 +1105,8 @@ for value in values:
                 bool recompute = false;
                 if (buildInputs && inputs != null)
                 {
-                    bool containsEmptyDefaults = false;
+                    HopsLog.Log.Debug($"Hops component rebuilding input parameters...");
+
                     var mgr = CreateInputManager();
 
                     if (_showPathInput)
@@ -944,34 +1139,247 @@ for value in values:
                         string inputDescription = name;
                         if (!string.IsNullOrWhiteSpace(input.Description))
                             inputDescription = input.Description;
-                        if (input.Default == null)
-                            containsEmptyDefaults = true;
+
+                        if (input.Minimum != null)
+                        {
+                            double min = Convert.ToDouble(input.Minimum);
+                            int digits = min.ToString(System.Globalization.CultureInfo.InvariantCulture).SkipWhile(c => c != '.').Skip(1).Count();
+                            string formatter = digits < 1 ? "N1" : "N" + digits.ToString();
+                            inputDescription += $"\nMinimum: {min.ToString(formatter, System.Globalization.CultureInfo.InvariantCulture)}";
+                        }
+
+                        if (input.Maximum != null)
+                        {
+                            double max = Convert.ToDouble(input.Maximum);
+                            int digits = max.ToString(System.Globalization.CultureInfo.InvariantCulture).SkipWhile(c => c != '.').Skip(1).Count();
+                            string formatter = digits < 1 ? "N1" : "N" + digits.ToString();
+                            inputDescription += $"\nMaximum: {max.ToString(formatter, System.Globalization.CultureInfo.InvariantCulture)}";
+                        }
+
                         string nickname = name;
                         if (!string.IsNullOrWhiteSpace(input.Nickname))
                             nickname = input.Nickname;
                         int paramIndex = -1;
+                        var tree = new Resthopper.IO.DataTree<ResthopperObject>();
                         switch (param)
                         {
                             case Grasshopper.Kernel.Parameters.Param_Arc _:
                                 paramIndex = mgr.AddArcParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Arc).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Arc).PersistentData.Append(new GH_Arc(JsonConvert.DeserializeObject<Arc>(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            var result = JsonConvert.DeserializeObject<Arc>(input.Default.ToString());
+                                            if (result.IsValid)
+                                            {
+                                                (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Arc).PersistentData.Append(new GH_Arc(result));
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                        }                                     
+                                    }
+                                }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_Boolean _:
-                                if (input.Default == null)
-                                    paramIndex = mgr.AddBooleanParameter(name, nickname, inputDescription, access);
-                                else
-                                    paramIndex = mgr.AddBooleanParameter(name, nickname, inputDescription, access, Convert.ToBoolean(input.Default));
+                                paramIndex = mgr.AddBooleanParameter(name, nickname, inputDescription, access);
+                                if(input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Boolean).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Boolean).PersistentData.Append(new GH_Boolean(Convert.ToBoolean(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            if (bool.TryParse(input.Default.ToString(), out bool result))
+                                            {
+                                                (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Boolean).PersistentData.Append(new GH_Boolean(result));
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                        }
+                                    }
+                                }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_Box _:
                                 paramIndex = mgr.AddBoxParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Box).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Box).PersistentData.Append(new GH_Box(JsonConvert.DeserializeObject<Box>(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            var result = JsonConvert.DeserializeObject<Box>(input.Default.ToString());
+                                            if (result.IsValid)
+                                            {
+                                                (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Box).PersistentData.Append(new GH_Box(result));
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                        }
+                                    }
+                                }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_Brep _:
                                 paramIndex = mgr.AddBrepParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Brep).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Brep).PersistentData.Append(new GH_Brep(JsonConvert.DeserializeObject<Brep>(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            var result = JsonConvert.DeserializeObject<Brep>(input.Default.ToString());
+                                            if (result.IsValid)
+                                            {
+                                                (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Brep).PersistentData.Append(new GH_Brep(result));
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                        }
+                                    }
+                                }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_Circle _:
                                 paramIndex = mgr.AddCircleParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Circle).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Circle).PersistentData.Append(new GH_Circle(JsonConvert.DeserializeObject<Circle>(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            var result = JsonConvert.DeserializeObject<Circle>(input.Default.ToString());
+                                            if (result.IsValid)
+                                            {
+                                                (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Circle).PersistentData.Append(new GH_Circle(result));
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                        }
+                                    } 
+                                }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_Colour _:
                                 paramIndex = mgr.AddColourParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Colour).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Colour).PersistentData.Append(new GH_Colour(JsonConvert.DeserializeObject<Color>(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_Complex _:
                                 paramIndex = mgr.AddComplexNumberParameter(name, nickname, inputDescription, access);
@@ -981,109 +1389,686 @@ for value in values:
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_Curve _:
                                 paramIndex = mgr.AddCurveParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Curve).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Curve).PersistentData.Append(new GH_Curve(JsonConvert.DeserializeObject<Curve>(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            var result = JsonConvert.DeserializeObject<Curve>(input.Default.ToString());
+                                            if (result.IsValid)
+                                            {
+                                                (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Curve).PersistentData.Append(new GH_Curve(result));
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                        }
+                                    } 
+                                }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_Field _:
                                 paramIndex = mgr.AddFieldParameter(name, nickname, inputDescription, access);
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_FilePath _:
-                                if (input.Default == null)
-                                    paramIndex = mgr.AddTextParameter(name, nickname, inputDescription, access);
-                                else
-                                    paramIndex = mgr.AddTextParameter(name, nickname, inputDescription, access, input.Default.ToString());
+                                paramIndex = mgr.AddTextParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_String).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_String).PersistentData.Append(new GH_String(item.Data.ToString()), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_String).PersistentData.Append(new GH_String(input.Default.ToString()));
+                                    }  
+                                }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_GenericObject _:
                                 paramIndex = mgr.AddGenericParameter(name, nickname, inputDescription, access);
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_Geometry _:
                                 paramIndex = mgr.AddGeometryParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Geometry).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    var json = JsonConvert.DeserializeObject(item.Data.ToString(), typeof(RhinoApp).Assembly.GetType(item.Type));
+                                                    var geometry = GH_Convert.ToGeometricGoo(json);
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Geometry).PersistentData.Append(geometry, path);
+                                                }
+                                            }
+                                        }
+                                    } 
+                                }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_Group _:
-                                throw new Exception("group param not supported");
+                                throw new Exception("Group param not supported");
                             case Grasshopper.Kernel.Parameters.Param_Guid _:
-                                throw new Exception("guid param not supported");
+                                throw new Exception("Guid param not supported");
                             case Grasshopper.Kernel.Parameters.Param_Integer _:
-                                if (input.Default == null)
-                                    paramIndex = mgr.AddIntegerParameter(name, nickname, inputDescription, access);
-                                else
-                                    paramIndex = mgr.AddIntegerParameter(name, nickname, inputDescription, access, Convert.ToInt32(input.Default));
+                                paramIndex = mgr.AddIntegerParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Integer).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Integer).PersistentData.Append(new GH_Integer(Convert.ToInt32(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            if (int.TryParse(input.Default.ToString(), out int result))
+                                            {
+                                                (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Integer).PersistentData.Append(new GH_Integer(result));
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                        }
+                                    }
+                                }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_Interval _:
                                 paramIndex = mgr.AddIntervalParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Interval).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Interval).PersistentData.Append(new GH_Interval(JsonConvert.DeserializeObject<Interval>(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            var result = JsonConvert.DeserializeObject<Interval>(input.Default.ToString());
+                                            if (result.IsValid)
+                                            {
+                                                (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Interval).PersistentData.Append(new GH_Interval(result));
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                        }
+                                    }
+                                }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_Interval2D _:
                                 paramIndex = mgr.AddInterval2DParameter(name, nickname, inputDescription, access);
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_LatLonLocation _:
-                                throw new Exception("latlonlocation param not supported");
+                                throw new Exception("Lat Lon Location param not supported");
                             case Grasshopper.Kernel.Parameters.Param_Line _:
-                                if (input.Default == null)
-                                    paramIndex = mgr.AddLineParameter(name, nickname, inputDescription, access);
-                                else
-                                    paramIndex = mgr.AddLineParameter(name, nickname, inputDescription, access, JsonConvert.DeserializeObject<Line>(input.Default.ToString()));
+                                paramIndex = mgr.AddLineParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Line).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Line).PersistentData.Append(new GH_Line(JsonConvert.DeserializeObject<Line>(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            var result = JsonConvert.DeserializeObject<Line>(input.Default.ToString());
+                                            if (result.IsValid)
+                                            {
+                                                (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Line).PersistentData.Append(new GH_Line(result));
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                        }
+                                    }
+                                }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_Matrix _:
                                 paramIndex = mgr.AddMatrixParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Matrix).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Matrix).PersistentData.Append(new GH_Matrix(JsonConvert.DeserializeObject<Matrix>(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_Mesh _:
                                 paramIndex = mgr.AddMeshParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Mesh).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Mesh).PersistentData.Append(new GH_Mesh(JsonConvert.DeserializeObject<Mesh>(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            var result = JsonConvert.DeserializeObject<Mesh>(input.Default.ToString());
+                                            if (result.IsValid)
+                                            {
+                                                (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Mesh).PersistentData.Append(new GH_Mesh(result));
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                        }
+                                    } 
+                                }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_MeshFace _:
                                 paramIndex = mgr.AddMeshFaceParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_MeshFace).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_MeshFace).PersistentData.Append(new GH_MeshFace(JsonConvert.DeserializeObject<MeshFace>(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_MeshParameters _:
-                                throw new Exception("meshparameters paran not supported");
+                                throw new Exception("Mesh parameters param not supported");
                             case Grasshopper.Kernel.Parameters.Param_Number _:
-                                if (input.Default == null)
-                                    paramIndex = mgr.AddNumberParameter(name, nickname, inputDescription, access);
-                                else
-                                    paramIndex = mgr.AddNumberParameter(name, nickname, inputDescription, access, Convert.ToDouble(input.Default));
+                                paramIndex = mgr.AddNumberParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Number).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Number).PersistentData.Append(new GH_Number(Convert.ToDouble(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            if (Double.TryParse(input.Default.ToString(), out double result))
+                                            {
+                                                (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Number).PersistentData.Append(new GH_Number(result));
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                        }
+                                    }
+                                }  
                                 break;
                             //case Grasshopper.Kernel.Parameters.Param_OGLShader:
                             case Grasshopper.Kernel.Parameters.Param_Plane _:
-                                if (input.Default == null)
-                                    paramIndex = mgr.AddPlaneParameter(name, nickname, inputDescription, access);
-                                else
-                                    paramIndex = mgr.AddPlaneParameter(name, nickname, inputDescription, access, JsonConvert.DeserializeObject<Plane>(input.Default.ToString()));
+                                paramIndex = mgr.AddPlaneParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Plane).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Plane).PersistentData.Append(new GH_Plane(JsonConvert.DeserializeObject<Plane>(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            var result = JsonConvert.DeserializeObject<Plane>(input.Default.ToString());
+                                            if (result.IsValid)
+                                            {
+                                                (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Plane).PersistentData.Append(new GH_Plane(result));
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                        }
+                                    }
+                                }   
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_Point _:
-                                if (input.Default == null)
-                                    paramIndex = mgr.AddPointParameter(name, nickname, inputDescription, access);
-                                else
-                                    paramIndex = mgr.AddPointParameter(name, nickname, inputDescription, access, JsonConvert.DeserializeObject<Point3d>(input.Default.ToString()));
+                                paramIndex = mgr.AddPointParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Point).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Point).PersistentData.Append(new GH_Point(JsonConvert.DeserializeObject<Point3d>(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            var result = JsonConvert.DeserializeObject<Point3d>(input.Default.ToString());
+                                            if (result.IsValid)
+                                            {
+                                                (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Point).PersistentData.Append(new GH_Point(result));
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                        }
+                                    }
+                                }    
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_Rectangle _:
                                 paramIndex = mgr.AddRectangleParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Rectangle).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Rectangle).PersistentData.Append(new GH_Rectangle(JsonConvert.DeserializeObject<Rectangle3d>(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            var result = JsonConvert.DeserializeObject<Rectangle3d>(input.Default.ToString());
+                                            if (result.IsValid)
+                                            {
+                                                (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Rectangle).PersistentData.Append(new GH_Rectangle(result));
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                        }
+                                    } 
+                                }
                                 break;
                             //case Grasshopper.Kernel.Parameters.Param_ScriptVariable _:
                             case Grasshopper.Kernel.Parameters.Param_String _:
-                                if (input.Default == null)
-                                    paramIndex = mgr.AddTextParameter(name, nickname, inputDescription, access);
-                                else
-                                    paramIndex = mgr.AddTextParameter(name, nickname, inputDescription, access, input.Default.ToString());
+                                paramIndex = mgr.AddTextParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_String).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_String).PersistentData.Append(new GH_String(item.Data.ToString()), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_String).PersistentData.Append(new GH_String(input.Default.ToString()));
+                                    }     
+                                }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_StructurePath _:
                                 paramIndex = mgr.AddPathParameter(name, nickname, inputDescription, access);
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_SubD _:
                                 paramIndex = mgr.AddSubDParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_SubD).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_SubD).PersistentData.Append(new GH_SubD(JsonConvert.DeserializeObject<SubD>(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            var result = JsonConvert.DeserializeObject<SubD>(input.Default.ToString());
+                                            if (result.IsValid)
+                                            {
+                                                (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_SubD).PersistentData.Append(new GH_SubD(result));
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                        }
+                                    }
+                                }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_Surface _:
                                 paramIndex = mgr.AddSurfaceParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Surface).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Surface).PersistentData.Append(new GH_Surface(JsonConvert.DeserializeObject<Surface>(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            var result = JsonConvert.DeserializeObject<Surface>(input.Default.ToString());
+                                            if (result.IsValid)
+                                            {
+                                                (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Surface).PersistentData.Append(new GH_Surface(result));
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                        }
+                                    }
+                                }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_Time _:
                                 paramIndex = mgr.AddTimeParameter(name, nickname, inputDescription, access);
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_Transform _:
                                 paramIndex = mgr.AddTransformParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Transform).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Transform).PersistentData.Append(new GH_Transform(JsonConvert.DeserializeObject<Transform>(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_Vector _:
-                                if (input.Default == null)
-                                    paramIndex = mgr.AddVectorParameter(name, nickname, inputDescription, access);
-                                else
-                                    paramIndex = mgr.AddVectorParameter(name, nickname, inputDescription, access, JsonConvert.DeserializeObject<Vector3d>(input.Default.ToString()));
+                                paramIndex = mgr.AddVectorParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Vector).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Vector).PersistentData.Append(new GH_Vector(JsonConvert.DeserializeObject<Vector3d>(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            var result = JsonConvert.DeserializeObject<Vector3d>(input.Default.ToString());
+                                            if (result.IsValid)
+                                            {
+                                                (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Vector).PersistentData.Append(new GH_Vector(result));
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                        }
+                                    }
+                                }
                                 break;
                             case Grasshopper.Kernel.Special.GH_NumberSlider _:
                                 paramIndex = mgr.AddNumberParameter(name, nickname, inputDescription, access);
+                                if (input.Default is object)
+                                {
+                                    if (input.Default.ToString().Contains("InnerTree"))
+                                    {
+                                        tree = JsonConvert.DeserializeObject<Resthopper.IO.DataTree<ResthopperObject>>(input.Default.ToString());
+                                        if (tree.InnerTree is object)
+                                        {
+                                            (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Number).PersistentData.Clear();
+                                            foreach (var branch in tree.InnerTree)
+                                            {
+                                                var pathElements = branch.Key.ToString().Trim('{', '}').Split(';');
+                                                GH_Path path = new GH_Path(Array.ConvertAll(pathElements, int.Parse));
+                                                List<ResthopperObject> items = branch.Value;
+                                                foreach (var item in items)
+                                                {
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Number).PersistentData.Append(new GH_Number(Convert.ToDouble(item.Data.ToString())), path);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            if (Double.TryParse(input.Default.ToString(), out double result))
+                                            {
+                                                (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_Number).PersistentData.Append(new GH_Number(result));
+                                            }
+                                        }
+                                        catch (Exception e)
+                                        {
+                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, e.Message);
+                                        }
+                                    }   
+                                }
                                 break;
 
                             default:
@@ -1095,6 +2080,10 @@ for value in values:
                                 break;
                         }
 
+                        //make this parameter optional if user specified AtLeast value of zero
+                        if (input.AtLeast == 0)
+                            Params.Input[paramIndex].Optional = true;
+
                         if (paramIndex >= 0 && inputSources.TryGetValue(name, out List<IGH_Param> rehookInputs))
                         {
                             foreach (var rehookInput in rehookInputs)
@@ -1102,11 +2091,12 @@ for value in values:
                         }
                     }
 
-                    if (!containsEmptyDefaults)
-                        recompute = true;
+                    recompute = true;
                 }
                 if (buildOutputs && outputs != null)
                 {
+                    HopsLog.Log.Debug($"Hops component rebuilding output parameters...");
+
                     var mgr = CreateOutputManager();
                     foreach (var kv in outputs)
                     {

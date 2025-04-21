@@ -5,7 +5,7 @@
     <OutputType>Exe</OutputType>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <RuntimeFrameworkVersion>7.0.0</RuntimeFrameworkVersion>
-    <RollForward>LatestMinor</RollForward>
+    <RollForward>Major</RollForward>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <ApplicationIcon>favicon.ico</ApplicationIcon>
     <IsTransformWebConfigDisabled>true</IsTransformWebConfigDisabled>

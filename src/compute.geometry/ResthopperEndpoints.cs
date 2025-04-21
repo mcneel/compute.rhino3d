@@ -15,6 +15,7 @@ using Carter;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Rhino.Geometry;
+using Rhino;
 
 namespace compute.geometry
 {
@@ -25,38 +26,6 @@ namespace compute.geometry
             app.MapPost("/grasshopper", Grasshopper);
             app.MapPost("/io", PostIoNames);
             app.MapGet("/io", GetIoNames);
-        }
-
-        public static GH_Archive ArchiveFromUrl(string url)
-        {
-            if (string.IsNullOrWhiteSpace(url))
-                return null;
-
-            byte[] byteArray = null;
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-            request.AutomaticDecompression = DecompressionMethods.GZip;
-            using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
-            using (var stream = response.GetResponseStream())
-            using (var memStream = new MemoryStream())
-            {
-                stream.CopyTo(memStream);
-                byteArray = memStream.ToArray();
-            }
-
-            try
-            {
-                var byteArchive = new GH_Archive();
-                if (byteArchive.Deserialize_Binary(byteArray))
-                    return byteArchive;
-            }
-            catch (Exception) { }
-
-            var grasshopperXml = StripBom(System.Text.Encoding.UTF8.GetString(byteArray));
-            var xmlArchive = new GH_Archive();
-            if (xmlArchive.Deserialize_Xml(grasshopperXml))
-                return xmlArchive;
-
-            return null;
         }
 
         static void SetDefaultTolerances(double absoluteTolerance, double angleToleranceDegrees)
@@ -95,6 +64,12 @@ namespace compute.geometry
 
         static string GrasshopperSolveHelper(Schema input, string body, System.Diagnostics.Stopwatch stopwatch, HttpContext ctx)
         {
+            string httpType = ctx.Request.IsHttps ? "HTTPS" : "HTTP";
+            string endpoint = ctx.GetEndpoint().DisplayName;
+            var index = endpoint.IndexOf('/');
+            if (index >= 0) endpoint = endpoint.Substring(index);           
+            Serilog.Log.Debug($"Received a {httpType} {ctx.Request.Method} request to the {endpoint} endpoint");
+
             // load grasshopper file
             GrasshopperDefinition definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
             if (definition == null && !string.IsNullOrWhiteSpace(input.Algo))
@@ -102,11 +77,27 @@ namespace compute.geometry
                 definition = GrasshopperDefinition.FromBase64String(input.Algo, true);
             }
             if (definition == null)
-                throw new Exception("Unable to load grasshopper definition");
-
+            {
+                var msg = "Unable to load grasshopper definition";
+                Serilog.Log.Warning(msg);
+                throw new Exception(msg);
+            }
             SetDefaultTolerances(input.AbsoluteTolerance, input.AngleTolerance);
             SetDefaultUnits(input.ModelUnits);
 
+            // Instantiate headless doc
+            if (Config.CreateHeadlessDoc)
+            {
+                Serilog.Log.Debug("Creating headless Rhino document");
+                RhinoDoc.ActiveDoc = RhinoDoc.CreateHeadless(null);
+                RhinoDoc.ActiveDoc.ModelAbsoluteTolerance = input.AbsoluteTolerance;
+                RhinoDoc.ActiveDoc.ModelAngleToleranceDegrees = input.AngleTolerance;
+                if (Enum.TryParse(input.ModelUnits, out UnitSystem units))
+                {
+                    RhinoDoc.ActiveDoc.ModelUnitSystem = units;
+                }
+                Serilog.Log.Debug($"Setting absolute tolerance: ({input.AbsoluteTolerance}), angle tolerance: ({input.AngleTolerance}), and units ({input.ModelUnits})");
+            }
             int recursionLevel = input.RecursionLevel + 1;
             definition.Definition.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(recursionLevel));
 
@@ -119,7 +110,6 @@ namespace compute.geometry
             stopwatch.Restart();
             string returnJson = JsonConvert.SerializeObject(output, GeometryResolver.Settings(input.DataVersion));
             long encodeTime = stopwatch.ElapsedMilliseconds;
-
             ctx.Response.Headers.Add("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
             if (definition.HasErrors)
                 ctx.Response.StatusCode = 500; // internal server error
@@ -127,9 +117,15 @@ namespace compute.geometry
             {
                 if (input.CacheSolve)
                 {
+                    Serilog.Log.Debug("Caching solve results");
                     DataCache.SetCachedSolveResults(body, returnJson, definition);
                 }
             }
+
+            // Dispose headless doc
+            if (RhinoDoc.ActiveDoc is object)
+                RhinoDoc.ActiveDoc.Dispose();
+
             return returnJson;
         }
 
@@ -193,6 +189,7 @@ namespace compute.geometry
         async Task GetIoNamesHelper(HttpContext ctx, bool asPost)
         {
             GrasshopperDefinition definition;
+            string fileName = String.Empty;
             if (asPost)
             {
                 var body = await new System.IO.StreamReader(ctx.Request.Body).ReadToEndAsync();
@@ -201,6 +198,17 @@ namespace compute.geometry
 
                 Schema input = JsonConvert.DeserializeObject<Schema>(body);
 
+                string httpType = ctx.Request.IsHttps ? "HTTPS" : "HTTP";
+                string endpoint = ctx.GetEndpoint().DisplayName;
+                var index = endpoint.IndexOf('/');
+                if (index >= 0) endpoint = endpoint.Substring(index);        
+                Serilog.Log.Debug($"Received a {httpType} {ctx.Request.Method} request to the {endpoint} endpoint");
+                if (!String.IsNullOrEmpty(input.FileName))
+                {
+                    fileName = input.FileName;
+                    Serilog.Log.Debug($"Deserializing {fileName}");
+                }
+                    
                 // load grasshopper file
                 definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
                 if (definition == null)
@@ -213,14 +221,30 @@ namespace compute.geometry
                 string url = ctx.Request.Query["Pointer"][0].ToString();
                 definition = GrasshopperDefinition.FromUrl(url, true);
             }
-
             if (definition == null)
-                throw new Exception("Unable to load grasshopper definition");
-
+            {
+                var msg = "Unable to load grasshopper definition";
+                Serilog.Log.Warning(msg);
+                throw new Exception(msg);
+            }
+                
             var responseSchema = definition.GetInputsAndOutputs();
+
+            var inputSuffix = String.Empty;
+            var outputSuffix = String.Empty;
+            var fileNameMsg = String.Empty;
+            if (responseSchema.InputNames.Count > 1)
+                inputSuffix = "s";
+            if (responseSchema.OutputNames.Count > 1)
+                outputSuffix = "s";
+            if (!String.IsNullOrEmpty(fileName))
+                fileNameMsg = $" in {fileName}";
+            Serilog.Log.Debug($"Found {responseSchema.InputNames.Count} input{inputSuffix} and {responseSchema.OutputNames.Count} output{outputSuffix}{fileNameMsg}");
+
             responseSchema.CacheKey = definition.CacheKey;
             responseSchema.Icon = definition.GetIconAsString();
             responseSchema.SupportedDataFormats = new List<SchemaDataFormat> { SchemaDataFormat.Resthopper, SchemaDataFormat.Grasshopper};
+            responseSchema.FileName = fileName;
             foreach (var error in definition.ErrorMessages)
             {
                 responseSchema.Errors.Add(error);

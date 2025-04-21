@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
+using System.Threading;
 using Serilog;
 
 namespace rhino.compute
@@ -188,8 +190,11 @@ namespace rhino.compute
             }
 
             var startInfo = new ProcessStartInfo(pathToCompute);
+            startInfo.EnvironmentVariables["ASPNETCORE_HOSTINGSTARTUPASSEMBLIES"] = ""; //required for debugging compute.geometry via Visual Studio
             var rhinoProcess = Process.GetCurrentProcess();
+            Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
             string commandLineArgs = $"-port:{port} -childof:{rhinoProcess.Id}";
+            Log.Information($"Starting compute.geometry instance on port {port}");
             if (!string.IsNullOrEmpty(RhinoSysDir))
             {
                 commandLineArgs += $" -rhinosysdir:\"{RhinoSysDir}\"";

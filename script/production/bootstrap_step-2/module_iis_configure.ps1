@@ -73,6 +73,21 @@ Write-Step "Adding user to RDP user group"
 Add-LocalGroupMember -Group "Remote Desktop Users" -Member $localUserName
 
 $localUserPassword = (New-Object PSCredential $localUserName,$securePassword).GetNetworkCredential().Password
+$securePassword = ConvertTo-SecureString $localUserPassword -AsPlainText -Force
+$credential = New-Object System.Management.Automation.PSCredential($localUserName, $securePassword)
+
+Write-Step "Installing the Hops plugin"
+
+$yakPath = "C:\Program Files\Rhino 8\System\Yak.exe"
+$arguments = "install hops"
+
+# Use Start-Process with properly quoted arguments
+$process = Start-Process -FilePath $yakPath -ArgumentList $arguments -Credential $credential -WorkingDirectory "C:\Program Files\Rhino 8\System" -PassThru -Wait
+
+if ($process.ExitCode -ne 0) {
+    Write-Error "Failed to install the Hops plugin. Exit code: $($process.ExitCode)"
+    exit $process.ExitCode
+}
 
 Write-Step "Creating application pool"
 CreateAppPool $appPoolName

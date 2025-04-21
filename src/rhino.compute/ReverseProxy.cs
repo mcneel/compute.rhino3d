@@ -21,8 +21,8 @@ namespace rhino.compute
                 return;
             _initCalled = true;
 
-            Log.Information($"Initiliazing reverse proxy at {DateTime.Now.ToLocalTime()}");
-            Log.Information($"Spawn children at startup is set to {ComputeChildren.SpawnOnStartup}");
+            Log.Debug($"Initiliazing reverse proxy at {DateTime.Now.ToLocalTime()}");
+            Log.Debug($"Spawn children at startup is set to {ComputeChildren.SpawnOnStartup}");
 
             _client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
             _client.DefaultRequestHeaders.Add("User-Agent", $"compute.rhino3d-proxy/1.0.0");
@@ -79,7 +79,7 @@ namespace rhino.compute
         public void AddRoutes(IEndpointRouteBuilder app)
         {
             app.MapGet("/robots.txt", async (context) => await context.Response.WriteAsync("User-agent: *\nDisallow: / "));
-            app.MapGet("/idlespan", async (context) => await context.Response.WriteAsync($"{ComputeChildren.IdleSpan()}"));
+            app.MapGet("/idlespan", async (context) => { Serilog.Log.Debug($"Request received to /idlespan endpoint"); await context.Response.WriteAsync($"{ComputeChildren.IdleSpan()}"); });
             app.MapGet("/", async (context) => { InitializeChildren(); await context.Response.WriteAsync("compute.rhino3d"); });
             app.MapGet("/activechildren", async (context) => { InitializeChildren(); await context.Response.WriteAsync($"{ComputeChildren.ActiveComputeCount}"); });
             app.MapGet("/launch", LaunchChildren);
@@ -103,12 +103,12 @@ namespace rhino.compute
             int parentProcessId = System.Convert.ToInt32(request.Query["parent"]);
             if (Program.IsParentRhinoProcess(parentProcessId))
             {
-                for(int i=0; i<children; i++)
+                for (int i=0; i<children; i++)
                 {
                     ComputeChildren.LaunchCompute(false);
                 }
             }
-            return null;
+            return Task.CompletedTask;
         }
 
         async Task AwaitInitTask()

@@ -17,101 +17,15 @@ namespace Hops
 {
     public static class HopsFunctionMgr
     {
-        private static HopsComponent Parent { get; set; }
         static ThumbnailViewer Viewer { get; set; }
-        public static ToolStripMenuItem AddFunctionMgrControl(HopsComponent _parent)
-        {
-            HopsAppSettings.InitFunctionSources();
-            if (HopsAppSettings.FunctionSources.Count <= 0)
-                return null;
-            Parent = _parent;
-            ToolStripMenuItem mainMenu = new ToolStripMenuItem("Available Functions", null, null, "Available Functions");
-            mainMenu.DropDownItems.Clear();
-            foreach(var row in HopsAppSettings.FunctionSources)
-            {
-                ToolStripMenuItem menuItem = new ToolStripMenuItem(row.SourceName, null, null, row.SourceName);
-                GenerateFunctionPathMenu(menuItem, row);
-                if(menuItem.DropDownItems.Count > 0)
-                    mainMenu.DropDownItems.Add(menuItem);
-            }
-            InitThumbnailViewer();
-            return mainMenu;
-        }
 
-        private static void InitThumbnailViewer()
+        static HopsFunctionMgr()
         {
             if (Viewer == null)
                 Viewer = new ThumbnailViewer();
             Viewer.Owner = Instances.DocumentEditor;
             Viewer.StartPosition = FormStartPosition.Manual;
             Viewer.Visible = false;
-        }
-
-        private static void GenerateFunctionPathMenu(ToolStripMenuItem menu, FunctionSourceRow row)
-        {
-            if (String.IsNullOrEmpty(row.SourceName) || String.IsNullOrEmpty(row.SourcePath)) 
-                return;
-            if (row.SourcePath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
-            {
-                try
-                {
-                    var getTask = HttpClient.GetAsync(row.SourcePath);
-                    if (getTask != null)
-                    {
-                        var responseMessage = getTask.Result;
-                        var remoteSolvedData = responseMessage.Content;
-                        var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-                        if (string.IsNullOrEmpty(stringResult))
-                        {
-                            //invalid URL
-                            return;
-                        }
-                        else
-                        {
-                            var response = JsonConvert.DeserializeObject<FunctionMgr_Schema[]>(stringResult);
-                            if(response != null)
-                            {
-                                UriFunctionPathInfo functionPaths = new UriFunctionPathInfo(row.SourcePath, true);
-                                functionPaths.isRoot = true;
-                                functionPaths.RootURL = row.SourcePath;
-                                if (!String.IsNullOrEmpty(response[0].Uri))
-                                {
-                                    //If the Schema Uri exists, then the response is likely from the ghhops_server.
-                                    //Otherwise, let's assume the response is from the appserver
-                                    foreach (FunctionMgr_Schema obj in response)
-                                    {
-                                        SeekFunctionMenuDirs(functionPaths, obj.Uri, obj.Uri, row);
-                                    }
-                                }
-                                else if(!String.IsNullOrEmpty(response[0].Name))
-                                {
-                                    foreach (FunctionMgr_Schema obj in response)
-                                    {
-                                        SeekFunctionMenuDirs(functionPaths, "/" + obj.Name, "/" + obj.Name, row);
-                                    }
-                                }
-                                if (functionPaths.Paths.Count != 0)
-                                    functionPaths.BuildMenus(menu, new MouseEventHandler(tsm_UriClick));
-                            }
-                        }
-                    }
-                }
-                catch (Exception)
-                {
-                }
-            }
-            else if (Directory.Exists(row.SourcePath))
-            {
-                FunctionPathInfo functionPaths = new FunctionPathInfo(row.SourcePath, true);
-                functionPaths.isRoot = true;
-
-                SeekFunctionMenuDirs(functionPaths);
-                if (functionPaths.Paths.Count != 0)
-                {
-                    functionPaths.BuildMenus(menu, new MouseEventHandler(tsm_FileClick), new EventHandler(tsm_HoverEnter), new EventHandler(tsm_HoverExit));
-                    functionPaths.RemoveEmptyMenuItems(menu, tsm_FileClick, tsm_HoverEnter, tsm_HoverExit);
-                }
-            }
         }
 
         public static void SeekFunctionMenuDirs(UriFunctionPathInfo path, string uri, string fullpath, FunctionSourceRow row)
@@ -165,7 +79,7 @@ namespace Hops
             }
         }
 
-        static void tsm_HoverEnter(object sender, EventArgs e)
+        internal static void tsm_HoverEnter(object sender, EventArgs e)
         {
             if (!(sender is ToolStripMenuItem))
                 return;
@@ -181,51 +95,11 @@ namespace Hops
             }
         }
 
-        static void tsm_HoverExit(object sender, EventArgs e)
+        internal static void tsm_HoverExit(object sender, EventArgs e)
         {
             if (Viewer != null && Viewer.Visible)
             {
                 Viewer.Hide();
-            }
-        }
-
-        static void tsm_FileClick(object sender, MouseEventArgs e)
-        {
-            if (!(sender is ToolStripItem))
-                return;
-            ToolStripItem ti = sender as ToolStripItem;
-            
-            if(Parent != null)
-            {
-                switch (e.Button)
-                {
-                    case MouseButtons.Left:
-                        Parent.RemoteDefinitionLocation = ti.Name;
-                        if (Instances.ActiveCanvas.Document != null)
-                            Instances.ActiveCanvas.Document.ExpireSolution();
-                        break;
-                    case MouseButtons.Right:
-                        try
-                        {
-                            Instances.DocumentEditor.ScriptAccess_OpenDocument(ti.Name);
-                        }
-                        catch (Exception) { }
-                        break;
-                }
-            }
-        }
-
-        static void tsm_UriClick(object sender, MouseEventArgs e)
-        {
-            if (!(sender is ToolStripItem))
-                return;
-            ToolStripItem ti = sender as ToolStripItem;
-
-            if (Parent != null)
-            {
-                Parent.RemoteDefinitionLocation = ti.Tag as string;
-                if (Instances.ActiveCanvas.Document != null)
-                    Instances.ActiveCanvas.Document.ExpireSolution();
             }
         }
 

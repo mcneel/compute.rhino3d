@@ -55,7 +55,7 @@ namespace compute.geometry
             {
                 var info = Rhino.PlugIns.PlugIn.GetPlugInInfo(k);
                 //Could also use: info.IsLoaded
-                if (info != null && !info.ShipsWithRhino && !rhPluginInfo.ContainsKey(info.Name))
+                if (info != null && !rhPluginInfo.ContainsKey(info.Name) && !info.ShipsWithRhino)
                 {
                     rhPluginInfo.Add(info.Name, info.Version);
                 }

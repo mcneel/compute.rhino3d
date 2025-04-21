@@ -40,6 +40,7 @@ namespace compute.geometry
                         {
                             foreach (var customEndpoint in customEndpoints)
                             {
+
                                 foreach (var endpoint in GeometryEndPoint.Create(customEndpoint.Item2))
                                 {
                                     endpoint.UpdatePath(customEndpoint.Item1);
@@ -193,20 +194,23 @@ namespace compute.geometry
                     break;
                 }
 
-                // This is the general "catch all" endpoint that attempts to figure out the best routine to call
-                GeometryEndPoint endpoint = new GeometryEndPoint(t, overloads.ToArray());
-                endpoints.Add(endpoint);
+                if (overloads.Count > 1)
+                {
+                    // This is the general "catch all" endpoint that attempts to figure out the best routine to call
+                    GeometryEndPoint endpoint = new GeometryEndPoint(t, overloads.ToArray());
+                    endpoints.Add(endpoint);
+                }
 
                 foreach (var overload in overloads)
                 {
                     // generate explicit endpoints for all overloads, even if there are no parameters (see #142)
                     endpoints.Add(new GeometryEndPoint(t, overload));
                 }
-
             }
 
             return endpoints;
         }
+
 
         protected static string PrettyString(Type t)
         {

@@ -23,6 +23,22 @@ namespace rhino.compute
         public static long MaxRequestSize { get; private set; }
 
         /// <summary>
+        /// RHINO_COMPUTE_LOG_PATH: the directory in which to write logs.
+        /// </summary>
+        public static string LogPath { get; private set; }
+
+        /// <summary>
+        /// RHINO_COMPUTE_LOG_RETAIN_DAYS: the number of days worth of logs to retain.
+        /// Files are rotated daily.
+        /// </summary>
+        public static int LogRetainDays { get; private set; }
+
+        /// <summary>
+        /// RHINO_COMPUTE_DEBUG: enables debug logging (defaults to true in DEBUG).
+        /// </summary>
+        public static bool Debug { get; private set; }
+
+        /// <summary>
         /// Loads config from environment variables (or uses defaults).
         /// </summary>
         public static void Load()
@@ -30,6 +46,15 @@ namespace rhino.compute
             ApiKey = GetEnvironmentVariable<string>(RHINO_COMPUTE_KEY, null);
             ReverseProxyRequestTimeout = GetEnvironmentVariable<int>(RHINO_COMPUTE_TIMEOUT, 100);
             MaxRequestSize = GetEnvironmentVariable<long>(RHINO_COMPUTE_MAX_REQUEST_SIZE, 52428800);
+            LogPath = GetEnvironmentVariable(RHINO_COMPUTE_LOG_PATH, Path.Combine(Path.GetTempPath(), "Compute", "Logs"));
+            LogRetainDays = GetEnvironmentVariable(RHINO_COMPUTE_LOG_RETAIN_DAYS, 10);
+
+#if DEBUG
+            Debug = true;
+#elif RELEASE
+            Debug = false;
+#endif
+            Debug = GetEnvironmentVariable(RHINO_COMPUTE_DEBUG, Debug);
         }
 
         #region private
@@ -37,6 +62,9 @@ namespace rhino.compute
         const string RHINO_COMPUTE_KEY = "RHINO_COMPUTE_KEY";
         const string RHINO_COMPUTE_TIMEOUT = "RHINO_COMPUTE_TIMEOUT";
         const string RHINO_COMPUTE_MAX_REQUEST_SIZE = "RHINO_COMPUTE_MAX_REQUEST_SIZE";
+        const string RHINO_COMPUTE_LOG_PATH = "RHINO_COMPUTE_LOG_PATH";
+        const string RHINO_COMPUTE_LOG_RETAIN_DAYS = "RHINO_COMPUTE_LOG_RETAIN_DAYS";
+        const string RHINO_COMPUTE_DEBUG = "RHINO_COMPUTE_DEBUG";
 
         readonly static List<string> _warnings = new List<string>();
 

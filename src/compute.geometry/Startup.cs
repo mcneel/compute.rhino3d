@@ -1,18 +1,18 @@
 ﻿using System;
-using System.IO;
 using Carter;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace compute.geometry
 {
     public class Startup
     {
-        // https://github.com/mcneel/rhino/blob/e1192835cbf03f662d0cf857ee9239b84109eeed/src4/rhino4/Plug-ins/RhinoCodePlugins/RhinoCodePlugin/AssemblyInfo.cs
+        //https://github.com/mcneel/rhino/blob/e1192835cbf03f662d0cf857ee9239b84109eeed/src4/rhino4/Plug-ins/RhinoCodePlugins/RhinoCodePlugin/AssemblyInfo.cs
         static readonly Guid s_rhinoCodePluginId = new Guid("c9cba87a-23ce-4f15-a918-97645c05cde7");
+
+        //https://github.com/mcneel/rhino/blob/8.x/src4/rhino4/Plug-ins/Commands/Properties/AssemblyInfo.cs
+        static readonly Guid s_rhinoCommandsPluginId = new Guid("02bf604d-799c-4cc2-830e-8d72f21b14b7");
 
         public void ConfigureServices(IServiceCollection services)
         {
@@ -34,8 +34,6 @@ namespace compute.geometry
 
             app.UseRouting();
             app.UseCors();
-            //if (!String.IsNullOrEmpty(Config.ApiKey))
-            //    app.UseMiddleware<ApiKeyMiddleware>();
             app.UseEndpoints(builder =>
             {
                 builder.MapHealthChecks("/healthcheck");
@@ -58,6 +56,20 @@ namespace compute.geometry
             };
 
             // NOTE:
+            // andyopayne 11/19/2024 (RH-84777)
+            // The commands.rhp needs to be loaded so that some features suchs as the gltf exporter will work.
+            // This is a temporary solution until the gltf exporter is moved into Rhinocommon or Rhino.UI
+            Log.Information("(1/4) Loading rhino commands plugin");
+            if (Rhino.PlugIns.PlugIn.LoadPlugIn(s_rhinoCommandsPluginId))
+            {
+                Log.Information("Successfully loaded commands plugin");
+            }
+            else
+            {
+                Log.Error("Error loading rhino commands plugin.");
+            }
+
+            // NOTE:
             // eirannejad 10/02/2024 (COMPUTE-268)
             // Ensure RhinoCode plugin (Rhino plugin) is loaded. This plugin registers scripting
             // languages and starts the scripting server that communicates with rhinocode CLI. It also makes
@@ -70,7 +82,7 @@ namespace compute.geometry
             // eirannejad 12/3/2024 (COMPUTE-268)
             // This load is placed before Grasshopper in case GH needs to load any plugins published by the
             // new scripting tools in Rhino >= 8
-            Log.Information("(1/3) Loading rhino scripting plugin");
+            Log.Information("(2/4) Loading rhino scripting plugin");
             if (Rhino.PlugIns.PlugIn.LoadPlugIn(s_rhinoCodePluginId))
             {
                 Log.Information("Successfully loaded scripting plugin");
@@ -91,20 +103,18 @@ namespace compute.geometry
             }
 
             // Load GH at startup so it can get initialized on the main thread
-            Log.Information("(2/3) Loading grasshopper");
+            Log.Information("(3/4) Loading grasshopper");
             var pluginObject = Rhino.RhinoApp.GetPlugInObject("Grasshopper");
             var runheadless = pluginObject?.GetType().GetMethod("RunHeadless");
             if (runheadless != null)
                 runheadless.Invoke(pluginObject, null);
 
 
-            Log.Information("(3/3) Loading compute plug-ins");
+            Log.Information("(4/4) Loading compute plug-ins");
             var loadComputePlugins = typeof(Rhino.PlugIns.PlugIn).GetMethod("LoadComputeExtensionPlugins");
             if (loadComputePlugins != null)
                 loadComputePlugins.Invoke(null, null);
 
-            //ApiKey.Initialize(pipelines);
-            //Rhino.Runtime.HostUtils.RegisterComputeEndpoint("grasshopper", typeof(Endpoints.GrasshopperEndpoint));
         }
 
     }

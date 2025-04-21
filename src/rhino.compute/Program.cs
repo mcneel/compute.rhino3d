@@ -8,8 +8,10 @@ namespace rhino.compute
     using CommandLine;
     using Serilog;
     using Serilog.Events;
-    using Microsoft.Extensions.Configuration;
     using System.IO;
+    using System.Globalization;
+    using System.Threading;
+    using Serilog.Templates;
 
     public class Program
     {
@@ -55,21 +57,23 @@ requests while the child processes are launching.")]
 
         static System.Diagnostics.Process _parentProcess;
         static System.Timers.Timer _selfDestructTimer;
-        public static IConfiguration Configuration { get; } = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-            .AddEnvironmentVariables()
-            .Build();
 
         public static void Main(string[] args)
         {
+            Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
             Config.Load();
-            Log.Logger = new LoggerConfiguration()
-            .ReadFrom.Configuration(Configuration)
+
+            var path = System.IO.Path.Combine(Config.LogPath, "log-rhino-compute-.txt");
+            var limit = Config.LogRetainDays;
+            var level = Config.Debug ? LogEventLevel.Debug : LogEventLevel.Information;
+
+            var loggerConfig = new LoggerConfiguration()
+            .MinimumLevel.Is(level)
+            .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
             .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico']")
-            .Enrich.FromLogContext()
-            .WriteTo.Console()
-            .CreateLogger();
+            .WriteTo.Console(outputTemplate: "RC  [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+            .WriteTo.File(new ExpressionTemplate("RC   [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
+            Log.Logger = loggerConfig.CreateLogger();
 
             int port = -1;
             Parser.Default.ParseArguments<Options>(args).WithParsed(o =>

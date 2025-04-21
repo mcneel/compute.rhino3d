@@ -7,7 +7,8 @@ namespace computegen
     {
         static void Main(string[] args)
         {
-            const string rhinocommonPath = @"C:\dev\github\mcneel\rhino\src4\DotNetSDK\rhinocommon\dotnet";
+            //const string rhinocommonPath = @"C:\dev\github\mcneel\rhino\src4\DotNetSDK\rhinocommon\dotnet";
+            const string rhinocommonPath = @"C:\dev\github\mcneel\rhino8\src4\DotNetSDK\rhinocommon\dotnet";
             Console.WriteLine("[BEGIN PARSE]");
             Console.ForegroundColor = ConsoleColor.DarkGreen;
             ClassBuilder.BuildClassDictionary(rhinocommonPath);
@@ -22,6 +23,8 @@ namespace computegen
                 ".NurbsCurve", ".NurbsSurface", ".SubD", ".Surface",
                 ".VolumeMassProperties"
             };
+
+            //string[] filter = new string[] {".Mesh"};
 
             var di = SharedRepoDirectory();
 
@@ -67,7 +70,8 @@ namespace computegen
             Console.WriteLine("Writing C# client");
             var cs = new DotNetClient();
             cs.Write(ClassBuilder.AllClasses, "RhinoCompute.cs", filter);
-
+            cs.IsAsync = true;
+            cs.Write(ClassBuilder.AllClasses, "RhinoComputeAsync.cs", filter);
 
             Console.ResetColor();
         }

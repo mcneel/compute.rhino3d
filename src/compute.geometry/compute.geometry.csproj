@@ -5,7 +5,7 @@
     <OutputType>Exe</OutputType>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <RuntimeFrameworkVersion>7.0.0</RuntimeFrameworkVersion>
-    <RollForward>LatestMinor</RollForward>
+    <RollForward>Major</RollForward>
     <UseWpf>True</UseWpf>
     <UseWindowsForms>True</UseWindowsForms>
     <SelfContained>False</SelfContained>
@@ -44,8 +44,8 @@
     <PackageReference Include="Serilog.Expressions" Version="3.4.1" />
     <PackageReference Include="Serilog.Sinks.Console" Version="4.1.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
-    <PackageReference Include="System.Management" Version="7.0.0" />
-    <PackageReference Include="System.Runtime.Caching" Version="7.0.0" />
-    <PackageReference Include="Microsoft.Windows.Compatibility" Version="7.0.0" />
+    <PackageReference Include="System.Management" Version="8.0.0" />
+    <PackageReference Include="System.Runtime.Caching" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Windows.Compatibility" Version="8.0.0" />
   </ItemGroup>
 </Project>
