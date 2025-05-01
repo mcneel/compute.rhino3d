@@ -1,10 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0-windows7.0</TargetFramework>
+    <TargetFramework>net9.0-windows7.0</TargetFramework>
     <AssemblyName>compute.geometry</AssemblyName>
     <OutputType>Exe</OutputType>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <RuntimeFrameworkVersion>8.0.0</RuntimeFrameworkVersion>
+    <RuntimeFrameworkVersion>9.0.0</RuntimeFrameworkVersion>
+    <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
     <RollForward>Major</RollForward>
     <UseWpf>True</UseWpf>
     <UseWindowsForms>True</UseWindowsForms>
@@ -36,9 +37,9 @@
 
   <ItemGroup>
     <PackageReference Include="Carter" Version="7.0.0" />
-    <PackageReference Include="Grasshopper" Version="9.0.25105.12305-wip" ExcludeAssets="runtime" />
+    <PackageReference Include="Grasshopper" Version="9.0.25120.1310-dujour" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
-    <PackageReference Include="RhinoCommon" Version="9.0.25105.12305-wip" ExcludeAssets="runtime" />
+    <PackageReference Include="RhinoCommon" Version="9.0.25120.1310-dujour" />
     <PackageReference Include="Serilog" Version="3.0.2-dev-02044" />
     <PackageReference Include="Serilog.AspNetCore" Version="6.1.0" />
     <PackageReference Include="Serilog.Expressions" Version="3.4.1" />
@@ -48,5 +49,6 @@
     <PackageReference Include="System.Runtime.Caching" Version="9.0.0" />
     <PackageReference Include="Microsoft.Windows.Compatibility" Version="9.0.0" />
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <PackageReference Include="System.Runtime.Serialization.Formatters" Version="9.0.0" />
   </ItemGroup>
 </Project>

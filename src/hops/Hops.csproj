@@ -48,12 +48,9 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Grasshopper">
-      <Version>9.0.25105.12305-wip</Version>
-      <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
+    <PackageReference Include="Grasshopper" Version="9.0.25120.1310-dujour" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
-    <PackageReference Include="RhinoCommon" Version="9.0.25105.12305-wip" />
+    <PackageReference Include="RhinoCommon" Version="9.0.25120.1310-dujour" />
     <PackageReference Include="Serilog" Version="2.10.0" />
     <PackageReference Include="Serilog.Expressions" Version="3.4.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="3.2.0" />

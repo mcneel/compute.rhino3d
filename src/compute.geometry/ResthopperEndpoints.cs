@@ -110,7 +110,7 @@ namespace compute.geometry
             stopwatch.Restart();
             string returnJson = JsonConvert.SerializeObject(output, GeometryResolver.Settings(input.DataVersion));
             long encodeTime = stopwatch.ElapsedMilliseconds;
-            ctx.Response.Headers.Add("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
+            ctx.Response.Headers.Append("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
             if (definition.HasErrors)
                 ctx.Response.StatusCode = 500; // internal server error
             else

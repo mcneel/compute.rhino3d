@@ -26,7 +26,7 @@ $giturl = "$gitPrefix/$actionurl"
 $response = Invoke-RestMethod -Method Get -Uri $giturl
 $artifacts = $response.artifacts
 $artifactID = -1
-$matchingBranch = "8.x"
+$matchingBranch = "9.x"
 
 for($i=0; $i -lt $artifacts.Length; $i++){
     $latest = $artifacts[$i]
