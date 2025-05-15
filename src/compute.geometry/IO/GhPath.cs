@@ -4,8 +4,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using GH_IO.Serialization;
+using Grasshopper.Kernel.Types;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using Rhino.Geometry;
 
 namespace Resthopper.IO
 {
@@ -23,7 +26,6 @@ namespace Resthopper.IO
         public GhPath(int path) {
             this.Path = new int[] { path };
         }
-
 
         public GhPath(int[] path)
         {
@@ -71,8 +73,7 @@ namespace Resthopper.IO
                 this.Path[j] = path[j];
             }
             this.Path[path.Length] = i;
-        }
-        
+        }    
 
         public bool LastIndexSame(int i)
         {
@@ -80,17 +81,89 @@ namespace Resthopper.IO
         }
     }
 
-
-    public class DataTree<T> 
+    public class GrasshopperValues
     {
+        [JsonIgnore]
+        public readonly Dictionary<string, Grasshopper.Kernel.Data.GH_Structure<IGH_Goo>> Values = new Dictionary<string, Grasshopper.Kernel.Data.GH_Structure<IGH_Goo>>();
+        public string Data 
+        {
+            get
+            {
+                //var options = new Dictionary<string, object>
+                //{
+                //    ["Archive.Context"] = GH_Archive.Context.All
+                //};
+                //var archive = new GH_Archive(options);
 
+                var archive = new GH_Archive();
+                archive.CreateNewRoot(true);
+                var root = archive.GetRootNode;
+                var chunk = root.CreateChunk("Values");  
+                foreach (var entry in Values)
+                {
+                    var param = chunk.CreateChunk(entry.Key);
+
+                    foreach (var list in entry.Value.Branches)
+                    {
+                        for (int i = 0; i < list.Count; i++)
+                        {
+                            var goo = list[i];
+                            // Removing ref ID in order to send as internalized geometry
+                            if (goo is IGH_GeometricGoo geometricGoo && geometricGoo.IsReferencedGeometry)
+                            {
+                                //geometricGoo = geometricGoo.DuplicateGeometry();
+                                //geometricGoo.ReferenceID = Guid.Empty;
+                                //list[i] = geometricGoo;
+                            }
+                            else if(goo is IGH_ReferencedData refData && refData.IsReferencedData)
+                            {
+                                var modelData = refData as Grasshopper.Rhinoceros.ModelContent;
+                                list[i] = modelData.AsFrozen(true);
+                                //var modelData = refData as Grasshopper.Rhinoceros.ModelData;
+                                //list[i] = modelData.ToAttributes().ToModelData();
+                            }
+                        }
+                    }
+                    entry.Value.Write(param);
+                }
+                var binary = archive.Serialize_Binary();
+                return Convert.ToBase64String(binary);
+            }
+            set
+            {
+                Values.Clear();
+                var base64 = value;
+                var binary = Convert.FromBase64String(base64);
+                //var options = new Dictionary<string, object>
+                //{
+                //    ["Archive.Context"] = GH_Archive.Context.All
+                //};
+                //var archive = new GH_Archive(options);
+                var archive = new GH_Archive();
+                archive.Deserialize_Binary(binary);
+                var root = archive.GetRootNode;
+                var chunk = root.FindChunk("Values");
+                foreach (var param in chunk.Chunks)
+                {
+                    var values = new Grasshopper.Kernel.Data.GH_Structure<IGH_Goo>();
+                    values.Read(param as GH_IReader);
+                    Values.Add(param.Name, values);
+                }
+            }
+        }
+    }
+
+    public class DataTree<T>
+    {
         public DataTree() {
             _tree = new Dictionary<string, List<T>>();
             //_GhPathIndexer = new Dictionary<int, GhPath>();
         }
 
-        private Dictionary<string, List<T>> _tree;
         public string ParamName { get; set; }
+
+        private Dictionary<string, List<T>> _tree;
+
         //Dictionary<int, GhPath> _GhPathIndexer;
 
 

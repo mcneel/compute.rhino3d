@@ -5,10 +5,6 @@
       {
         "Path": "rhino.compute\\rhino.compute.csproj",
         "Action": "Start"
-      },
-      {
-        "Path": "HopsNetCore\\HopsNetCore.csproj",
-        "Action": "Start"
       }
     ]
   }

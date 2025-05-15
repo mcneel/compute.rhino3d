@@ -78,11 +78,11 @@ $credential = New-Object System.Management.Automation.PSCredential($localUserNam
 
 Write-Step "Installing the Hops plugin"
 
-$yakPath = "C:\Program Files\Rhino 8\System\Yak.exe"
+$yakPath = "C:\Program Files\Rhino 9 WIP\System\Yak.exe"
 $arguments = "install hops"
 
 # Use Start-Process with properly quoted arguments
-$process = Start-Process -FilePath $yakPath -ArgumentList $arguments -Credential $credential -WorkingDirectory "C:\Program Files\Rhino 8\System" -PassThru -Wait
+$process = Start-Process -FilePath $yakPath -ArgumentList $arguments -Credential $credential -WorkingDirectory "C:\Program Files\Rhino 9 WIP\System" -PassThru -Wait
 
 if ($process.ExitCode -ne 0) {
     Write-Error "Failed to install the Hops plugin. Exit code: $($process.ExitCode)"

@@ -1,10 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using Grasshopper.Kernel.Types;
 using Newtonsoft.Json;
 using Rhino.Geometry;
 
 namespace Resthopper.IO
 {
+    public enum SchemaDataFormat
+    {
+        Resthopper = 0,
+        Grasshopper = 1
+    }
     public class Schema
     {
         public Schema() {}
@@ -18,9 +24,13 @@ namespace Resthopper.IO
         [JsonProperty(PropertyName = "modelunits")]
         public string ModelUnits { get; set; } = Rhino.UnitSystem.Millimeters.ToString();
 
-        // Rhino version of data to be serialized and returned to the client
+        // Rhino version of data that the server is capable of processing
         [JsonProperty(PropertyName = "dataversion")]
         public int DataVersion { get; set; } = 7;
+
+        // Format of the data that the server is capable of processing
+        [JsonProperty(PropertyName = "dataformat")]
+        public SchemaDataFormat DataFormat { get; set; } = SchemaDataFormat.Resthopper;
 
         [JsonProperty(PropertyName = "algo")]
         public string Algo { get; set; }
@@ -42,6 +52,9 @@ namespace Resthopper.IO
 
         [JsonProperty(PropertyName = "values")]
         public List<DataTree<ResthopperObject>> Values { get; set; } = new List<DataTree<ResthopperObject>>();
+
+        [JsonProperty(PropertyName = "values-grasshopper")]
+        public GrasshopperValues GrasshopperValues { get; set; } = new GrasshopperValues();
 
         // Return warnings from GH
         [JsonProperty(PropertyName = "warnings", DefaultValueHandling = DefaultValueHandling.Ignore)]
@@ -89,6 +102,10 @@ namespace Resthopper.IO
         public List<IoParamSchema> Outputs { get; set; }
         public List<string> Warnings { get; set; } = new List<string>();
         public List<string> Errors { get; set; } = new List<string>();
+
+        // List of supported data formats from the server
+        [JsonProperty(PropertyName = "supporteddataformats")]
+        public List<SchemaDataFormat> SupportedDataFormats { get; set; } = new List<SchemaDataFormat>();
     }
 
     public class HTTPRecord

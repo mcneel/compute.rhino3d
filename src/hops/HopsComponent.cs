@@ -1458,7 +1458,8 @@ for value in values:
                                 }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_GenericObject _:
-                                throw new Exception("Generic param not supported");
+                                paramIndex = mgr.AddGenericParameter(name, nickname, inputDescription, access);
+                                break;
                             case Grasshopper.Kernel.Parameters.Param_Geometry _:
                                 paramIndex = mgr.AddGeometryParameter(name, nickname, inputDescription, access);
                                 if (input.Default is object)
@@ -2068,6 +2069,14 @@ for value in values:
                                         }
                                     }   
                                 }
+                                break;
+
+                            default:
+                                param.Name = name;
+                                param.Description = inputDescription;
+                                param.Access = access;
+                                param.NickName = nickname;
+                                paramIndex = mgr.AddParameter(param);
                                 break;
                         }
 

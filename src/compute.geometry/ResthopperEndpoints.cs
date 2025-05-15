@@ -100,21 +100,17 @@ namespace compute.geometry
             }
             int recursionLevel = input.RecursionLevel + 1;
             definition.Definition.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(recursionLevel));
-            Serilog.Log.Debug("Setting input values");
-            definition.SetInputs(input.Values);
+
+            definition.SetInputs(input);
             long decodeTime = stopwatch.ElapsedMilliseconds;
             stopwatch.Restart();
-            var fileNameMsg = String.Empty;
-            if (!String.IsNullOrEmpty(input.FileName))
-                fileNameMsg = $" {input.FileName}";
-            Serilog.Log.Debug($"Solving definition{fileNameMsg}...");
-            var output = definition.Solve(input.DataVersion);
+            var output = definition.Solve(input.DataVersion, input.DataFormat);
             output.Pointer = definition.CacheKey;
             long solveTime = stopwatch.ElapsedMilliseconds;
             stopwatch.Restart();
             string returnJson = JsonConvert.SerializeObject(output, GeometryResolver.Settings(input.DataVersion));
             long encodeTime = stopwatch.ElapsedMilliseconds;
-            ctx.Response.Headers.Add("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
+            ctx.Response.Headers.Append("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
             if (definition.HasErrors)
                 ctx.Response.StatusCode = 500; // internal server error
             else
@@ -247,6 +243,7 @@ namespace compute.geometry
 
             responseSchema.CacheKey = definition.CacheKey;
             responseSchema.Icon = definition.GetIconAsString();
+            responseSchema.SupportedDataFormats = new List<SchemaDataFormat> { SchemaDataFormat.Resthopper, SchemaDataFormat.Grasshopper};
             responseSchema.FileName = fileName;
             foreach (var error in definition.ErrorMessages)
             {

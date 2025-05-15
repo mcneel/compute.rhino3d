@@ -8,7 +8,6 @@ using Serilog;
 using Carter;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
-
 using System.IO;
 
 
@@ -25,14 +24,14 @@ namespace compute.geometry
             Logging.Init();
 
             RhinoInside.Resolver.Initialize();
-            RhinoInside.Resolver.UseLatest = false;
+            RhinoInside.Resolver.UseLatest = true;
 #if DEBUG
             // Uncomment the following to debug with core Rhino source. This
             // tells compute to use a different RhinoCore than what RhinoInside thinks
             // should use.
             // (for McNeel devs only and only those devs who use the same path as Andy)
 
-            //string rhinoSystemDir = @"C:\dev\github\mcneel\rhino8\src4\bin\Debug";
+            //string rhinoSystemDir = @"C:\dev\github\mcneel\rhino9\src4\bin\Debug";
             //if (System.IO.File.Exists(rhinoSystemDir + "\\Rhino.exe"))
             //    RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
 
@@ -157,7 +156,6 @@ namespace compute.geometry
             Log.Debug("Rhino system directory: {Path}", RhinoInside.Resolver.RhinoSystemDirectory);
         }
     }
-
 
     public class RhinoGetModule : ICarterModule
     {
