@@ -1379,12 +1379,12 @@ namespace compute.geometry
                             var max = Convert.ToDouble(val);
                             if (pTypeName == "Integer")
                             {
-                                if (max < int.MinValue - Rhino.RhinoMath.Epsilon)
+                                if (max < int.MaxValue - Rhino.RhinoMath.Epsilon)
                                     return max;
                             }
                             else if (pTypeName == "Number")
                             {
-                                if (max < double.MinValue - Rhino.RhinoMath.Epsilon)
+                                if (max < double.MaxValue - Rhino.RhinoMath.Epsilon)
                                     return max;
                             }
                         }
