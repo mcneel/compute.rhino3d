@@ -11,15 +11,23 @@ param (
 # * Make sure Powershell Execution Policy is bypassed to run these scripts:
 Set-ExecutionPolicy Bypass -Scope Process -Force
 
+# Create a folder for all installation information
+$installPath = "C:\Rhino Compute Installation"
+$tempName = "Temp"
+$logFileName = "bootstrap_step-1_log.txt"
+$tmpFullPath = Join-Path -Path $installPath -ChildPath $tempName
+$logFullPath = Join-Path -Path $installPath -ChildPath $logFileName
+
 $ErrorActionPreference="SilentlyContinue"
 Stop-Transcript | out-null
 $ErrorActionPreference = "Continue"
-Start-Transcript -path C:\bootstrap_step-1_log.txt -append
+Start-Transcript -path $logFullPath -append
 
 #In case if $PSScriptRoot is empty (version of powershell V.2).  
 if(!$PSScriptRoot){ $PSScriptRoot = Split-Path $MyInvocation.MyCommand.Path -Parent } 
 
 Write-Host @"
+
   # # # # # # # # # # # # # # # # # # # # #
   #                                       #
   #       R H I N O   I N S T A L L       #
@@ -27,6 +35,7 @@ Write-Host @"
   #              S C R I P T              #
   #                                       #
   # # # # # # # # # # # # # # # # # # # # #
+
 "@
 
 # check os is server
@@ -70,28 +79,31 @@ if ($PSBoundParameters.ContainsKey('ApiKey')) {
 }
 SetEnvVar 'RHINO_COMPUTE_URLS' 'http://+:80'
 
+
+
 # Download and install Rhino
 Write-Step 'Download latest Rhino 8'
 $rhinoDownloadUrl = "https://www.rhino3d.com/www-api/download/direct/?slug=rhino-for-windows/8/latest/?email=$EmailAddress" 
 $rhinoSetup = "rhino_setup.exe"
-Download $rhinoDownloadUrl $rhinoSetup
+$setupFullPath = Join-Path -Path $tmpFullPath -ChildPath $rhinoSetup
+Download $rhinoDownloadUrl $setupFullPath
 
 # Set firewall rule to allow installation
-New-NetFirewallRule -DisplayName "Rhino 8 Installer" -Direction Inbound -Program $rhinoSetup -Action Allow
+New-NetFirewallRule -DisplayName "Rhino 8 Installer" -Direction Inbound -Program $setupFullPath -Action Allow
 
 Write-Step 'Installing Rhino'
 # Automated install (https://wiki.mcneel.com/rhino/installingrhino/8)
-$process = Start-Process -FilePath $rhinoSetup -ArgumentList '-passive', '-norestart' -Wait
+$process = Start-Process -FilePath $setupFullPath -ArgumentList '-passive', '-norestart' -Wait
 
 if ($process.ExitCode -eq 0) {
-    Write-Step "Install process '$rhinoSetup' finished successfully."
+    Write-Step "Install process '$setupFullPath' finished successfully."
     # delete installer
-    Remove-Item $rhinoSetup
+    #Remove-Item $rhinoSetup
     # Print installed version number
     $installedVersion = [Version] (get-itemproperty -Path HKLM:\SOFTWARE\McNeel\Rhinoceros\8.0\Install -name "version").Version
     Write-Step "Successfully installed $installedVersion"
 } else {
-    Write-Step "Process '$rhinoSetup' finished with an error. Exit Code: $($process.ExitCode)"
+    Write-Step "Process '$setupFullPath' finished with an error. Exit Code: $($process.ExitCode)"
 }
 
 Stop-Transcript
