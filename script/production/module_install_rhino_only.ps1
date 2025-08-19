@@ -17,6 +17,7 @@ $tempName = "Temp"
 $logFileName = "bootstrap_step-1_log.txt"
 $tmpFullPath = Join-Path -Path $installPath -ChildPath $tempName
 $logFullPath = Join-Path -Path $installPath -ChildPath $logFileName
+New-Item -ItemType Directory -Path $tmpFullPath
 
 $ErrorActionPreference="SilentlyContinue"
 Stop-Transcript | out-null
