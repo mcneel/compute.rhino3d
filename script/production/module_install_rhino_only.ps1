@@ -7,6 +7,52 @@ param (
     [Parameter(Mandatory=$true)][string] $RhinoToken,
     [switch] $install = $false
 )
+# * Make sure you run this script from a Powershel Admin Prompt!
+# * Make sure Powershell Execution Policy is bypassed to run these scripts:
+Set-ExecutionPolicy Bypass -Scope Process -Force
+
+# Create a folder for all installation information
+$installPath = "C:\Rhino Compute Installation"
+$tempName = "Temp"
+$logFileName = "bootstrap_step-1_log.txt"
+$tmpFullPath = Join-Path -Path $installPath -ChildPath $tempName
+$logFullPath = Join-Path -Path $installPath -ChildPath $logFileName
+if (-not (Test-Path -Path $tmpFullPath -PathType Container)) {
+    # If the folder does not exist, create it as a Directory
+    New-Item -ItemType Directory -Path $tmpFullPath
+    Write-Host "'$tmpFullPath' created successfully."
+} else {
+    Write-Host "'$tmpFullPath' already exists."
+}
+
+$ErrorActionPreference="SilentlyContinue"
+Stop-Transcript | out-null
+$ErrorActionPreference = "Continue"
+Start-Transcript -path $logFullPath -append
+
+#In case if $PSScriptRoot is empty (version of powershell V.2).  
+if(!$PSScriptRoot){ $PSScriptRoot = Split-Path $MyInvocation.MyCommand.Path -Parent } 
+
+Write-Host @"
+
+  # # # # # # # # # # # # # # # # # # # # #
+  #                                       #
+  #       R H I N O   I N S T A L L       #
+  #                                       #
+  #              S C R I P T              #
+  #                                       #
+  # # # # # # # # # # # # # # # # # # # # #
+
+"@
+
+# check os is server
+$os = (Get-CimInstance -ClassName 'Win32_OperatingSystem').Caption
+if ($os -notlike '*server*') {
+    Write-Host "The script is intended for use on Windows Server. Detected '$os'" -ForegroundColor Red
+    exit 1
+}
+
+Write-Host "Root Script Path:" $PSScriptRoot
 
 #Region funcs
 function Write-Step { 
@@ -40,6 +86,8 @@ if ($PSBoundParameters.ContainsKey('ApiKey')) {
 }
 SetEnvVar 'RHINO_COMPUTE_URLS' 'http://+:80'
 
+
+
 # Download and install Rhino
 Write-Step 'Download latest Rhino 9'
 $rhinoDownloadUrl = "https://www.rhino3d.com/www-api/download/direct/?slug=rhino-for-windows/9/wip/?email=$EmailAddress" 
@@ -63,3 +111,5 @@ if ($process.ExitCode -eq 0) {
 } else {
     Write-Host "Process '$setupFullPath' finished with an error. Exit Code: $($process.ExitCode)"
 }
+
+Stop-Transcript

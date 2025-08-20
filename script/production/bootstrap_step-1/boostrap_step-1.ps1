@@ -13,15 +13,30 @@ function Write-Step {
 }
 #EndRegion funcs
 
+# Create a folder for all installation information
+$installPath = "C:\Rhino Compute Installation"
+$tempName = "Temp"
+$logFileName = "bootstrap_step-1_log.txt"
+$tmpFullPath = Join-Path -Path $installPath -ChildPath $tempName
+$logFullPath = Join-Path -Path $installPath -ChildPath $logFileName
+if (-not (Test-Path -Path $tmpFullPath -PathType Container)) {
+    # If the folder does not exist, create it as a Directory
+    New-Item -ItemType Directory -Path $tmpFullPath
+    Write-Host "'$tmpFullPath' created successfully."
+} else {
+    Write-Host "'$tmpFullPath' already exists."
+}
+
 $ErrorActionPreference="SilentlyContinue"
 Stop-Transcript | out-null
 $ErrorActionPreference = "Continue"
-Start-Transcript -path C:\bootstrap_step-1_log.txt -append
+Start-Transcript -path $logFullPath -append
 
 #In case $PSScriptRoot is empty (version of powershell V.2).  
 if(!$PSScriptRoot){ $PSScriptRoot = Split-Path $MyInvocation.MyCommand.Path -Parent } 
 
 Write-Host @"
+
   # # # # # # # # # # # # # # # # # # # # #
   #                                       #
   #       R H I N O   C O M P U T E       #
@@ -31,6 +46,7 @@ Write-Host @"
   #                STEP 1                 #
   #                                       #
   # # # # # # # # # # # # # # # # # # # # #
+
 "@
 
 # check os is server
