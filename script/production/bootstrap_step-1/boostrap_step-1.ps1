@@ -36,6 +36,7 @@ Start-Transcript -path $logFullPath -append
 if(!$PSScriptRoot){ $PSScriptRoot = Split-Path $MyInvocation.MyCommand.Path -Parent } 
 
 Write-Host @"
+
   # # # # # # # # # # # # # # # # # # # # #
   #                                       #
   #       R H I N O   C O M P U T E       #
@@ -45,6 +46,7 @@ Write-Host @"
   #                STEP 1                 #
   #                                       #
   # # # # # # # # # # # # # # # # # # # # #
+  
 "@
 
 # check os is server
