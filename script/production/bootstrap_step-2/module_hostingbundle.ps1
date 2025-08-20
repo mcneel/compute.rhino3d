@@ -24,7 +24,7 @@ $hbIntallerFilename = [System.IO.Path]::GetFileName( $hbInstallerURL )
 $hbInstallerFilepath = Join-Path -Path $tmpFullPath -ChildPath $hbIntallerFilename
 Download $hbInstallerURL $hbInstallerFilepath
 Write-Output ""
-Write-Output "$hb_intaller_filename downloaded"
+Write-Output "$hbIntallerFilename downloaded"
 Write-Output ""
 Write-Step 'Installing ASP.NET Core 8.0 Hosting Bundle'
 $result = Start-Process -FilePath $hbInstallerFilepath -ArgumentList '/repair', '/quiet', '/norestart' -NoNewWindow -Wait -PassThru
