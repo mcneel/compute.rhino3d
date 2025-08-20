@@ -52,7 +52,8 @@ New-NetFirewallRule -DisplayName "Rhino 9 Installer" -Direction Inbound -Program
 
 Write-Step 'Installing Rhino'
 # Automated install (https://wiki.mcneel.com/rhino/installingrhino/8)
-$process = Start-Process -FilePath $setupFullPath -ArgumentList '-passive', '-norestart' -Wait
+$process = Start-Process -FilePath $setupFullPath -ArgumentList '-passive', '-norestart' -PassThru 
+$process.WaitForExit()
 
 if ($process.ExitCode -eq 0) {
     # delete installer
