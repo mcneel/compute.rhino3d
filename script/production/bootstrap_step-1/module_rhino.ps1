@@ -55,12 +55,11 @@ Write-Step 'Installing Rhino'
 $process = Start-Process -FilePath $setupFullPath -ArgumentList '-passive', '-norestart' -Wait
 
 if ($process.ExitCode -eq 0) {
-    Write-Step "Install process '$setupFullPath' finished successfully."
     # delete installer
     #Remove-Item $rhinoSetup
     # Print installed version number
     $installedVersion = [Version] (get-itemproperty -Path HKLM:\SOFTWARE\McNeel\Rhinoceros\8.0\Install -name "version").Version
-    Write-Step "Successfully installed $installedVersion"
+    Write-Host "Successfully installed Rhino $installedVersion"
 } else {
-    Write-Step "Process '$setupFullPath' finished with an error. Exit Code: $($process.ExitCode)"
+    Write-Host "Process '$setupFullPath' finished with an error. Exit Code: $($process.ExitCode)"
 }
