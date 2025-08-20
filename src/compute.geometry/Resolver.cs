@@ -80,12 +80,33 @@ namespace RhinoInside
                 //    }
                 //}
             }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                path = Path.Combine(systemDirectory, name + ".dll");
+            }
+            else
+            {
+                throw new NotSupportedException("Unsupported platform");
+            }
             return path;
         }
 
         static Assembly ResolveForRhinoAssemblies(object sender, ResolveEventArgs args)
         {
-            string path = AssemblyPathFromName(RhinoSystemDirectory, args.Name);
+            string path;
+            if (args.Name.Contains("Grasshopper"))
+            {
+                path = Path.Combine(RhinoSystemDirectory, "Plug-ins/Grasshopper/Grasshopper.dll");
+            }
+            else if (args.Name.Contains("GH_IO"))
+            {
+                path = Path.Combine(RhinoSystemDirectory, "Plug-ins/Grasshopper/GH_IO.dll");
+            }
+            else
+            {
+                path = AssemblyPathFromName(RhinoSystemDirectory, args.Name);
+            }
+            
             if (File.Exists(path))
                 return Assembly.LoadFrom(path);
             return null;
@@ -129,6 +150,10 @@ namespace RhinoInside
                     }
                 }
             }
+            else if (RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Linux))
+            {
+                return "/home/ubuntu/dev/rhino/src4/bin/DebugLinux/";
+            }
             return null;
         }
 
@@ -153,6 +178,10 @@ namespace RhinoInside
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
                 rhinoLibraryHandle = NativeLibrary.Load(Path.Combine(systemDirectory, "RhinoLibrary.framework/Versions/A/RhinoLibrary"));
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                rhinoLibraryHandle = NativeLibrary.Load(Path.Combine(systemDirectory, "libRhinoLibrary.so"));
             }
             else
             {
@@ -196,7 +225,7 @@ namespace RhinoInside
 
         static void ExecuteLoadProc(AssemblyLoadContext context)
         {
-            var assembly = context.LoadFromAssemblyName(new AssemblyName("dotnetstart"));
+            var assembly = context.LoadFromAssemblyName(new AssemblyName("dotnetstart.9"));
             Type? programType = assembly?.GetType("dotnetstart.DotNetInitialization");
             MethodInfo? method = programType?.GetMethod("Start");
             method?.Invoke(null, new object[] { "headless" });
