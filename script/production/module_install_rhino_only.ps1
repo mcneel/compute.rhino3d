@@ -17,7 +17,13 @@ $tempName = "Temp"
 $logFileName = "bootstrap_step-1_log.txt"
 $tmpFullPath = Join-Path -Path $installPath -ChildPath $tempName
 $logFullPath = Join-Path -Path $installPath -ChildPath $logFileName
-New-Item -ItemType Directory -Path $tmpFullPath
+if (-not (Test-Path -Path $tmpFullPath -PathType Container)) {
+    # If the folder does not exist, create it as a Directory
+    New-Item -ItemType Directory -Path $tmpFullPath
+    Write-Host "'$tmpFullPath' created successfully."
+} else {
+    Write-Host "'$tmpFullPath' already exists."
+}
 
 $ErrorActionPreference="SilentlyContinue"
 Stop-Transcript | out-null
