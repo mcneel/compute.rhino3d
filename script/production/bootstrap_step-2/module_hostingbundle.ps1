@@ -16,32 +16,25 @@ function Download {
 }
 #EndRegion funcs
 
-$temp_path = "C:\temp\"
-
-if( ![System.IO.Directory]::Exists( $temp_path ) )
-{
-    New-Item $temp_path -ItemType Directory
-}
-
 # Download and install .NET Hosting Bundle
 Write-Step 'Download ASP.NET Core 8.0 Hosting Bundle'
 
-$hb_installer_url = "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/8.0.14/dotnet-hosting-8.0.14-win.exe"
-$hb_intaller_filename = [System.IO.Path]::GetFileName( $hb_installer_url )
-$hb_installer_filepath = $temp_path + $hb_intaller_filename
-Download $hb_installer_url $hb_installer_filepath
+$hbInstallerURL = "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/8.0.14/dotnet-hosting-8.0.14-win.exe"
+$hbIntallerFilename = [System.IO.Path]::GetFileName( $hbInstallerURL )
+$hbInstallerFilepath = Join-Path -Path $tmpFullPath -ChildPath $hbIntallerFilename
+Download $hbInstallerURL $hbInstallerFilepath
 Write-Output ""
 Write-Output "$hb_intaller_filename downloaded"
 Write-Output ""
 Write-Step 'Installing ASP.NET Core 8.0 Hosting Bundle'
-$result = Start-Process -FilePath $hb_installer_filepath -ArgumentList '/repair', '/quiet', '/norestart' -NoNewWindow -Wait -PassThru
+$result = Start-Process -FilePath $hbInstallerFilepath -ArgumentList '/repair', '/quiet', '/norestart' -NoNewWindow -Wait -PassThru
 If($result.Exitcode -Eq 0)
 {
-    Write-Output "$hb_intaller_filename installed"
+    Write-Output "$hbIntallerFilename successfully installed"
     Write-Step 'Restarting IIS services'
     net stop was /y
     net start w3svc
 }
 else {
-    Write-Output "Something went wrong with the installation. Errorlevel: ${result.ExitCode}"
+    Write-Output "Something went wrong with the hosting bundle installation. Errorlevel: ${result.ExitCode}"
 }
