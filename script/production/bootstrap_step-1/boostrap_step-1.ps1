@@ -14,7 +14,7 @@ function Write-Step {
 #EndRegion funcs
 
 # Create a folder for all installation information
-$installPath = "C:\Rhino Compute Installation"
+$installPath = "C:\Rhino_Compute_Installation"
 $tempName = "Temp"
 $logFileName = "bootstrap_step-1_log.txt"
 $tmpFullPath = Join-Path -Path $installPath -ChildPath $tempName
