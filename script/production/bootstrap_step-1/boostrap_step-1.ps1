@@ -14,7 +14,7 @@ function Write-Step {
 #EndRegion funcs
 
 # Create a folder for all installation information
-$installPath = "C:\Rhino_Compute_Installation"
+$installPath = "C:\Rhino-Compute-Installation"
 $tempName = "Temp"
 $logFileName = "bootstrap_step-1_log.txt"
 $tmpFullPath = Join-Path -Path $installPath -ChildPath $tempName
@@ -31,6 +31,9 @@ $ErrorActionPreference="SilentlyContinue"
 Stop-Transcript | out-null
 $ErrorActionPreference = "Continue"
 Start-Transcript -path $logFullPath -append
+
+$startTime = Get-Date -Format "dddd, MMMM dd yyyy hh:mm:ss tt"
+Write-Step "Transcript started at: $startTime"
 
 #In case $PSScriptRoot is empty (version of powershell V.2).  
 if(!$PSScriptRoot){ $PSScriptRoot = Split-Path $MyInvocation.MyCommand.Path -Parent } 
@@ -65,6 +68,10 @@ Write-Host "Root Script Path:" $PSScriptRoot
 
 Write-Step 'Restart Windows to complete setup!'
 Write-Host 'Rebooting in 5 seconds...'
+
+$endTime = Get-Date -Format "dddd, MMMM dd yyyy hh:mm:ss tt"
+Write-Step "Stage 1 installation ended at: $endTime"
+
 Stop-Transcript
 shutdown /r /t 5
 
