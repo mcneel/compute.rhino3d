@@ -14,27 +14,70 @@ function Download {
     )
     (New-Object System.Net.WebClient).DownloadFile($url, $output)
 }
+function Install-ProcessWithTimeout {
+    param (
+        [string]$ExePath,
+        [string[]]$Arguments,
+        [System.Management.Automation.PSCredential]$Credential = $null,
+        [int]$TimeoutSeconds = 600,   # default 10 min timeout
+        [int]$MaxRetries = 2
+    )
+
+    for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
+        Write-Host "Starting attempt {$attempt}: $ExePath $Arguments"
+
+        $params = @{
+            FilePath = $ExePath
+            ArgumentList = $Arguments
+            WorkingDirectory = (Split-Path $ExePath)
+            PassThru = $true
+        }
+        if ($Credential) { $params.Credential = $Credential }
+
+        $process = Start-Process @params
+
+        if ($process.WaitForExit($TimeoutSeconds * 1000)) {
+            # Process ended, check exit code
+            if ($process.ExitCode -eq 0) {
+                Write-Host "Installer finished successfully on attempt $attempt"
+                return $true
+            } else {
+                Write-Warning "Installer exited with code $($process.ExitCode) on attempt $attempt"
+            }
+        } else {
+            Write-Warning "Installer timed out after $TimeoutSeconds seconds on attempt $attempt"
+            try { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue } catch {}
+        }
+
+        if ($attempt -lt $MaxRetries) {
+            Write-Host "Retrying..."
+            Start-Sleep -Seconds 5
+        }
+    }
+
+    Write-Error "Installer failed after $MaxRetries attempts."
+    return $false
+}
 #EndRegion funcs
 
 # Download and install .NET Hosting Bundle
 Write-Step 'Download ASP.NET Core 9.0 Hosting Bundle'
 
 $hbInstallerURL = "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/9.0.4/dotnet-hosting-9.0.4-win.exe"
-$hbIntallerFilename = [System.IO.Path]::GetFileName( $hbInstallerURL )
-$hbInstallerFilepath = Join-Path -Path $tmpFullPath -ChildPath $hbIntallerFilename
+$hbInstallerFilename = "dotnet-hosting-9.0.4-win.exe"
+$hbInstallerFilepath = Join-Path -Path $tmpFullPath -ChildPath $hbInstallerFilename
+
 Download $hbInstallerURL $hbInstallerFilepath
-Write-Output ""
-Write-Output "$hbIntallerFilename downloaded"
-Write-Output ""
+
 Write-Step 'Installing ASP.NET Core 9.0 Hosting Bundle'
-$result = Start-Process -FilePath $hbInstallerFilepath -ArgumentList '/repair', '/quiet', '/norestart' -NoNewWindow -Wait -PassThru
-If($result.Exitcode -Eq 0)
-{
-    Write-Output "$hbIntallerFilename installed"
+
+$success = Install-ProcessWithTimeout -ExePath $hbInstallerFilepath -Arguments @('/repair','/quiet','/norestart') -TimeoutSeconds 600 -MaxRetries 2
+
+if ($success) {
+    Write-Output "$hbInstallerFilename successfully installed"
     Write-Step 'Restarting IIS services'
     net stop was /y
     net start w3svc
-}
-else {
-    Write-Output "Something went wrong with the hosting bundle installation. Errorlevel: ${result.ExitCode}"
+} else {
+    Write-Output "Something went wrong with the hosting bundle installation after retries."
 }
