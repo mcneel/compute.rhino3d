@@ -59,6 +59,7 @@ if ($os -notlike '*server*') {
     exit 1
 }
 
+Write-Host
 Write-Host "Root Script Path:" $PSScriptRoot
 
 # These scripts should be run in this order
