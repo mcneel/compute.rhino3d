@@ -75,6 +75,7 @@ namespace Resthopper.IO
         public object Default { get; set; } = null;
         public object Minimum { get; set; } = null;
         public object Maximum { get; set; } = null;
+        public string GroupName { get; set; } = null;
     }
 
     public class IoResponseSchema

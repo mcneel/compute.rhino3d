@@ -25,6 +25,7 @@ namespace compute.geometry
         static Dictionary<string, FileSystemWatcher> _filewatchers;
         static HashSet<string> _watchedFiles = new HashSet<string>();
         static uint _watchedFileRuntimeSerialNumber = 1;
+        static List<GH_Group> _inputGroup { get; } = new List<GH_Group>();
         public static uint WatchedFileRuntimeSerialNumber
         {
             get { return _watchedFileRuntimeSerialNumber; }
@@ -240,13 +241,66 @@ namespace compute.geometry
                     IGH_Param param = contextPrinter.Params.Input[0];
                     AddOutput(param, param.NickName, ref rc);
                 }
+                
+                //Add params without group
+                IGH_ContextualParameter contextualParamWG = obj as IGH_ContextualParameter;
+                if (contextualParamWG != null)
+                {
+                    var testGroup = obj as GH_Group;
+                    IGH_Param param = obj as IGH_Param;
+                    if (param != null && testGroup == null)
+                    {
+                        bool isInDict = rc._input.ContainsKey(param.NickName);
+                        if (!isInDict)
+                        {
+                            AddInput(param, param.NickName, ref rc);
+                        }
+                    }
+
+                    continue;
+                }
+
 
                 var group = obj as GH_Group;
                 if (group == null)
                     continue;
 
                 string nickname = group.NickName;
+                
+                //Add the group 
+                if (nickname != String.Empty)
+                {
+                    _inputGroup.Add(group);
+                }
+                
                 var groupObjects = group.Objects();
+                
+                //This block iterates over all objects in a Grasshopper group.
+                //For each object that is a contextual parameter, it checks if the parameter
+                //is already registered as an input (by nickname).
+                //If not, it adds the parameter as a new input to the definition,
+                //ensuring no duplicates.
+                if (groupObjects.Count > 0)
+                {
+                    foreach (var item in groupObjects)
+                    {
+                        IGH_ContextualParameter contextualGParam = item as IGH_ContextualParameter;
+                        if (contextualGParam != null)
+                        {
+                            IGH_Param param = contextualGParam as IGH_Param;
+                            if (param != null)
+                            {
+
+                                bool isInDict = rc._input.ContainsKey(param.NickName);
+                                if (!isInDict)
+                                {
+                                    AddInput(param, param.NickName, ref rc);
+                                }
+                            }
+                        }
+                    }
+                }
+                
                 if ( nickname.Contains("RH_IN") && groupObjects.Count>0)
                 {
                     var param = groupObjects[0] as IGH_Param;
@@ -1111,6 +1165,7 @@ namespace compute.geometry
                     Default = i.Value.GetDefault(),
                     Minimum = i.Value.GetMinimum(),
                     Maximum = i.Value.GetMaximum(),
+                    GroupName = i.Value.GetGroup()
                 };
                 if (_singularComponent != null)
                 {
@@ -1241,7 +1296,7 @@ namespace compute.geometry
         class InputGroup
         {
             object _default = null;
-            public InputGroup(IGH_Param param)
+            public InputGroup(IGH_Param param, string groupName = null)
             {
                 Param = param;
 
@@ -1376,6 +1431,48 @@ namespace compute.geometry
                     return (double)paramSlider.Slider.Maximum;
 
                 return null;
+            }
+
+
+            /// <summary>
+            /// Returns the group name for the contextual parameter, including parent group if nested.
+            /// </summary>
+            /// <returns>
+            /// The group name as a string (e.g., "ParentGroup::ChildGroup"), or null if not found or not a contextual parameter.
+            /// </returns>
+            public string GetGroup()
+            {
+                if (!(Param is IGH_ContextualParameter))
+                    return null;
+
+                string groupName = null;
+                GH_Group containingGroup = null;
+
+                // Find the group containing the parameter
+                foreach (var group in _inputGroup)
+                {
+                    if (group.Objects().Any(e => e.InstanceGuid == Param.InstanceGuid) && !string.IsNullOrEmpty(group.NickName))
+                    {
+                        groupName = group.NickName;
+                        containingGroup = group;
+                        break;
+                    }
+                }
+
+                // Check if the containing group is nested inside another group
+                if (containingGroup != null)
+                {
+                    foreach (var group in _inputGroup)
+                    {
+                        if (group.Objects().Any(e => e.InstanceGuid == containingGroup.InstanceGuid) && group != containingGroup)
+                        {
+                            groupName = $"{group.NickName}::{groupName}";
+                            break;
+                        }
+                    }
+                }
+
+                return groupName;
             }
 
             public bool AlreadySet(Resthopper.IO.DataTree<ResthopperObject> tree)
