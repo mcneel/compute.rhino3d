@@ -1450,7 +1450,7 @@ namespace compute.geometry
                         }
                     }
                     
-                    var filteredHierarchy = hierarchy.Where(g => g.NickName != "" || g.NickName == "RH_IN").ToList();
+                    var filteredHierarchy = hierarchy.Where(g => !g.NickName.Contains("RH_IN")).ToList();
 
                     return filteredHierarchy;
                 }
