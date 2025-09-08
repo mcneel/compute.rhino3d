@@ -1381,7 +1381,7 @@ namespace compute.geometry
             
                 /// </summary>
                 /// <returns>
-                /// The group name as a string (e.g., "MainGroup::SubGroup"), or null if not found or not a contextual parameter.
+                /// The group name as a string (e.g., "MainGroup::SubGroup"), or null if not found
                 /// </returns>
                 public string GetGroupName()
                 {
@@ -1446,7 +1446,7 @@ namespace compute.geometry
                             // Continue with child groups (recursive approach)
                             var childHierarchy = BuildGroupHierarchy(childGroups);
                             hierarchy.AddRange(childHierarchy);
-                            break; // We've found our path
+                            break;
                         }
                     }
                     
