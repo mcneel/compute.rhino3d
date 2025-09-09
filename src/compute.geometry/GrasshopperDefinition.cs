@@ -213,6 +213,9 @@ namespace compute.geometry
             GrasshopperDefinition rc = new GrasshopperDefinition(definition, icon);
             foreach( var obj in definition.Objects)
             {
+                if ((obj as IGH_ActiveObject).Locked)
+                    continue; // skip disabled components
+
                 IGH_ContextualParameter contextualParam = obj as IGH_ContextualParameter;
                 if (contextualParam != null)
                 {
@@ -223,7 +226,6 @@ namespace compute.geometry
                     }
                     continue;
                 }
-
 
                 Type objectClass = obj.GetType();
                 var className = objectClass.Name;
