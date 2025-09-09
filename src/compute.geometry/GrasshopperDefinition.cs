@@ -213,10 +213,13 @@ namespace compute.geometry
             GrasshopperDefinition rc = new GrasshopperDefinition(definition, icon);
             foreach( var obj in definition.Objects)
             {
+                if ((obj as IGH_ActiveObject).Locked)
+                    continue; // skip disabled components
+
                 IGH_ContextualParameter contextualParam = obj as IGH_ContextualParameter;
                 if (contextualParam != null)
                 {
-                    IGH_Param param = obj as IGH_Param;
+                    IGH_Param param = obj as IGH_Param;          
                     if (param != null)
                     {
                         AddInput(param, param.NickName, ref rc);
