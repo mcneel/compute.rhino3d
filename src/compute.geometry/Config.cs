@@ -39,6 +39,12 @@ namespace compute.geometry
         /// </summary>
         public static bool CreateHeadlessDoc { get; private set; }
 
+        /// <summary>
+        /// RHINO_COMPUTE_LOAD_GRASSHOPPER: load Grasshopper plugin at startup (defaults to true).
+        /// Set to false to skip Grasshopper loading for faster startup when only using geometry endpoints.
+        /// </summary>
+        public static bool LoadGrasshopper { get; private set; }
+
         public static string[] GetDeprecationWarnings() => _warnings.ToArray();
 
         /// <summary>
@@ -56,6 +62,7 @@ namespace compute.geometry
             LogPath = GetEnvironmentVariable(RHINO_COMPUTE_LOG_PATH, Path.Combine(Path.GetTempPath(), "Compute", "Logs"), COMPUTE_LOG_PATH);
             LogRetainDays = GetEnvironmentVariable(RHINO_COMPUTE_LOG_RETAIN_DAYS, 10, COMPUTE_LOG_RETAIN_DAYS);
             CreateHeadlessDoc = GetEnvironmentVariable<bool>(RHINO_COMPUTE_CREATE_HEADLESS_DOC, false);
+            LoadGrasshopper = GetEnvironmentVariable<bool>(RHINO_COMPUTE_LOAD_GRASSHOPPER, true);
 
 #if DEBUG
             Debug = true;
@@ -80,6 +87,7 @@ namespace compute.geometry
         const string RHINO_COMPUTE_LOG_RETAIN_DAYS = "RHINO_COMPUTE_LOG_RETAIN_DAYS";
         const string RHINO_COMPUTE_DEBUG = "RHINO_COMPUTE_DEBUG";
         const string RHINO_COMPUTE_CREATE_HEADLESS_DOC = "RHINO_COMPUTE_CREATE_HEADLESS_DOC";
+        const string RHINO_COMPUTE_LOAD_GRASSHOPPER = "RHINO_COMPUTE_LOAD_GRASSHOPPER";
 
         // deprecated
         const string COMPUTE_BIND_URLS = "COMPUTE_BIND_URLS";
