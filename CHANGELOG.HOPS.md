@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.27] - 2025-09-09
+
+### Fixed
+
+- Disabled parameters (i.e. Contextual Get Parameters, Context Bake/Print, RH_IN and/or RH_OUT groups) are now skipped during the IO search process.
+
+## [0.16.26] - 2025-07-31
+
+### Fixed
+
+- Fixed a bug that was reported [here](https://github.com/mcneel/compute.rhino3d/issues/730) which created a race condition and lead to more compute.geometry processes than specified being created.
+
+## [0.16.25] - 2025-07-14
+
+### Fixed
+
+- Fixed a bug where the maximum value, when set on a contextual number or integer parameter, was not being set properly during serialization.
+
+## [0.16.24] - 2025-07-14
+
+### Added
+
+- The rhino.compute and compute.geometry Visual Studio projects now target the .NET 8.0 Core Runtimes. This change has been made because as of release of Rhino 8.21, the Rhino installer will now automatically install the ASP .NET Core Runtimes as part of it's installation process. Using Hops 0.16.24 (or higher) and Rhino 8.21 (or higher) together should eliminate the need for users to maunally install the appropriate .NET Runtimes in order to get Rhino.Compute to work.
+
 ## [0.16.23] - 2025-03-04
 
 ### Added

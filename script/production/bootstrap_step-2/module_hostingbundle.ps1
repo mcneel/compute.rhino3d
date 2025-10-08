@@ -14,34 +14,70 @@ function Download {
     )
     (New-Object System.Net.WebClient).DownloadFile($url, $output)
 }
-#EndRegion funcs
+function Install-ProcessWithTimeout {
+    param (
+        [string]$ExePath,
+        [string[]]$Arguments,
+        [System.Management.Automation.PSCredential]$Credential = $null,
+        [int]$TimeoutSeconds = 600,   # default 10 min timeout
+        [int]$MaxRetries = 2
+    )
 
-$temp_path = "C:\temp\"
+    for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
+        Write-Host "Starting attempt {$attempt}: $ExePath $Arguments"
 
-if( ![System.IO.Directory]::Exists( $temp_path ) )
-{
-    New-Item $temp_path -ItemType Directory
+        $params = @{
+            FilePath = $ExePath
+            ArgumentList = $Arguments
+            WorkingDirectory = (Split-Path $ExePath)
+            PassThru = $true
+        }
+        if ($Credential) { $params.Credential = $Credential }
+
+        $process = Start-Process @params
+
+        if ($process.WaitForExit($TimeoutSeconds * 1000)) {
+            # Process ended, check exit code
+            if ($process.ExitCode -eq 0) {
+                Write-Host "Installer finished successfully on attempt $attempt"
+                return $true
+            } else {
+                Write-Warning "Installer exited with code $($process.ExitCode) on attempt $attempt"
+            }
+        } else {
+            Write-Warning "Installer timed out after $TimeoutSeconds seconds on attempt $attempt"
+            try { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue } catch {}
+        }
+
+        if ($attempt -lt $MaxRetries) {
+            Write-Host "Retrying..."
+            Start-Sleep -Seconds 5
+        }
+    }
+
+    Write-Error "Installer failed after $MaxRetries attempts."
+    return $false
 }
+#EndRegion funcs
 
 # Download and install .NET Hosting Bundle
 Write-Step 'Download ASP.NET Core 8.0 Hosting Bundle'
 
-$hb_installer_url = "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/8.0.14/dotnet-hosting-8.0.14-win.exe"
-$hb_intaller_filename = [System.IO.Path]::GetFileName( $hb_installer_url )
-$hb_installer_filepath = $temp_path + $hb_intaller_filename
-Download $hb_installer_url $hb_installer_filepath
-Write-Output ""
-Write-Output "$hb_intaller_filename downloaded"
-Write-Output ""
+$hbInstallerURL = "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/8.0.14/dotnet-hosting-8.0.14-win.exe"
+$hbInstallerFilename = "dotnet-hosting-8.0.14-win.exe"
+$hbInstallerFilepath = Join-Path -Path $tmpFullPath -ChildPath $hbInstallerFilename
+
+Download $hbInstallerURL $hbInstallerFilepath
+
 Write-Step 'Installing ASP.NET Core 8.0 Hosting Bundle'
-$result = Start-Process -FilePath $hb_installer_filepath -ArgumentList '/repair', '/quiet', '/norestart' -NoNewWindow -Wait -PassThru
-If($result.Exitcode -Eq 0)
-{
-    Write-Output "$hb_intaller_filename installed"
+
+$success = Install-ProcessWithTimeout -ExePath $hbInstallerFilepath -Arguments @('/repair','/quiet','/norestart') -TimeoutSeconds 600 -MaxRetries 2
+
+if ($success) {
+    Write-Output "$hbInstallerFilename successfully installed"
     Write-Step 'Restarting IIS services'
     net stop was /y
     net start w3svc
-}
-else {
-    Write-Output "Something went wrong with the installation. Errorlevel: ${result.ExitCode}"
+} else {
+    Write-Output "Something went wrong with the hosting bundle installation after retries."
 }

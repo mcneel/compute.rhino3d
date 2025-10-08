@@ -369,13 +369,13 @@ namespace Hops
                 var inputSuffix = String.Empty;
                 var outputSuffix = String.Empty;
                 var fileNameMsg = String.Empty;
-                if (responseSchema.InputNames.Count > 1)
+                if (responseSchema.InputNames?.Count > 1)
                     inputSuffix = "s";
-                if (responseSchema.OutputNames.Count > 1)
+                if (responseSchema.OutputNames?.Count > 1)
                     outputSuffix = "s";
                 if (!String.IsNullOrEmpty(responseSchema.FileName))
                     fileNameMsg = $" in {responseSchema.FileName}";
-                HopsLog.Log.Debug($"Compute.Geometry found {responseSchema.InputNames.Count} input{inputSuffix} and {responseSchema.OutputNames.Count} output{outputSuffix}{fileNameMsg}");
+                HopsLog.Log.Debug($"Compute.Geometry found {responseSchema.InputNames?.Count} input{inputSuffix} and {responseSchema.OutputNames?.Count} output{outputSuffix}{fileNameMsg}");
                 _inputParams = new Dictionary<string, Tuple<InputParamSchema, IGH_Param>>();
                 _outputParams = new Dictionary<string, IGH_Param>();
                 foreach (var input in responseSchema.Inputs)
@@ -604,11 +604,11 @@ namespace Hops
                 }
 
                 bool rebuildDefinition = (responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError
-                    && schema.Errors.Count > 0
-                    && string.Equals(schema.Errors[0], "Bad inputs", StringComparison.OrdinalIgnoreCase));
+                    && schema?.Errors?.Count > 0
+                    && string.Equals(schema?.Errors[0], "Bad inputs", StringComparison.OrdinalIgnoreCase));
                 if (!rebuildDefinition)
                 {
-                    if (schema.Values.Count > 0 && schema.Values.Count != _outputParams.Count)
+                    if (schema?.Values?.Count > 0 && schema?.Values?.Count != _outputParams?.Count)
                         rebuildDefinition = true;
                 }
 
@@ -627,7 +627,7 @@ namespace Hops
                         }
                     }
                 }
-                _cacheKey = schema.Pointer;
+                _cacheKey = schema?.Pointer;
                 return schema;
             }
         }
