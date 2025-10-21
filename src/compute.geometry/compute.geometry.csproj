@@ -10,6 +10,7 @@
     <AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>False</AppendRuntimeIdentifierToOutputPath>
     <Version>9.0.0</Version>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
   <PropertyGroup Condition="$([MSBuild]::IsOSPlatform(windows))">
@@ -17,7 +18,6 @@
     <UseWpf>True</UseWpf>
     <UseWindowsForms>True</UseWindowsForms>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <EnableWindowsTargeting>True</EnableWindowsTargeting>
   </PropertyGroup>
 
   <PropertyGroup Condition="$([MSBuild]::IsOSPlatform(linux))">
@@ -55,7 +55,12 @@
     <PackageReference Include="System.Runtime.Caching" Version="9.0.0" />
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
     <PackageReference Include="System.Runtime.Serialization.Formatters" Version="9.0.0" />
-    <PackageReference Include="Rhino.Inside" Version="9.0.5-beta" />
+    <!--<PackageReference Include="Rhino.Inside" Version="9.0.5-beta" />
+    <PackageReference Include="Grasshopper" Version="9.0.25051.305-wip" />
+    <PackageReference Include="RhinoCommon" Version="9.0.25051.305-wip" />-->
+
+    <ProjectReference Include="../../../rhino.inside/src/RhinoInside/RhinoInside.csproj" />
+
   </ItemGroup>
 
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform(windows))">
@@ -65,6 +70,8 @@
 
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform(linux))">
     <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
+    <!--<PackageReference Include="Microsoft.Windows.Compatibility" Version="9.0.0" PrivateAssets="all" />
+    <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" PrivateAssets="all" />-->
   </ItemGroup>
 
 </Project>

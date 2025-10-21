@@ -51,6 +51,39 @@
             "args": [],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole"
+        },
+        {
+            "name": "Linux Launch compute.geometry",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Build compute.geometry",
+            "program": "${workspaceFolder}/src/bin/Debug/compute.geometry/compute.geometry",
+            "targetArchitecture": "x86_64",
+            "justMyCode": false,
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "env": {
+                "RHINO_COMPUTE_CREATE_HEADLESS_DOC": "true"
+            }
+        },
+                {
+            "name": "Linux Launch rhino.compute",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Build rhino.compute",
+            "program": "${workspaceFolder}/src/bin/Debug/rhino.compute/rhino.compute",
+            //"targetArchitecture": "x86_64",
+            "justMyCode": false,
+            "requireExactSource": false,
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "env": {
+                "RHINO_COMPUTE_CREATE_HEADLESS_DOC": "true",
+                //"RHINO_COMPUTE_URLS": "http://0.0.0.0:5000"
+                "ASPNETCORE_URLS":"http://0.0.0.0:5000"
+            }
         }
     ],
     "compounds": []

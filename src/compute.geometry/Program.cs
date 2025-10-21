@@ -17,14 +17,15 @@ namespace compute.geometry
     {
         public static IDisposable RhinoCore { get; set; }
         public static DateTime StartTime { get; set; }
+        static string _RhinoSystemDirectory { get; set; }
 
         static void Main(string[] args)
         {
             Config.Load();
             Logging.Init();
 
-            RhinoInside.Resolver.Initialize();
-            RhinoInside.Resolver.UseLatest = true;
+            ParseCommandLineArgs(args);
+
 #if DEBUG
             // Uncomment the following to debug with core Rhino source. This
             // tells compute to use a different RhinoCore than what RhinoInside thinks
@@ -33,16 +34,18 @@ namespace compute.geometry
 
             //string rhinoSystemDir = @"C:\dev\github\mcneel\rhino9\src4\bin\Debug";
             //if (System.IO.File.Exists(rhinoSystemDir + "\\Rhino.exe"))
-            //    RhinoInside.Resolver.RhinoSystemDirectory = rhinoSystemDir;
-
+            //_RhinoSystemDirectory = "/usr/lib/rhino3d";//rhinoSystemDir;
 #endif
+
+            if (String.IsNullOrEmpty(_RhinoSystemDirectory))
+                RhinoInside.Resolver.Initialize();
+            else
+                RhinoInside.Resolver.Initialize(_RhinoSystemDirectory);
+
             StartTime = DateTime.Now;
             Shutdown.RegisterStartTime(StartTime);
             Log.Information($"Child process started at " + StartTime.ToLocalTime().ToString());
 
-            ParseCommandLineArgs(args);
-
-            RhinoInside.Resolver.LoadRhino();
             LogVersions();
 
             if (Config.CreateHeadlessDoc)
@@ -55,7 +58,7 @@ namespace compute.geometry
                     {
                         // Handle requests up to 50 MB
                         options.Limits.MaxRequestBodySize = null;//Config.MaxRequestSize;
-                        if (Config.LocalhostPort>0)
+                        if (Config.LocalhostPort > 0)
                             options.ListenLocalhost(Config.LocalhostPort);
                     })
                     //.UseIISIntegration()
@@ -119,7 +122,7 @@ namespace compute.geometry
                         }
                         break;
                     case "rhinosysdir":
-                        RhinoInside.Resolver.RhinoSystemDirectory = value;
+                        _RhinoSystemDirectory = value;
                         break;
                     default:
                         break;

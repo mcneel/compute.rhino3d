@@ -26,6 +26,31 @@
             "group": "build"
         },
         {
+            "label": "Build compute.geometry",
+            "command": "dotnet build ${workspaceFolder}/src/compute.geometry/compute.geometry.csproj",
+            "type": "shell",
+            "args": [],
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "reveal": "always",
+                "clear": true
+            },
+            "group": "build"
+        },
+        {
+            "label": "Build rhino.compute",
+            "command": "dotnet build ${workspaceFolder}/src/compute.sln",
+            "type": "shell",
+            "args": [],
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "reveal": "always",
+                "clear": true
+            },
+            "group": "build"
+        },
+        
+        {
             "label": "Publish",
             "command": "dotnet publish ${workspaceFolder}/src/Hops.sln -c Release",
             "type": "shell",
