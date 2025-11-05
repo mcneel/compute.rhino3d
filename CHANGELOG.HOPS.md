@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.28] - 2025-11-05
+
+### Added
+
+- New environment variable
+    - `RHINO_COMPUTE_LOAD_GRASSHOPPER` - This variable controls whether or not the Grasshopper plugin is loaded (defaults to `True` for backward compatibility). Setting this to `False` will speed up the loading process, but you will not be able to solve Grasshopper definitions using Rhino.Compute. Instead, you will only be able to access standard SDK functions and/or any custom endpoints that you may have added through Rhino plugins.
+- New command line arguments
+    - `--load-grasshopper` `<true|false>` - Enable/disable Grasshopper plugin loading
+    - `--max-request-size` `<bytes>` - Set the maximum acceptable request body size
+    - `--apikey` `<key>` - Set an API key for authentication
+    - `--timeout` `<seconds>` - Set the request timeout limit
+    - `--create-headless-doc` `<true/false>` - Enable/disable whether to create a new headless Rhino document upon receiving a new request
+
 ## [0.16.27] - 2025-09-09
 
 ### Fixed
