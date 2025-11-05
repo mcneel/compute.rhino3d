@@ -45,9 +45,6 @@ namespace compute.geometry
             RhinoInside.Resolver.LoadRhino();
             LogVersions();
 
-            if (Config.CreateHeadlessDoc)
-                Log.Information("Compute to use headless Rhino documents");
-
             var host = Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
@@ -120,6 +117,19 @@ namespace compute.geometry
                         break;
                     case "rhinosysdir":
                         RhinoInside.Resolver.RhinoSystemDirectory = value;
+                        break;
+                    case "load-grasshopper":
+                        {
+                            // Set environment variable so Config.Load() picks it up
+                            Environment.SetEnvironmentVariable("RHINO_COMPUTE_LOAD_GRASSHOPPER", value);
+                            Log.Information($"Grasshopper loading set to: {value}");
+                        }
+                        break;
+                    case "apikey":
+                        {
+                            Environment.SetEnvironmentVariable("RHINO_COMPUTE_KEY", value);
+                            Log.Information("API key set from command line");
+                        }
                         break;
                     default:
                         break;
