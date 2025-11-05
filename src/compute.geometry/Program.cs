@@ -127,6 +127,19 @@ namespace compute.geometry
                     case "rhinosysdir":
                         _RhinoSystemDirectory = value;
                         break;
+                    case "load-grasshopper":
+                        {
+                            // Set environment variable so Config.Load() picks it up
+                            Environment.SetEnvironmentVariable("RHINO_COMPUTE_LOAD_GRASSHOPPER", value);
+                            Log.Information($"Grasshopper loading set to: {value}");
+                        }
+                        break;
+                    case "apikey":
+                        {
+                            Environment.SetEnvironmentVariable("RHINO_COMPUTE_KEY", value);
+                            Log.Information("API key set from command line");
+                        }
+                        break;
                     default:
                         break;
                 }

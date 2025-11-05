@@ -103,11 +103,18 @@ namespace compute.geometry
             }
 
             // Load GH at startup so it can get initialized on the main thread
-            Log.Information("(3/4) Loading grasshopper");
-            var pluginObject = Rhino.RhinoApp.GetPlugInObject("Grasshopper");
-            var runheadless = pluginObject?.GetType().GetMethod("RunHeadless");
-            if (runheadless != null)
-                runheadless.Invoke(pluginObject, null);
+            if (Config.LoadGrasshopper)
+            {
+                Log.Information("(3/4) Loading grasshopper");
+                var pluginObject = Rhino.RhinoApp.GetPlugInObject("Grasshopper");
+                var runheadless = pluginObject?.GetType().GetMethod("RunHeadless");
+                if (runheadless != null)
+                    runheadless.Invoke(pluginObject, null);
+            }
+            else
+            {
+                Log.Information("(3/4) Skipping grasshopper (disabled via RHINO_COMPUTE_LOAD_GRASSHOPPER)");
+            }
 
 
             Log.Information("(4/4) Loading compute plug-ins");

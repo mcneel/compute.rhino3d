@@ -53,6 +53,26 @@ requests while the child processes are launching.")]
               Required = false,
               HelpText = "Port number to run rhino.compute on")]
             public int Port { get; set; } = -1;
+
+            [Option("max-request-size",
+              Required = false,
+              HelpText = "Maximum request body size in bytes (default: 52428800 = 50MB)")]
+            public long MaxRequestSize { get; set; } = -1;
+
+            [Option("apikey",
+              Required = false,
+              HelpText = "API key for authentication (leave empty to disable)")]
+            public string ApiKey { get; set; }
+
+            [Option("timeout",
+              Required = false,
+              HelpText = "Request timeout in seconds (default: 100)")]
+            public int TimeoutSeconds { get; set; } = -1;
+
+            [Option("load-grasshopper",
+              Required = false,
+              HelpText = "Load Grasshopper plugin in child processes (default: true)")]
+            public bool? LoadGrasshopper { get; set; }
         }
 
         static System.Diagnostics.Process _parentProcess;
@@ -61,6 +81,35 @@ requests while the child processes are launching.")]
         public static void Main(string[] args)
         {
             Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
+
+            // Parse command line arguments BEFORE Config.Load() so we can set environment variables
+            int port = -1;
+            Parser.Default.ParseArguments<Options>(args).WithParsed(o =>
+            {
+                // Set environment variables from command line args (child processes will inherit)
+                if (o.MaxRequestSize > 0)
+                    Environment.SetEnvironmentVariable("RHINO_COMPUTE_MAX_REQUEST_SIZE", o.MaxRequestSize.ToString());
+
+                if (!string.IsNullOrEmpty(o.ApiKey))
+                    Environment.SetEnvironmentVariable("RHINO_COMPUTE_KEY", o.ApiKey);
+
+                if (o.TimeoutSeconds > 0)
+                    Environment.SetEnvironmentVariable("RHINO_COMPUTE_TIMEOUT", o.TimeoutSeconds.ToString());
+
+                if (o.LoadGrasshopper.HasValue)
+                    Environment.SetEnvironmentVariable("RHINO_COMPUTE_LOAD_GRASSHOPPER", o.LoadGrasshopper.Value ? "true" : "false");
+
+                // Set runtime options
+                ComputeChildren.SpawnCount = o.ChildCount;
+                ComputeChildren.SpawnOnStartup = o.SpawnOnStartup;
+                ComputeChildren.ChildIdleSpan = new System.TimeSpan(0, 0, o.IdleSpanSeconds);
+                int parentProcessId = o.ChildOf;
+                if (parentProcessId > 0)
+                    _parentProcess = System.Diagnostics.Process.GetProcessById(parentProcessId);
+                port = o.Port;
+            });
+
+            // Now load config (will use environment variables set above)
             Config.Load();
 
             var path = System.IO.Path.Combine(Config.LogPath, "log-rhino-compute-.txt");
@@ -74,18 +123,6 @@ requests while the child processes are launching.")]
             .WriteTo.Console(outputTemplate: "RC  [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
             .WriteTo.File(new ExpressionTemplate("RC   [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
             Log.Logger = loggerConfig.CreateLogger();
-
-            int port = -1;
-            Parser.Default.ParseArguments<Options>(args).WithParsed(o =>
-            {
-                ComputeChildren.SpawnCount = o.ChildCount;
-                ComputeChildren.SpawnOnStartup = o.SpawnOnStartup;
-                ComputeChildren.ChildIdleSpan = new System.TimeSpan(0, 0, o.IdleSpanSeconds);
-                int parentProcessId = o.ChildOf;
-                if (parentProcessId > 0)
-                    _parentProcess = System.Diagnostics.Process.GetProcessById(parentProcessId);
-                port = o.Port;
-            });
 
             var host = Host.CreateDefaultBuilder(args)
                 .UseSerilog()
