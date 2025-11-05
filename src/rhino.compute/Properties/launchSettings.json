@@ -1,19 +1,8 @@
 {
-  "iisSettings": {
-    "windowsAuthentication": false,
-    "anonymousAuthentication": true,
-    "iis": {
-      "applicationUrl": "http://localhost:81",
-      "sslPort": 0
-    }
-  },
   "profiles": {
     "rhino.compute": {
       "commandName": "Project",
-      "commandLineArgs": "--port 6500 --childcount 1 --spawn-on-startup"
-      //"environmentVariables": {
-      //  "ASPNETCORE_URLS": "http://+:5000"
-      //}
+      "commandLineArgs": "--port 6500 --childcount 1 --create-headless-doc true --spawn-on-startup"
     },
     "IIS_Debug": {
       "commandName": "IIS",
@@ -22,6 +11,14 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "ancmHostingModel": "OutOfProcess"
+    }
+  },
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iis": {
+      "applicationUrl": "http://localhost:81",
+      "sslPort": 0
     }
   }
 }

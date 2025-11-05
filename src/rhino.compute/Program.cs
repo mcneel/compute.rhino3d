@@ -12,6 +12,7 @@ namespace rhino.compute
     using System.Globalization;
     using System.Threading;
     using Serilog.Templates;
+    using System.Collections.Generic;
 
     public class Program
     {
@@ -25,7 +26,7 @@ namespace rhino.compute
             [Option("childof",
              Required = false,
              HelpText = @"Process Handle of parent process. Compute watches for the existence 
-of this handle and will shut down when this process has exited")]
+                of this handle and will shut down when this process has exited")]
             public int ChildOf { get; set; }
 
             [Option("childcount",
@@ -42,11 +43,11 @@ of this handle and will shut down when this process has exited")]
             [Option("idlespan", 
              Required = false,
              HelpText = 
-@"Seconds that child compute.geometry processes should remain open between requests. (Default 1 hour)
-When rhino.compute.exe does not receive requests to solve over a period of 'idlespan' seconds, child
-compute.geometry.exe processes will shut down and stop incurring core hour billing. At some date in the
-future when a new request is received, the child processes will be relaunched which will cause a delay on
-requests while the child processes are launching.")]
+                @"Seconds that child compute.geometry processes should remain open between requests. (Default 1 hour)
+                When rhino.compute.exe does not receive requests to solve over a period of 'idlespan' seconds, child
+                compute.geometry.exe processes will shut down and stop incurring core hour billing. At some date in the
+                future when a new request is received, the child processes will be relaunched which will cause a delay on
+                requests while the child processes are launching.")]
             public int IdleSpanSeconds { get; set; } = 60 * 60;
 
             [Option("port",
@@ -73,6 +74,11 @@ requests while the child processes are launching.")]
               Required = false,
               HelpText = "Load Grasshopper plugin in child processes (default: true)")]
             public bool? LoadGrasshopper { get; set; }
+
+            [Option("create-headless-doc",
+              Required = false,
+              HelpText = "Create a new headless Rhino doc upon each received request (default: false)")]
+            public bool? CreateHeadlessDoc { get; set; }
         }
 
         static System.Diagnostics.Process _parentProcess;
@@ -99,6 +105,9 @@ requests while the child processes are launching.")]
                 if (o.LoadGrasshopper.HasValue)
                     Environment.SetEnvironmentVariable("RHINO_COMPUTE_LOAD_GRASSHOPPER", o.LoadGrasshopper.Value ? "true" : "false");
 
+                if (o.CreateHeadlessDoc.HasValue)
+                    Environment.SetEnvironmentVariable("RHINO_COMPUTE_CREATE_HEADLESS_DOC", o.CreateHeadlessDoc.Value ? "true" : "false");
+
                 // Set runtime options
                 ComputeChildren.SpawnCount = o.ChildCount;
                 ComputeChildren.SpawnOnStartup = o.SpawnOnStartup;
@@ -117,11 +126,11 @@ requests while the child processes are launching.")]
             var level = Config.Debug ? LogEventLevel.Debug : LogEventLevel.Information;
 
             var loggerConfig = new LoggerConfiguration()
-            .MinimumLevel.Is(level)
-            .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-            .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico']")
-            .WriteTo.Console(outputTemplate: "RC  [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
-            .WriteTo.File(new ExpressionTemplate("RC   [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
+                .MinimumLevel.Is(level)
+                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+                .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico']")
+                .WriteTo.Console(outputTemplate: "RC  [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+                .WriteTo.File(new ExpressionTemplate("RC   [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
             Log.Logger = loggerConfig.CreateLogger();
 
             var host = Host.CreateDefaultBuilder(args)
@@ -155,7 +164,19 @@ requests while the child processes are launching.")]
             }
 
             Log.Information($"Rhino compute started at {DateTime.Now.ToLocalTime()}");
-            
+            Log.Debug($"Config:");
+            Log.Debug("  Max Request Size = {RequestSize}", (Config.MaxRequestSize / 1024.0 / 1024.0).ToString("F2") + " MB");
+            Log.Debug("  Timeout = {Timeout}", FormatTimeout(Config.ReverseProxyRequestTimeout));
+            Log.Debug("  Child Count = {ChildCount}", ComputeChildren.SpawnCount.ToString());
+            Log.Debug("  Spawn Children At Startup = {SpawnChild}", ComputeChildren.SpawnOnStartup.ToString());
+            bool loadGrasshopper = true;
+            loadGrasshopper = Boolean.TryParse(Environment.GetEnvironmentVariable("RHINO_COMPUTE_LOAD_GRASSHOPPER"), out var loadGH) ? loadGH : true;
+            Log.Debug("  Load Grasshopper = {LoadGH}", loadGrasshopper.ToString());
+            bool createHeadlessDoc = false;
+            createHeadlessDoc = Boolean.TryParse(Environment.GetEnvironmentVariable("RHINO_COMPUTE_CREATE_HEADLESS_DOC"), out var createHeadless) ? createHeadless : false;
+            Log.Debug("  Create Headless Document = {CreateHeadlessDoc}", createHeadlessDoc.ToString());
+            Log.Debug("  Log Path = {LogPath}", Config.LogPath);
+
             var logger = host.Services.GetRequiredService<ILogger<ReverseProxyModule>>();
             ReverseProxyModule.InitializeConcurrentRequestLogging(logger);
 
@@ -177,6 +198,19 @@ requests while the child processes are launching.")]
                 _selfDestructTimer.Start();
             }
             host.Run();
+        }
+        private static string FormatTimeout(int totalSeconds)
+        {
+            var ts = TimeSpan.FromSeconds(totalSeconds);
+            var parts = new List<string>();
+            if (ts.Days > 0)
+                parts.Add($"{ts.Days} day{(ts.Days == 1 ? "" : "s")}");
+            if (ts.Hours > 0 || ts.Days > 0)
+                parts.Add($"{ts.Hours} hr{(ts.Hours == 1 ? "" : "s")}");
+            if (ts.Minutes > 0 || ts.Hours > 0 || ts.Days > 0)
+                parts.Add($"{ts.Minutes} min{(ts.Minutes == 1 ? "" : "s")}");
+            parts.Add($"{ts.Seconds} sec{(ts.Seconds == 1 ? "" : "s")}");
+            return string.Join(" ", parts);
         }
 
         public static bool IsParentRhinoProcess(int processId)

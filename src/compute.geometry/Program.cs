@@ -51,9 +51,6 @@ namespace compute.geometry
 
             LogVersions();
 
-            if (Config.CreateHeadlessDoc)
-                Log.Information("Compute to use headless Rhino documents");
-
             var host = Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
