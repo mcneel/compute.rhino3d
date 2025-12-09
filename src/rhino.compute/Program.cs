@@ -53,6 +53,9 @@ requests while the child processes are launching.")]
               Required = false,
               HelpText = "Port number to run rhino.compute on")]
             public int Port { get; set; } = -1;
+
+            [Option("urls", Required = false, HelpText = "Set the listening URLs for ASP.NET Core (handled by ASP.NET Core, not this app)")]
+            public string Urls { get; set; }
         }
 
         static System.Diagnostics.Process _parentProcess;

@@ -17,6 +17,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="$([MSBuild]::IsOSPlatform(linux))">
     <DefineConstants>LINUX</DefineConstants>
+    <RuntimeIdentifiers>linux-x64;linux-arm64</RuntimeIdentifiers>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
     <OutputPath>..\bin\Debug\$(AssemblyName)</OutputPath>
