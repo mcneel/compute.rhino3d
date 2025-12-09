@@ -217,28 +217,33 @@ namespace compute.geometry
                 if (contextualParam != null)
                 {
                     IGH_Param param = obj as IGH_Param;
-                    if (param != null)
+                    if (param != null && !param.Locked)
                     {
                         AddInput(param, param.NickName, ref rc);
                     }
                     continue;
                 }
 
-
                 Type objectClass = obj.GetType();
                 var className = objectClass.Name;
                 if (className == "ContextBakeComponent")
                 {
                     var contextBaker = obj as GH_Component;
-                    IGH_Param param = contextBaker.Params.Input[0];
-                    AddOutput(param, param.NickName, ref rc);
+                    if (contextBaker != null && !contextBaker.Locked)
+                    {
+                        IGH_Param param = contextBaker.Params.Input[0];
+                        AddOutput(param, param.NickName, ref rc);
+                    }     
                 }
 
                 if (className == "ContextPrintComponent")
                 {
                     var contextPrinter = obj as GH_Component;
-                    IGH_Param param = contextPrinter.Params.Input[0];
-                    AddOutput(param, param.NickName, ref rc);
+                    if (contextPrinter != null && !contextPrinter.Locked)
+                    {
+                        IGH_Param param = contextPrinter.Params.Input[0];
+                        AddOutput(param, param.NickName, ref rc);
+                    }
                 }
 
                 var group = obj as GH_Group;
@@ -250,7 +255,7 @@ namespace compute.geometry
                 if ( nickname.Contains("RH_IN") && groupObjects.Count>0)
                 {
                     var param = groupObjects[0] as IGH_Param;
-                    if (param != null)
+                    if (param != null && !param.Locked)
                     {
                         AddInput(param, nickname, ref rc);
                     }
@@ -1379,12 +1384,12 @@ namespace compute.geometry
                             var max = Convert.ToDouble(val);
                             if (pTypeName == "Integer")
                             {
-                                if (max < int.MinValue - Rhino.RhinoMath.Epsilon)
+                                if (max < int.MaxValue - Rhino.RhinoMath.Epsilon)
                                     return max;
                             }
                             else if (pTypeName == "Number")
                             {
-                                if (max < double.MinValue - Rhino.RhinoMath.Epsilon)
+                                if (max < double.MaxValue - Rhino.RhinoMath.Epsilon)
                                     return max;
                             }
                         }

@@ -3,7 +3,7 @@
     "Name": "New Profile",
     "Projects": [
       {
-        "Path": "rhino.compute\\rhino.compute.csproj",
+        "Path": "compute.geometry\\compute.geometry.csproj",
         "Action": "Start"
       }
     ]

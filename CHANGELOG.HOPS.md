@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] - 2025-06-09
+
+### Added
+
+- This new major build of Hops/Rhino.Compute will only work with Rhino 9.
+- Added support for serialization/deserialization of Model Objects from Grasshopper definitions in Rhino.Compute. This has required a change in the serialization code of Grasshopper files themselves. As such, this new change will only work for Rhino 9 Grasshopper files.
+- Upgrading the runtimes to use ASP .NET Core Runtime 9.0.4.
+
 ## [0.16.23] - 2025-03-04
 
 ### Added

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
 using Serilog;
 
@@ -94,7 +95,8 @@ namespace rhino.compute
 
                 if (activePort == 0)
                 {
-                    _computeProcesses = new Queue<Tuple<Process, int>>();
+                    var aliveProcesses = _computeProcesses.Where(tuple => !tuple.Item1.HasExited).ToList();
+                    _computeProcesses = new Queue<Tuple<Process, int>>(aliveProcesses);
                     LaunchCompute(_computeProcesses, true);
 
                     if (_computeProcesses.Count > 0)
@@ -145,6 +147,8 @@ namespace rhino.compute
         {
             lock (_lockObject)
             {
+                if (_computeProcesses.Count >= SpawnCount)
+                    return;
                 LaunchCompute(_computeProcesses, waitUntilServing);
             }
         }

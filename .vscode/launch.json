@@ -76,14 +76,10 @@
             //"targetArchitecture": "x86_64",
             "justMyCode": false,
             "requireExactSource": false,
-            "args": [],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",
-            "env": {
-                "RHINO_COMPUTE_CREATE_HEADLESS_DOC": "true",
-                //"RHINO_COMPUTE_URLS": "http://0.0.0.0:5000"
-                "ASPNETCORE_URLS":"http://0.0.0.0:5000"
-            }
+            "args": ["--urls", "http://0.0.0.0:5000", "--create-headless-doc", "true"],
+            ""
         }
     ],
     "compounds": []

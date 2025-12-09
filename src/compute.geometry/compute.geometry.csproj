@@ -2,6 +2,7 @@
   <PropertyGroup>
     <AssemblyName>compute.geometry</AssemblyName>
     <OutputType>Exe</OutputType>
+    <UseAppHost>true</UseAppHost>
     <RuntimeFrameworkVersion>9.0.0</RuntimeFrameworkVersion>
     <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
     <RollForward>Major</RollForward>
@@ -23,6 +24,7 @@
   <PropertyGroup Condition="$([MSBuild]::IsOSPlatform(linux))">
     <TargetFramework>net9.0</TargetFramework>
     <DefineConstants>LINUX</DefineConstants>
+    <RuntimeIdentifiers>linux-x64;linux-arm64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">

@@ -13,6 +13,7 @@ namespace rhino.compute
     using System.Threading;
     using Serilog.Templates;
     using System.Reflection;
+    using System.Collections.Generic;
 
     public class Program
     {
@@ -60,6 +61,32 @@ requests while the child processes are launching.")]
 
             [Option("version", Required = false, HelpText = "Print version information")]
             public bool Version { get; set; }
+
+            [Option("max-request-size",
+              Required = false,
+              HelpText = "Maximum request body size in bytes (default: 52428800 = 50MB)")]
+            public long MaxRequestSize { get; set; } = -1;
+
+            [Option("apikey",
+              Required = false,
+              HelpText = "API key for authentication (leave empty to disable)")]
+            public string ApiKey { get; set; }
+
+            [Option("timeout",
+              Required = false,
+              HelpText = "Request timeout in seconds (default: 100)")]
+            public int TimeoutSeconds { get; set; } = -1;
+
+            [Option("load-grasshopper",
+              Required = false,
+              HelpText = "Load Grasshopper plugin in child processes (default: true)")]
+            public bool? LoadGrasshopper { get; set; }
+
+            [Option("create-headless-doc",
+              Required = false,
+              HelpText = "Create a new headless Rhino doc upon each received request (default: false)")]
+            public bool? CreateHeadlessDoc { get; set; }
+
         }
 
         static System.Diagnostics.Process _parentProcess;
@@ -85,6 +112,23 @@ requests while the child processes are launching.")]
             int port = -1;
             Parser.Default.ParseArguments<Options>(args).WithParsed(o =>
             {
+                // Set environment variables from command line args (child processes will inherit)
+                if (o.MaxRequestSize > 0)
+                    Environment.SetEnvironmentVariable("RHINO_COMPUTE_MAX_REQUEST_SIZE", o.MaxRequestSize.ToString());
+
+                if (!string.IsNullOrEmpty(o.ApiKey))
+                    Environment.SetEnvironmentVariable("RHINO_COMPUTE_KEY", o.ApiKey);
+
+                if (o.TimeoutSeconds > 0)
+                    Environment.SetEnvironmentVariable("RHINO_COMPUTE_TIMEOUT", o.TimeoutSeconds.ToString());
+
+                if (o.LoadGrasshopper.HasValue)
+                    Environment.SetEnvironmentVariable("RHINO_COMPUTE_LOAD_GRASSHOPPER", o.LoadGrasshopper.Value ? "true" : "false");
+
+                if (o.CreateHeadlessDoc.HasValue)
+                    Environment.SetEnvironmentVariable("RHINO_COMPUTE_CREATE_HEADLESS_DOC", o.CreateHeadlessDoc.Value ? "true" : "false");
+
+                // Set runtime options
                 ComputeChildren.SpawnCount = o.ChildCount;
                 ComputeChildren.SpawnOnStartup = o.SpawnOnStartup;
                 ComputeChildren.ChildIdleSpan = new System.TimeSpan(0, 0, o.IdleSpanSeconds);
@@ -147,7 +191,19 @@ requests while the child processes are launching.")]
             }
 
             Log.Information($"Rhino compute started at {DateTime.Now.ToLocalTime()}");
-            
+            Log.Debug($"Config:");
+            Log.Debug("  Max Request Size = {RequestSize}", (Config.MaxRequestSize / 1024.0 / 1024.0).ToString("F2") + " MB");
+            Log.Debug("  Timeout = {Timeout}", FormatTimeout(Config.ReverseProxyRequestTimeout));
+            Log.Debug("  Child Count = {ChildCount}", ComputeChildren.SpawnCount.ToString());
+            Log.Debug("  Spawn Children At Startup = {SpawnChild}", ComputeChildren.SpawnOnStartup.ToString());
+            bool loadGrasshopper = true;
+            loadGrasshopper = Boolean.TryParse(Environment.GetEnvironmentVariable("RHINO_COMPUTE_LOAD_GRASSHOPPER"), out var loadGH) ? loadGH : true;
+            Log.Debug("  Load Grasshopper = {LoadGH}", loadGrasshopper.ToString());
+            bool createHeadlessDoc = false;
+            createHeadlessDoc = Boolean.TryParse(Environment.GetEnvironmentVariable("RHINO_COMPUTE_CREATE_HEADLESS_DOC"), out var createHeadless) ? createHeadless : false;
+            Log.Debug("  Create Headless Document = {CreateHeadlessDoc}", createHeadlessDoc.ToString());
+            Log.Debug("  Log Path = {LogPath}", Config.LogPath);
+
             var logger = host.Services.GetRequiredService<ILogger<ReverseProxyModule>>();
             ReverseProxyModule.InitializeConcurrentRequestLogging(logger);
 
@@ -169,6 +225,20 @@ requests while the child processes are launching.")]
                 _selfDestructTimer.Start();
             }
             host.Run();
+        }
+
+        private static string FormatTimeout(int totalSeconds)
+        {
+            var ts = TimeSpan.FromSeconds(totalSeconds);
+            var parts = new List<string>();
+            if (ts.Days > 0)
+                parts.Add($"{ts.Days} day{(ts.Days == 1 ? "" : "s")}");
+            if (ts.Hours > 0 || ts.Days > 0)
+                parts.Add($"{ts.Hours} hr{(ts.Hours == 1 ? "" : "s")}");
+            if (ts.Minutes > 0 || ts.Hours > 0 || ts.Days > 0)
+                parts.Add($"{ts.Minutes} min{(ts.Minutes == 1 ? "" : "s")}");
+            parts.Add($"{ts.Seconds} sec{(ts.Seconds == 1 ? "" : "s")}");
+            return string.Join(" ", parts);
         }
 
         public static bool IsParentRhinoProcess(int processId)
