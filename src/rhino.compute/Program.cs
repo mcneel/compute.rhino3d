@@ -12,6 +12,7 @@ namespace rhino.compute
     using System.Globalization;
     using System.Threading;
     using Serilog.Templates;
+    using System.Reflection;
 
     public class Program
     {
@@ -56,6 +57,9 @@ requests while the child processes are launching.")]
 
             [Option("urls", Required = false, HelpText = "Set the listening URLs for ASP.NET Core (handled by ASP.NET Core, not this app)")]
             public string Urls { get; set; }
+
+            [Option("version", Required = false, HelpText = "Print version information")]
+            public bool Version { get; set; }
         }
 
         static System.Diagnostics.Process _parentProcess;
@@ -88,6 +92,28 @@ requests while the child processes are launching.")]
                 if (parentProcessId > 0)
                     _parentProcess = System.Diagnostics.Process.GetProcessById(parentProcessId);
                 port = o.Port;
+
+                if (o.Version)
+                {
+                    var informationalVersion = Assembly
+                        .GetExecutingAssembly()
+                        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                        .InformationalVersion;
+
+                    Console.WriteLine($"rhino.compute {informationalVersion}");
+                    Environment.Exit(0);
+
+                }
+                
+            }).WithNotParsed(errors =>
+            {
+                if (errors.IsHelp())
+                {
+                    // Help text already printed, just exit
+                    Environment.Exit(0);
+                }
+                Console.WriteLine("Failed to parse command line options. Rhino.Compute will exit now.");
+                Environment.Exit(1);
             });
 
             var host = Host.CreateDefaultBuilder(args)
