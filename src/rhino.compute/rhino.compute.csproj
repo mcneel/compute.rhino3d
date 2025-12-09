@@ -19,13 +19,11 @@
     <DefineConstants>LINUX</DefineConstants>
     <RuntimeIdentifiers>linux-x64;linux-arm64</RuntimeIdentifiers>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-    <OutputPath>..\bin\Debug\$(AssemblyName)</OutputPath>
+  <PropertyGroup>
+    <OutputPath>..\bin\$(Configuration)\$(AssemblyName)</OutputPath>
     <DefineConstants>$(DefineConstants);TRACE;RHINO_COMPUTE</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
-    <OutputPath>..\bin\Release\$(AssemblyName)</OutputPath>
-    <DefineConstants>$(DefineConstants);TRACE;RHINO_COMPUTE</DefineConstants>
     <PublishDir>..\dist\$(AssemblyName)</PublishDir>
   </PropertyGroup>
 

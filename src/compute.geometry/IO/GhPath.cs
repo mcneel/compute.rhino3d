@@ -117,10 +117,14 @@ namespace Resthopper.IO
                             }
                             else if(goo is IGH_ReferencedData refData && refData.IsReferencedData)
                             {
-                                //var modelData = refData as Grasshopper.Rhinoceros.ModelContent;
-                                //list[i] = modelData.AsFrozen(true);
+// Changing this depends on supporting a more recent version of the GH nuget package on Linux
+#if !LINUX
+                                var modelData = refData as Grasshopper.Rhinoceros.ModelContent;
+                                list[i] = modelData.AsFrozen(true);
+#else
                                 var modelData = refData as Grasshopper.Rhinoceros.ModelData;
                                 list[i] = modelData.ToAttributes().ToModelData();
+#endif
                             }
                         }
                     }
