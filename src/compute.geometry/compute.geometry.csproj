@@ -56,21 +56,15 @@
     <PackageReference Include="System.Runtime.Caching" Version="9.0.0" />
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
     <PackageReference Include="System.Runtime.Serialization.Formatters" Version="9.0.0" />
-    <!--
-    <PackageReference Include="Grasshopper" Version="9.0.25051.305-wip" />
-    <PackageReference Include="RhinoCommon" Version="9.0.25051.305-wip" />-->
+    <PackageReference Include="Rhino.Inside" Version="9.0.10-beta" />
   </ItemGroup>
 
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform(windows))">
       <PackageReference Include="Microsoft.Windows.Compatibility" Version="9.0.0" />
-      <PackageReference Include="System.Management" Version="9.0.0" />
-      <PackageReference Include="Rhino.Inside" Version="9.0.5-beta" />
-  </ItemGroup>
+      <PackageReference Include="System.Management" Version="9.0.0" />  </ItemGroup>
 
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform(linux))">
       <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
-      <!-- WIP Still need a custom Rhino.Inside for GH compatibility  on Linux -->
-      <ProjectReference Include="../../../rhino.inside/src/RhinoInside/RhinoInside.csproj" />
   </ItemGroup>
 
 </Project>
