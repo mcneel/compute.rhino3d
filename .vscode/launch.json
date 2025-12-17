@@ -51,6 +51,31 @@
             "args": [],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole"
+        },
+        {
+            "name": "[Linux] Launch compute.geometry",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Build compute.geometry",
+            "program": "${workspaceFolder}/src/bin/Debug/compute.geometry/compute.geometry",
+            "justMyCode": false,
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "env": {
+                "RHINO_COMPUTE_CREATE_HEADLESS_DOC": "true"
+            }
+        },
+        {
+            "name": "[Linux] Launch rhino.compute",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Build rhino.compute",
+            "program": "${workspaceFolder}/src/bin/Debug/rhino.compute/rhino.compute",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "args": ["--urls", "http://0.0.0.0:5000", "--create-headless-doc", "true"],
         }
     ],
     "compounds": []

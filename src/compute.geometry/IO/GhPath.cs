@@ -119,8 +119,6 @@ namespace Resthopper.IO
                             {
                                 var modelData = refData as Grasshopper.Rhinoceros.ModelContent;
                                 list[i] = modelData.AsFrozen(true);
-                                //var modelData = refData as Grasshopper.Rhinoceros.ModelData;
-                                //list[i] = modelData.ToAttributes().ToModelData();
                             }
                         }
                     }

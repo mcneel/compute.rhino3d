@@ -12,6 +12,7 @@ namespace rhino.compute
     using System.Globalization;
     using System.Threading;
     using Serilog.Templates;
+    using System.Reflection;
     using System.Collections.Generic;
 
     public class Program
@@ -26,7 +27,7 @@ namespace rhino.compute
             [Option("childof",
              Required = false,
              HelpText = @"Process Handle of parent process. Compute watches for the existence 
-                of this handle and will shut down when this process has exited")]
+of this handle and will shut down when this process has exited")]
             public int ChildOf { get; set; }
 
             [Option("childcount",
@@ -43,17 +44,23 @@ namespace rhino.compute
             [Option("idlespan", 
              Required = false,
              HelpText = 
-                @"Seconds that child compute.geometry processes should remain open between requests. (Default 1 hour)
-                When rhino.compute.exe does not receive requests to solve over a period of 'idlespan' seconds, child
-                compute.geometry.exe processes will shut down and stop incurring core hour billing. At some date in the
-                future when a new request is received, the child processes will be relaunched which will cause a delay on
-                requests while the child processes are launching.")]
+@"Seconds that child compute.geometry processes should remain open between requests. (Default 1 hour)
+When rhino.compute.exe does not receive requests to solve over a period of 'idlespan' seconds, child
+compute.geometry.exe processes will shut down and stop incurring core hour billing. At some date in the
+future when a new request is received, the child processes will be relaunched which will cause a delay on
+requests while the child processes are launching.")]
             public int IdleSpanSeconds { get; set; } = 60 * 60;
 
             [Option("port",
               Required = false,
               HelpText = "Port number to run rhino.compute on")]
             public int Port { get; set; } = -1;
+
+            [Option("urls", Required = false, HelpText = "Set the listening URLs for ASP.NET Core (handled by ASP.NET Core, not this app)")]
+            public string Urls { get; set; }
+
+            [Option("version", Required = false, HelpText = "Print version information")]
+            public bool Version { get; set; }
 
             [Option("max-request-size",
               Required = false,
@@ -79,6 +86,7 @@ namespace rhino.compute
               Required = false,
               HelpText = "Create a new headless Rhino doc upon each received request (default: false)")]
             public bool? CreateHeadlessDoc { get; set; }
+
         }
 
         static System.Diagnostics.Process _parentProcess;
@@ -87,6 +95,19 @@ namespace rhino.compute
         public static void Main(string[] args)
         {
             Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
+            Config.Load();
+
+            var path = System.IO.Path.Combine(Config.LogPath, "log-rhino-compute-.txt");
+            var limit = Config.LogRetainDays;
+            var level = Config.Debug ? LogEventLevel.Debug : LogEventLevel.Information;
+
+            var loggerConfig = new LoggerConfiguration()
+            .MinimumLevel.Is(level)
+            .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+            .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico']")
+            .WriteTo.Console(outputTemplate: "RC  [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+            .WriteTo.File(new ExpressionTemplate("RC   [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
+            Log.Logger = loggerConfig.CreateLogger();
 
             int port = -1;
             Parser.Default.ParseArguments<Options>(args).WithParsed(o =>
@@ -115,21 +136,29 @@ namespace rhino.compute
                 if (parentProcessId > 0)
                     _parentProcess = System.Diagnostics.Process.GetProcessById(parentProcessId);
                 port = o.Port;
+
+                if (o.Version)
+                {
+                    var informationalVersion = Assembly
+                        .GetExecutingAssembly()
+                        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                        .InformationalVersion;
+
+                    Console.WriteLine($"rhino.compute {informationalVersion}");
+                    Environment.Exit(0);
+
+                }
+                
+            }).WithNotParsed(errors =>
+            {
+                if (errors.IsHelp())
+                {
+                    // Help text already printed, just exit
+                    Environment.Exit(0);
+                }
+                Console.WriteLine("Failed to parse command line options. Rhino.Compute will exit now.");
+                Environment.Exit(1);
             });
-
-            Config.Load();
-
-            var path = System.IO.Path.Combine(Config.LogPath, "log-rhino-compute-.txt");
-            var limit = Config.LogRetainDays;
-            var level = Config.Debug ? LogEventLevel.Debug : LogEventLevel.Information;
-
-            var loggerConfig = new LoggerConfiguration()
-                .MinimumLevel.Is(level)
-                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-                .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico']")
-                .WriteTo.Console(outputTemplate: "RC  [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
-                .WriteTo.File(new ExpressionTemplate("RC   [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
-            Log.Logger = loggerConfig.CreateLogger();
 
             var host = Host.CreateDefaultBuilder(args)
                 .UseSerilog()

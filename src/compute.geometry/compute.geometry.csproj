@@ -1,26 +1,36 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net9.0-windows7.0</TargetFramework>
     <AssemblyName>compute.geometry</AssemblyName>
     <OutputType>Exe</OutputType>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <UseAppHost>true</UseAppHost>
     <RuntimeFrameworkVersion>9.0.0</RuntimeFrameworkVersion>
     <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
     <RollForward>Major</RollForward>
-    <UseWpf>True</UseWpf>
-    <UseWindowsForms>True</UseWindowsForms>
     <SelfContained>False</SelfContained>
     <PublishSingleFile>False</PublishSingleFile>
     <AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>False</AppendRuntimeIdentifierToOutputPath>
-    <EnableWindowsTargeting>True</EnableWindowsTargeting>
     <Version>9.0.0</Version>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-    <OutputPath>..\bin\Debug\$(AssemblyName)</OutputPath>
+
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform(windows))">
+    <TargetFramework>net9.0-windows7.0</TargetFramework>
+    <UseWpf>True</UseWpf>
+    <UseWindowsForms>True</UseWindowsForms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform(linux))">
+    <TargetFramework>net9.0</TargetFramework>
+    <DefineConstants>LINUX</DefineConstants>
+    <RuntimeIdentifiers>linux-x64;linux-arm64</RuntimeIdentifiers>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <OutputPath>..\bin\$(Configuration)\$(AssemblyName)</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
-    <OutputPath>..\bin\Release\$(AssemblyName)</OutputPath>
     <PublishDir>..\dist\$(AssemblyName)</PublishDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -37,18 +47,24 @@
 
   <ItemGroup>
     <PackageReference Include="Carter" Version="7.0.0" />
-    <PackageReference Include="Grasshopper" Version="9.0.25133.12305-wip" ExcludeAssets="runtime" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
-    <PackageReference Include="RhinoCommon" Version="9.0.25133.12305-wip" ExcludeAssets="runtime" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Serilog" Version="3.0.2-dev-02044" />
     <PackageReference Include="Serilog.AspNetCore" Version="6.1.0" />
     <PackageReference Include="Serilog.Expressions" Version="3.4.1" />
     <PackageReference Include="Serilog.Sinks.Console" Version="4.1.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
-    <PackageReference Include="System.Management" Version="9.0.0" />
     <PackageReference Include="System.Runtime.Caching" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Windows.Compatibility" Version="9.0.0" />
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
     <PackageReference Include="System.Runtime.Serialization.Formatters" Version="9.0.0" />
+    <PackageReference Include="Rhino.Inside" Version="9.0.10-beta" />
   </ItemGroup>
+
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform(windows))">
+      <PackageReference Include="Microsoft.Windows.Compatibility" Version="9.0.0" />
+      <PackageReference Include="System.Management" Version="9.0.0" />  </ItemGroup>
+
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform(linux))">
+      <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
+  </ItemGroup>
+
 </Project>

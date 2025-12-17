@@ -3,7 +3,6 @@
     <TargetFramework>net9.0</TargetFramework>
     <AssemblyName>rhino.compute</AssemblyName>
     <OutputType>Exe</OutputType>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <RuntimeFrameworkVersion>9.0.0</RuntimeFrameworkVersion>
     <RollForward>Major</RollForward>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -13,13 +12,18 @@
     <PublishTrimmed>False</PublishTrimmed>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
-    <OutputPath>..\bin\Debug\$(AssemblyName)</OutputPath>
-    <DefineConstants>TRACE;RHINO_COMPUTE</DefineConstants>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform(windows))">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform(linux))">
+    <DefineConstants>LINUX</DefineConstants>
+    <RuntimeIdentifiers>linux-x64;linux-arm64</RuntimeIdentifiers>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OutputPath>..\bin\$(Configuration)\$(AssemblyName)</OutputPath>
+    <DefineConstants>$(DefineConstants);TRACE;RHINO_COMPUTE</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
-    <OutputPath>..\bin\Release\$(AssemblyName)</OutputPath>
-    <DefineConstants>TRACE;RHINO_COMPUTE</DefineConstants>
     <PublishDir>..\dist\$(AssemblyName)</PublishDir>
   </PropertyGroup>
 
