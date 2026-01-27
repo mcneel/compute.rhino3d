@@ -87,6 +87,11 @@ requests while the child processes are launching.")]
               HelpText = "Create a new headless Rhino doc upon each received request (default: false)")]
             public bool? CreateHeadlessDoc { get; set; }
 
+            [Option("rhinosysdir",
+              Required = false,
+              HelpText = "Path to Rhino system directory (overrides automatic detection)")]
+            public string RhinoSysDir { get; set; }
+
         }
 
         static System.Diagnostics.Process _parentProcess;
@@ -132,6 +137,7 @@ requests while the child processes are launching.")]
                 ComputeChildren.SpawnCount = o.ChildCount;
                 ComputeChildren.SpawnOnStartup = o.SpawnOnStartup;
                 ComputeChildren.ChildIdleSpan = new System.TimeSpan(0, 0, o.IdleSpanSeconds);
+                ComputeChildren.RhinoSysDir = o.RhinoSysDir;
                 int parentProcessId = o.ChildOf;
                 if (parentProcessId > 0)
                     _parentProcess = System.Diagnostics.Process.GetProcessById(parentProcessId);
