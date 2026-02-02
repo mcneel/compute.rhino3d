@@ -43,9 +43,18 @@ namespace Hops
                 if (endpoints[1].Contains("/"))
                 {
                     var subendpoints = endpoints[1].Split(new[] { '/' }, 2);
-                    UriFunctionPathInfo functionPath = new UriFunctionPathInfo("/" + subendpoints[0], true);
-                    functionPath.RootURL = row.SourcePath;
-                    path.Paths.Add(functionPath);
+                    string endpointKey = "/" + subendpoints[0];
+
+                    // Check if this endpoint already exists to avoid duplicate menu entries
+                    UriFunctionPathInfo functionPath = path.Paths.Find(p => p.EndPoint == endpointKey);
+                    if (functionPath == null)
+                    {
+                        // Create new path only if it doesn't exist
+                        functionPath = new UriFunctionPathInfo(endpointKey, true);
+                        functionPath.RootURL = row.SourcePath;
+                        path.Paths.Add(functionPath);
+                    }
+
                     SeekFunctionMenuDirs(functionPath, "/" + subendpoints[1], fullpath, row);
                 }
                 else
