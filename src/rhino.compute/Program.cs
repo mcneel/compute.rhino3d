@@ -157,7 +157,7 @@ requests while the child processes are launching.")]
                 
             }).WithNotParsed(errors =>
             {
-                if (errors.IsHelp())
+                if (errors.IsHelp() || errors.IsVersion())
                 {
                     // Help text already printed, just exit
                     Environment.Exit(0);
