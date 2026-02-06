@@ -1,0 +1,40 @@
+#!/usr/bin/make -f
+export DEB_BUILD_ARCH ?= $(shell dpkg-architecture -qDEB_BUILD_ARCH)
+
+%:
+	dh $@
+
+override_dh_auto_configure:
+	# nothing to configure
+
+override_dh_auto_build:
+	# nothing to build
+
+override_dh_auto_install:
+	# Copy prebuilt binaries into package staging dir
+	echo "Building for architecture: $(DEB_BUILD_ARCH)"
+	mkdir -p debian/rhino-compute/usr/lib/rhino-compute/
+	cp -r linux-$(DEB_BUILD_ARCH)/build/rhino.compute debian/rhino-compute/usr/lib/rhino-compute/
+	cp -r linux-$(DEB_BUILD_ARCH)/build/compute.geometry debian/rhino-compute/usr/lib/rhino-compute/
+
+	# Install wrapper into /usr/bin
+	mkdir -p debian/rhino-compute/usr/bin
+	echo '#!/bin/sh' > debian/rhino-compute/usr/bin/rhino-compute
+	echo 'exec /usr/lib/rhino-compute/rhino.compute/rhino.compute "$$@"' >> debian/rhino-compute/usr/bin/rhino-compute
+	chmod +x debian/rhino-compute/usr/bin/rhino-compute
+
+override_dh_shlibdeps:
+	# Skip dependency analysis for self-contained .NET binaries
+	echo "Skipping dh_shlibdeps for self-contained binaries"
+
+override_dh_strip:
+	# Skip stripping for self-contained .NET binaries
+	echo "Skipping dh_strip for self-contained binaries"
+
+override_dh_fixperms:
+	dh_fixperms
+	# Ensure the library directory and all contents are readable/executable
+	chmod -R 755 debian/rhino3d/usr/lib/rhino3d
+	# Make main executables explicitly executable
+	chmod 755 debian/rhino3d/usr/lib/rhino3d/rhinolinux_console
+	chmod 755 debian/rhino3d/usr/lib/rhino3d/HelloLinux

@@ -1,0 +1,6 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: rhino-compute
+Source: https://github.com/mcneel/rhino.compute
+
+Files: *
+License: MIT
