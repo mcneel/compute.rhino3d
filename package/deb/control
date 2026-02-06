@@ -1,0 +1,14 @@
+Source: rhino-compute
+Section: web
+Priority: optional
+Maintainer: McNeel <support@mcneel.com>
+Build-Depends: debhelper-compat (= 12)
+Standards-Version: 4.5.0
+Homepage: https://github.com/mcneel/rhino.compute
+
+Package: rhino-compute
+Architecture: arm64 amd64
+Depends: ${misc:Depends}, rhino3d (>= 9.0.0), liblttng-ust1t64 | liblttng-ust0
+Description: Rhino Compute server
+ Rhino.Compute is a web server that exposes Rhino functionality via REST APIs.
+ This package bundles the rhino.compute server and compute.geometry worker.

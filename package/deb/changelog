@@ -1,0 +1,21 @@
+rhino-compute (9.0.0-wip4) unstable; urgency=medium
+
+  * Fixing file permissions
+
+ -- McNeel <support@mcneel.com>  Fri, 06 Feb 2026 10:29:52 +0100
+ 
+rhino-compute (9.0.0-wip3) unstable; urgency=medium
+
+  [ Luis E. Fraguada ]
+  * fix arm64 builds
+
+  [ Luis E. Fraguada ]
+  * now using Rhino.Inside package
+
+ -- McNeel <support@mcneel.com>  Thu, 08 Jan 2026 15:28:12 +0100
+
+rhino-compute (9.0.0-wip) stable; urgency=medium
+
+  * Initial release of rhino.compute Debian package.
+
+ -- McNeel <support@mcneel.com>  Sat, 30 Aug 2025 12:00:00 +0000
