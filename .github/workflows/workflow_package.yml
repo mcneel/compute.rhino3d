@@ -101,7 +101,6 @@ jobs:
           aws s3 cp "$DIST_PATH/Packages" "${AWS_S3_BUCKET}/deb/$DIST_PATH/"
 
   tag:
-    if: github.ref == 'refs/heads/9.x'
     needs: [ version, build ]
     runs-on: ubuntu-latest
     permissions:
