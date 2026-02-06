@@ -108,10 +108,10 @@ namespace compute.geometry
                 Log.Information("(3/4) Loading grasshopper");
 #if LINUX
                 var ghpath = RhinoInside.Resolver.RhinoSystemDirectory + "/Plug-ins/Grasshopper/GrasshopperPlugin.rhp";
-                var pluginresult = Rhino.PlugIns.PlugIn.LoadPlugIn(ghpath, out _);
-                Guid GrasshopperGuid = new Guid(0xB45A29B1, 0x4343, 0x4035, 0x98, 0x9E, 0x04, 0x4E, 0x85, 0x80, 0xD9, 0xCF);
-                var pluginObject = Rhino.RhinoApp.GetPlugInObject(GrasshopperGuid) as Grasshopper.Plugin.GH_RhinoScriptInterface;
-                pluginObject.RunHeadless();
+                var pluginresult = Rhino.PlugIns.PlugIn.LoadPlugIn(ghpath, out Guid ghid);
+                var pluginObject = Rhino.RhinoApp.GetPlugInObject(ghid) as Grasshopper.Plugin.GH_RhinoScriptInterface;
+                if(pluginObject != null)
+                    pluginObject.RunHeadless();
 #else
                 var pluginObject = Rhino.RhinoApp.GetPlugInObject("Grasshopper");
                 var runheadless = pluginObject?.GetType().GetMethod("RunHeadless");
