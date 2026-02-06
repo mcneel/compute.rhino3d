@@ -43,19 +43,22 @@ jobs:
         include:
           - os: ubuntu-24.04
             architecture: 'arch64'
-            container: null
             runtime_arch: 'linux-x64'
             package_arch: 'amd64'
-          - os: macos-15
+          - os: ubuntu-24.04
             architecture: 'arm64'
             container: ubuntu:24.04
             runtime_arch: 'linux-arm64'
-            package_arch: 'arm64'
 
     runs-on: ${{ matrix.os }}
-    container: ${{ matrix.container }}
 
     steps:
+      - name: Set up QEMU
+        if: matrix.architecture == 'arm64'
+        uses: docker/setup-qemu-action@v3
+        with:
+         platforms: arm64
+
       - name: Install Tools
         run: |
           sudo apt-get update
