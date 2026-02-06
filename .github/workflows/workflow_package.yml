@@ -80,7 +80,7 @@ jobs:
           mkdir -p rhinocomputepackage/build/linux-${{ matrix.package_arch }}
           mv publish/linux-${{ matrix.package_arch }}/rhino.compute rhinocomputepackage/build/linux-${{ matrix.package_arch }}
           mv publish/linux-${{ matrix.package_arch }}/compute.geometry rhinocomputepackage/build/linux-${{ matrix.package_arch }}
-          cp package/control package/rules package/changelog package/copyright rhinocomputepackage/debian
+          cp package/deb/control package/deb/rules package/deb/changelog package/deb/copyright rhinocomputepackage/debian
           cd rhinocomputepackage
           dch -v ${{ needs.version.outputs.version }}-wip "Automated build" -M -D unstable
           dpkg-buildpackage -us -uc -b -a${{ matrix.package_arch }}
