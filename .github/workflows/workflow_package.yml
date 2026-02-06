@@ -9,6 +9,7 @@ on:
 
 jobs:
   version:
+    if: github.ref == 'refs/heads/9.x'
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version_step.outputs.version }}
@@ -33,6 +34,7 @@ jobs:
             package/version/version.cs
 
   build:
+    if: github.ref == 'refs/heads/9.x'
     name: build deb ${{ matrix.package_arch }}
     needs: version
 
@@ -99,6 +101,7 @@ jobs:
           aws s3 cp "$DIST_PATH/Packages" "${AWS_S3_BUCKET}/deb/$DIST_PATH/"
 
   tag:
+    if: github.ref == 'refs/heads/9.x'
     needs: [ version, build ]
     runs-on: ubuntu-latest
     permissions:
