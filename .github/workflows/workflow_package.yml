@@ -47,8 +47,8 @@ jobs:
             package_arch: 'amd64'
           - os: ubuntu-24.04
             architecture: 'arm64'
-            container: ubuntu:24.04
             runtime_arch: 'linux-arm64'
+            package_arch: 'arm64'
 
     runs-on: ${{ matrix.os }}
 
