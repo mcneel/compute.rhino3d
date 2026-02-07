@@ -30,11 +30,3 @@ override_dh_shlibdeps:
 override_dh_strip:
 	# Skip stripping for self-contained .NET binaries
 	echo "Skipping dh_strip for self-contained binaries"
-
-override_dh_fixperms:
-	dh_fixperms
-	# Ensure the library directory and all contents are readable/executable
-	chmod -R 755 debian/rhino3d/usr/lib/rhino3d
-	# Make main executables explicitly executable
-	chmod 755 debian/rhino3d/usr/lib/rhino3d/rhinolinux_console
-	chmod 755 debian/rhino3d/usr/lib/rhino3d/HelloLinux
