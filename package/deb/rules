@@ -23,6 +23,10 @@ override_dh_auto_install:
 	echo 'exec /usr/lib/rhino-compute/rhino.compute/rhino.compute "$$@"' >> debian/rhino-compute/usr/bin/rhino-compute
 	chmod +x debian/rhino-compute/usr/bin/rhino-compute
 
+override_dh_makeshlibs:
+	# Skip makeshlibs for self-contained .NET binaries
+	echo "Skipping dh_makeshlibs for self-contained binaries"
+
 override_dh_shlibdeps:
 	# Skip dependency analysis for self-contained .NET binaries
 	echo "Skipping dh_shlibdeps for self-contained binaries"
