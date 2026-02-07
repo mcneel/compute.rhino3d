@@ -92,14 +92,15 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           DIST_PATH="dists/stable/main/binary-${{ matrix.package_arch }}"
+          PACKAGE_NAME="rhino-compute_${{ needs.version.outputs.version }}-wip_${{ matrix.package_arch }}.deb"
           mkdir -p local-packages/deb/$DIST_PATH
-          cp rhino-compute_${{ needs.version.outputs.version }}-wip_${{ matrix.package_arch }}.deb local-packages/deb/$DIST_PATH
+          cp $PACKAGE_NAME local-packages/deb/$DIST_PATH
           cd local-packages/deb
           dpkg-scanpackages "$DIST_PATH/" /dev/null > "$DIST_PATH/Packages.new"
           aws s3 cp "${AWS_S3_BUCKET}/deb/$DIST_PATH/Packages" "$DIST_PATH/Packages.current" || true
           cat "$DIST_PATH/Packages.new" "$DIST_PATH/Packages.current" > "$DIST_PATH/Packages"
           gzip -kf "$DIST_PATH/Packages"
-          aws s3 cp "$DIST_PATH/*deb" "${AWS_S3_BUCKET}/deb/$DIST_PATH/"
+          aws s3 cp "$DIST_PATH/$PACKAGE_NAME" "${AWS_S3_BUCKET}/deb/$DIST_PATH/"
           aws s3 cp "$DIST_PATH/Packages.gz" "${AWS_S3_BUCKET}/deb/$DIST_PATH/"
           aws s3 cp "$DIST_PATH/Packages" "${AWS_S3_BUCKET}/deb/$DIST_PATH/"
 
