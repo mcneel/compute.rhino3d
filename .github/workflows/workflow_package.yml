@@ -62,7 +62,7 @@ jobs:
       - name: Install Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y debhelper devscripts build-essential
+          sudo apt-get install -y debhelper devscripts
 
       - name: Install dotnet 9.0
         uses: actions/setup-dotnet@v4
@@ -77,10 +77,9 @@ jobs:
           dotnet publish src/rhino.compute/rhino.compute.csproj -c Release -r ${{ matrix.runtime_arch }} --self-contained true -o publish/linux-${{ matrix.package_arch }}/rhino.compute
           dotnet publish src/compute.geometry/compute.geometry.csproj -c Release -r ${{ matrix.runtime_arch }} --self-contained true -o publish/linux-${{ matrix.package_arch }}/compute.geometry
           mkdir -p rhinocomputepackage/debian
-          mkdir -p rhinocomputepackage/build/linux-${{ matrix.package_arch }}
-          find rhinocomputepackage -maxdepth 3 -type d
-          mv publish/linux-${{ matrix.package_arch }}/rhino.compute rhinocomputepackage/build/linux-${{ matrix.package_arch }}
-          mv publish/linux-${{ matrix.package_arch }}/compute.geometry rhinocomputepackage/build/linux-${{ matrix.package_arch }}
+          mkdir -p rhinocomputepackage/linux-${{ matrix.package_arch }}/build
+          mv publish/linux-${{ matrix.package_arch }}/rhino.compute rhinocomputepackage/linux-${{ matrix.package_arch }}/build/
+          mv publish/linux-${{ matrix.package_arch }}/compute.geometry rhinocomputepackage/linux-${{ matrix.package_arch }}/build/
           cp package/deb/control package/deb/rules package/deb/changelog package/deb/copyright rhinocomputepackage/debian
           cd rhinocomputepackage
           dch -v ${{ needs.version.outputs.version }}-wip "Automated build" -M -D unstable
