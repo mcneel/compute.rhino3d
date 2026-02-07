@@ -78,6 +78,7 @@ jobs:
           dotnet publish src/compute.geometry/compute.geometry.csproj -c Release -r ${{ matrix.runtime_arch }} --self-contained true -o publish/linux-${{ matrix.package_arch }}/compute.geometry
           mkdir -p rhinocomputepackage/debian
           mkdir -p rhinocomputepackage/build/linux-${{ matrix.package_arch }}
+          find rhinocomputepackage -maxdepth 3 -type d
           mv publish/linux-${{ matrix.package_arch }}/rhino.compute rhinocomputepackage/build/linux-${{ matrix.package_arch }}
           mv publish/linux-${{ matrix.package_arch }}/compute.geometry rhinocomputepackage/build/linux-${{ matrix.package_arch }}
           cp package/deb/control package/deb/rules package/deb/changelog package/deb/copyright rhinocomputepackage/debian
