@@ -41,16 +41,36 @@ jobs:
     strategy:
       matrix:
         include:
+        #deb packages
           - os: ubuntu-24.04
+            package_type: 'deb'
             architecture: 'arch64'
-            runtime_arch: 'linux-x64'
+            runtime_arch: 'x64'
             package_arch: 'amd64'
           - os: ubuntu-24.04
+            package_type: 'deb'
             architecture: 'arm64'
-            runtime_arch: 'linux-arm64'
+            runtime_arch: 'arm64'
             package_arch: 'arm64'
+        #rpm packages
+          - os: ubuntu-24.04
+            package_type: 'rpm'
+            architecture: 'x64'
+            runtime_arch: 'linux-x64'
+            package_arch: 'x86_64'
+          - os: ubuntu-24.04
+            package_type: 'rpm'
+            architecture: 'arm64'
+            runtime_arch: 'arm64'
+            package_arch: 'aarch64'
 
     runs-on: ${{ matrix.os }}
+    container:
+      image: ${{ matrix.package_type == 'rpm' && secrets.RPM_COMPUTE_BUILDER_IMAGE || null }}
+      options: ${{ matrix.package_type == 'rpm' && format('--platform linux/{0}', matrix.architecture) || '' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Set up QEMU
@@ -59,7 +79,8 @@ jobs:
         with:
          platforms: arm64
 
-      - name: Install Tools
+      - name: Install Tools (deb)
+        if: matrix.package_type == 'deb'
         run: |
           sudo apt-get update
           sudo apt-get install -y debhelper devscripts build-essential
@@ -72,20 +93,54 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build
+      - name: Build Rhino.Compute and Compute.Geometry
         run: |
-          dotnet publish src/rhino.compute/rhino.compute.csproj -c Release -r ${{ matrix.runtime_arch }} --self-contained true -o publish/linux-${{ matrix.package_arch }}/rhino.compute
-          dotnet publish src/compute.geometry/compute.geometry.csproj -c Release -r ${{ matrix.runtime_arch }} --self-contained true -o publish/linux-${{ matrix.package_arch }}/compute.geometry
+          dotnet publish src/rhino.compute/rhino.compute.csproj -c Release -r ${{ matrix.runtime_arch }} --self-contained true -o publish/linux-${{ matrix.runtime_arch }}/rhino.compute
+          dotnet publish src/compute.geometry/compute.geometry.csproj -c Release -r ${{ matrix.runtime_arch }} --self-contained true -o publish/linux-${{ matrix.runtime_arch }}/compute.geometry
+
+      - name: Package (deb)
+        if: matrix.package_type == 'deb'
+        run: |
           mkdir -p rhinocomputepackage/debian
-          mkdir -p rhinocomputepackage/linux-${{ matrix.package_arch }}/build
-          mv publish/linux-${{ matrix.package_arch }}/rhino.compute rhinocomputepackage/linux-${{ matrix.package_arch }}/build/
-          mv publish/linux-${{ matrix.package_arch }}/compute.geometry rhinocomputepackage/linux-${{ matrix.package_arch }}/build/
+          mkdir -p rhinocomputepackage/linux-${{ matrix.runtime_arch }}/build
+          mv publish/linux-${{ matrix.runtime_arch }}/rhino.compute rhinocomputepackage/linux-${{ matrix.runtime_arch }}/build/
+          mv publish/linux-${{ matrix.runtime_arch }}/compute.geometry rhinocomputepackage/linux-${{ matrix.runtime_arch }}/build/
           cp package/deb/control package/deb/rules package/deb/changelog package/deb/copyright rhinocomputepackage/debian
           cd rhinocomputepackage
           dch -v ${{ needs.version.outputs.version }}-wip "Automated build" -M -D unstable
           dpkg-buildpackage -us -uc -b -a${{ matrix.package_arch }}
 
-      - name: Deploy
+      - name: Package (rpm)
+        if: matrix.package_type == 'rpm'
+        run: |
+          VERSION="${{ needs.version.outputs.version }}"
+          mkdir -p rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
+
+          # Update spec file with dynamic version and changelog entry
+          cp package/rpm/rhino-compute.spec rpmbuild/SPECS
+
+          # Replace all occurrences of 9.0.0 with dynamic version
+          sed -i "s/9\.0\.0/${VERSION}/g" rpmbuild/SPECS/rhino-compute.spec
+
+          # Add changelog entry
+          CHANGELOG_DATE=$(date '+%a %b %d %Y')
+          CHANGELOG_ENTRY="* ${CHANGELOG_DATE} McNeel <support@mcneel.com> - ${VERSION}-1\n- Automated build"
+          sed -i "/%changelog/a ${CHANGELOG_ENTRY}" rpmbuild/SPECS/rhino-compute.spec
+
+          #tarball
+          mkdir rhino-compute_${VERSION}-wip
+          cp LICENSE.md rhino-compute_${VERSION}-wip
+          mv -a publish/linux-${{ matrix.runtime_arch }}/* rhino-compute_${VERSION}-wip
+          tar czf rpmbuild/SOURCES/rhino-compute_${VERSION}-wip.tar.gz rhino-compute_${VERSION}-wip
+
+          #build binary rpm
+          rpmbuild -bb rpmbuild/SPECS/rhino-compute.spec
+
+          #should result in something like
+          #rhino-compute-${VERSION}-1.amzn2023.${{ matrix.package_arch }}.rpm
+
+      - name: Deploy (deb)
+        if: matrix.package_type == 'deb'
         env:
           AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -103,6 +158,21 @@ jobs:
           aws s3 cp "$DIST_PATH/$PACKAGE_NAME" "${AWS_S3_BUCKET}/deb/$DIST_PATH/"
           aws s3 cp "$DIST_PATH/Packages.gz" "${AWS_S3_BUCKET}/deb/$DIST_PATH/"
           aws s3 cp "$DIST_PATH/Packages" "${AWS_S3_BUCKET}/deb/$DIST_PATH/"
+
+      - name: Deploy (rpm)
+        if: matrix.package_type == 'rpm'
+        env:
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          DIST_PATH="rpm/amazonlinux/2023/${{ matrix.package_arch }}"
+          mkdir -p local-mcneel-packages/${DIST_PATH}
+          mv rpmbuild/RPMS/${{ matrix.package_arch}}/*.rpm local-mcneel-packages/${DIST_PATH}/
+          aws s3 sync ${AWS_S3_BUCKET}/${DIST_PATH}/ local-mcneel-packages/${DIST_PATH}/ --exclude "repodata/*" 
+          createrepo --update local-mcneel-packages/${DIST_PATH}/
+          aws s3 cp local-mcneel-packages/${DIST_PATH}/*.rpm ${AWS_S3_BUCKET}/${DIST_PATH}/
+          aws s3 sync local-mcneel-packages/${DIST_PATH}/repodata/ ${AWS_S3_BUCKET}/${DIST_PATH}/repodata/ --delete
 
   tag:
     needs: [ version, build ]
