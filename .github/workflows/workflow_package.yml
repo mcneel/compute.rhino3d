@@ -89,9 +89,8 @@ jobs:
       - name: Package (deb)
         run: |
           mkdir -p rhinocomputepackage/debian
-          mkdir -p rhinocomputepackage/linux-${{ matrix.runtime_arch }}/build
-          mv publish/linux-${{ matrix.runtime_arch }}/rhino.compute rhinocomputepackage/linux-${{ matrix.runtime_arch }}/build/
-          mv publish/linux-${{ matrix.runtime_arch }}/compute.geometry rhinocomputepackage/linux-${{ matrix.runtime_arch }}/build/
+          mkdir -p rhinocomputepackage/linux-${{ matrix.package_arch }}/build
+          mv publish/linux-${{ matrix.runtime_arch }}/* rhinocomputepackage/linux-${{ matrix.package_arch }}/build/
           cp package/deb/control package/deb/rules package/deb/changelog package/deb/copyright rhinocomputepackage/debian
           cd rhinocomputepackage
           dch -v ${{ needs.version.outputs.version }}-wip "Automated build" -M -D unstable
@@ -180,7 +179,7 @@ jobs:
           #tarball
           mkdir rhino-compute_${VERSION}-wip
           cp LICENSE.md rhino-compute_${VERSION}-wip
-          mv -a publish/linux-${{ matrix.runtime_arch }}/* rhino-compute_${VERSION}-wip
+          mv publish/linux-${{ matrix.runtime_arch }}/* rhino-compute_${VERSION}-wip
           tar czf rpmbuild/SOURCES/rhino-compute_${VERSION}-wip.tar.gz rhino-compute_${VERSION}-wip
 
           #build binary rpm
