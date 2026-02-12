@@ -33,15 +33,6 @@ jobs:
           path: |
             package/version/version.cs
 
-  setup:
-    if: github.ref == 'refs/heads/9.x'
-    runs-on: ubuntu-latest
-    outputs:
-      builder_image: ${{ steps.set_image.outputs.image }}
-    steps:
-      - id: set_image
-        run: echo "image=${{ secrets.RPM_COMPUTE_BUILDER_IMAGE }}" >> $GITHUB_OUTPUT
-
   build-deb:
     if: github.ref == 'refs/heads/9.x'
     name: build deb ${{ matrix.package_arch }}
@@ -118,7 +109,7 @@ jobs:
   build-rpm:
     if: github.ref == 'refs/heads/9.x'
     name: build rpm ${{ matrix.package_arch }}
-    needs: [version, setup]
+    needs: [version]
 
     strategy:
       matrix:
@@ -134,7 +125,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     container:
-      image: ${{ needs.setup.outputs.builder_image }}
+      image: ${{ vars.RPM_COMPUTE_BUILDER_IMAGE }}
       options: --platform linux/${{ matrix.architecture }}
       credentials:
         username: ${{ github.actor }}
@@ -187,11 +178,6 @@ jobs:
 
           #should result in something like
           #rhino-compute-${VERSION}-1.amzn2023.${{ matrix.package_arch }}.rpm
-
-      - name: Install createrepo_c
-        run: |
-          dnf install -y createrepo_c || yum install -y createrepo_c
-
 
       - name: Deploy (rpm)
         env:
