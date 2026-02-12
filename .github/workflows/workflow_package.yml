@@ -133,12 +133,6 @@ jobs:
         password: ${{ secrets.REPO_TOKEN }}
 
     steps:
-      - name: Set up QEMU
-        if: matrix.architecture == 'arm64'
-        uses: docker/setup-qemu-action@v3
-        with:
-         platforms: arm64
-
       - name: Install dotnet 9.0
         uses: actions/setup-dotnet@v4
         with:
