@@ -128,7 +128,6 @@ jobs:
       packages: read
     container:
       image: ${{ vars.RPM_COMPUTE_BUILDER_IMAGE }}
-      options: --platform linux/${{ matrix.architecture }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.REPO_TOKEN }}
