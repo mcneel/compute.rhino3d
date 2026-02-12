@@ -129,7 +129,7 @@ jobs:
       options: --platform linux/${{ matrix.architecture }}
       credentials:
         username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        password: ${{ secrets.REPO_TOKEN }}
 
     steps:
       - name: Set up QEMU
