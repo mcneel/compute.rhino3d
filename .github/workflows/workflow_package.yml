@@ -66,7 +66,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     container:
-      image: ${{ matrix.package_type == 'rpm' && secrets.RPM_COMPUTE_BUILDER_IMAGE || null }}
+      image: ${{ matrix.package_type == 'rpm' && vars.RPM_COMPUTE_BUILDER_IMAGE || '' }}
       options: ${{ matrix.package_type == 'rpm' && format('--platform linux/{0}', matrix.architecture) || '' }}
       credentials:
         username: ${{ github.actor }}
