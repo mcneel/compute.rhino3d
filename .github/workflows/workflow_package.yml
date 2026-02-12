@@ -163,27 +163,27 @@ jobs:
       - name: Package (rpm)
         run: |
           VERSION="${{ needs.version.outputs.version }}"
-          mkdir -p rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
+          mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
           # Update spec file with dynamic version and changelog entry
-          cp package/rpm/rhino-compute.spec rpmbuild/SPECS
+          cp package/rpm/rhino-compute.spec ~/rpmbuild/SPECS
 
           # Replace all occurrences of 9.0.0 with dynamic version
-          sed -i "s/9\.0\.0/${VERSION}/g" rpmbuild/SPECS/rhino-compute.spec
+          sed -i "s/9\.0\.0/${VERSION}/g" ~/rpmbuild/SPECS/rhino-compute.spec
 
           # Add changelog entry
           CHANGELOG_DATE=$(date '+%a %b %d %Y')
           CHANGELOG_ENTRY="* ${CHANGELOG_DATE} McNeel <support@mcneel.com> - ${VERSION}-1\n- Automated build"
-          sed -i "/%changelog/a ${CHANGELOG_ENTRY}" rpmbuild/SPECS/rhino-compute.spec
+          sed -i "/%changelog/a ${CHANGELOG_ENTRY}" ~/rpmbuild/SPECS/rhino-compute.spec
 
           #tarball
           mkdir rhino-compute_${VERSION}-wip
           cp LICENSE.md rhino-compute_${VERSION}-wip
           mv publish/linux-${{ matrix.runtime_arch }}/* rhino-compute_${VERSION}-wip
-          tar czf rpmbuild/SOURCES/rhino-compute_${VERSION}-wip.tar.gz rhino-compute_${VERSION}-wip
+          tar czf ~/rpmbuild/SOURCES/rhino-compute_${VERSION}-wip.tar.gz rhino-compute_${VERSION}-wip
 
           #build binary rpm
-          rpmbuild -bb rpmbuild/SPECS/rhino-compute.spec
+          rpmbuild -bb ~/rpmbuild/SPECS/rhino-compute.spec
 
           #should result in something like
           #rhino-compute-${VERSION}-1.amzn2023.${{ matrix.package_arch }}.rpm
@@ -196,7 +196,7 @@ jobs:
         run: |
           DIST_PATH="rpm/amazonlinux/2023/${{ matrix.package_arch }}"
           mkdir -p local-mcneel-packages/${DIST_PATH}
-          mv rpmbuild/RPMS/${{ matrix.package_arch}}/*.rpm local-mcneel-packages/${DIST_PATH}/
+          mv ~/rpmbuild/RPMS/${{ matrix.package_arch}}/*.rpm local-mcneel-packages/${DIST_PATH}/
           aws s3 sync ${AWS_S3_BUCKET}/${DIST_PATH}/ local-mcneel-packages/${DIST_PATH}/ --exclude "repodata/*" 
           createrepo --update local-mcneel-packages/${DIST_PATH}/
           aws s3 cp local-mcneel-packages/${DIST_PATH}/*.rpm ${AWS_S3_BUCKET}/${DIST_PATH}/
