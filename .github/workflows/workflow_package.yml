@@ -124,6 +124,8 @@ jobs:
             package_arch: 'aarch64'
 
     runs-on: ${{ matrix.os }}
+    permissions: 
+      packages: read
     container:
       image: ${{ vars.RPM_COMPUTE_BUILDER_IMAGE }}
       options: --platform linux/${{ matrix.architecture }}
