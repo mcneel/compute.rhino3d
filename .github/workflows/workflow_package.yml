@@ -188,6 +188,11 @@ jobs:
           #should result in something like
           #rhino-compute-${VERSION}-1.amzn2023.${{ matrix.package_arch }}.rpm
 
+      - name: Debug
+        run: |
+          which createrepo_c || echo "not in PATH"
+          find /usr -name "createrepo*" 2>/dev/null
+
       - name: Deploy (rpm)
         env:
           AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
@@ -198,7 +203,7 @@ jobs:
           mkdir -p local-mcneel-packages/${DIST_PATH}
           mv ~/rpmbuild/RPMS/${{ matrix.package_arch}}/*.rpm local-mcneel-packages/${DIST_PATH}/
           aws s3 sync ${AWS_S3_BUCKET}/${DIST_PATH}/ local-mcneel-packages/${DIST_PATH}/ --exclude "repodata/*" 
-          createrepo_c --update local-mcneel-packages/${DIST_PATH}/
+          /usr/bin/createrepo_c --update local-mcneel-packages/${DIST_PATH}/
           aws s3 cp local-mcneel-packages/${DIST_PATH}/*.rpm ${AWS_S3_BUCKET}/${DIST_PATH}/
           aws s3 sync local-mcneel-packages/${DIST_PATH}/repodata/ ${AWS_S3_BUCKET}/${DIST_PATH}/repodata/ --delete
 
