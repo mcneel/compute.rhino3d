@@ -33,13 +33,19 @@ jobs:
           path: |
             package/version/version.cs
 
+  setup:
+    if: github.ref == 'refs/heads/9.x'
+    runs-on: ubuntu-latest
+    outputs:
+      builder_image: ${{ steps.set_image.outputs.image }}
+    steps:
+      - id: set_image
+        run: echo "image=${{ secrets.RPM_COMPUTE_BUILDER_IMAGE }}" >> $GITHUB_OUTPUT
+
   build:
     if: github.ref == 'refs/heads/9.x'
-    name: build deb ${{ matrix.package_arch }}
-    needs: version
-    
-    env:
-      RPM_BUILDER_IMAGE: ${{ secrets.RPM_COMPUTE_BUILDER_IMAGE }}
+    name: build ${{ matrix.package_type }} ${{ matrix.package_arch }}
+    needs: [version, setup]
 
     strategy:
       matrix:
@@ -69,7 +75,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     container:
-      image: ${{ matrix.package_type == 'rpm' && env.RPM_BUILDER_IMAGE || null }}
+      image: ${{ matrix.package_type == 'rpm' && needs.setup.outputs.builder_image || '' }}
       options: ${{ matrix.package_type == 'rpm' && format('--platform linux/{0}', matrix.architecture) || '' }}
       credentials:
         username: ${{ github.actor }}
