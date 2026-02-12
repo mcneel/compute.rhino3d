@@ -169,7 +169,7 @@ jobs:
           tar czf ~/rpmbuild/SOURCES/rhino-compute_${VERSION}-wip.tar.gz rhino-compute_${VERSION}-wip
 
           #build binary rpm
-          rpmbuild -bb ~/rpmbuild/SPECS/rhino-compute.spec
+          rpmbuild -bb --target ${{ matrix.package_arch }} ~/rpmbuild/SPECS/rhino-compute.spec
 
           #should result in something like
           #rhino-compute-${VERSION}-1.amzn2023.${{ matrix.package_arch }}.rpm
