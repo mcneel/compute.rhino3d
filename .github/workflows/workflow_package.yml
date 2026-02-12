@@ -42,44 +42,24 @@ jobs:
       - id: set_image
         run: echo "image=${{ secrets.RPM_COMPUTE_BUILDER_IMAGE }}" >> $GITHUB_OUTPUT
 
-  build:
+  build-deb:
     if: github.ref == 'refs/heads/9.x'
-    name: build ${{ matrix.package_type }} ${{ matrix.package_arch }}
-    needs: [version, setup]
+    name: build deb ${{ matrix.package_arch }}
+    needs: [version]
 
     strategy:
       matrix:
         include:
-        #deb packages
           - os: ubuntu-24.04
-            package_type: 'deb'
-            architecture: 'arch64'
+            architecture: 'amd64'
             runtime_arch: 'x64'
             package_arch: 'amd64'
           - os: ubuntu-24.04
-            package_type: 'deb'
             architecture: 'arm64'
             runtime_arch: 'arm64'
             package_arch: 'arm64'
-        #rpm packages
-          - os: ubuntu-24.04
-            package_type: 'rpm'
-            architecture: 'x64'
-            runtime_arch: 'linux-x64'
-            package_arch: 'x86_64'
-          - os: ubuntu-24.04
-            package_type: 'rpm'
-            architecture: 'arm64'
-            runtime_arch: 'arm64'
-            package_arch: 'aarch64'
 
     runs-on: ${{ matrix.os }}
-    container:
-      image: ${{ matrix.package_type == 'rpm' && needs.setup.outputs.builder_image }}
-      options: --platform linux/${{ matrix.architecture }}
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Set up QEMU
@@ -89,7 +69,6 @@ jobs:
          platforms: arm64
 
       - name: Install Tools (deb)
-        if: matrix.package_type == 'deb'
         run: |
           sudo apt-get update
           sudo apt-get install -y debhelper devscripts build-essential
@@ -104,11 +83,10 @@ jobs:
 
       - name: Build Rhino.Compute and Compute.Geometry
         run: |
-          dotnet publish src/rhino.compute/rhino.compute.csproj -c Release -r ${{ matrix.runtime_arch }} --self-contained true -o publish/linux-${{ matrix.runtime_arch }}/rhino.compute
-          dotnet publish src/compute.geometry/compute.geometry.csproj -c Release -r ${{ matrix.runtime_arch }} --self-contained true -o publish/linux-${{ matrix.runtime_arch }}/compute.geometry
+          dotnet publish src/rhino.compute/rhino.compute.csproj -c Release -r linux-${{ matrix.runtime_arch }} --self-contained true -o publish/linux-${{ matrix.runtime_arch }}/rhino.compute
+          dotnet publish src/compute.geometry/compute.geometry.csproj -c Release -r linux-${{ matrix.runtime_arch }} --self-contained true -o publish/linux-${{ matrix.runtime_arch }}/compute.geometry
 
       - name: Package (deb)
-        if: matrix.package_type == 'deb'
         run: |
           mkdir -p rhinocomputepackage/debian
           mkdir -p rhinocomputepackage/linux-${{ matrix.runtime_arch }}/build
@@ -119,8 +97,71 @@ jobs:
           dch -v ${{ needs.version.outputs.version }}-wip "Automated build" -M -D unstable
           dpkg-buildpackage -us -uc -b -a${{ matrix.package_arch }}
 
+      - name: Deploy (deb)
+        env:
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          DIST_PATH="dists/stable/main/binary-${{ matrix.package_arch }}"
+          PACKAGE_NAME="rhino-compute_${{ needs.version.outputs.version }}-wip_${{ matrix.package_arch }}.deb"
+          mkdir -p local-packages/deb/$DIST_PATH
+          cp $PACKAGE_NAME local-packages/deb/$DIST_PATH
+          cd local-packages/deb
+          dpkg-scanpackages "$DIST_PATH/" /dev/null > "$DIST_PATH/Packages.new"
+          aws s3 cp "${AWS_S3_BUCKET}/deb/$DIST_PATH/Packages" "$DIST_PATH/Packages.current" || true
+          cat "$DIST_PATH/Packages.new" "$DIST_PATH/Packages.current" > "$DIST_PATH/Packages"
+          gzip -kf "$DIST_PATH/Packages"
+          aws s3 cp "$DIST_PATH/$PACKAGE_NAME" "${AWS_S3_BUCKET}/deb/$DIST_PATH/"
+          aws s3 cp "$DIST_PATH/Packages.gz" "${AWS_S3_BUCKET}/deb/$DIST_PATH/"
+          aws s3 cp "$DIST_PATH/Packages" "${AWS_S3_BUCKET}/deb/$DIST_PATH/"
+
+  build-rpm:
+    if: github.ref == 'refs/heads/9.x'
+    name: build rpm ${{ matrix.package_arch }}
+    needs: [version, setup]
+
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            architecture: 'amd64'
+            runtime_arch: 'x64'
+            package_arch: 'x86_64'
+          - os: ubuntu-24.04
+            architecture: 'arm64'
+            runtime_arch: 'arm64'
+            package_arch: 'aarch64'
+
+    runs-on: ${{ matrix.os }}
+    container:
+      image: ${{ needs.setup.outputs.builder_image }}
+      options: --platform linux/${{ matrix.architecture }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Set up QEMU
+        if: matrix.architecture == 'arm64'
+        uses: docker/setup-qemu-action@v3
+        with:
+         platforms: arm64
+
+      - name: Install dotnet 9.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+    
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Rhino.Compute and Compute.Geometry
+        run: |
+          dotnet publish src/rhino.compute/rhino.compute.csproj -c Release -r linux-${{ matrix.runtime_arch }} --self-contained true -o publish/linux-${{ matrix.runtime_arch }}/rhino.compute
+          dotnet publish src/compute.geometry/compute.geometry.csproj -c Release -r linux-${{ matrix.runtime_arch }} --self-contained true -o publish/linux-${{ matrix.runtime_arch }}/compute.geometry
+
       - name: Package (rpm)
-        if: matrix.package_type == 'rpm'
         run: |
           VERSION="${{ needs.version.outputs.version }}"
           mkdir -p rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
@@ -148,28 +189,7 @@ jobs:
           #should result in something like
           #rhino-compute-${VERSION}-1.amzn2023.${{ matrix.package_arch }}.rpm
 
-      - name: Deploy (deb)
-        if: matrix.package_type == 'deb'
-        env:
-          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          DIST_PATH="dists/stable/main/binary-${{ matrix.package_arch }}"
-          PACKAGE_NAME="rhino-compute_${{ needs.version.outputs.version }}-wip_${{ matrix.package_arch }}.deb"
-          mkdir -p local-packages/deb/$DIST_PATH
-          cp $PACKAGE_NAME local-packages/deb/$DIST_PATH
-          cd local-packages/deb
-          dpkg-scanpackages "$DIST_PATH/" /dev/null > "$DIST_PATH/Packages.new"
-          aws s3 cp "${AWS_S3_BUCKET}/deb/$DIST_PATH/Packages" "$DIST_PATH/Packages.current" || true
-          cat "$DIST_PATH/Packages.new" "$DIST_PATH/Packages.current" > "$DIST_PATH/Packages"
-          gzip -kf "$DIST_PATH/Packages"
-          aws s3 cp "$DIST_PATH/$PACKAGE_NAME" "${AWS_S3_BUCKET}/deb/$DIST_PATH/"
-          aws s3 cp "$DIST_PATH/Packages.gz" "${AWS_S3_BUCKET}/deb/$DIST_PATH/"
-          aws s3 cp "$DIST_PATH/Packages" "${AWS_S3_BUCKET}/deb/$DIST_PATH/"
-
       - name: Deploy (rpm)
-        if: matrix.package_type == 'rpm'
         env:
           AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -184,7 +204,7 @@ jobs:
           aws s3 sync local-mcneel-packages/${DIST_PATH}/repodata/ ${AWS_S3_BUCKET}/${DIST_PATH}/repodata/ --delete
 
   tag:
-    needs: [ version, build ]
+    needs: [ version, build-deb, build-rpm ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
