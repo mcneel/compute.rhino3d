@@ -169,7 +169,7 @@ jobs:
           tar czf ~/rpmbuild/SOURCES/rhino-compute_${VERSION}-wip.tar.gz rhino-compute_${VERSION}-wip
 
           #build binary rpm
-          rpmbuild -bb --target ${{ matrix.package_arch }} ~/rpmbuild/SPECS/rhino-compute.spec
+          rpmbuild -bb ~/rpmbuild/SPECS/rhino-compute.spec
 
           #should result in something like
           #rhino-compute-${VERSION}-1.amzn2023.${{ matrix.package_arch }}.rpm
@@ -182,11 +182,11 @@ jobs:
         run: |
           DIST_PATH="rpm/amazonlinux/2023/${{ matrix.package_arch }}"
           mkdir -p local-mcneel-packages/${DIST_PATH}
-          mv ~/rpmbuild/RPMS/${{ matrix.package_arch}}/*.rpm local-mcneel-packages/${DIST_PATH}/
           aws s3 sync ${AWS_S3_BUCKET}/${DIST_PATH}/ local-mcneel-packages/${DIST_PATH}/
+          mv ~/rpmbuild/RPMS/${{ matrix.package_arch}}/*.rpm local-mcneel-packages/${DIST_PATH}/
           createrepo_c --update local-mcneel-packages/${DIST_PATH}/
           echo "copying rpm to s3"
-          aws s3 cp local-mcneel-packages/${DIST_PATH}/*.rpm ${AWS_S3_BUCKET}/${DIST_PATH}/
+          aws s3 sync local-mcneel-packages/${DIST_PATH}/ ${AWS_S3_BUCKET}/${DIST_PATH}/ --exclude "repodata/*"
           echo "copying repo data to s3"
           aws s3 sync local-mcneel-packages/${DIST_PATH}/repodata/ ${AWS_S3_BUCKET}/${DIST_PATH}/repodata/ --delete
 
