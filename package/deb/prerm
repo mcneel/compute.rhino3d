@@ -1,0 +1,24 @@
+#!/bin/sh
+
+# This is a pre-removal script. 
+# It runs before the rhino-compute package files are removed via apt-get remove
+
+set -e
+
+case "$1" in
+    remove)
+        # Stop the service if running
+        if systemctl is-active --quiet rhino-compute; then
+            systemctl stop rhino-compute
+        fi
+
+        # Disable the service if enabled
+        if systemctl is-enabled --quiet rhino-compute; then
+            systemctl disable rhino-compute
+        fi
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

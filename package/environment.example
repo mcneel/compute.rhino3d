@@ -1,0 +1,16 @@
+# Rhino Compute Environment Configuration
+# Copy this file to /etc/rhino-compute/environment and set your values
+# After making changes, restart the service: sudo systemctl restart rhino-compute
+
+# Required: Create a doc while in headless mode
+RHINO_COMPUTE_CREATE_HEADLESS_DOC=true
+
+# Required: Your Rhino API key for authentication
+# Replace YOUR_API_KEY_HERE with your actual key
+RHINO_TOKEN=YOUR_API_KEY_HERE
+
+
+# Optional: Additional environment variables
+# Uncomment and set as needed:
+# RHINO_COMPUTE_MAX_REQUEST_SIZE=52428800
+# RHINO_COMPUTE_TIMEOUT=100

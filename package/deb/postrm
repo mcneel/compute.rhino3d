@@ -1,0 +1,19 @@
+#!/bin/sh
+
+# This is a post-removal script. 
+# It runs after the rhino-compute package files are removed via apt-get remove
+# It reloads systemd to ensure any removed service files are no longer active
+# or if the service is updated, it ensures the new service files are loaded.
+
+set -e
+
+case "$1" in
+    purge|remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+        # Reload systemd
+        systemctl daemon-reload || true
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

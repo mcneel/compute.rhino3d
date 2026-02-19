@@ -41,3 +41,4 @@ RhinoCompute.cs
 # Log files created from Rhino.Compute
 /src/rhino.compute/logs/
 publish/
+package/version/version.cs
