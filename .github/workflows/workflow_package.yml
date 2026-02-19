@@ -26,13 +26,6 @@ jobs:
         id: version_step
         run: ./package/version/version.sh
 
-      - name: Upload versioned files
-        uses: actions/upload-artifact@v4
-        with:
-          name: version-files
-          path: |
-            package/version/version.cs
-
   build-deb:
     if: github.ref == 'refs/heads/9.x'
     name: build deb ${{ matrix.package_arch }}
@@ -82,7 +75,7 @@ jobs:
           mkdir -p rhinocomputepackage/debian
           mkdir -p rhinocomputepackage/linux-${{ matrix.package_arch }}/build
           mv publish/linux-${{ matrix.runtime_arch }}/* rhinocomputepackage/linux-${{ matrix.package_arch }}/build/
-          cp LICENSE.md package/rhino-compute.service package/environment.example package/rhino-compute-start.sh rhinocomputepackage/linux-${RUNTIME_ARCH}/build/
+          cp LICENSE.md package/rhino-compute.service package/environment.example package/rhino-compute-start.sh rhinocomputepackage/linux-${{ matrix.package_arch }}/build/
           cp package/deb/control package/deb/rules package/deb/changelog package/deb/copyright package/deb/postinst package/deb/postrm package/deb/prerm rhinocomputepackage/debian
           cd rhinocomputepackage
           dch -v ${{ needs.version.outputs.version }}-wip "Automated build" -M -D unstable
@@ -171,8 +164,8 @@ jobs:
           #tarball
           tar czf ~/rpmbuild/SOURCES/rhino-compute_${VERSION}-wip.tar.gz \
           --transform "s,^,rhino-compute_${VERSION}-wip/," \
-          -C /src/compute.rhino3d LICENSE.md \
-          -C /src/compute.rhino3d/publish/linux-${RUNTIME_ARCH} .
+          -C . LICENSE.md \
+          -C publish/linux-${{ matrix.runtime_arch }} .
 
           #build binary rpm
           rpmbuild -bb --target ${{ matrix.package_arch }} ~/rpmbuild/SPECS/rhino-compute.spec
