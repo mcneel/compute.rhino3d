@@ -82,7 +82,8 @@ jobs:
           mkdir -p rhinocomputepackage/debian
           mkdir -p rhinocomputepackage/linux-${{ matrix.package_arch }}/build
           mv publish/linux-${{ matrix.runtime_arch }}/* rhinocomputepackage/linux-${{ matrix.package_arch }}/build/
-          cp package/deb/control package/deb/rules package/deb/changelog package/deb/copyright rhinocomputepackage/debian
+          cp LICENSE.md package/rhino-compute.service package/environment.example package/rhino-compute-start.sh rhinocomputepackage/linux-${RUNTIME_ARCH}/build/
+          cp package/deb/control package/deb/rules package/deb/changelog package/deb/copyright package/deb/postinst package/deb/postrm package/deb/prerm rhinocomputepackage/debian
           cd rhinocomputepackage
           dch -v ${{ needs.version.outputs.version }}-wip "Automated build" -M -D unstable
           dpkg-buildpackage -us -uc -b -a${{ matrix.package_arch }}
@@ -162,11 +163,16 @@ jobs:
           CHANGELOG_ENTRY="* ${CHANGELOG_DATE} McNeel <support@mcneel.com> - ${VERSION}-1\n- Automated build"
           sed -i "/%changelog/a ${CHANGELOG_ENTRY}" ~/rpmbuild/SPECS/rhino-compute.spec
 
+          # cp other files
+          cp package/rhino-compute.service ~/rpmbuild/SOURCES/
+          cp package/environment.example ~/rpmbuild/SOURCES/
+          cp package/rhino-compute-start.sh ~/rpmbuild/SOURCES/
+
           #tarball
-          mkdir rhino-compute_${VERSION}-wip
-          cp LICENSE.md rhino-compute_${VERSION}-wip
-          mv publish/linux-${{ matrix.runtime_arch }}/* rhino-compute_${VERSION}-wip
-          tar czf ~/rpmbuild/SOURCES/rhino-compute_${VERSION}-wip.tar.gz rhino-compute_${VERSION}-wip
+          tar czf ~/rpmbuild/SOURCES/rhino-compute_${VERSION}-wip.tar.gz \
+          --transform "s,^,rhino-compute_${VERSION}-wip/," \
+          -C /src/compute.rhino3d LICENSE.md \
+          -C /src/compute.rhino3d/publish/linux-${RUNTIME_ARCH} .
 
           #build binary rpm
           rpmbuild -bb --target ${{ matrix.package_arch }} ~/rpmbuild/SPECS/rhino-compute.spec
