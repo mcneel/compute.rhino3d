@@ -24,7 +24,7 @@ override_dh_auto_install:
 	chmod +x debian/rhino-compute/usr/bin/rhino-compute
 
 	# Install startup script for non-systemd environments
-	cp package/rhino-compute-start.sh debian/rhino-compute/usr/bin/rhino-compute-start
+	cp linux-$(DEB_HOST_ARCH)/build/rhino-compute-start.sh debian/rhino-compute/usr/bin/rhino-compute-start
 	chmod +x debian/rhino-compute/usr/bin/rhino-compute-start
 
 	# Install systemd service file
