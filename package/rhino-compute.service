@@ -1,0 +1,26 @@
+[Unit]
+Description=Rhino Compute Server
+Documentation=https://github.com/mcneel/compute.rhino3d
+After=network.target
+
+[Service]
+Type=simple
+User=rhino-compute
+Group=rhino-compute
+WorkingDirectory=/usr/lib/rhino-compute
+EnvironmentFile=-/etc/rhino-compute/environment
+ExecStart=/usr/bin/rhino-compute --urls http://0.0.0.0:5000
+Restart=on-failure
+RestartSec=10
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=rhino-compute
+
+[Install]
+WantedBy=multi-user.target
