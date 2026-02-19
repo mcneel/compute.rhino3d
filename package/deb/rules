@@ -23,6 +23,10 @@ override_dh_auto_install:
 	echo 'exec /usr/lib/rhino-compute/rhino.compute/rhino.compute "$$@"' >> debian/rhino-compute/usr/bin/rhino-compute
 	chmod +x debian/rhino-compute/usr/bin/rhino-compute
 
+	# Install startup script for non-systemd environments
+	cp package/rhino-compute-start.sh debian/rhino-compute/usr/bin/rhino-compute-start
+	chmod +x debian/rhino-compute/usr/bin/rhino-compute-start
+
 	# Install systemd service file
 	mkdir -p debian/rhino-compute/lib/systemd/system
 	cp linux-$(DEB_HOST_ARCH)/build/rhino-compute.service debian/rhino-compute/lib/systemd/system/

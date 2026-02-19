@@ -45,6 +45,7 @@ publish/
 # related to packaging
 package/version/version.cs
 *.deb
+*.rpm
 *.changes
 *.buildinfo
 /rhinocomputepackage

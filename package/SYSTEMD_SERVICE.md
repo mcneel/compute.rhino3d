@@ -189,3 +189,28 @@ sudo apt remove rhino-compute  # Debian-based
 ```
 
 The service user and service file will be cleaned up automatically during package removal.
+
+## Running in Docker / Non-Systemd Environments
+
+If you're running rhino-compute in a Docker container or other environment without systemd:
+
+### Using the Startup Script
+
+The package includes `/usr/bin/rhino-compute-start` which works without systemd:
+
+```bash
+# Create environment file
+echo "RHINO_TOKEN=your_token_here" > /etc/rhino-compute/environment
+
+# Run directly
+/usr/bin/rhino-compute-start
+```
+
+### Manual Execution
+
+You can also run directly as the rhino-compute user:
+
+```bash
+sudo -u rhino-compute RHINO_TOKEN=your_token \
+  /usr/bin/rhino-compute --urls http://0.0.0.0:5000
+```
