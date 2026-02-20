@@ -223,19 +223,22 @@ jobs:
           rpmbuild -bb --target ${{ matrix.package_arch }} ~/rpmbuild/SPECS/rhino-compute.spec
 
           # Sign the RPM package
-          # Configure GPG to work without agent
+          # Install and configure gpg-agent
+          dnf install -y pinentry
           mkdir -p ~/.gnupg
           chmod 700 ~/.gnupg
-          echo "pinentry-mode loopback" > ~/.gnupg/gpg.conf
+          echo "pinentry-program /usr/bin/pinentry" > ~/.gnupg/gpg-agent.conf
+          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+          gpg-agent --daemon --allow-loopback-pinentry
           
           # Import GPG key
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import --no-tty --yes --pinentry-mode loopback --passphrase "${{ secrets.GPG_PASSPHRASE }}"
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import --pinentry-mode loopback --passphrase "${{ secrets.GPG_PASSPHRASE }}"
           
           # Configure RPM signing
           echo "%_signature gpg" > ~/.rpmmacros
           echo "%_gpg_name McNeel Packages Rpository Signing Key" >> ~/.rpmmacros
           echo "%__gpg /usr/bin/gpg" >> ~/.rpmmacros
-          echo "%_gpg_sign_cmd_extra_args --batch --no-tty --pinentry-mode loopback --passphrase '${{ secrets.GPG_PASSPHRASE }}'" >> ~/.rpmmacros
+          echo "%_gpg_sign_cmd_extra_args --batch --pinentry-mode loopback --passphrase '${{ secrets.GPG_PASSPHRASE }}'" >> ~/.rpmmacros
           
           # Sign the RPM
           rpmsign --addsign ~/rpmbuild/RPMS/${{ matrix.package_arch }}/*.rpm
