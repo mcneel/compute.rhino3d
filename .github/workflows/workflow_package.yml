@@ -137,9 +137,14 @@ jobs:
           done | sed -i '/SHA256:/r /dev/stdin' repo/dists/stable/Release
           
           sed -i '/CHECKSUMS_PLACEHOLDER/d' repo/dists/stable/Release
+
+          # Import GPG key and sign the Release file
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --detach-sign --armor --batch --yes --pinentry-mode loopback --passphrase-fd 0 -o repo/dists/stable/Release.gpg repo/dists/stable/Release
           
           # Upload the complete Release file
           aws s3 cp repo/dists/stable/Release "${AWS_S3_BUCKET}/deb/dists/stable/"
+          aws s3 cp repo/dists/stable/Release.gpg "${AWS_S3_BUCKET}/deb/dists/stable/"
 
   build-rpm:
     if: github.ref == 'refs/heads/9.x'
@@ -210,6 +215,11 @@ jobs:
 
           #build binary rpm
           rpmbuild -bb --target ${{ matrix.package_arch }} ~/rpmbuild/SPECS/rhino-compute.spec
+
+          # Sign the RPM package
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          echo "%_gpg_name McNeel Repository Signing Key" > ~/.rpmmacros
+          echo "${{ secrets.GPG_PASSPHRASE }}" | rpmsign --addsign --define "_gpg_sign_cmd_extra_args --pinentry-mode loopback --passphrase-fd 0" ~/rpmbuild/RPMS/${{ matrix.package_arch }}/*.rpm
 
           #should result in something like
           #rhino-compute-${VERSION}-1.amzn2023.${{ matrix.package_arch }}.rpm
