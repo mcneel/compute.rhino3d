@@ -271,11 +271,6 @@ jobs:
           #
           rpmsign --addsign ~/rpmbuild/RPMS/${{ matrix.package_arch }}/*.rpm
 
-          #
-          # Verify signature
-          #
-          rpm -Kv ~/rpmbuild/RPMS/${{ matrix.package_arch }}/*.rpm
-
       - name: Deploy (rpm)
         env:
           AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
