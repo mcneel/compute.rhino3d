@@ -223,6 +223,10 @@ jobs:
           rpmbuild -bb --target ${{ matrix.package_arch }} ~/rpmbuild/SPECS/rhino-compute.spec
 
           # Sign the RPM package
+
+          # Install pinentry (ignore errors if already installed)
+          dnf install -y -q pinentry 2>/dev/null || true
+
           # Configure GPG (agent will start automatically)
           mkdir -p ~/.gnupg
           chmod 700 ~/.gnupg
