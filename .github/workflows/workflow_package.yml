@@ -231,15 +231,13 @@ jobs:
           echo "allow-loopback-pinentry" > ~/.gnupg/gpg-agent.conf
           
           # Import GPG key
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import --no-tty --yes
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import --no-tty --yes --pinentry-mode loopback --passphrase "${{ secrets.GPG_PASSPHRASE }}"
           
           # Configure RPM signing
-          cat > ~/.rpmmacros << EOF
-          %_signature gpg
-          %_gpg_name McNeel Packages Rpository Signing Key
-          %__gpg /usr/bin/gpg
-          %_gpg_sign_cmd_extra_args --batch --no-tty --pinentry-mode loopback --passphrase '${{ secrets.GPG_PASSPHRASE }}'
-          EOF
+          echo "%_signature gpg" > ~/.rpmmacros
+          echo "%_gpg_name McNeel Packages Rpository Signing Key" >> ~/.rpmmacros
+          echo "%__gpg /usr/bin/gpg" >> ~/.rpmmacros
+          echo "%_gpg_sign_cmd_extra_args --batch --no-tty --pinentry-mode loopback --passphrase '${{ secrets.GPG_PASSPHRASE }}'" >> ~/.rpmmacros
           
           # Sign the RPM
           rpmsign --addsign ~/rpmbuild/RPMS/${{ matrix.package_arch }}/*.rpm
