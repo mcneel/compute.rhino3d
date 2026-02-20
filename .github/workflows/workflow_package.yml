@@ -20,7 +20,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: '9.0.102'
 
       - name: Update Version Numbers
         id: version_step
@@ -60,7 +60,7 @@ jobs:
       - name: Install dotnet 9.0
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: '9.0.102'
     
       - name: Checkout code
         uses: actions/checkout@v4
@@ -140,11 +140,17 @@ jobs:
 
           # Import GPG key and sign the Release file
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          
+          # Create detached signature (Release.gpg) for older APT versions
           echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --detach-sign --armor --batch --yes --pinentry-mode loopback --passphrase-fd 0 -o repo/dists/stable/Release.gpg repo/dists/stable/Release
           
-          # Upload the complete Release file
+          # Create inline-signed Release (InRelease) for modern APT
+          echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --clearsign --armor --batch --yes --pinentry-mode loopback --passphrase-fd 0 -o repo/dists/stable/InRelease repo/dists/stable/Release
+          
+          # Upload the Release file and both signatures
           aws s3 cp repo/dists/stable/Release "${AWS_S3_BUCKET}/deb/dists/stable/"
           aws s3 cp repo/dists/stable/Release.gpg "${AWS_S3_BUCKET}/deb/dists/stable/"
+          aws s3 cp repo/dists/stable/InRelease "${AWS_S3_BUCKET}/deb/dists/stable/"
 
   build-rpm:
     if: github.ref == 'refs/heads/9.x'
@@ -176,7 +182,7 @@ jobs:
       - name: Install dotnet 9.0
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: '9.0.102'
     
       - name: Checkout code
         uses: actions/checkout@v4
@@ -217,12 +223,25 @@ jobs:
           rpmbuild -bb --target ${{ matrix.package_arch }} ~/rpmbuild/SPECS/rhino-compute.spec
 
           # Sign the RPM package
-          export GPG_TTY=$(tty)
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import --no-tty
-          echo "%_signature gpg" >> ~/.rpmmacros
-          echo "%_gpg_name McNeel Packages Rpository Signing Key" >> ~/.rpmmacros
-          echo "%__gpg /usr/bin/gpg" >> ~/.rpmmacros
-          echo "%_gpg_sign_cmd_extra_args --batch --no-tty --pinentry-mode loopback --passphrase '${{ secrets.GPG_PASSPHRASE }}'" >> ~/.rpmmacros
+          # Configure GPG to work without agent
+          mkdir -p ~/.gnupg
+          chmod 700 ~/.gnupg
+          echo "use-agent" > ~/.gnupg/gpg.conf
+          echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
+          echo "allow-loopback-pinentry" > ~/.gnupg/gpg-agent.conf
+          
+          # Import GPG key
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import --no-tty --yes
+          
+          # Configure RPM signing
+          cat > ~/.rpmmacros << EOF
+          %_signature gpg
+          %_gpg_name McNeel Packages Rpository Signing Key
+          %__gpg /usr/bin/gpg
+          %_gpg_sign_cmd_extra_args --batch --no-tty --pinentry-mode loopback --passphrase '${{ secrets.GPG_PASSPHRASE }}'
+          EOF
+          
+          # Sign the RPM
           rpmsign --addsign ~/rpmbuild/RPMS/${{ matrix.package_arch }}/*.rpm
 
       - name: Deploy (rpm)
