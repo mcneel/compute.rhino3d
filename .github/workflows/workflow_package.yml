@@ -224,7 +224,7 @@ jobs:
 
           # Sign the RPM package
           # Install and configure gpg-agent
-          dnf install -y pinentry
+          dnf install -y -q gnupg2 pinentry
           mkdir -p ~/.gnupg
           chmod 700 ~/.gnupg
           echo "pinentry-program /usr/bin/pinentry" > ~/.gnupg/gpg-agent.conf
