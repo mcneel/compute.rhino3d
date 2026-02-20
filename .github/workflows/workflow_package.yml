@@ -224,40 +224,56 @@ jobs:
 
           set -euo pipefail
 
-          # Replace minimal GPG with full GPG (required on AL2023)
+          # Replace minimal GPG with full GPG
           sudo dnf swap -y gnupg2-minimal gnupg2
 
-          # Install remaining required tools
+          #
+          # Install required tools
+          #
           sudo dnf install -y -q pinentry rpm-sign
 
-          # Configure GPG for CI usage
+          #
+          # Configure GPG for CI
+          #
           mkdir -p ~/.gnupg
           chmod 700 ~/.gnupg
 
           printf "pinentry-mode loopback\n" > ~/.gnupg/gpg.conf
           printf "allow-loopback-pinentry\n" > ~/.gnupg/gpg-agent.conf
 
-          # Restart agent cleanly
           gpgconf --kill gpg-agent || true
 
+          #
           # Import private key
+          #
           printf "%s" "${{ secrets.GPG_PRIVATE_KEY }}" | \
             gpg --batch --yes \
                 --pinentry-mode loopback \
                 --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
                 --import
 
-          # Configure RPM signing
+          #
+          # Extract actual secret key ID (robust fix)
+          #
+          KEYID=$(gpg --list-secret-keys --with-colons | awk -F: '/^sec/ {print $5; exit}')
+
+          #
+          # Configure RPM signing macros
+          #
           printf "%%_signature gpg\n" > ~/.rpmmacros
-          printf "%%_gpg_name McNeel Packages Repository Signing Key\n" >> ~/.rpmmacros
+          printf "%%_gpg_name %s\n" "$KEYID" >> ~/.rpmmacros
           printf "%%__gpg /usr/bin/gpg\n" >> ~/.rpmmacros
           printf "%%_gpg_sign_cmd_extra_args --batch --yes --pinentry-mode loopback --passphrase %s\n" \
             "${{ secrets.GPG_PASSPHRASE }}" >> ~/.rpmmacros
 
+          #
           # Sign RPM(s)
+          #
           rpmsign --addsign ~/rpmbuild/RPMS/${{ matrix.package_arch }}/*.rpm
 
-          # Verify signature (sanity check)
+          #
+          # Verify signature
+          #
           rpm -Kv ~/rpmbuild/RPMS/${{ matrix.package_arch }}/*.rpm
 
       - name: Deploy (rpm)
