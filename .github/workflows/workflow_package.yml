@@ -226,9 +226,7 @@ jobs:
           # Configure GPG to work without agent
           mkdir -p ~/.gnupg
           chmod 700 ~/.gnupg
-          echo "use-agent" > ~/.gnupg/gpg.conf
-          echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
-          echo "allow-loopback-pinentry" > ~/.gnupg/gpg-agent.conf
+          echo "pinentry-mode loopback" > ~/.gnupg/gpg.conf
           
           # Import GPG key
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import --no-tty --yes --pinentry-mode loopback --passphrase "${{ secrets.GPG_PASSPHRASE }}"
