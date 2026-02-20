@@ -24,16 +24,56 @@ namespace rhino.compute
         /// </summary>
         class Options
         {
+            [Option("apikey",
+             Required = false,
+             HelpText = "API key for authentication (leave empty to disable or if RHINO_TOKEN environment variable is set)")]
+            public string ApiKey { get; set; }
+
+            [Option("childcount",
+             Required = false,
+             HelpText = "Number of child compute.geometry processes to manage")]
+            public int ChildCount { get; set; } = 4;
+
             [Option("childof",
              Required = false,
              HelpText = @"Process Handle of parent process. Compute watches for the existence 
 of this handle and will shut down when this process has exited")]
             public int ChildOf { get; set; }
 
-            [Option("childcount",
+            [Option("create-headless-doc",
+              Required = false,
+              HelpText = "Create a new headless Rhino doc upon each received request (default: false)")]
+            public bool? CreateHeadlessDoc { get; set; }
+
+            [Option("idlespan",
              Required = false,
-             HelpText = "Number of child compute.geometry processes to manage")]
-            public int ChildCount { get; set; } = 4;
+             HelpText =
+@"Seconds that child compute.geometry processes should remain open between requests. (Default 1 hour)
+When rhino.compute.exe does not receive requests to solve over a period of 'idlespan' seconds, child
+compute.geometry.exe processes will shut down and stop incurring core hour billing. At some date in the
+future when a new request is received, the child processes will be relaunched which will cause a delay on
+requests while the child processes are launching.")]
+            public int IdleSpanSeconds { get; set; } = 60 * 60;
+            
+            [Option("load-grasshopper",
+              Required = false,
+              HelpText = "Load Grasshopper plugin in child processes (default: true)")]
+            public bool? LoadGrasshopper { get; set; }
+
+            [Option("max-request-size",
+              Required = false,
+              HelpText = "Maximum request body size in bytes (default: 52428800 = 50MB)")]
+            public long MaxRequestSize { get; set; } = -1;
+
+            [Option("port",
+              Required = false,
+              HelpText = "Port number to run rhino.compute on")]
+            public int Port { get; set; } = -1;
+
+            [Option("rhinosysdir",
+              Required = false,
+              HelpText = "Path to Rhino system directory (overrides automatic detection)")]
+            public string RhinoSysDir { get; set; }
 
             [Option("spawn-on-startup",
              Required = false,
@@ -41,56 +81,13 @@ of this handle and will shut down when this process has exited")]
              HelpText = "Determines whether to launch a child compute.geometry process when rhino.compute gets started")]
             public bool SpawnOnStartup { get; set; }
 
-            [Option("idlespan", 
-             Required = false,
-             HelpText = 
-@"Seconds that child compute.geometry processes should remain open between requests. (Default 1 hour)
-When rhino.compute.exe does not receive requests to solve over a period of 'idlespan' seconds, child
-compute.geometry.exe processes will shut down and stop incurring core hour billing. At some date in the
-future when a new request is received, the child processes will be relaunched which will cause a delay on
-requests while the child processes are launching.")]
-            public int IdleSpanSeconds { get; set; } = 60 * 60;
-
-            [Option("port",
-              Required = false,
-              HelpText = "Port number to run rhino.compute on")]
-            public int Port { get; set; } = -1;
-
-            [Option("urls", Required = false, HelpText = "Set the listening URLs for ASP.NET Core (handled by ASP.NET Core, not this app)")]
-            public string Urls { get; set; }
-
-            [Option("version", Required = false, HelpText = "Print version information")]
-            public bool Version { get; set; }
-
-            [Option("max-request-size",
-              Required = false,
-              HelpText = "Maximum request body size in bytes (default: 52428800 = 50MB)")]
-            public long MaxRequestSize { get; set; } = -1;
-
-            [Option("apikey",
-              Required = false,
-              HelpText = "API key for authentication (leave empty to disable)")]
-            public string ApiKey { get; set; }
-
             [Option("timeout",
               Required = false,
               HelpText = "Request timeout in seconds (default: 100)")]
             public int TimeoutSeconds { get; set; } = -1;
 
-            [Option("load-grasshopper",
-              Required = false,
-              HelpText = "Load Grasshopper plugin in child processes (default: true)")]
-            public bool? LoadGrasshopper { get; set; }
-
-            [Option("create-headless-doc",
-              Required = false,
-              HelpText = "Create a new headless Rhino doc upon each received request (default: false)")]
-            public bool? CreateHeadlessDoc { get; set; }
-
-            [Option("rhinosysdir",
-              Required = false,
-              HelpText = "Path to Rhino system directory (overrides automatic detection)")]
-            public string RhinoSysDir { get; set; }
+            [Option("urls", Required = false, HelpText = "Set the listening URLs for ASP.NET Core (handled by ASP.NET Core, not this app)")]
+            public string Urls { get; set; }
 
         }
 
@@ -142,18 +139,6 @@ requests while the child processes are launching.")]
                 if (parentProcessId > 0)
                     _parentProcess = System.Diagnostics.Process.GetProcessById(parentProcessId);
                 port = o.Port;
-
-                if (o.Version)
-                {
-                    var informationalVersion = Assembly
-                        .GetExecutingAssembly()
-                        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-                        .InformationalVersion;
-
-                    Console.WriteLine($"rhino.compute {informationalVersion}");
-                    Environment.Exit(0);
-
-                }
                 
             }).WithNotParsed(errors =>
             {
