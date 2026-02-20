@@ -216,6 +216,11 @@ jobs:
           #build binary rpm
           rpmbuild -bb --target ${{ matrix.package_arch }} ~/rpmbuild/SPECS/rhino-compute.spec
 
+          # Sign the RPM package
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          echo "%_gpg_name McNeel Repository Signing Key" > ~/.rpmmacros
+          echo "${{ secrets.GPG_PASSPHRASE }}" | rpmsign --addsign --define "_gpg_sign_cmd_extra_args --pinentry-mode loopback --passphrase-fd 0" ~/rpmbuild/RPMS/${{ matrix.package_arch }}/*.rpm
+
           #should result in something like
           #rhino-compute-${VERSION}-1.amzn2023.${{ matrix.package_arch }}.rpm
 
