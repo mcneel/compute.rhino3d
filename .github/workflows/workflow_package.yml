@@ -288,7 +288,7 @@ jobs:
           aws s3 sync local-mcneel-packages/${DIST_PATH}/repodata/ ${AWS_S3_BUCKET}/${DIST_PATH}/repodata/ --delete
 
   tag:
-    needs: [ version, build-deb, build-rpm ]
+    needs: [ build-rpm, generate-deb-release ]
     runs-on: ubuntu-latest
     permissions:
       contents: write
