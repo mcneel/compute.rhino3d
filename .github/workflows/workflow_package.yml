@@ -222,30 +222,43 @@ jobs:
           #build binary rpm
           rpmbuild -bb --target ${{ matrix.package_arch }} ~/rpmbuild/SPECS/rhino-compute.spec
 
-          # Sign the RPM package
-          # Install pinentry
-          dnf install -y -q pinentry 2>/dev/null || true
+          set -euo pipefail
 
-          # Configure GPG to work WITHOUT agent
-          export GPG_AGENT_INFO=""
+          # Replace minimal GPG with full GPG (required on AL2023)
+          sudo dnf swap -y gnupg2-minimal gnupg2
+
+          # Install remaining required tools
+          sudo dnf install -y -q pinentry rpm-sign
+
+          # Configure GPG for CI usage
           mkdir -p ~/.gnupg
           chmod 700 ~/.gnupg
-          echo "no-use-agent" > ~/.gnupg/gpg.conf
-          echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
-          echo "batch" >> ~/.gnupg/gpg.conf
-          echo "yes" >> ~/.gnupg/gpg.conf
-          
-          # Import GPG key
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --import --pinentry-mode loopback --passphrase "${{ secrets.GPG_PASSPHRASE }}"
-          
+
+          printf "pinentry-mode loopback\n" > ~/.gnupg/gpg.conf
+          printf "allow-loopback-pinentry\n" > ~/.gnupg/gpg-agent.conf
+
+          # Restart agent cleanly
+          gpgconf --kill gpg-agent || true
+
+          # Import private key
+          printf "%s" "${{ secrets.GPG_PRIVATE_KEY }}" | \
+            gpg --batch --yes \
+                --pinentry-mode loopback \
+                --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+                --import
+
           # Configure RPM signing
-          echo "%_signature gpg" > ~/.rpmmacros
-          echo "%_gpg_name McNeel Packages Repository Signing Key" >> ~/.rpmmacros
-          echo "%__gpg /usr/bin/gpg" >> ~/.rpmmacros
-          echo "%_gpg_sign_cmd_extra_args --batch --pinentry-mode loopback --passphrase '${{ secrets.GPG_PASSPHRASE }}'" >> ~/.rpmmacros
-          
-          # Sign the RPM
+          printf "%%_signature gpg\n" > ~/.rpmmacros
+          printf "%%_gpg_name McNeel Packages Repository Signing Key\n" >> ~/.rpmmacros
+          printf "%%__gpg /usr/bin/gpg\n" >> ~/.rpmmacros
+          printf "%%_gpg_sign_cmd_extra_args --batch --yes --pinentry-mode loopback --passphrase %s\n" \
+            "${{ secrets.GPG_PASSPHRASE }}" >> ~/.rpmmacros
+
+          # Sign RPM(s)
           rpmsign --addsign ~/rpmbuild/RPMS/${{ matrix.package_arch }}/*.rpm
+
+          # Verify signature (sanity check)
+          rpm -Kv ~/rpmbuild/RPMS/${{ matrix.package_arch }}/*.rpm
 
       - name: Deploy (rpm)
         env:
