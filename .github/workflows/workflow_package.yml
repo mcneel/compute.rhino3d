@@ -223,13 +223,11 @@ jobs:
           rpmbuild -bb --target ${{ matrix.package_arch }} ~/rpmbuild/SPECS/rhino-compute.spec
 
           # Sign the RPM package
-          # Install and configure gpg-agent
-          dnf install -y -q gnupg2-smime pinentry 2>/dev/null || true
+          # Configure GPG (agent will start automatically)
           mkdir -p ~/.gnupg
           chmod 700 ~/.gnupg
-          echo "pinentry-program /usr/bin/pinentry" > ~/.gnupg/gpg-agent.conf
-          echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
-          gpg-agent --daemon --allow-loopback-pinentry
+          echo "pinentry-mode loopback" > ~/.gnupg/gpg.conf
+          echo "allow-loopback-pinentry" > ~/.gnupg/gpg-agent.conf
           
           # Import GPG key
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import --pinentry-mode loopback --passphrase "${{ secrets.GPG_PASSPHRASE }}"
