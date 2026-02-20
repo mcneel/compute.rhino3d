@@ -100,6 +100,47 @@ jobs:
           aws s3 cp "$DIST_PATH/Packages.gz" "${AWS_S3_BUCKET}/deb/$DIST_PATH/"
           aws s3 cp "$DIST_PATH/Packages" "${AWS_S3_BUCKET}/deb/$DIST_PATH/"
 
+  generate-deb-release:
+    if: github.ref == 'refs/heads/9.x'
+    needs: [build-deb]
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Generate and upload Release file
+        env:
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          mkdir -p repo/dists/stable/main
+
+          # Download ALL Packages files from S3
+          aws s3 sync "${AWS_S3_BUCKET}/deb/dists/stable/main/" repo/dists/stable/main/ --exclude "*" --include "binary-*/Packages" --include "binary-*/Packages.gz"
+
+          cp package/deb/Release.template repo/dists/stable/Release
+          sed -i "s/DATE_PLACEHOLDER/$(date -Ru)/" repo/dists/stable/Release
+
+          # Generate checksums for all architectures
+          for f in repo/dists/stable/main/binary-*/Packages repo/dists/stable/main/binary-*/Packages.gz; do
+            [ -f "$f" ] && printf " %s %8d %s\n" "$(md5sum "$f"|cut -d' ' -f1)" "$(stat -c%s "$f")" "${f#repo/dists/stable/}"
+          done | sed -i '/MD5Sum:/r /dev/stdin' repo/dists/stable/Release
+          
+          for f in repo/dists/stable/main/binary-*/Packages repo/dists/stable/main/binary-*/Packages.gz; do
+            [ -f "$f" ] && printf " %s %8d %s\n" "$(sha1sum "$f"|cut -d' ' -f1)" "$(stat -c%s "$f")" "${f#repo/dists/stable/}"
+          done | sed -i '/SHA1:/r /dev/stdin' repo/dists/stable/Release
+          
+          for f in repo/dists/stable/main/binary-*/Packages repo/dists/stable/main/binary-*/Packages.gz; do
+            [ -f "$f" ] && printf " %s %8d %s\n" "$(sha256sum "$f"|cut -d' ' -f1)" "$(stat -c%s "$f")" "${f#repo/dists/stable/}"
+          done | sed -i '/SHA256:/r /dev/stdin' repo/dists/stable/Release
+          
+          sed -i '/CHECKSUMS_PLACEHOLDER/d' repo/dists/stable/Release
+          
+          # Upload the complete Release file
+          aws s3 cp repo/dists/stable/Release "${AWS_S3_BUCKET}/deb/dists/stable/"
+
   build-rpm:
     if: github.ref == 'refs/heads/9.x'
     name: build rpm ${{ matrix.package_arch }}

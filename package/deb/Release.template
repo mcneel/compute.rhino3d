@@ -1,0 +1,14 @@
+Origin: McNeel
+Label: McNeel Rhino Compute
+Suite: stable
+Codename: stable
+Architectures: arm64 amd64
+Components: main
+Description: McNeel Rhino Compute Package Repository
+Date: DATE_PLACEHOLDER
+MD5Sum:
+CHECKSUMS_PLACEHOLDER
+SHA1:
+CHECKSUMS_PLACEHOLDER
+SHA256:
+CHECKSUMS_PLACEHOLDER
