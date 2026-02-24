@@ -139,6 +139,7 @@ For non-systemd environments:
    sudo cp /etc/rhino-compute/environment.example /etc/rhino-compute/environment
    sudo nano /etc/rhino-compute/environment
    (Set RHINO_TOKEN to your API key)
+   save and close the file
 
 2. Start rhino-compute: 
    rhino-compute-start

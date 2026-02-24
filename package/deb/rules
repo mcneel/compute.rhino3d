@@ -31,9 +31,9 @@ override_dh_auto_install:
 	mkdir -p debian/rhino-compute/lib/systemd/system
 	cp linux-$(DEB_HOST_ARCH)/build/rhino-compute.service debian/rhino-compute/lib/systemd/system/
 
-	# Install environment example file
-	mkdir -p debian/rhino-compute/usr/share/doc/rhino-compute
-	cp linux-$(DEB_HOST_ARCH)/build/environment.example debian/rhino-compute/usr/share/doc/rhino-compute/environment.example
+	# Install environment example file to /etc
+	mkdir -p debian/rhino-compute/etc/rhino-compute
+	cp linux-$(DEB_HOST_ARCH)/build/environment.example debian/rhino-compute/etc/rhino-compute/environment.example
 
 override_dh_makeshlibs:
 	# Skip makeshlibs for self-contained .NET binaries
