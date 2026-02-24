@@ -7,7 +7,7 @@ case "$1" in
         if ! getent passwd rhino-compute > /dev/null; then
             adduser --system --group --home /var/lib/rhino-compute \
                     --no-create-home --disabled-login \
-                    --gecos "Rhino Compute Service" rhino-compute
+                    --gecos "Rhino Compute Service" rhino-compute >/dev/null
         else
             # Update existing user's home directory if incorrect
             CURRENT_HOME=$(getent passwd rhino-compute | cut -d: -f6)
