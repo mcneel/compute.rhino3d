@@ -133,11 +133,11 @@ Next steps to get started:
 
 ---
 
-For non-systemd environments:
+For non-systemd environments (i.e. docker containers):
 
 1. Configure your API key:
-   sudo cp /etc/rhino-compute/environment.example /etc/rhino-compute/environment
-   sudo nano /etc/rhino-compute/environment
+   cp /etc/rhino-compute/environment.example /etc/rhino-compute/environment
+   nano /etc/rhino-compute/environment
    (Set RHINO_TOKEN to your API key)
    save and close the file
 
