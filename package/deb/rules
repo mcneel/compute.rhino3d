@@ -46,3 +46,8 @@ override_dh_shlibdeps:
 override_dh_strip:
 	# Skip stripping for self-contained .NET binaries
 	echo "Skipping dh_strip for self-contained binaries"
+
+override_dh_installsystemd:
+	# Install systemd service but don't auto-start or auto-enable
+	# User must manually configure and start the service
+	dh_installsystemd --no-start --no-enable
