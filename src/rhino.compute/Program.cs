@@ -118,6 +118,7 @@ namespace rhino.compute
                 port = o.Port;
             });
 
+
             // Now load config (will use environment variables set above)
             Config.Load();
 
