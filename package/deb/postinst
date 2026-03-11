@@ -21,6 +21,11 @@ case "$1" in
         chown rhino-compute:rhino-compute /var/lib/rhino-compute
         chmod 755 /var/lib/rhino-compute
 
+        # Create and set ownership of log directory
+        mkdir -p /var/log/rhino-compute
+        chown rhino-compute:rhino-compute /var/log/rhino-compute
+        chmod 755 /var/log/rhino-compute
+
         # Config directory is created by package installation
         # environment.example is installed to /etc/rhino-compute/ by the package
 
@@ -49,13 +54,18 @@ Next steps to get started:
 2. Start the service:
    sudo systemctl start rhino-compute
 
-3. Enable automatic startup on boot:
+Other useful commands:
+
+- Stop the service:
+   sudo systemctl stop rhino-compute
+
+- Enable automatic startup on boot:
    sudo systemctl enable rhino-compute
 
-4. Check the status:
+- Check the status:
    sudo systemctl status rhino-compute
 
-5. Follow logs in real-time:
+- Follow logs in real-time:
    sudo journalctl -u rhino-compute -f
 
 ---
@@ -70,6 +80,10 @@ For non-systemd environments (i.e. docker containers):
 
 2. Start rhino-compute: 
    rhino-compute-start
+
+---
+
+Logs are written to: /var/log/rhino-compute
 
 EOF
         ;;

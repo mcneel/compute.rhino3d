@@ -35,6 +35,9 @@ override_dh_auto_install:
 	mkdir -p debian/rhino-compute/etc/rhino-compute
 	cp linux-$(DEB_HOST_ARCH)/build/environment.example debian/rhino-compute/etc/rhino-compute/environment.example
 
+	# Create log directory (ownership set in postinst after user creation)
+	mkdir -p debian/rhino-compute/var/log/rhino-compute
+
 override_dh_makeshlibs:
 	# Skip makeshlibs for self-contained .NET binaries
 	echo "Skipping dh_makeshlibs for self-contained binaries"
