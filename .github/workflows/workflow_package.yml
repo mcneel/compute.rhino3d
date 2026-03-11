@@ -15,10 +15,10 @@ jobs:
       version: ${{ steps.version_step.outputs.version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '9.0.102'
 
@@ -58,12 +58,12 @@ jobs:
           sudo apt-get install -y debhelper devscripts build-essential
 
       - name: Install dotnet 9.0
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '9.0.102'
     
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build Rhino.Compute and Compute.Geometry
         run: |
@@ -180,12 +180,12 @@ jobs:
 
     steps:
       - name: Install dotnet 9.0
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '9.0.102'
     
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Build Rhino.Compute and Compute.Geometry
         run: |
@@ -295,7 +295,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/9.x'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Tag

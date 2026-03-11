@@ -52,10 +52,10 @@ jobs:
     if: ${{ needs.check_src.outputs.any_changed == 'true' || needs.check_workflow.outputs.any_changed == 'true' }}
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '9.0.x'
       - name: revision
