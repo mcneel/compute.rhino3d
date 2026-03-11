@@ -75,7 +75,9 @@
             "justMyCode": false,
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",
-            "args": ["--urls", "http://0.0.0.0:5000", "--create-headless-doc", "true"],
+            "args": ["--urls", "http://0.0.0.0:5000", "--create-headless-doc", "true", "--rhinosysdir", "/home/ubuntu/dev/rhino/src4/bin/DebugLinux"],
+            //"args": ["--help"],
+
         }
     ],
     "compounds": []
