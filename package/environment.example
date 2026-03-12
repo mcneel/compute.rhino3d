@@ -20,5 +20,10 @@ RHINO_COMPUTE_LOG_PATH=/var/log/rhino-compute
 # RHINO_COMPUTE_LOG_RETAIN_DAYS=30
 
 # Optional: Enable or disable analytics (default: true)
-# Uses existing value if already set in the environment; falls back to true otherwise.
-RHINO_ANALYTICS_ENABLED="${RHINO_ANALYTICS_ENABLED:-true}"
+# Edit the /etc/profile.d/rhino3d_env.sh to set the 
+# RHINO_ANALYTICS_ENABLED environment varible to 
+# true or false.
+# If you make changes to this file, please make sure to 
+# stop and start Rhino.Compute for the changes to take effect.
+# sudo nano /etc/profile.d/rhino3d_env.sh
+
