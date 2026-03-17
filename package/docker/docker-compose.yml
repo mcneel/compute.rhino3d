@@ -1,8 +1,0 @@
-services:
-  rhino-compute:
-    image: mcneel.com/rhino-compute:latest
-    container_name: rhino-compute
-    ports:
-      - "${HOST_PORT:-5001}:5000"
-    environment:
-      RHINO_TOKEN: ${RHINO_TOKEN:-}

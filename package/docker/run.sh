@@ -19,7 +19,13 @@ if [[ -n "${TOKEN_FILE}" ]]; then
   export RHINO_TOKEN
   echo "Using Rhino token from file: ${TOKEN_FILE}"
 else
+  RHINO_TOKEN="${RHINO_TOKEN:-}"
+  export RHINO_TOKEN
   echo "No token file provided. Set RHINO_TOKEN in your shell if the container needs a token."
 fi
 
-docker compose -p mcneel up -d
+docker run -d \
+  --name rhino-compute \
+  -p "${HOST_PORT:-5001}:5000" \
+  -e RHINO_TOKEN="$RHINO_TOKEN" \
+  mcneel.com/rhino-compute:latest
