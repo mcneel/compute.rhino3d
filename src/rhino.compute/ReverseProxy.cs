@@ -133,7 +133,7 @@ namespace rhino.compute
                 using var req = new HttpRequestMessage(HttpMethod.Post, proxyUrl);
                 if (initialRequest.Headers.TryGetValue(_apiKeyHeader, out var keyHeader))
                     req.Headers.Add(_apiKeyHeader, keyHeader.ToString());
-
+                
                 var contentType = initialRequest.ContentType ?? string.Empty;
                 if (contentType.StartsWith("multipart/form-data", StringComparison.OrdinalIgnoreCase))
                 {
