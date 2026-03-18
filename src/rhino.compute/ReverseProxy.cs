@@ -102,7 +102,7 @@ namespace rhino.compute
             int parentProcessId = System.Convert.ToInt32(request.Query["parent"]);
             if (Program.IsParentRhinoProcess(parentProcessId))
             {
-                for (int i=0; i<children; i++)
+                for (int i = 0; i < children; i++)
                 {
                     ComputeChildren.LaunchCompute(false);
                 }
@@ -151,7 +151,7 @@ namespace rhino.compute
                     using (var sw = new System.IO.StreamReader(initialRequest.BodyReader.AsStream()))
                     {
                         string body = sw.ReadToEnd();
-                        using (var stringContent = new StringContent(body, System.Text.Encoding.UTF8, "applicaton/json"))
+                        using (var stringContent = new StringContent(body, System.Text.Encoding.UTF8, "application/json"))
                         {
                             req.Content = stringContent;
                             return await _client.SendAsync(req);
