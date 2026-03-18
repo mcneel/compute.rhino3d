@@ -130,10 +130,10 @@ namespace rhino.compute
             if (method == HttpMethod.Post)
             {
                 // include RhinoComputeKey header in request to compute child process
-                using var req = new HttpRequestMessage(HttpMethod.Post, proxyUrl);
+                var req = new HttpRequestMessage(HttpMethod.Post, proxyUrl);
                 if (initialRequest.Headers.TryGetValue(_apiKeyHeader, out var keyHeader))
                     req.Headers.Add(_apiKeyHeader, keyHeader.ToString());
-                
+
                 var contentType = initialRequest.ContentType ?? string.Empty;
                 if (contentType.StartsWith("multipart/form-data", StringComparison.OrdinalIgnoreCase))
                 {
@@ -146,13 +146,18 @@ namespace rhino.compute
                     return await _client.SendAsync(req);
                 }
 
-                using (var sw = new System.IO.StreamReader(initialRequest.BodyReader.AsStream()))
+                using (var stream = initialRequest.BodyReader.AsStream(false))
                 {
-                    string body = await sw.ReadToEndAsync();
-                    req.Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json");
+                    using (var sw = new System.IO.StreamReader(initialRequest.BodyReader.AsStream()))
+                    {
+                        string body = sw.ReadToEnd();
+                        using (var stringContent = new StringContent(body, System.Text.Encoding.UTF8, "applicaton/json"))
+                        {
+                            req.Content = stringContent;
+                            return await _client.SendAsync(req);
+                        }
+                    }
                 }
-
-                return await _client.SendAsync(req);
             }
 
             if (method == HttpMethod.Get)
