@@ -126,7 +126,9 @@ Next steps to get started:
 1. Configure your API key:
    sudo cp /etc/rhino-compute/environment.example /etc/rhino-compute/environment
    sudo nano /etc/rhino-compute/environment
-   (Set RHINO_TOKEN to your API key)
+   (Set RHINO_TOKEN to your Core-Hour Billing token
+    Set RHINO_COMPUTE_KEY to your own custom API Key)
+   save and close the file
 
 2. Start the service:
    sudo systemctl start rhino-compute
@@ -152,7 +154,8 @@ For non-systemd environments (i.e. docker containers):
 1. Configure your API key:
    cp /etc/rhino-compute/environment.example /etc/rhino-compute/environment
    nano /etc/rhino-compute/environment
-   (Set RHINO_TOKEN to your API key)
+   (Set RHINO_TOKEN to your Core-Hour Billing token
+    Set RHINO_COMPUTE_KEY to your own custom API Key)
    save and close the file
 
 2. Start rhino-compute: 
