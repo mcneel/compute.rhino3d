@@ -2,9 +2,13 @@
 # Copy this file to /etc/rhino-compute/environment and set your values
 # After making changes, restart the service: sudo systemctl restart rhino-compute
 
-# Required: Your Rhino API key for authentication
-# Replace YOUR_API_KEY_HERE with your actual key
-RHINO_TOKEN=YOUR_API_KEY_HERE
+# Required: Your Core-Hour Billing token for authenticating Rhino
+# https://developer.rhino3d.com/guides/compute/core-hour-billing/#setting-up-core-hour-billing
+# Replace YOUR_CORE_HOUR_BILLING_TOKEN_HERE with your actual CHB Token
+RHINO_TOKEN=YOUR_CORE_HOUR_BILLING_TOKEN_HERE
+
+# Required: A custom key to be used by any client calling this server.
+RHINO_COMPUTE_KEY=YOUR_SECRET_KEY
 
 # Required: Create a doc while in headless mode
 RHINO_COMPUTE_CREATE_HEADLESS_DOC=true
