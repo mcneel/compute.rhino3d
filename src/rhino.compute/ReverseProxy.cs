@@ -104,7 +104,7 @@ namespace rhino.compute
             {
                 for (int i=0; i<children; i++)
                 {
-                    ComputeChildren.LaunchCompute(false);
+                    System.Threading.Tasks.Task.Run(() => ComputeChildren.LaunchCompute(true));
                 }
             }
             return Task.CompletedTask;
@@ -134,16 +134,13 @@ namespace rhino.compute
                 if (initialRequest.Headers.TryGetValue(_apiKeyHeader, out var keyHeader))
                     req.Headers.Add(_apiKeyHeader, keyHeader.ToString());
 
-                using (var stream = initialRequest.BodyReader.AsStream(false))
+                using (var sw = new System.IO.StreamReader(initialRequest.BodyReader.AsStream(leaveOpen: false)))
                 {
-                    using (var sw = new System.IO.StreamReader(initialRequest.BodyReader.AsStream()))
+                    string body = await sw.ReadToEndAsync();
+                    using (var stringContent = new StringContent(body, System.Text.Encoding.UTF8, "application/json"))
                     {
-                        string body = sw.ReadToEnd();
-                        using (var stringContent = new StringContent(body, System.Text.Encoding.UTF8, "applicaton/json"))
-                        {
-                            req.Content = stringContent;
-                            return await _client.SendAsync(req);
-                        }
+                        req.Content = stringContent;
+                        return await _client.SendAsync(req);
                     }
                 }
             }
@@ -160,53 +157,77 @@ namespace rhino.compute
         {
             await AwaitInitTask();
             string responseString;
-            using (var tracker = new ConcurrentRequestTracker())
+            try
             {
-                var (baseurl, port) = ComputeChildren.GetComputeServerBaseUrl();
-                var proxyResponse = await SendProxyRequest(req, HttpMethod.Get, baseurl);
-                ComputeChildren.UpdateLastCall();
-                if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
-                    ComputeChildren.MoveToFrontOfQueue(port);
+                using (var tracker = new ConcurrentRequestTracker())
+                {
+                    var (baseurl, port) = ComputeChildren.GetComputeServerBaseUrl();
+                    var proxyResponse = await SendProxyRequest(req, HttpMethod.Get, baseurl);
+                    ComputeChildren.UpdateLastCall();
+                    if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                        ComputeChildren.MoveToFrontOfQueue(port);
 
-                responseString = await proxyResponse.Content.ReadAsStringAsync();
+                    responseString = await proxyResponse.Content.ReadAsStringAsync();
+                }
+                await res.WriteAsync(responseString);
             }
-            await res.WriteAsync(responseString);
+            catch (Exception ex) when (ex is Microsoft.AspNetCore.Connections.ConnectionResetException ||
+                                       ex is OperationCanceledException)
+            {
+                Log.Debug("GET request cancelled or connection reset by client: {Path}", req.Path);
+            }
         }
 
         private async Task ReverseProxyPost(HttpRequest req, HttpResponse res)
         {
             await AwaitInitTask();
             string responseString;
-            using (var tracker = new ConcurrentRequestTracker())
+            try
             {
-                var (baseurl, port) = ComputeChildren.GetComputeServerBaseUrl();
-                var proxyResponse = await SendProxyRequest(req, HttpMethod.Post, baseurl);
-                ComputeChildren.UpdateLastCall();
-                if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
-                    ComputeChildren.MoveToFrontOfQueue(port);
+                using (var tracker = new ConcurrentRequestTracker())
+                {
+                    var (baseurl, port) = ComputeChildren.GetComputeServerBaseUrl();
+                    var proxyResponse = await SendProxyRequest(req, HttpMethod.Post, baseurl);
+                    ComputeChildren.UpdateLastCall();
+                    if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                        ComputeChildren.MoveToFrontOfQueue(port);
 
-                res.StatusCode = (int)proxyResponse.StatusCode;
-                responseString = await proxyResponse.Content.ReadAsStringAsync();
+                    res.StatusCode = (int)proxyResponse.StatusCode;
+                    responseString = await proxyResponse.Content.ReadAsStringAsync();
+                }
+                await res.WriteAsync(responseString);
             }
-            await res.WriteAsync(responseString);
+            catch (Exception ex) when (ex is Microsoft.AspNetCore.Connections.ConnectionResetException ||
+                                       ex is OperationCanceledException)
+            {
+                Log.Debug("POST request cancelled or connection reset by client: {Path}", req.Path);
+            }
         }
 
         private async Task ReverseProxyGrasshopper(HttpRequest req, HttpResponse res)
         {
             await AwaitInitTask();
             string responseString;
-            using (var tracker = new ConcurrentRequestTracker())
+            try
             {
-                var (baseurl, port) = ComputeChildren.GetComputeServerBaseUrl();
-                var proxyResponse = await SendProxyRequest(req, HttpMethod.Post, baseurl);
-                ComputeChildren.UpdateLastCall();
-                if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
-                    ComputeChildren.MoveToFrontOfQueue(port);
+                using (var tracker = new ConcurrentRequestTracker())
+                {
+                    var (baseurl, port) = ComputeChildren.GetComputeServerBaseUrl();
+                    var proxyResponse = await SendProxyRequest(req, HttpMethod.Post, baseurl);
+                    ComputeChildren.UpdateLastCall();
+                    if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                        ComputeChildren.MoveToFrontOfQueue(port);
 
-                res.StatusCode = (int)proxyResponse.StatusCode;
-                responseString = await proxyResponse.Content.ReadAsStringAsync();
+                    res.StatusCode = (int)proxyResponse.StatusCode;
+                    responseString = await proxyResponse.Content.ReadAsStringAsync();
+                }
+                await res.WriteAsync(responseString);
             }
-            await res.WriteAsync(responseString);
+            catch (Exception ex) when (ex is Microsoft.AspNetCore.Connections.ConnectionResetException ||
+                                       ex is OperationCanceledException)
+            {
+                Log.Debug("Grasshopper request cancelled or connection reset by client: {Path}", req.Path);
+            }
         }
     }
 }
