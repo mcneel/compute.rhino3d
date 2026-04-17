@@ -104,7 +104,7 @@ namespace rhino.compute
             {
                 for (int i=0; i<children; i++)
                 {
-                    System.Threading.Tasks.Task.Run(() => ComputeChildren.LaunchCompute(true));
+                    System.Threading.Tasks.Task.Run(() => ComputeChildren.LaunchCompute());
                 }
             }
             return Task.CompletedTask;

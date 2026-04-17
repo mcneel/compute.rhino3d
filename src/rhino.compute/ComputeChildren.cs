@@ -97,7 +97,7 @@ namespace rhino.compute
                 {
                     var aliveProcesses = _computeProcesses.Where(tuple => !tuple.Item1.HasExited).ToList();
                     _computeProcesses = new Queue<Tuple<Process, int>>(aliveProcesses);
-                    LaunchCompute(_computeProcesses, true);
+                    LaunchCompute(_computeProcesses);
 
                     if (_computeProcesses.Count > 0)
                     {
@@ -116,7 +116,7 @@ namespace rhino.compute
             // so no request is ever proxied to a port that isn't listening yet.
             // LaunchCompute(bool) guards with _lockObject internally, so extra Task.Run calls are safe.
             for (int i = _computeProcesses.Count + _pendingSpawnPorts.Count; i < SpawnCount; i++)
-                System.Threading.Tasks.Task.Run(() => LaunchCompute(true));
+                System.Threading.Tasks.Task.Run(() => LaunchCompute());
 
             //Log.Information($"Started child process at http://localhost:{activePort} at {DateTime.Now.ToLocalTime()}");
             return ($"http://localhost:{activePort}", activePort);
@@ -141,7 +141,7 @@ namespace rhino.compute
             }
         }
 
-        public static void LaunchCompute(bool waitUntilServing)
+        public static void LaunchCompute()
         {
             // Resolve path before acquiring the lock to keep lock duration short.
             string pathToCompute = FindComputeExecutablePath();
@@ -169,19 +169,11 @@ namespace rhino.compute
             // continue serving requests through already-ready children while this one loads.
             var process = Process.Start(startInfo);
 
-            if (waitUntilServing)
+            if (!WaitForChildProcess(process, port))
             {
-                if (!WaitForChildProcess(process, port))
-                {
-                    Log.Warning("compute.geometry on port {Port} failed to start within 60 seconds", port);
-                    lock (_lockObject) { _pendingSpawnPorts.Remove(port); }
-                    return;
-                }
-            }
-            else
-            {
-                // no matter what, give compute a little time to start
-                System.Threading.Thread.Sleep(100);
+                Log.Warning("compute.geometry on port {Port} failed to start within 60 seconds", port);
+                lock (_lockObject) { _pendingSpawnPorts.Remove(port); }
+                return;
             }
 
             lock (_lockObject)
@@ -194,7 +186,7 @@ namespace rhino.compute
 
         // Called from within lock(_lockObject) in GetComputeServerBaseUrl for the bootstrap
         // case where no children are running yet. The lock is held for the full duration.
-        static void LaunchCompute(Queue<Tuple<Process, int>> processQueue, bool waitUntilServing)
+        static void LaunchCompute(Queue<Tuple<Process, int>> processQueue)
         {
             string pathToCompute = FindComputeExecutablePath();
             if (pathToCompute == null) return;
@@ -206,19 +198,11 @@ namespace rhino.compute
             var startInfo = CreateComputeStartInfo(pathToCompute, port);
             var process = Process.Start(startInfo);
 
-            if (waitUntilServing)
+            if (!WaitForChildProcess(process, port))
             {
-                if (!WaitForChildProcess(process, port))
-                {
-                    string msg = "Unable to start a local compute server";
-                    Log.Information(msg);
-                    throw new Exception(msg);
-                }
-            }
-            else
-            {
-                // no matter what, give compute a little time to start
-                System.Threading.Thread.Sleep(100);
+                string msg = "Unable to start a local compute server";
+                Log.Information(msg);
+                throw new Exception(msg);
             }
 
             if (process != null && !process.HasExited)
