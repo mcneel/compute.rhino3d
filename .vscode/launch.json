@@ -93,7 +93,21 @@
             "console": "internalConsole",
             "args": ["--urls", "http://0.0.0.0:5000", "--create-headless-doc", "true", "--rhinosysdir", "/home/ubuntu/dev/rhino/src4/bin/DebugLinux"],
             //"args": ["--help"],
-
+            "exceptionOptions": [
+                {
+                    // ConnectionResetException is thrown by Kestrel when a client disconnects
+                    // mid-request. It is caught and handled by the reverse proxy handlers, so
+                    // there is no need for the debugger to break when it is thrown.
+                    "exceptionType": "Microsoft.AspNetCore.Connections.ConnectionResetException",
+                    "breakMode": "unhandled"
+                },
+                {
+                    // SocketException is the inner exception of ConnectionResetException and
+                    // is also caught — suppress break-on-thrown for it too.
+                    "exceptionType": "System.Net.Sockets.SocketException",
+                    "breakMode": "unhandled"
+                }
+            ]
         }
     ],
     "compounds": []
