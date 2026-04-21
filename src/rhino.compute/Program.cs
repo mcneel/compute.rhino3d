@@ -165,6 +165,10 @@ namespace rhino.compute
             }
 
             Log.Information($"Rhino compute started at {DateTime.Now.ToLocalTime()}");
+            if (Config.IsEc2)
+                Log.Information("[startup] environment=ec2 ami-id={AmiId} instance-id={InstanceId} region={Region}", Config.DetectedAmiId, Config.DetectedInstanceId, Config.DetectedRegion);
+            else
+                Log.Information("[startup] environment=local");
             Log.Debug($"Config:");
             Log.Debug("  Max Request Size = {RequestSize}", (Config.MaxRequestSize / 1024.0 / 1024.0).ToString("F2") + " MB");
             Log.Debug("  Timeout = {Timeout}", FormatTimeout(Config.ReverseProxyRequestTimeout));

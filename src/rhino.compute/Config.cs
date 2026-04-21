@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
+using System.Text.Json;
+using System.Threading;
 
 namespace rhino.compute
 {
@@ -39,6 +42,27 @@ namespace rhino.compute
         public static bool Debug { get; private set; }
 
         /// <summary>
+        /// True when rhino.compute is running on an AWS EC2 instance.
+        /// Determined at startup via a 1-second IMDSv2 probe.
+        /// </summary>
+        public static bool IsEc2 { get; private set; }
+
+        /// <summary>
+        /// The AMI ID of the running EC2 instance, or null when not on EC2.
+        /// </summary>
+        public static string DetectedAmiId { get; private set; }
+
+        /// <summary>
+        /// The EC2 instance ID, or null when not on EC2.
+        /// </summary>
+        public static string DetectedInstanceId { get; private set; }
+
+        /// <summary>
+        /// The AWS region of the running EC2 instance, or null when not on EC2.
+        /// </summary>
+        public static string DetectedRegion { get; private set; }
+
+        /// <summary>
         /// Loads config from environment variables (or uses defaults).
         /// </summary>
         public static void Load()
@@ -55,6 +79,44 @@ namespace rhino.compute
             Debug = false;
 #endif
             Debug = GetEnvironmentVariable(RHINO_COMPUTE_DEBUG, Debug);
+
+            DetectEc2Environment();
+        }
+
+        static void DetectEc2Environment()
+        {
+            try
+            {
+                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(1) };
+
+                // IMDSv2 requires a session token
+                using var tokenRequest = new HttpRequestMessage(HttpMethod.Put, "http://169.254.169.254/latest/api/token");
+                tokenRequest.Headers.Add("X-aws-ec2-metadata-token-ttl-seconds", "21600");
+                using var tokenResponse = client.Send(tokenRequest);
+                if (!tokenResponse.IsSuccessStatusCode)
+                    return;
+
+                var token = tokenResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+
+                using var docRequest = new HttpRequestMessage(HttpMethod.Get, "http://169.254.169.254/latest/dynamic/instance-identity/document");
+                docRequest.Headers.Add("X-aws-ec2-metadata-token", token);
+                using var docResponse = client.Send(docRequest);
+                if (!docResponse.IsSuccessStatusCode)
+                    return;
+
+                var json = docResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+
+                IsEc2 = true;
+                DetectedAmiId = root.TryGetProperty("imageId", out var amiId) ? amiId.GetString() : null;
+                DetectedInstanceId = root.TryGetProperty("instanceId", out var instanceId) ? instanceId.GetString() : null;
+                DetectedRegion = root.TryGetProperty("region", out var region) ? region.GetString() : null;
+            }
+            catch
+            {
+                // Not on EC2, or IMDS unreachable — leave IsEc2 = false
+            }
         }
 
         #region private
