@@ -53,6 +53,23 @@
             "console": "internalConsole"
         },
         {
+            "name": "Launch rhino.compute",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Build rhino.compute",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "windows": {
+                "program": "${workspaceFolder}/src/bin/Debug/rhino.compute/rhino.compute.exe",
+                "args": []
+            },
+            "linux": {
+                "program": "${workspaceFolder}/src/bin/Debug/rhino.compute/rhino.compute",
+                "args": ["--urls", "http://0.0.0.0:5000", "--create-headless-doc", "true"],
+            }
+        },
+        {
             "name": "[Linux] Launch compute.geometry",
             "type": "coreclr",
             "request": "launch",
