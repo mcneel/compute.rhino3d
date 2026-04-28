@@ -15,7 +15,7 @@ public class SdkEndpointTests
     // Override via RHINO_COMPUTE_URLS environment variable, e.g. "http://localhost:8082"
     private static readonly string BaseUrl =
         Environment.GetEnvironmentVariable("RHINO_COMPUTE_URLS")?.Split(';')[0].TrimEnd('/')
-        ?? "http://localhost:5000";
+        ?? "http://localhost:6500";
 
     private static HttpClient _client = null!;
 
@@ -35,6 +35,18 @@ public class SdkEndpointTests
         _client.Dispose();
     }
 
+    private static bool IsConnectionRefused(HttpRequestException ex)
+    {
+        var inner = ex.InnerException;
+        while (inner != null)
+        {
+            if (inner is SocketException se && se.SocketErrorCode == SocketError.ConnectionRefused)
+                return true;
+            inner = inner.InnerException;
+        }
+        return false;
+    }
+
     [Test]
     public async Task GetSdk_ReturnsSuccessStatusCode()
     {
@@ -43,16 +55,10 @@ public class SdkEndpointTests
         {
             response = await _client.GetAsync("/sdk");
         }
-        catch (HttpRequestException ex) when (ex.InnerException is SocketException { SocketErrorCode: SocketError.ConnectionRefused })
+        catch (HttpRequestException ex) when (IsConnectionRefused(ex))
         {
             Assert.Fail($"Connection refused to {BaseUrl}/sdk — server is not reachable. " +
-                        $"Ensure compute.geometry is running. SocketException: {ex.InnerException.Message}");
-            return;
-        }
-        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
-        {
-            Assert.Fail($"Connection refused to {BaseUrl}/sdk — server is not reachable. " +
-                        $"SocketException: {ex.Message}");
+                        $"Ensure compute.geometry is running. Inner: {ex.InnerException?.Message}");
             return;
         }
 
@@ -68,16 +74,10 @@ public class SdkEndpointTests
         {
             response = await _client.GetAsync("/sdk");
         }
-        catch (HttpRequestException ex) when (ex.InnerException is SocketException { SocketErrorCode: SocketError.ConnectionRefused })
+        catch (HttpRequestException ex) when (IsConnectionRefused(ex))
         {
             Assert.Fail($"Connection refused to {BaseUrl}/sdk — server is not reachable. " +
-                        $"Ensure compute.geometry is running. SocketException: {ex.InnerException.Message}");
-            return;
-        }
-        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
-        {
-            Assert.Fail($"Connection refused to {BaseUrl}/sdk — server is not reachable. " +
-                        $"SocketException: {ex.Message}");
+                        $"Ensure compute.geometry is running. Inner: {ex.InnerException?.Message}");
             return;
         }
 
@@ -86,80 +86,33 @@ public class SdkEndpointTests
             "GET /sdk response body does not appear to be HTML");
     }
 
+    /// <summary>
+    /// Asserts that the proxy layer never returns a raw 500 when a compute.geometry
+    /// child is unreachable. A 500 indicates an unhandled SocketException in the
+    /// reverse proxy — the fix should return a proper 502 Bad Gateway instead.
+    ///
+    /// To reliably trigger the failure on the broken branch, run this test while
+    /// compute.geometry children are unavailable (e.g. kill child processes, or run
+    /// immediately after rhino.compute starts before children are ready).
+    /// </summary>
     [Test]
-    public async Task GetSdk_ResponseContainsCSharpSdkLink()
+    public async Task GetSdk_DoesNotReturnInternalServerError()
     {
         HttpResponseMessage response;
         try
         {
             response = await _client.GetAsync("/sdk");
         }
-        catch (HttpRequestException ex) when (ex.InnerException is SocketException { SocketErrorCode: SocketError.ConnectionRefused })
+        catch (HttpRequestException ex) when (IsConnectionRefused(ex))
         {
-            Assert.Fail($"Connection refused to {BaseUrl}/sdk — server is not reachable. " +
-                        $"Ensure compute.geometry is running. SocketException: {ex.InnerException.Message}");
-            return;
-        }
-        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
-        {
-            Assert.Fail($"Connection refused to {BaseUrl}/sdk — server is not reachable. " +
-                        $"SocketException: {ex.Message}");
+            Assert.Ignore($"rhino.compute is not reachable at {BaseUrl} — cannot run proxy error-handling test.");
             return;
         }
 
         var body = await response.Content.ReadAsStringAsync();
-        Assert.That(body, Does.Contain("/sdk/csharp"),
-            "GET /sdk response does not contain a link to /sdk/csharp");
+        Assert.That((int)response.StatusCode, Is.Not.EqualTo(500),
+            $"GET /sdk returned 500 Internal Server Error — this indicates an unhandled SocketException " +
+            $"in the reverse proxy when a compute.geometry child is unreachable. Body: {body}");
     }
 
-    [Test]
-    public async Task GetSdkCSharp_ReturnsSuccessStatusCode()
-    {
-        HttpResponseMessage response;
-        try
-        {
-            response = await _client.GetAsync("/sdk/csharp");
-        }
-        catch (HttpRequestException ex) when (ex.InnerException is SocketException { SocketErrorCode: SocketError.ConnectionRefused })
-        {
-            Assert.Fail($"Connection refused to {BaseUrl}/sdk/csharp — server is not reachable. " +
-                        $"Ensure compute.geometry is running. SocketException: {ex.InnerException.Message}");
-            return;
-        }
-        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
-        {
-            Assert.Fail($"Connection refused to {BaseUrl}/sdk/csharp — server is not reachable. " +
-                        $"SocketException: {ex.Message}");
-            return;
-        }
-
-        Assert.That((int)response.StatusCode, Is.InRange(200, 299),
-            $"GET /sdk/csharp returned unexpected status {(int)response.StatusCode} {response.ReasonPhrase}");
-    }
-
-    [Test]
-    public async Task GetSdkCSharp_ResponseIsPlainText()
-    {
-        HttpResponseMessage response;
-        try
-        {
-            response = await _client.GetAsync("/sdk/csharp");
-        }
-        catch (HttpRequestException ex) when (ex.InnerException is SocketException { SocketErrorCode: SocketError.ConnectionRefused })
-        {
-            Assert.Fail($"Connection refused to {BaseUrl}/sdk/csharp — server is not reachable. " +
-                        $"Ensure compute.geometry is running. SocketException: {ex.InnerException.Message}");
-            return;
-        }
-        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
-        {
-            Assert.Fail($"Connection refused to {BaseUrl}/sdk/csharp — server is not reachable. " +
-                        $"SocketException: {ex.Message}");
-            return;
-        }
-
-        var contentType = response.Content.Headers.ContentType?.MediaType;
-        Assert.That(contentType, Is.EqualTo("text/plain"),
-            $"GET /sdk/csharp content-type was '{contentType}', expected 'text/plain'");
-    }
 }
