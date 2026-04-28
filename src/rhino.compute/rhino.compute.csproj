@@ -39,4 +39,9 @@
     <PackageReference Include="Serilog.Sinks.Console" Version="4.1.0" />
     <PackageReference Include="System.Net.Http" Version="4.3.4" />
   </ItemGroup>
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>compute.geometry.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
 </Project>

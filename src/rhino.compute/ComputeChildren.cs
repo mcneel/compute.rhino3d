@@ -76,8 +76,17 @@ namespace rhino.compute
         /// found to be available.
         /// </summary>
         /// <returns></returns>
+        /// <summary>
+        /// When set, <see cref="GetComputeServerBaseUrl"/> returns this URL instead of
+        /// launching real child processes. For testing only.
+        /// </summary>
+        internal static string TestBaseUrl { get; set; }
+
         public static (string, int) GetComputeServerBaseUrl()
         {
+            if (TestBaseUrl != null)
+                return (TestBaseUrl, 0);
+
             // Simple round robin scheduler using a queue of compute.geometry processes
             int activePort = 0;
 

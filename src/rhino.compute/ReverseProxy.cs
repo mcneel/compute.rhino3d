@@ -15,6 +15,11 @@ namespace rhino.compute
         static Task _initTask;
         static HttpClient _client;
         private const string _apiKeyHeader = "RhinoComputeKey";
+
+        /// <summary>
+        /// Replaces the internal HttpClient used for proxying. For testing only.
+        /// </summary>
+        internal static void OverrideHttpClient(HttpClient client) => _client = client;
         static void Initialize()
         {
             if (_initCalled)
