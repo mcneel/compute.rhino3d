@@ -95,10 +95,20 @@ namespace rhino.compute
 
                 if (activePort == 0)
                 {
+                    // Prune any dead processes before the bootstrap launch below
                     var aliveProcesses = _computeProcesses.Where(tuple => !tuple.Item1.HasExited).ToList();
                     _computeProcesses = new Queue<Tuple<Process, int>>(aliveProcesses);
-                    LaunchCompute(_computeProcesses);
+                }
+            }
 
+            if (activePort == 0)
+            {
+                // Bootstrap: no running children — launch one synchronously (outside the lock
+                // so we don't hold _lockObject for the full startup wait) then pick it up.
+                LaunchCompute();
+
+                lock (_lockObject)
+                {
                     if (_computeProcesses.Count > 0)
                     {
                         Tuple<Process, int> current = _computeProcesses.Dequeue();
@@ -151,7 +161,6 @@ namespace rhino.compute
             // _pendingSpawnPorts tracks ports currently being started in background tasks so
             // we do not double-reserve them or exceed SpawnCount.
             int port;
-            ProcessStartInfo startInfo;
             lock (_lockObject)
             {
                 if (_computeProcesses.Count + _pendingSpawnPorts.Count >= SpawnCount)
@@ -162,14 +171,11 @@ namespace rhino.compute
                 port = FindFreePort(usedPorts);
                 if (port == 0) return;
                 _pendingSpawnPorts.Add(port);
-                startInfo = CreateComputeStartInfo(pathToCompute, port);
             }
 
             // Start the process and wait outside the lock so that other threads can
             // continue serving requests through already-ready children while this one loads.
-            var process = Process.Start(startInfo);
-
-            if (!WaitForChildProcess(process, port))
+            if (!TryStartChild(pathToCompute, port, out var process))
             {
                 Log.Warning("compute.geometry on port {Port} failed to start within 60 seconds", port);
                 lock (_lockObject) { _pendingSpawnPorts.Remove(port); }
@@ -184,47 +190,27 @@ namespace rhino.compute
             }
         }
 
-        // Called from within lock(_lockObject) in GetComputeServerBaseUrl for the bootstrap
-        // case where no children are running yet. The lock is held for the full duration.
-        static void LaunchCompute(Queue<Tuple<Process, int>> processQueue)
-        {
-            string pathToCompute = FindComputeExecutablePath();
-            if (pathToCompute == null) return;
-
-            var usedPorts = new HashSet<int>(processQueue.Select(t => t.Item2));
-            int port = FindFreePort(usedPorts);
-            if (port == 0) return;
-
-            var startInfo = CreateComputeStartInfo(pathToCompute, port);
-            var process = Process.Start(startInfo);
-
-            if (!WaitForChildProcess(process, port))
-            {
-                string msg = "Unable to start a local compute server";
-                Log.Information(msg);
-                throw new Exception(msg);
-            }
-
-            if (process != null && !process.HasExited)
-                processQueue.Enqueue(Tuple.Create(process, port));
-        }
-
         // compute.geometry is allowed to be in a sibling or child directory named compute.geometry.
         // Returns null if the executable cannot be found.
         static string FindComputeExecutablePath()
         {
             var pathToThisAssembly = new System.IO.FileInfo(typeof(ComputeChildren).Assembly.Location);
             var parentDirectory = pathToThisAssembly.Directory.Parent;
-#if LINUX
-            string path = System.IO.Path.Combine(parentDirectory.FullName, "compute.geometry", "compute.geometry");
-#else
-            string path = System.IO.Path.Combine(parentDirectory.FullName, "compute.geometry", "compute.geometry.exe");
-#endif
-            if (System.IO.File.Exists(path))
-                return path;
 
-            path = System.IO.Path.Combine(pathToThisAssembly.Directory.FullName, "compute.geometry", "compute.geometry.exe");
+            string path = System.IO.Path.Combine(parentDirectory.FullName, "compute.geometry", "compute.geometry");
+            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+                path += ".exe";
+
             return System.IO.File.Exists(path) ? path : null;
+        }
+
+        // Shared helper: creates the start info, starts the process on the given port, and waits
+        // for the port to open. Returns true on success, false if the port never opened (timeout).
+        static bool TryStartChild(string pathToCompute, int port, out Process process)
+        {
+            var startInfo = CreateComputeStartInfo(pathToCompute, port);
+            process = Process.Start(startInfo);
+            return WaitForChildProcess(process, port);
         }
 
         // Returns the first port >= 6001 that is not in usedPorts and is not already listening.

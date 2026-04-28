@@ -11,19 +11,27 @@ namespace rhino.compute
 {
     public class ReverseProxyModule : Carter.ICarterModule
     {
-        static bool _initCalled = false;
+        static int _initCalled = 0;
         static Task _initTask;
         static HttpClient _client;
         private const string _apiKeyHeader = "RhinoComputeKey";
         static void Initialize()
         {
-            if (_initCalled)
+            // Use an atomic compare-and-swap so that concurrent first requests cannot
+            // both pass this guard and double-initialize the HttpClient or child processes.
+            if (System.Threading.Interlocked.CompareExchange(ref _initCalled, 1, 0) != 0)
                 return;
-            _initCalled = true;
 
             Log.Debug($"Initiliazing reverse proxy at {DateTime.Now.ToLocalTime()}");
 
-            _client = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
+            // SocketsHttpHandler gives direct control over connection pool lifetime.
+            // PooledConnectionIdleTimeout ensures we close idle connections to compute.geometry
+            // before it closes them on its end, avoiding SocketExceptions in the pool scavenger.
+            _client = new HttpClient(new SocketsHttpHandler
+            {
+                AllowAutoRedirect = false,
+                PooledConnectionIdleTimeout = TimeSpan.FromSeconds(60)
+            });
             _client.DefaultRequestHeaders.Add("User-Agent", $"compute.rhino3d-proxy/1.0.0");
             _client.Timeout = TimeSpan.FromSeconds(Config.ReverseProxyRequestTimeout);
 
@@ -86,10 +94,9 @@ namespace rhino.compute
 
             // routes that are proxied to compute.geometry
             app.MapGet("/{*uri}", ReverseProxyGet);
-            app.MapPost("/grasshopper", ReverseProxyGrasshopper);
+            app.MapPost("/grasshopper", ReverseProxyPost);
             app.MapPost("/{*uri}", ReverseProxyPost);
         }
-
 
         public ReverseProxyModule()
         {
@@ -134,15 +141,12 @@ namespace rhino.compute
                 if (initialRequest.Headers.TryGetValue(_apiKeyHeader, out var keyHeader))
                     req.Headers.Add(_apiKeyHeader, keyHeader.ToString());
 
-                using (var sw = new System.IO.StreamReader(initialRequest.BodyReader.AsStream(leaveOpen: false)))
-                {
-                    string body = await sw.ReadToEndAsync();
-                    using (var stringContent = new StringContent(body, System.Text.Encoding.UTF8, "application/json"))
-                    {
-                        req.Content = stringContent;
-                        return await _client.SendAsync(req);
-                    }
-                }
+                // Stream the request body directly to the child process rather than
+                // buffering it as a string, avoiding a full in-memory copy of the payload.
+                var streamContent = new StreamContent(initialRequest.BodyReader.AsStream(leaveOpen: false));
+                streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+                req.Content = streamContent;
+                return await _client.SendAsync(req);
             }
 
             if (method == HttpMethod.Get)
@@ -153,32 +157,18 @@ namespace rhino.compute
             throw new System.NotSupportedException("Only GET and POST are currently supported for reverse proxy");
         }
 
+        // GET and POST routes both delegate to the shared handler; the /grasshopper route
+        // is intentionally mapped to ReverseProxyPost as it requires no special handling.
         private async Task ReverseProxyGet(HttpRequest req, HttpResponse res)
-        {
-            await AwaitInitTask();
-            string responseString;
-            try
-            {
-                using (var tracker = new ConcurrentRequestTracker())
-                {
-                    var (baseurl, port) = ComputeChildren.GetComputeServerBaseUrl();
-                    var proxyResponse = await SendProxyRequest(req, HttpMethod.Get, baseurl);
-                    ComputeChildren.UpdateLastCall();
-                    if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
-                        ComputeChildren.MoveToFrontOfQueue(port);
-
-                    responseString = await proxyResponse.Content.ReadAsStringAsync();
-                }
-                await res.WriteAsync(responseString);
-            }
-            catch (Exception ex) when (ex is Microsoft.AspNetCore.Connections.ConnectionResetException ||
-                                       ex is OperationCanceledException)
-            {
-                Log.Debug("GET request cancelled or connection reset by client: {Path}", req.Path);
-            }
-        }
+            => await ReverseProxyHandler(req, res, HttpMethod.Get);
 
         private async Task ReverseProxyPost(HttpRequest req, HttpResponse res)
+            => await ReverseProxyHandler(req, res, HttpMethod.Post);
+
+        // Shared proxy handler: forwards the request to a compute.geometry child, propagates
+        // the response status code, and promotes the responding child to the front of the queue
+        // on success so it is preferred for the next round-robin selection.
+        private async Task ReverseProxyHandler(HttpRequest req, HttpResponse res, HttpMethod method)
         {
             await AwaitInitTask();
             string responseString;
@@ -187,7 +177,7 @@ namespace rhino.compute
                 using (var tracker = new ConcurrentRequestTracker())
                 {
                     var (baseurl, port) = ComputeChildren.GetComputeServerBaseUrl();
-                    var proxyResponse = await SendProxyRequest(req, HttpMethod.Post, baseurl);
+                    var proxyResponse = await SendProxyRequest(req, method, baseurl);
                     ComputeChildren.UpdateLastCall();
                     if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
                         ComputeChildren.MoveToFrontOfQueue(port);
@@ -200,33 +190,7 @@ namespace rhino.compute
             catch (Exception ex) when (ex is Microsoft.AspNetCore.Connections.ConnectionResetException ||
                                        ex is OperationCanceledException)
             {
-                Log.Debug("POST request cancelled or connection reset by client: {Path}", req.Path);
-            }
-        }
-
-        private async Task ReverseProxyGrasshopper(HttpRequest req, HttpResponse res)
-        {
-            await AwaitInitTask();
-            string responseString;
-            try
-            {
-                using (var tracker = new ConcurrentRequestTracker())
-                {
-                    var (baseurl, port) = ComputeChildren.GetComputeServerBaseUrl();
-                    var proxyResponse = await SendProxyRequest(req, HttpMethod.Post, baseurl);
-                    ComputeChildren.UpdateLastCall();
-                    if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
-                        ComputeChildren.MoveToFrontOfQueue(port);
-
-                    res.StatusCode = (int)proxyResponse.StatusCode;
-                    responseString = await proxyResponse.Content.ReadAsStringAsync();
-                }
-                await res.WriteAsync(responseString);
-            }
-            catch (Exception ex) when (ex is Microsoft.AspNetCore.Connections.ConnectionResetException ||
-                                       ex is OperationCanceledException)
-            {
-                Log.Debug("Grasshopper request cancelled or connection reset by client: {Path}", req.Path);
+                Log.Debug("{Method} request cancelled or connection reset by client: {Path}", method, req.Path);
             }
         }
     }
