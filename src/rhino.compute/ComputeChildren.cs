@@ -109,6 +109,12 @@ namespace rhino.compute
 
                 lock (_lockObject)
                 {
+                    // If a spawn is in-flight but not yet ready, wait for it to complete
+                    // rather than failing immediately. PulseAll is called in LaunchCompute's
+                    // finally block, so we will be woken when the spawn succeeds or fails.
+                    while (_computeProcesses.Count == 0 && _pendingSpawnPorts.Count > 0)
+                        Monitor.Wait(_lockObject, millisecondsTimeout: 1000);
+
                     if (_computeProcesses.Count > 0)
                     {
                         Tuple<Process, int> current = _computeProcesses.Dequeue();
@@ -185,7 +191,8 @@ namespace rhino.compute
                 if (!started)
                     Log.Warning("compute.geometry on port {Port} failed to start within 60 seconds", port);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception ||
+                                       ex is InvalidOperationException)
             {
                 Log.Error(ex, "Exception while starting compute.geometry on port {Port}", port);
             }
@@ -196,6 +203,8 @@ namespace rhino.compute
                     _pendingSpawnPorts.Remove(port);
                     if (started && process != null && !process.HasExited)
                         _computeProcesses.Enqueue(Tuple.Create(process, port));
+                    // Wake any threads waiting in GetComputeServerBaseUrl for this spawn to finish.
+                    Monitor.PulseAll(_lockObject);
                 }
             }
         }
@@ -207,14 +216,23 @@ namespace rhino.compute
             var pathToThisAssembly = new System.IO.FileInfo(typeof(ComputeChildren).Assembly.Location);
             var parentDirectory = pathToThisAssembly.Directory?.Parent;
             if (parentDirectory == null)
+            {
+                Log.Warning("Could not determine parent directory of assembly {Assembly}; cannot locate compute.geometry", pathToThisAssembly.FullName);
                 return null;
+            }
 
             string computeDirectoryPath = System.IO.Path.Combine(parentDirectory.FullName, "compute.geometry");
             string path = System.IO.Path.Combine(computeDirectoryPath, "compute.geometry");
             if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
                 path += ".exe";
 
-            return System.IO.File.Exists(path) ? path : null;
+            if (!System.IO.File.Exists(path))
+            {
+                Log.Warning("compute.geometry executable not found at {Path}", path);
+                return null;
+            }
+
+            return path;
         }
 
         // Shared helper: creates the start info, starts the process on the given port, and waits
@@ -230,12 +248,15 @@ namespace rhino.compute
         // Returns 0 if no free port is found.
         static int FindFreePort(HashSet<int> usedPorts)
         {
+            // Enumerate active listeners once to avoid a syscall per iteration inside the loop.
+            var listeningPorts = GetListeningPorts();
+
             for (int i = 0; i < 256; i++)
             {
                 if (i == 255) return 0;
                 int port = 6001 + i;
                 if (usedPorts.Contains(port)) continue;
-                if (IsPortOpen(port)) continue;
+                if (listeningPorts.Contains(port)) continue;
                 return port;
             }
             return 0;
@@ -276,16 +297,19 @@ namespace rhino.compute
             }
         }
 
-        // Returns true if any TCP listener is currently bound to the given port.
+        // Returns a snapshot of all ports with active TCP listeners.
         // Uses IPGlobalProperties to enumerate OS-level listeners without opening a socket,
         // avoiding any SocketException throws regardless of platform.
-        static bool IsPortOpen(int port)
+        static HashSet<int> GetListeningPorts()
         {
             var listeners = System.Net.NetworkInformation.IPGlobalProperties
                 .GetIPGlobalProperties()
                 .GetActiveTcpListeners();
-            return Array.Exists(listeners, ep => ep.Port == port);
+            return new HashSet<int>(listeners.Select(ep => ep.Port));
         }
+
+        // Returns true if any TCP listener is currently bound to the given port.
+        static bool IsPortOpen(int port) => GetListeningPorts().Contains(port);
         static object _lockObject = new object();
         static Queue<Tuple<Process, int>> _computeProcesses = new Queue<Tuple<Process, int>>();
         // Ports for which a child process has been started but has not yet been confirmed
