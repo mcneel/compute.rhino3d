@@ -205,9 +205,12 @@ namespace rhino.compute
         static string FindComputeExecutablePath()
         {
             var pathToThisAssembly = new System.IO.FileInfo(typeof(ComputeChildren).Assembly.Location);
-            var parentDirectory = pathToThisAssembly.Directory.Parent;
+            var parentDirectory = pathToThisAssembly.Directory?.Parent;
+            if (parentDirectory == null)
+                return null;
 
-            string path = System.IO.Path.Combine(parentDirectory.FullName, "compute.geometry", "compute.geometry");
+            string computeDirectoryPath = System.IO.Path.Combine(parentDirectory.FullName, "compute.geometry");
+            string path = System.IO.Path.Combine(computeDirectoryPath, "compute.geometry");
             if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
                 path += ".exe";
 
@@ -287,6 +290,6 @@ namespace rhino.compute
         static Queue<Tuple<Process, int>> _computeProcesses = new Queue<Tuple<Process, int>>();
         // Ports for which a child process has been started but has not yet been confirmed
         // ready and added to _computeProcesses. Protected by _lockObject.
-        static HashSet<int> _pendingSpawnPorts = new HashSet<int>();
+        static readonly HashSet<int> _pendingSpawnPorts = new HashSet<int>();
     }
 }

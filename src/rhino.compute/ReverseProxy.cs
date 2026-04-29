@@ -176,7 +176,7 @@ namespace rhino.compute
             string responseString;
             try
             {
-                using (var tracker = new ConcurrentRequestTracker())
+                using (new ConcurrentRequestTracker())
                 {
                     var (baseurl, port) = ComputeChildren.GetComputeServerBaseUrl();
                     using (var proxyResponse = await SendProxyRequest(req, method, baseurl))
