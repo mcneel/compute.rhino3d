@@ -297,7 +297,8 @@ namespace rhino.compute
 
                 if ((DateTime.Now - start).TotalSeconds > timeoutSeconds)
                 {
-                    process.Kill();
+                    try { process.Kill(); } catch (Exception ex) { Log.Debug(ex, "Exception killing timed-out compute.geometry process on port {Port}", port); }
+                    process.Dispose();
                     return false;
                 }
 
@@ -306,14 +307,21 @@ namespace rhino.compute
         }
 
         // Returns a snapshot of all ports with active TCP listeners.
-        // Uses IPGlobalProperties to enumerate OS-level listeners without opening a socket,
-        // avoiding any SocketException throws regardless of platform.
+        // Returns an empty set if the OS query fails, so callers degrade gracefully.
         static HashSet<int> GetListeningPorts()
         {
-            var listeners = System.Net.NetworkInformation.IPGlobalProperties
-                .GetIPGlobalProperties()
-                .GetActiveTcpListeners();
-            return new HashSet<int>(listeners.Select(ep => ep.Port));
+            try
+            {
+                var listeners = System.Net.NetworkInformation.IPGlobalProperties
+                    .GetIPGlobalProperties()
+                    .GetActiveTcpListeners();
+                return new HashSet<int>(listeners.Select(ep => ep.Port));
+            }
+            catch (System.Net.NetworkInformation.NetworkInformationException ex)
+            {
+                Log.Warning(ex, "Failed to enumerate TCP listeners; treating all ports as available");
+                return new HashSet<int>();
+            }
         }
 
         // Returns true if any TCP listener is currently bound to the given port.
