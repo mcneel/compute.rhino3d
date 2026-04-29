@@ -223,8 +223,8 @@ namespace rhino.compute
                 return null;
             }
 
-            string computeDirectoryPath = System.IO.Path.Combine(parentDirectory.FullName, "compute.geometry");
-            string path = System.IO.Path.Combine(computeDirectoryPath, "compute.geometry");
+            string computeDirectoryPath = System.IO.Path.Join(parentDirectory.FullName, "compute.geometry");
+            string path = System.IO.Path.Join(computeDirectoryPath, "compute.geometry");
             if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
                 path += ".exe";
 
