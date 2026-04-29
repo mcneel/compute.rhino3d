@@ -127,11 +127,14 @@ namespace rhino.compute
             if (0 == activePort)
                 throw new Exception("No compute server found");
 
-            // Bring up remaining children to SpawnCount in the background. Each task waits until
-            // the child is confirmed ready (IsPortOpen) before adding it to the round-robin queue,
-            // so no request is ever proxied to a port that isn't listening yet.
-            // LaunchCompute() guards with _lockObject internally, so extra Task.Run calls are safe.
-            for (int i = _computeProcesses.Count + _pendingSpawnPorts.Count; i < SpawnCount; i++)
+            // Compute how many background spawns are needed under the lock so we don't
+            // schedule redundant tasks based on a stale unsynchronised count.
+            int spawnTasksToQueue;
+            lock (_lockObject)
+            {
+                spawnTasksToQueue = Math.Max(0, SpawnCount - (_computeProcesses.Count + _pendingSpawnPorts.Count));
+            }
+            for (int i = 0; i < spawnTasksToQueue; i++)
                 System.Threading.Tasks.Task.Run(() => LaunchCompute());
 
             //Log.Information($"Started child process at http://localhost:{activePort} at {DateTime.Now.ToLocalTime()}");
@@ -286,6 +289,9 @@ namespace rhino.compute
             var start = DateTime.Now;
             while (true)
             {
+                if (process == null || process.HasExited)
+                    return false;
+
                 if (IsPortOpen(port))
                     return true;
 

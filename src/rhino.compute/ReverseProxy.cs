@@ -144,7 +144,10 @@ namespace rhino.compute
                 // Stream the request body directly to the child process rather than
                 // buffering it as a string, avoiding a full in-memory copy of the payload.
                 var streamContent = new StreamContent(initialRequest.BodyReader.AsStream(leaveOpen: false));
-                streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+                if (!string.IsNullOrWhiteSpace(initialRequest.ContentType))
+                    streamContent.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(initialRequest.ContentType);
+                else
+                    streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
                 req.Content = streamContent;
                 // SendAsync fully consumes the request body before returning, so disposing
                 // req (and its owned StreamContent) here is safe.
