@@ -44,7 +44,7 @@
             "name": "Launch compute.geometry",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "Build",
+            "preLaunchTask": "Build compute.geometry",
             "justMyCode": false,
             "args": [],
             "cwd": "${workspaceFolder}",
@@ -73,9 +73,9 @@
             },
             "linux": {
                 "program": "${workspaceFolder}/src/bin/Debug/rhino.compute/rhino.compute",
-                "args": ["--urls", "http://0.0.0.0:5000", "--create-headless-doc", "true"],
+                "args": ["--urls", "http://0.0.0.0:5000", "--create-headless-doc", "true"]
             }
-        },
+        }
     ],
     "compounds": []
 }

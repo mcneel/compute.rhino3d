@@ -166,6 +166,8 @@ namespace rhino.compute
             // Under a brief lock: check whether we need another child and reserve a port.
             // _pendingSpawnPorts tracks ports currently being started in background tasks so
             // we do not double-reserve them or exceed SpawnCount.
+            // Snapshot listening ports before the lock to avoid an OS syscall inside it.
+            var listeningPorts = GetListeningPorts();
             int port;
             lock (_lockObject)
             {
@@ -174,7 +176,7 @@ namespace rhino.compute
 
                 var usedPorts = new HashSet<int>(_computeProcesses.Select(t => t.Item2));
                 usedPorts.UnionWith(_pendingSpawnPorts);
-                port = FindFreePort(usedPorts);
+                port = FindFreePort(usedPorts, listeningPorts);
                 if (port == 0) return;
                 _pendingSpawnPorts.Add(port);
             }
@@ -246,14 +248,14 @@ namespace rhino.compute
 
         // Returns the first port >= 6001 that is not in usedPorts and is not already listening.
         // Returns 0 if no free port is found.
-        static int FindFreePort(HashSet<int> usedPorts)
+        // Callers that already hold a lock should pass a pre-fetched listeningPorts snapshot
+        // to avoid an OS syscall inside the lock.
+        static int FindFreePort(HashSet<int> usedPorts, HashSet<int> listeningPorts = null)
         {
-            // Enumerate active listeners once to avoid a syscall per iteration inside the loop.
-            var listeningPorts = GetListeningPorts();
+            listeningPorts ??= GetListeningPorts();
 
             for (int i = 0; i < 256; i++)
             {
-                if (i == 255) return 0;
                 int port = 6001 + i;
                 if (usedPorts.Contains(port)) continue;
                 if (listeningPorts.Contains(port)) continue;
