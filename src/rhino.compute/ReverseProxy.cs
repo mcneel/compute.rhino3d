@@ -22,7 +22,7 @@ namespace rhino.compute
             if (System.Threading.Interlocked.CompareExchange(ref _initCalled, 1, 0) != 0)
                 return;
 
-            Log.Debug($"Initiliazing reverse proxy at {DateTime.Now.ToLocalTime()}");
+            Log.Debug($"Initializing reverse proxy at {DateTime.Now.ToLocalTime()}");
 
             // SocketsHttpHandler gives direct control over connection pool lifetime.
             // PooledConnectionIdleTimeout ensures we close idle connections to compute.geometry
@@ -137,7 +137,7 @@ namespace rhino.compute
             if (method == HttpMethod.Post)
             {
                 // include RhinoComputeKey header in request to compute child process
-                var req = new HttpRequestMessage(HttpMethod.Post, proxyUrl);
+                using var req = new HttpRequestMessage(HttpMethod.Post, proxyUrl);
                 if (initialRequest.Headers.TryGetValue(_apiKeyHeader, out var keyHeader))
                     req.Headers.Add(_apiKeyHeader, keyHeader.ToString());
 
@@ -146,6 +146,8 @@ namespace rhino.compute
                 var streamContent = new StreamContent(initialRequest.BodyReader.AsStream(leaveOpen: false));
                 streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
                 req.Content = streamContent;
+                // SendAsync fully consumes the request body before returning, so disposing
+                // req (and its owned StreamContent) here is safe.
                 return await _client.SendAsync(req);
             }
 
@@ -177,20 +179,33 @@ namespace rhino.compute
                 using (var tracker = new ConcurrentRequestTracker())
                 {
                     var (baseurl, port) = ComputeChildren.GetComputeServerBaseUrl();
-                    var proxyResponse = await SendProxyRequest(req, method, baseurl);
-                    ComputeChildren.UpdateLastCall();
-                    if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
-                        ComputeChildren.MoveToFrontOfQueue(port);
+                    using (var proxyResponse = await SendProxyRequest(req, method, baseurl))
+                    {
+                        ComputeChildren.UpdateLastCall();
+                        if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                            ComputeChildren.MoveToFrontOfQueue(port);
 
-                    res.StatusCode = (int)proxyResponse.StatusCode;
-                    responseString = await proxyResponse.Content.ReadAsStringAsync();
+                        res.StatusCode = (int)proxyResponse.StatusCode;
+                        responseString = await proxyResponse.Content.ReadAsStringAsync();
+                    }
                 }
                 await res.WriteAsync(responseString);
             }
             catch (Exception ex) when (ex is Microsoft.AspNetCore.Connections.ConnectionResetException ||
                                        ex is OperationCanceledException)
             {
-                Log.Debug("{Method} request cancelled or connection reset by client: {Path}", method, req.Path);
+                if (ex is OperationCanceledException && !req.HttpContext.RequestAborted.IsCancellationRequested)
+                {
+                    // HttpClient timeout (TaskCanceledException extends OperationCanceledException):
+                    // the client did not cancel — return 504 so the caller knows the backend didn't respond in time.
+                    Log.Warning("{Method} request to compute child timed out: {Path}", method, req.Path);
+                    res.StatusCode = StatusCodes.Status504GatewayTimeout;
+                    await res.WriteAsync("Gateway timeout: compute child did not respond in time.");
+                }
+                else
+                {
+                    Log.Debug("{Method} request cancelled or connection reset by client: {Path}", method, req.Path);
+                }
             }
         }
     }

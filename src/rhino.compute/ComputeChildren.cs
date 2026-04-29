@@ -124,7 +124,7 @@ namespace rhino.compute
             // Bring up remaining children to SpawnCount in the background. Each task waits until
             // the child is confirmed ready (IsPortOpen) before adding it to the round-robin queue,
             // so no request is ever proxied to a port that isn't listening yet.
-            // LaunchCompute(bool) guards with _lockObject internally, so extra Task.Run calls are safe.
+            // LaunchCompute() guards with _lockObject internally, so extra Task.Run calls are safe.
             for (int i = _computeProcesses.Count + _pendingSpawnPorts.Count; i < SpawnCount; i++)
                 System.Threading.Tasks.Task.Run(() => LaunchCompute());
 
@@ -175,23 +175,33 @@ namespace rhino.compute
 
             // Start the process and wait outside the lock so that other threads can
             // continue serving requests through already-ready children while this one loads.
-            if (!TryStartChild(pathToCompute, port, out var process))
+            // Use try/catch/finally so that _pendingSpawnPorts is always cleaned up — even if
+            // Process.Start or the startup wait throws — preventing permanent capacity reduction.
+            Process process = null;
+            bool started = false;
+            try
             {
-                Log.Warning("compute.geometry on port {Port} failed to start within 60 seconds", port);
-                lock (_lockObject) { _pendingSpawnPorts.Remove(port); }
-                return;
+                started = TryStartChild(pathToCompute, port, out process);
+                if (!started)
+                    Log.Warning("compute.geometry on port {Port} failed to start within 60 seconds", port);
             }
-
-            lock (_lockObject)
+            catch (Exception ex)
             {
-                _pendingSpawnPorts.Remove(port);
-                if (process != null && !process.HasExited)
-                    _computeProcesses.Enqueue(Tuple.Create(process, port));
+                Log.Error(ex, "Exception while starting compute.geometry on port {Port}", port);
+            }
+            finally
+            {
+                lock (_lockObject)
+                {
+                    _pendingSpawnPorts.Remove(port);
+                    if (started && process != null && !process.HasExited)
+                        _computeProcesses.Enqueue(Tuple.Create(process, port));
+                }
             }
         }
 
-        // compute.geometry is allowed to be in a sibling or child directory named compute.geometry.
-        // Returns null if the executable cannot be found.
+        // Looks for compute.geometry in a sibling directory named compute.geometry relative to
+        // this assembly's parent directory. Returns null if the executable cannot be found.
         static string FindComputeExecutablePath()
         {
             var pathToThisAssembly = new System.IO.FileInfo(typeof(ComputeChildren).Assembly.Location);
