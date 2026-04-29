@@ -297,7 +297,7 @@ namespace rhino.compute
 
                 if ((DateTime.Now - start).TotalSeconds > timeoutSeconds)
                 {
-                    process?.Kill();
+                    process.Kill();
                     return false;
                 }
 
