@@ -7,9 +7,13 @@ on:
 #  schedule:
 #    - cron: '0 0 1 * *'
 
+permissions: {}
+
 jobs:
   version:
     if: github.ref == 'refs/heads/9.x'
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version_step.outputs.version }}
@@ -28,6 +32,8 @@ jobs:
 
   build-deb:
     if: github.ref == 'refs/heads/9.x'
+    permissions:
+      contents: read
     name: build deb ${{ matrix.package_arch }}
     needs: [version]
 
@@ -102,6 +108,8 @@ jobs:
 
   generate-deb-release:
     if: github.ref == 'refs/heads/9.x'
+    permissions:
+      contents: read
     needs: [build-deb]
     runs-on: ubuntu-latest
     steps:
@@ -154,6 +162,9 @@ jobs:
 
   build-rpm:
     if: github.ref == 'refs/heads/9.x'
+    permissions: 
+      contents: read
+      packages: read
     name: build rpm ${{ matrix.package_arch }}
     needs: [version]
 
@@ -170,8 +181,6 @@ jobs:
             package_arch: 'aarch64'
 
     runs-on: ${{ matrix.os }}
-    permissions: 
-      packages: read
     container:
       image: ${{ vars.RPM_COMPUTE_BUILDER_IMAGE }}
       credentials:
