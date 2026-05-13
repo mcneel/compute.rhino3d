@@ -1,7 +1,6 @@
 ﻿namespace rhino.compute
 {
     using System;
-    using Carter;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.Extensions.DependencyInjection;
     using Serilog;
@@ -19,7 +18,6 @@
                     });
             });
             services.AddHealthChecks();
-            services.AddCarter();
         }
 
         public void Configure(IApplicationBuilder app)
@@ -32,7 +30,7 @@
             app.UseEndpoints(builder =>
             {
                 builder.MapHealthChecks("/healthcheck");
-                builder.MapCarter();
+                ReverseProxyModule.MapEndpoints(builder);
             });
         }
     }

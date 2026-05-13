@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -9,12 +9,13 @@ using Serilog;
 
 namespace rhino.compute
 {
-    public class ReverseProxyModule : Carter.ICarterModule
+    public class ReverseProxyModule
     {
         static bool _initCalled = false;
         static Task _initTask;
         static HttpClient _client;
         private const string _apiKeyHeader = "RhinoComputeKey";
+
         static void Initialize()
         {
             if (_initCalled)
@@ -75,11 +76,18 @@ namespace rhino.compute
             _concurrentRequestLogger.Start();
         }
 
-        public void AddRoutes(IEndpointRouteBuilder app)
+        public static void MapEndpoints(IEndpointRouteBuilder app)
         {
+            Initialize();
+
             app.MapGet("/robots.txt", async (context) => await context.Response.WriteAsync("User-agent: *\nDisallow: / "));
             app.MapGet("/idlespan", async (context) => { Serilog.Log.Debug($"Request received to /idlespan endpoint"); await context.Response.WriteAsync($"{ComputeChildren.IdleSpan()}"); });
-            app.MapGet("/", async (context) => { InitializeChildren(); await context.Response.WriteAsync("compute.rhino3d"); });
+            app.MapGet("/", (context) =>
+            {
+                InitializeChildren();
+                context.Response.Redirect("https://www.rhino3d.com/compute");
+                return Task.CompletedTask;
+            });
             app.MapGet("/activechildren", async (context) =>
             {
                 bool initialize = true;
@@ -96,24 +104,18 @@ namespace rhino.compute
             app.MapGet("/favicon.ico", async (context) => await context.Response.WriteAsync("Handled"));
 
             // routes that are proxied to compute.geometry
-            app.MapGet("/{*uri}", ReverseProxyGet);
-            app.MapPost("/grasshopper", ReverseProxyGrasshopper);
-            app.MapPost("/{*uri}", ReverseProxyPost);
+            app.MapGet("/{*uri}", (HttpRequest req, HttpResponse res) => ProxyRequest(req, res, HttpMethod.Get));
+            app.MapPost("/grasshopper", (HttpRequest req, HttpResponse res) => ProxyRequest(req, res, HttpMethod.Post));
+            app.MapPost("/{*uri}", (HttpRequest req, HttpResponse res) => ProxyRequest(req, res, HttpMethod.Post));
         }
 
-
-        public ReverseProxyModule()
-        {
-            Initialize();
-        }
-
-        Task LaunchChildren(HttpRequest request, HttpResponse response)
+        static Task LaunchChildren(HttpRequest request, HttpResponse response)
         {
             int children = System.Convert.ToInt32(request.Query["children"]);
             int parentProcessId = System.Convert.ToInt32(request.Query["parent"]);
             if (Program.IsParentRhinoProcess(parentProcessId))
             {
-                for (int i=0; i<children; i++)
+                for (int i = 0; i < children; i++)
                 {
                     ComputeChildren.LaunchCompute(false);
                 }
@@ -121,7 +123,7 @@ namespace rhino.compute
             return Task.CompletedTask;
         }
 
-        async Task AwaitInitTask()
+        static async Task AwaitInitTask()
         {
             var task = _initTask;
             if (task != null)
@@ -131,7 +133,7 @@ namespace rhino.compute
             }
         }
 
-        async Task<HttpResponseMessage> SendProxyRequest(HttpRequest initialRequest, HttpMethod method, string baseurl)
+        static async Task<HttpResponseMessage> SendProxyRequest(HttpRequest initialRequest, HttpMethod method, string baseurl)
         {
             string proxyUrl = $"{baseurl}{initialRequest.Path}{initialRequest.QueryString}";
 
@@ -167,57 +169,21 @@ namespace rhino.compute
             throw new System.NotSupportedException("Only GET and POST are currently supported for reverse proxy");
         }
 
-        private async Task ReverseProxyGet(HttpRequest req, HttpResponse res)
+        static async Task ProxyRequest(HttpRequest req, HttpResponse res, HttpMethod method)
         {
             await AwaitInitTask();
-            string responseString;
             using (var tracker = new ConcurrentRequestTracker())
             {
                 var (baseurl, port) = ComputeChildren.GetComputeServerBaseUrl();
-                var proxyResponse = await SendProxyRequest(req, HttpMethod.Get, baseurl);
-                ComputeChildren.UpdateLastCall();
-                if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
-                    ComputeChildren.MoveToFrontOfQueue(port);
-
-                responseString = await proxyResponse.Content.ReadAsStringAsync();
-            }
-            await res.WriteAsync(responseString);
-        }
-
-        private async Task ReverseProxyPost(HttpRequest req, HttpResponse res)
-        {
-            await AwaitInitTask();
-            string responseString;
-            using (var tracker = new ConcurrentRequestTracker())
-            {
-                var (baseurl, port) = ComputeChildren.GetComputeServerBaseUrl();
-                var proxyResponse = await SendProxyRequest(req, HttpMethod.Post, baseurl);
+                var proxyResponse = await SendProxyRequest(req, method, baseurl);
                 ComputeChildren.UpdateLastCall();
                 if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
                     ComputeChildren.MoveToFrontOfQueue(port);
 
                 res.StatusCode = (int)proxyResponse.StatusCode;
-                responseString = await proxyResponse.Content.ReadAsStringAsync();
+                var responseString = await proxyResponse.Content.ReadAsStringAsync();
+                await res.WriteAsync(responseString);
             }
-            await res.WriteAsync(responseString);
-        }
-
-        private async Task ReverseProxyGrasshopper(HttpRequest req, HttpResponse res)
-        {
-            await AwaitInitTask();
-            string responseString;
-            using (var tracker = new ConcurrentRequestTracker())
-            {
-                var (baseurl, port) = ComputeChildren.GetComputeServerBaseUrl();
-                var proxyResponse = await SendProxyRequest(req, HttpMethod.Post, baseurl);
-                ComputeChildren.UpdateLastCall();
-                if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
-                    ComputeChildren.MoveToFrontOfQueue(port);
-
-                res.StatusCode = (int)proxyResponse.StatusCode;
-                responseString = await proxyResponse.Content.ReadAsStringAsync();
-            }
-            await res.WriteAsync(responseString);
         }
     }
 }

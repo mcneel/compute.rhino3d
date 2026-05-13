@@ -36,7 +36,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Carter" Version="7.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
     <PackageReference Include="Rhino.Inside" Version="8.0.7-beta" />
     <PackageReference Include="Serilog" Version="3.0.2-dev-02044" />
