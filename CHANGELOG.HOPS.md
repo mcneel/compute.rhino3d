@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.29] - 2026-05-13
+
+### Added
+
+- The /activechildren endpoint now accepts an optional initialize query parameter. By default (or when omitted), it behaves as before — spawning child processes if needed and returning the active compute count. Passing ?initialize=false returns the active compute count without starting any child processes, allowing callers to poll the count without triggering startup.
+
 ## [0.16.28] - 2025-11-05
 
 ### Added
