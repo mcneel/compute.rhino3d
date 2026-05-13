@@ -80,7 +80,18 @@ namespace rhino.compute
             app.MapGet("/robots.txt", async (context) => await context.Response.WriteAsync("User-agent: *\nDisallow: / "));
             app.MapGet("/idlespan", async (context) => { Serilog.Log.Debug($"Request received to /idlespan endpoint"); await context.Response.WriteAsync($"{ComputeChildren.IdleSpan()}"); });
             app.MapGet("/", async (context) => { InitializeChildren(); await context.Response.WriteAsync("compute.rhino3d"); });
-            app.MapGet("/activechildren", async (context) => { InitializeChildren(); await context.Response.WriteAsync($"{ComputeChildren.ActiveComputeCount}"); });
+            app.MapGet("/activechildren", async (context) =>
+            {
+                bool initialize = true;
+                if (context.Request.Query.TryGetValue("initialize", out var initValue)
+                    && bool.TryParse(initValue, out var parsed))
+                {
+                    initialize = parsed;
+                }
+                if (initialize)
+                    InitializeChildren();
+                await context.Response.WriteAsync($"{ComputeChildren.ActiveComputeCount}");
+            });
             app.MapGet("/launch", LaunchChildren);
             app.MapGet("/favicon.ico", async (context) => await context.Response.WriteAsync("Handled"));
 
