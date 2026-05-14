@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The /activechildren endpoint now accepts an optional initialize query parameter. By default (or when omitted), it behaves as before — spawning child processes if needed and returning the active compute count. Passing ?initialize=false returns the active compute count without starting any child processes, allowing callers to poll the count without triggering startup.
 
+### Changed
+
+- Removed the Carter NuGet dependency from both rhino.compute and compute.geometry. All HTTP endpoints are now wired up using native ASP.NET Core endpoint routing. The three duplicated reverse-proxy methods in rhino.compute have also been consolidated into a single helper.
+- The rhino.compute root endpoint (`/`) now redirects to https://www.rhino3d.com/compute, matching the behavior of compute.geometry. Previously this endpoint returned the plain text "compute.rhino3d".
+
+### Fixed
+
+- GET requests proxied through rhino.compute always returned HTTP 200, even when the upstream compute.geometry response was an error. The correct status code is now forwarded.
+
 ## [0.16.28] - 2025-11-05
 
 ### Added
