@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.16.29] - 2026-05-13
+## [0.16.29] - 2026-05-14
 
 ### Added
 
@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - GET requests proxied through rhino.compute always returned HTTP 200, even when the upstream compute.geometry response was an error. The correct status code is now forwarded.
+- Fixed a security issue in the Hops client where solve requests sent to a remote server URL would silently downgrade HTTPS connections to HTTP. The original URL scheme is now preserved when constructing the solve endpoint, ensuring that API keys and definition payloads remain encrypted in transit when targeting an HTTPS server.
 
 ## [0.16.28] - 2025-11-05
 
