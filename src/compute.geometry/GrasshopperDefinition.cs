@@ -332,174 +332,39 @@ namespace compute.geometry
                 inputGroup.CacheTree(tree);
 
                 IGH_ContextualParameter contextualParameter = inputGroup.Param as IGH_ContextualParameter;
-                if(contextualParameter != null)
+                if (contextualParameter != null)
                 {
-                    var treeAccess = Convert.ToBoolean(contextualParameter.GetType().GetProperty("TreeAccess")?.GetValue(contextualParameter, null));
-                    if (contextualParameter != null)
+                    if (contextualParameter.AtLeast == 0)
+                        (contextualParameter as IGH_Param).Optional = true;
+
+                    switch (ParamTypeName(inputGroup.Param))
                     {
-                        if (contextualParameter.AtLeast == 0)
-                            (contextualParameter as IGH_Param).Optional = true;
-                        switch (ParamTypeName(inputGroup.Param))
-                        {
-                            case "Boolean":
-                                {
-                                    Grasshopper.DataTree<GH_Boolean> inputTree = new Grasshopper.DataTree<GH_Boolean>();
-                                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                                    {
-                                        GH_Path path = GetPath(entree.Key);
-                                        for (int i = 0; i < entree.Value.Count; i++)
-                                        {
-                                            ResthopperObject restobj = entree.Value[i];
-                                            var b = new GH_Boolean(JsonConvert.DeserializeObject<bool>(restobj.Data));
-                                            inputTree.Add(b, path);
-                                        }
-                                    }
-                                    contextualParameter.GetType()
-                                        .GetMethod("AssignContextualDataTree")?
-                                        .Invoke(contextualParameter, new object[] { inputTree });
-                                }
-                                break;
-                            case "Number":
-                                {
-                                    Grasshopper.DataTree<GH_Number> inputTree = new Grasshopper.DataTree<GH_Number>();
-                                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                                    {
-                                        GH_Path path = GetPath(entree.Key);
-                                        for (int i = 0; i < entree.Value.Count; i++)
-                                        {
-                                            ResthopperObject restobj = entree.Value[i];
-                                            var d = new GH_Number(JsonConvert.DeserializeObject<double>(restobj.Data));
-                                            inputTree.Add(d, path);
-                                        }
-                                    }
-                                    contextualParameter.GetType()
-                                        .GetMethod("AssignContextualDataTree")?
-                                        .Invoke(contextualParameter, new object[] { inputTree });
-                                }
-                                break;
-                            case "Integer":
-                                {
-                                    Grasshopper.DataTree<GH_Integer> inputTree = new Grasshopper.DataTree<GH_Integer>();
-                                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                                    {
-                                        GH_Path path = GetPath(entree.Key);
-                                        for (int i = 0; i < entree.Value.Count; i++)
-                                        {
-                                            ResthopperObject restobj = entree.Value[i];
-                                            var integer = new GH_Integer(JsonConvert.DeserializeObject<int>(restobj.Data));
-                                            inputTree.Add(integer, path);
-                                        }
-                                    }
-                                    contextualParameter.GetType()
-                                        .GetMethod("AssignContextualDataTree")?
-                                        .Invoke(contextualParameter, new object[] { inputTree });
-                                }
-                                break;
-                            case "Point":
-                                {
-                                    Grasshopper.DataTree<GH_Point> inputTree = new Grasshopper.DataTree<GH_Point>();
-                                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                                    {
-                                        GH_Path path = GetPath(entree.Key);
-                                        for (int i = 0; i < entree.Value.Count; i++)
-                                        {
-                                            ResthopperObject restobj = entree.Value[i];
-                                            var p = new GH_Point(JsonConvert.DeserializeObject<Rhino.Geometry.Point3d>(restobj.Data));
-                                            inputTree.Add(p, path);
-                                        }
-                                    }
-                                    contextualParameter.GetType()
-                                        .GetMethod("AssignContextualDataTree")?
-                                        .Invoke(contextualParameter, new object[] { inputTree });
-                                }
-                                break;
-                            case "Plane":
-                                {
-                                    Grasshopper.DataTree<GH_Plane> inputTree = new Grasshopper.DataTree<GH_Plane>();
-                                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                                    {
-                                        GH_Path path = GetPath(entree.Key);
-                                        for (int i = 0; i < entree.Value.Count; i++)
-                                        {
-                                            ResthopperObject restobj = entree.Value[i];
-                                            var p = new GH_Plane(JsonConvert.DeserializeObject<Rhino.Geometry.Plane>(restobj.Data));
-                                            inputTree.Add(p, path);
-                                        }
-                                    }
-                                    contextualParameter.GetType()
-                                        .GetMethod("AssignContextualDataTree")?
-                                        .Invoke(contextualParameter, new object[] { inputTree });
-                                }
-                                break;
-                            case "Line":
-                                {
-                                    Grasshopper.DataTree<GH_Line> inputTree = new Grasshopper.DataTree<GH_Line>();
-                                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                                    {
-                                        GH_Path path = GetPath(entree.Key);
-                                        for (int i = 0; i < entree.Value.Count; i++)
-                                        {
-                                            ResthopperObject restobj = entree.Value[i];
-                                            var l = new GH_Line(JsonConvert.DeserializeObject<Rhino.Geometry.Line>(restobj.Data));
-                                            inputTree.Add(l, path);
-                                        }
-                                    }
-                                    contextualParameter.GetType()
-                                        .GetMethod("AssignContextualDataTree")?
-                                        .Invoke(contextualParameter, new object[] { inputTree });
-                                }
-                                break;
-                            case "Text":
-                                {
-                                    Grasshopper.DataTree<GH_String> inputTree = new Grasshopper.DataTree<GH_String>();
-                                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                                    {
-                                        GH_Path path = GetPath(entree.Key);
-                                        for (int i = 0; i < entree.Value.Count; i++)
-                                        {
-                                            GH_String s;
-                                            ResthopperObject restobj = entree.Value[i];
-                                            try
-                                            {
-                                                // Use JsonConvert to properly unescape the string
-                                                s = new GH_String(JsonConvert.DeserializeObject<string>(restobj.Data));
-                                                inputTree.Add(s, path);
-                                            }
-                                            catch (Exception)
-                                            {
-                                                s = new GH_String(System.Text.RegularExpressions.Regex.Unescape(restobj.Data));
-                                                inputTree.Add(s, path);
-                                            }
-                                        }
-                                    }
-                                    contextualParameter.GetType()
-                                        .GetMethod("AssignContextualDataTree")?
-                                        .Invoke(contextualParameter, new object[] { inputTree });
-                                }
-                                break;
-                            case "Geometry":
-                                {
-                                    Grasshopper.DataTree<IGH_GeometricGoo> inputTree = new Grasshopper.DataTree<IGH_GeometricGoo>();
-                                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                                    {
-                                        GH_Path path = GetPath(entree.Key);
-                                        for (int i = 0; i < entree.Value.Count; i++)
-                                        {
-                                            ResthopperObject restobj = entree.Value[i];
-                                            var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(restobj.Data);
-                                            var gb = Rhino.Runtime.CommonObject.FromJSON(dict) as GeometryBase;
-                                            var goo = GH_Convert.ToGeometricGoo(gb);
-                                            inputTree.Add(goo, path);
-                                        }
-                                    }
-                                    contextualParameter.GetType()
-                                        .GetMethod("AssignContextualDataTree")?
-                                        .Invoke(contextualParameter, new object[] { inputTree });
-                                }
-                                break;
-                        }
-                        continue;
+                        case "Boolean":
+                            BuildAndAssignContextualTree(contextualParameter, tree, r => new GH_Boolean(JsonConvert.DeserializeObject<bool>(r.Data)));
+                            break;
+                        case "Number":
+                            BuildAndAssignContextualTree(contextualParameter, tree, r => new GH_Number(JsonConvert.DeserializeObject<double>(r.Data)));
+                            break;
+                        case "Integer":
+                            BuildAndAssignContextualTree(contextualParameter, tree, r => new GH_Integer(JsonConvert.DeserializeObject<int>(r.Data)));
+                            break;
+                        case "Point":
+                            BuildAndAssignContextualTree(contextualParameter, tree, r => new GH_Point(JsonConvert.DeserializeObject<Point3d>(r.Data)));
+                            break;
+                        case "Plane":
+                            BuildAndAssignContextualTree(contextualParameter, tree, r => new GH_Plane(JsonConvert.DeserializeObject<Plane>(r.Data)));
+                            break;
+                        case "Line":
+                            BuildAndAssignContextualTree(contextualParameter, tree, r => new GH_Line(JsonConvert.DeserializeObject<Line>(r.Data)));
+                            break;
+                        case "Text":
+                            BuildAndAssignContextualTree(contextualParameter, tree, DeserializeText);
+                            break;
+                        case "Geometry":
+                            BuildAndAssignContextualTree(contextualParameter, tree, DeserializeGeometry);
+                            break;
                     }
+                    continue;
                 }
                 
                 inputGroup.Param.VolatileData.Clear();
@@ -560,6 +425,47 @@ namespace compute.geometry
                 var c = (Curve)Rhino.Runtime.CommonObject.FromJSON(dict);
                 return new GH_Curve(c);
             }
+        }
+
+        static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, MethodInfo> _assignContextualDataTreeMethods = new System.Collections.Concurrent.ConcurrentDictionary<Type, MethodInfo>();
+
+        void BuildAndAssignContextualTree<T>(IGH_ContextualParameter param,
+                                             Resthopper.IO.DataTree<ResthopperObject> tree,
+                                             Func<ResthopperObject, T> convert)
+        {
+            var inputTree = new Grasshopper.DataTree<T>();
+            foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
+            {
+                GH_Path path = GetPath(entree.Key);
+                foreach (var restobj in entree.Value)
+                    inputTree.Add(convert(restobj), path);
+            }
+            var method = _assignContextualDataTreeMethods.GetOrAdd(
+                param.GetType(),
+                t => t.GetMethod("AssignContextualDataTree"));
+            method?.Invoke(param, new object[] { inputTree });
+        }
+
+        static GH_String DeserializeText(ResthopperObject restobj)
+        {
+            try
+            {
+                return new GH_String(JsonConvert.DeserializeObject<string>(restobj.Data));
+            }
+            catch (Exception)
+            {
+                return new GH_String(System.Text.RegularExpressions.Regex.Unescape(restobj.Data));
+            }
+        }
+
+        // Geometry contextual inputs arrive as a Rhino CommonObject JSON dictionary; rehydrate
+        // to GeometryBase then wrap as IGH_GeometricGoo. Original code did not null-check before
+        // adding to the tree, so we don't either (preserving behavior).
+        static IGH_GeometricGoo DeserializeGeometry(ResthopperObject restobj)
+        {
+            var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(restobj.Data);
+            var gb = Rhino.Runtime.CommonObject.FromJSON(dict) as GeometryBase;
+            return GH_Convert.ToGeometricGoo(gb);
         }
 
         public Schema Solve(int rhinoVersion)
