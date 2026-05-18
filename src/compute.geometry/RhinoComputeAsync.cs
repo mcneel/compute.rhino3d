@@ -39,72 +39,58 @@ namespace Rhino.Compute
             string json = converter == null ?
                 JsonConvert.SerializeObject(postData, Formatting.None) :
                 JsonConvert.SerializeObject(postData, Formatting.None, converter);
-            var response = DoPost(function, json);
-            using (var streamReader = new StreamReader(response.GetResponseStream()))
-            {
-                var result = streamReader.ReadToEnd();
-                if (converter == null)
-                    return JsonConvert.DeserializeObject<T>(result);
-                return JsonConvert.DeserializeObject<T>(result, converter);
-            }
+            var result = DoPost(function, json);
+            if (converter == null)
+                return JsonConvert.DeserializeObject<T>(result);
+            return JsonConvert.DeserializeObject<T>(result, converter);
         }
 
         public static T0 Post<T0, T1>(string function, out T1 out1, params object[] postData)
         {
             string json = Newtonsoft.Json.JsonConvert.SerializeObject(postData);
-            var response = DoPost(function, json);
-            using (var streamReader = new StreamReader(response.GetResponseStream()))
-            {
-                var jsonString = streamReader.ReadToEnd();
-                object data = Newtonsoft.Json.JsonConvert.DeserializeObject(jsonString);
-                var ja = data as Newtonsoft.Json.Linq.JArray;
-                out1 = ja[1].ToObject<T1>();
-                return ja[0].ToObject<T0>();
-            }
+            var jsonString = DoPost(function, json);
+            object data = Newtonsoft.Json.JsonConvert.DeserializeObject(jsonString);
+            var ja = data as Newtonsoft.Json.Linq.JArray;
+            out1 = ja[1].ToObject<T1>();
+            return ja[0].ToObject<T0>();
         }
 
         public static T0 Post<T0, T1, T2>(string function, out T1 out1, out T2 out2, params object[] postData)
         {
             string json = Newtonsoft.Json.JsonConvert.SerializeObject(postData);
-            var response = DoPost(function, json);
-            using (var streamReader = new StreamReader(response.GetResponseStream()))
+            var jsonString = DoPost(function, json);
+            object data = Newtonsoft.Json.JsonConvert.DeserializeObject(jsonString);
+            var ja = data as Newtonsoft.Json.Linq.JArray;
+            out1 = ja[1].ToObject<T1>();
+            out2 = ja[2].ToObject<T2>();
+            return ja[0].ToObject<T0>();
+        }
+
+        // Shared HttpClient for all ComputeServer requests. Replaces the deprecated
+        // HttpWebRequest pattern that allocated per-request and the prior DoPostAsync that
+        // built a new HttpClient on every call. User-Agent and Accept never vary so they
+        // live on the singleton; AuthToken and ApiKey go per-request because they can be
+        // updated via the public static setters at runtime.
+        static System.Net.Http.HttpClient _httpClient;
+        static System.Net.Http.HttpClient HttpClient
+        {
+            get
             {
-                var jsonString = streamReader.ReadToEnd();
-                object data = Newtonsoft.Json.JsonConvert.DeserializeObject(jsonString);
-                var ja = data as Newtonsoft.Json.Linq.JArray;
-                out1 = ja[1].ToObject<T1>();
-                out2 = ja[2].ToObject<T2>();
-                return ja[0].ToObject<T0>();
+                if (_httpClient == null)
+                {
+                    _httpClient = new System.Net.Http.HttpClient();
+                    _httpClient.DefaultRequestHeaders.Add("User-Agent", $"compute.rhino3d.cs/{Version}");
+                    _httpClient.DefaultRequestHeaders.Accept.Add(
+                        new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+                }
+                return _httpClient;
             }
         }
 
         // run all synchronous requests through here
-        private static System.Net.WebResponse DoPost(string function, string json)
+        private static string DoPost(string function, string json)
         {
-            if (!function.StartsWith("/")) // add leading /
-                function = "/" + function; // if not present
-
-            string uri = $"{WebAddress}{function}".ToLower();
-            var request = (System.Net.HttpWebRequest)System.Net.WebRequest.Create(uri);
-            request.ContentType = "application/json";
-            request.UserAgent = $"compute.rhino3d.cs/{Version}";
-            request.Method = "POST";
-
-            // try auth token (compute.rhino3d.com only)
-            if (!string.IsNullOrWhiteSpace(AuthToken))
-                request.Headers.Add("Authorization", "Bearer " + AuthToken);
-
-            // try api key (self-hosted compute)
-            if (!string.IsNullOrWhiteSpace(ApiKey))
-                request.Headers.Add("RhinoComputeKey", ApiKey);
-            
-            using (var streamWriter = new StreamWriter(request.GetRequestStream()))
-            {
-                streamWriter.Write(json);
-                streamWriter.Flush();
-            }
-
-            return request.GetResponse();
+            return DoPostAsync(function, json).GetAwaiter().GetResult();
         }
 
         public static async Task<T> PostAsync<T>(string function, params object[] postData)
@@ -129,8 +115,7 @@ namespace Rhino.Compute
                 JsonConvert.SerializeObject(postData, Formatting.None) :
                 JsonConvert.SerializeObject(postData, Formatting.None, converter);
 
-            var response = await DoPostAsync(function, json);
-            var result = await response.Content.ReadAsStringAsync();
+            var result = await DoPostAsync(function, json);
             if (converter == null)
                 return JsonConvert.DeserializeObject<T>(result);
             return JsonConvert.DeserializeObject<T>(result, converter);
@@ -139,8 +124,7 @@ namespace Rhino.Compute
         public static async Task<(T0, T1)> PostAsync<T0, T1>(string function, params object[] postData)
         {
             string json = Newtonsoft.Json.JsonConvert.SerializeObject(postData);
-            var response = await DoPostAsync(function, json);
-            var jsonString = await response.Content.ReadAsStringAsync();
+            var jsonString = await DoPostAsync(function, json);
             object data = Newtonsoft.Json.JsonConvert.DeserializeObject(jsonString);
             var ja = data as Newtonsoft.Json.Linq.JArray;
             T0 out0 = ja[0].ToObject<T0>();
@@ -151,8 +135,7 @@ namespace Rhino.Compute
         public static async Task<(T0, T1, T2)> PostAsync<T0, T1, T2>(string function, params object[] postData)
         {
             string json = Newtonsoft.Json.JsonConvert.SerializeObject(postData);
-            var response = await DoPostAsync(function, json);
-            var jsonString = await response.Content.ReadAsStringAsync();
+            var jsonString = await DoPostAsync(function, json);
             object data = Newtonsoft.Json.JsonConvert.DeserializeObject(jsonString);
             var ja = data as Newtonsoft.Json.Linq.JArray;
             T0 out0 = ja[0].ToObject<T0>();
@@ -162,30 +145,25 @@ namespace Rhino.Compute
         }
 
         // run all asynchronous requests through here
-        private static async Task<System.Net.Http.HttpResponseMessage> DoPostAsync(string function, string json)
+        private static async Task<string> DoPostAsync(string function, string json)
         {
             if (!function.StartsWith("/")) // add leading /
               function = "/" + function; // if not present
 
             string uri = $"{WebAddress}{function}".ToLower();
-            using (var client = new System.Net.Http.HttpClient())
-            {
-                client.DefaultRequestHeaders.Add("User-Agent", $"compute.rhino3d.cs/{Version}");
-                client.DefaultRequestHeaders
-                .Accept
-                .Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+            using var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, uri);
 
-                // try auth token (compute.rhino3d.com only)
-                if (!string.IsNullOrWhiteSpace(AuthToken))
-                    client.DefaultRequestHeaders.Add("Authorization", "Bearer " + AuthToken);
+            // try auth token (compute.rhino3d.com only)
+            if (!string.IsNullOrWhiteSpace(AuthToken))
+                request.Headers.Add("Authorization", "Bearer " + AuthToken);
 
-                // try api key (self-hosted compute)
-                if (!string.IsNullOrWhiteSpace(ApiKey))
-                    client.DefaultRequestHeaders.Add("RhinoComputeKey", ApiKey);
+            // try api key (self-hosted compute)
+            if (!string.IsNullOrWhiteSpace(ApiKey))
+                request.Headers.Add("RhinoComputeKey", ApiKey);
 
-                var content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
-                return await client.PostAsync(uri, content);
-            }
+            request.Content = new System.Net.Http.StringContent(json, System.Text.Encoding.UTF8, "application/json");
+            using var response = await HttpClient.SendAsync(request).ConfigureAwait(false);
+            return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         }
 
         public static string ApiAddress(Type t, string function)
