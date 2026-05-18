@@ -709,16 +709,9 @@ namespace compute.geometry
 
             if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
             {
-                byte[] byteArray = null;
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-                request.AutomaticDecompression = DecompressionMethods.GZip;
-                using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
-                using (var stream = response.GetResponseStream())
-                using (var memStream = new MemoryStream())
-                {
-                    stream.CopyTo(memStream);
-                    byteArray = memStream.ToArray();
-                }
+                // HttpClientHelper.Client has GZip/Deflate decompression enabled at the handler
+                // level, matching the prior HttpWebRequest.AutomaticDecompression = GZip behavior.
+                byte[] byteArray = HttpClientHelper.Client.GetByteArrayAsync(url).Result;
 
                 try
                 {
