@@ -1029,12 +1029,20 @@ namespace Hops
         static string GetPathFromInputData(IGH_DataAccess DA, HopsComponent component, int paramIndex)
         {
             int pathIndex = 0;
-            if (component?.Params.Input[paramIndex].VolatileData?.PathCount > 1)
+            var volatileData = component?.Params.Input[paramIndex].VolatileData;
+            if (volatileData?.PathCount > 1)
                 pathIndex = DA.Iteration;
-            if (component?.Params.Input[paramIndex].VolatileData?.Paths.Count > 0)
-                return component?.Params.Input[paramIndex].VolatileData?.Paths?[pathIndex].ToString();
-            else
-                return null;
+            if (volatileData?.Paths.Count > 0)
+            {
+                // When two inputs have different path counts (e.g. Series of 5 vs Range of 10),
+                // DA.Iteration can exceed this input's path count once GH starts iterating the
+                // longer input. Clamp to the last valid index — matches Grasshopper's longest-list
+                // behavior, which DA.GetData already does for the value itself.
+                if (pathIndex >= volatileData.Paths.Count)
+                    pathIndex = volatileData.Paths.Count - 1;
+                return volatileData.Paths[pathIndex].ToString();
+            }
+            return null;
         }
 
         static void CollectDataHelper<T>(IGH_DataAccess DA,
