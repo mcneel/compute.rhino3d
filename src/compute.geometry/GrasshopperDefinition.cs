@@ -505,290 +505,61 @@ namespace compute.geometry
                 inputGroup.Param.VolatileData.Clear();
                 inputGroup.Param.ExpireSolution(false); // mark param as expired but don't recompute just yet!
 
-                if (inputGroup.Param is Param_Point)
+                Func<ResthopperObject, IGH_Goo> convert = inputGroup.Param switch
                 {
-                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                    {
-                        GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
-                        for (int i = 0; i < entree.Value.Count; i++)
-                        {
-                            ResthopperObject restobj = entree.Value[i];
-                            Rhino.Geometry.Point3d rPt = JsonConvert.DeserializeObject<Rhino.Geometry.Point3d>(restobj.Data);
-                            GH_Point data = new GH_Point(rPt);
-                            inputGroup.Param.AddVolatileData(path, i, data);
-                        }
-                    }
-                    continue;
-                }
-
-                if (inputGroup.Param is Param_Vector)
-                {
-                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                    {
-                        GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
-                        for (int i = 0; i < entree.Value.Count; i++)
-                        {
-                            ResthopperObject restobj = entree.Value[i];
-                            Rhino.Geometry.Vector3d rhVector = JsonConvert.DeserializeObject<Rhino.Geometry.Vector3d>(restobj.Data);
-                            GH_Vector data = new GH_Vector(rhVector);
-                            inputGroup.Param.AddVolatileData(path, i, data);
-                        }
-                    }
-                    continue;
-                }
-
-                if (inputGroup.Param is Param_Integer)
-                {
-                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                    {
-                        GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
-                        for (int i = 0; i < entree.Value.Count; i++)
-                        {
-                            ResthopperObject restobj = entree.Value[i];
-                            int rhinoInt = JsonConvert.DeserializeObject<int>(restobj.Data);
-                            GH_Integer data = new GH_Integer(rhinoInt);
-                            inputGroup.Param.AddVolatileData(path, i, data);
-                        }
-                    }
-                    continue;
-                }
-
-                if (inputGroup.Param is Param_Number)
-                {
-                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                    {
-                        GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
-                        for (int i = 0; i < entree.Value.Count; i++)
-                        {
-                            ResthopperObject restobj = entree.Value[i];
-                            double rhNumber = JsonConvert.DeserializeObject<double>(restobj.Data);
-                            GH_Number data = new GH_Number(rhNumber);
-                            inputGroup.Param.AddVolatileData(path, i, data);
-                        }
-                    }
-                    continue;
-                }
-
-                if (inputGroup.Param is Param_String)
-                {
-                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                    {
-                        GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
-                        for (int i = 0; i < entree.Value.Count; i++)
-                        {
-                            ResthopperObject restobj = entree.Value[i];
-                            string rhString = restobj.Data;
-                            GH_String data = new GH_String(rhString);
-                            inputGroup.Param.AddVolatileData(path, i, data);
-                        }
-                    }
-                    continue;
-                }
-
-                if (inputGroup.Param is Param_Line)
-                {
-                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                    {
-                        GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
-                        for (int i = 0; i < entree.Value.Count; i++)
-                        {
-                            ResthopperObject restobj = entree.Value[i];
-                            Rhino.Geometry.Line rhLine = JsonConvert.DeserializeObject<Rhino.Geometry.Line>(restobj.Data);
-                            GH_Line data = new GH_Line(rhLine);
-                            inputGroup.Param.AddVolatileData(path, i, data);
-                        }
-                    }
-                    continue;
-                }
-
-                if (inputGroup.Param is Param_Curve)
-                {
-                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                    {
-                        GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
-                        for (int i = 0; i < entree.Value.Count; i++)
-                        {
-                            ResthopperObject restobj = entree.Value[i];
-                            GH_Curve ghCurve;
-                            try
-                            {
-                                Rhino.Geometry.Polyline data = JsonConvert.DeserializeObject<Rhino.Geometry.Polyline>(restobj.Data);
-                                Rhino.Geometry.Curve c = new Rhino.Geometry.PolylineCurve(data);
-                                ghCurve = new GH_Curve(c);
-                            }
-                            catch
-                            {
-                                var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(restobj.Data);
-                                var c = (Rhino.Geometry.Curve)Rhino.Runtime.CommonObject.FromJSON(dict);
-                                ghCurve = new GH_Curve(c);
-                            }
-                            inputGroup.Param.AddVolatileData(path, i, ghCurve);
-                        }
-                    }
-                    continue;
-                }
-
-                if (inputGroup.Param is Param_Circle)
-                {
-                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                    {
-                        GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
-                        for (int i = 0; i < entree.Value.Count; i++)
-                        {
-                            ResthopperObject restobj = entree.Value[i];
-                            Rhino.Geometry.Circle rhCircle = JsonConvert.DeserializeObject<Rhino.Geometry.Circle>(restobj.Data);
-                            GH_Circle data = new GH_Circle(rhCircle);
-                            inputGroup.Param.AddVolatileData(path, i, data);
-                        }
-                    }
-                    continue;
-                }
-
-                if (inputGroup.Param is Param_Plane)
-                {
-                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                    {
-                        GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
-                        for (int i = 0; i < entree.Value.Count; i++)
-                        {
-                            ResthopperObject restobj = entree.Value[i];
-                            Rhino.Geometry.Plane rhPlane = JsonConvert.DeserializeObject<Rhino.Geometry.Plane>(restobj.Data);
-                            GH_Plane data = new GH_Plane(rhPlane);
-                            inputGroup.Param.AddVolatileData(path, i, data);
-                        }
-                    }
-                    continue;
-                }
-
-                if (inputGroup.Param is Param_Rectangle)
-                {
-                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                    {
-                        GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
-                        for (int i = 0; i < entree.Value.Count; i++)
-                        {
-                            ResthopperObject restobj = entree.Value[i];
-                            Rhino.Geometry.Rectangle3d rhRectangle = JsonConvert.DeserializeObject<Rhino.Geometry.Rectangle3d>(restobj.Data);
-                            GH_Rectangle data = new GH_Rectangle(rhRectangle);
-                            inputGroup.Param.AddVolatileData(path, i, data);
-                        }
-                    }
-                    continue;
-                }
-
-                if (inputGroup.Param is Param_Box)
-                {
-                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                    {
-                        GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
-                        for (int i = 0; i < entree.Value.Count; i++)
-                        {
-                            ResthopperObject restobj = entree.Value[i];
-                            Rhino.Geometry.Box rhBox = JsonConvert.DeserializeObject<Rhino.Geometry.Box>(restobj.Data);
-                            GH_Box data = new GH_Box(rhBox);
-                            inputGroup.Param.AddVolatileData(path, i, data);
-                        }
-                    }
-                    continue;
-                }
-
-                if (inputGroup.Param is Param_Surface)
-                {
-                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                    {
-                        GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
-                        for (int i = 0; i < entree.Value.Count; i++)
-                        {
-                            ResthopperObject restobj = entree.Value[i];
-                            Rhino.Geometry.Surface rhSurface = JsonConvert.DeserializeObject<Rhino.Geometry.Surface>(restobj.Data);
-                            GH_Surface data = new GH_Surface(rhSurface);
-                            inputGroup.Param.AddVolatileData(path, i, data);
-                        }
-                    }
-                    continue;
-                }
-
-                if (inputGroup.Param is Param_Brep)
-                {
-                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                    {
-                        GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
-                        for (int i = 0; i < entree.Value.Count; i++)
-                        {
-                            ResthopperObject restobj = entree.Value[i];
-                            Rhino.Geometry.Brep rhBrep = JsonConvert.DeserializeObject<Rhino.Geometry.Brep>(restobj.Data);
-                            GH_Brep data = new GH_Brep(rhBrep);
-                            inputGroup.Param.AddVolatileData(path, i, data);
-                        }
-                    }
-                    continue;
-                }
-
-                if (inputGroup.Param is Param_Mesh)
-                {
-                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                    {
-                        GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
-                        for (int i = 0; i < entree.Value.Count; i++)
-                        {
-                            ResthopperObject restobj = entree.Value[i];
-                            Rhino.Geometry.Mesh rhMesh = JsonConvert.DeserializeObject<Rhino.Geometry.Mesh>(restobj.Data);
-                            GH_Mesh data = new GH_Mesh(rhMesh);
-                            inputGroup.Param.AddVolatileData(path, i, data);
-                        }
-                    }
-                    continue;
-                }
-
-                if (inputGroup.Param is GH_NumberSlider)
-                {
-                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                    {
-                        GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
-                        for (int i = 0; i < entree.Value.Count; i++)
-                        {
-                            ResthopperObject restobj = entree.Value[i];
-                            double rhNumber = JsonConvert.DeserializeObject<double>(restobj.Data);
-                            GH_Number data = new GH_Number(rhNumber);
-                            inputGroup.Param.AddVolatileData(path, i, data);
-                        }
-                    }
-                    continue;
-                }
-
-                if (inputGroup.Param is Param_Boolean || inputGroup.Param is GH_BooleanToggle)
-                {
-                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                    {
-                        GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
-                        for (int i = 0; i < entree.Value.Count; i++)
-                        {
-                            ResthopperObject restobj = entree.Value[i];
-                            bool boolean = JsonConvert.DeserializeObject<bool>(restobj.Data);
-                            GH_Boolean data = new GH_Boolean(boolean);
-                            inputGroup.Param.AddVolatileData(path, i, data);
-                        }
-                    }
-                    continue;
-                }
-
-                if (inputGroup.Param is GH_Panel)
-                {
-                    foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
-                    {
-                        GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
-                        for (int i = 0; i < entree.Value.Count; i++)
-                        {
-                            ResthopperObject restobj = entree.Value[i];
-                            string rhString = JsonConvert.DeserializeObject<string>(restobj.Data);
-                            GH_String data = new GH_String(rhString);
-                            inputGroup.Param.AddVolatileData(path, i, data);
-                        }
-                    }
-                    continue;
-                }
+                    Param_Point _      => r => new GH_Point(JsonConvert.DeserializeObject<Point3d>(r.Data)),
+                    Param_Vector _     => r => new GH_Vector(JsonConvert.DeserializeObject<Vector3d>(r.Data)),
+                    Param_Integer _    => r => new GH_Integer(JsonConvert.DeserializeObject<int>(r.Data)),
+                    Param_Number _     => r => new GH_Number(JsonConvert.DeserializeObject<double>(r.Data)),
+                    Param_String _     => r => new GH_String(r.Data),
+                    Param_Line _       => r => new GH_Line(JsonConvert.DeserializeObject<Line>(r.Data)),
+                    Param_Curve _      => DeserializeCurve,
+                    Param_Circle _     => r => new GH_Circle(JsonConvert.DeserializeObject<Circle>(r.Data)),
+                    Param_Plane _      => r => new GH_Plane(JsonConvert.DeserializeObject<Plane>(r.Data)),
+                    Param_Rectangle _  => r => new GH_Rectangle(JsonConvert.DeserializeObject<Rectangle3d>(r.Data)),
+                    Param_Box _        => r => new GH_Box(JsonConvert.DeserializeObject<Box>(r.Data)),
+                    Param_Surface _    => r => new GH_Surface(JsonConvert.DeserializeObject<Surface>(r.Data)),
+                    Param_Brep _       => r => new GH_Brep(JsonConvert.DeserializeObject<Brep>(r.Data)),
+                    Param_Mesh _       => r => new GH_Mesh(JsonConvert.DeserializeObject<Mesh>(r.Data)),
+                    GH_NumberSlider _  => r => new GH_Number(JsonConvert.DeserializeObject<double>(r.Data)),
+                    Param_Boolean _ or GH_BooleanToggle _ => r => new GH_Boolean(JsonConvert.DeserializeObject<bool>(r.Data)),
+                    GH_Panel _         => r => new GH_String(JsonConvert.DeserializeObject<string>(r.Data)),
+                    _                  => null
+                };
+                if (convert != null)
+                    AddTreeData(inputGroup.Param, tree, convert);
             }
 
+        }
+
+        // Shared write path for SetInputs' regular-parameter dispatch. Each Param_X case
+        // differs only in how a ResthopperObject is deserialized + wrapped, so the converter
+        // delegate captures the per-type logic and this helper handles the path/index walk.
+        static void AddTreeData(IGH_Param param, Resthopper.IO.DataTree<ResthopperObject> tree, Func<ResthopperObject, IGH_Goo> convert)
+        {
+            foreach (KeyValuePair<string, List<ResthopperObject>> entree in tree)
+            {
+                GH_Path path = new GH_Path(GhPath.FromString(entree.Key));
+                for (int i = 0; i < entree.Value.Count; i++)
+                    param.AddVolatileData(path, i, convert(entree.Value[i]));
+            }
+        }
+
+        // Curves arrive in one of two JSON shapes: a Polyline (which we wrap as a PolylineCurve)
+        // or a Rhino CommonObject dictionary that FromJSON can re-hydrate into any Curve subtype.
+        static IGH_Goo DeserializeCurve(ResthopperObject restobj)
+        {
+            try
+            {
+                Polyline data = JsonConvert.DeserializeObject<Polyline>(restobj.Data);
+                return new GH_Curve(new PolylineCurve(data));
+            }
+            catch
+            {
+                var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(restobj.Data);
+                var c = (Curve)Rhino.Runtime.CommonObject.FromJSON(dict);
+                return new GH_Curve(c);
+            }
         }
 
         public Schema Solve(int rhinoVersion)
