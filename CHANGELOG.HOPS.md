@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.16.29] - 2026-05-14
+## [0.16.29] - 2026-05-18
 
 ### Added
 
@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GET requests proxied through rhino.compute always returned HTTP 200, even when the upstream compute.geometry response was an error. The correct status code is now forwarded.
 - Fixed a security issue in the Hops client where solve requests sent to a remote server URL would silently downgrade HTTPS connections to HTTP. The original URL scheme is now preserved when constructing the solve endpoint, ensuring that API keys and definition payloads remain encrypted in transit when targeting an HTTPS server.
 - The Hops auto-upload fallback (where Hops uploads the local .gh file to the remote server when the server returns HTTP 500) is now visible to the user. Hops adds a warning runtime message to the component listing the file name and destination URL, so the user knows when their local definition is being sent to the server. Behavior of the fallback itself is unchanged.
+- Min/Max bounds on Context Get Number and Context Get Integer parameters are now enforced when the parameter is set to tree access. Previously the bounds check silently never ran on tree inputs because of a type comparison bug, so out-of-bounds values flowed through without error. Item and list access were unaffected and behave as before.
 
 ## [0.16.28] - 2025-11-05
 
