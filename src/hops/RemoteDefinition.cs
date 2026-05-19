@@ -764,7 +764,7 @@ namespace Hops
             {
                 "System.Boolean"             => new GH_Boolean(bool.Parse(data)),
                 "System.Double"              => new GH_Number(double.Parse(data)),
-                "System.String"              => new GH_String(MaybeUnescapeJsonString(data)),
+                "System.String"              => new GH_String(DecodeJsonString(obj.Data)),
                 "System.Int32"               => new GH_Integer(int.Parse(data)),
                 "Rhino.Geometry.Circle"      => new GH_Circle(JsonConvert.DeserializeObject<Circle>(data)),
                 "Rhino.Geometry.Arc"         => new GH_Arc(JsonConvert.DeserializeObject<Arc>(data)),
@@ -844,8 +844,27 @@ namespace Hops
             throw new Exception("Unable to convert resthopper data");
         }
 
-        // System.String values may arrive as raw JSON-escaped content (e.g. an embedded JSON
-        // object); detect the escape pattern and unescape so GH_String holds the plain text.
+        // Decode a JSON-encoded string from the wire (the form produced by JsonConvert.SerializeObject
+        // for any non-geometry type — surrounded by quote chars with escape sequences for backslashes,
+        // embedded quotes, etc.). The primary path uses JsonConvert.DeserializeObject<string> which
+        // correctly reverses JSON escapes — so a file path like "C:\\Users\\file.txt" on the wire
+        // comes back as "C:\Users\file.txt". Falls back to the legacy embedded-JSON-object handling
+        // for malformed input that isn't a valid JSON string literal.
+        static string DecodeJsonString(string objData)
+        {
+            try
+            {
+                return JsonConvert.DeserializeObject<string>(objData);
+            }
+            catch (Exception)
+            {
+                return MaybeUnescapeJsonString(objData.Trim('"'));
+            }
+        }
+
+        // Legacy fallback for malformed wire payloads that contain an embedded JSON object
+        // as a string (e.g. "{\"key\":\"value\"}" with literal backslash-quote pairs that
+        // a strict JSON string decoder would reject). Preserves the prior heuristic exactly.
         static string MaybeUnescapeJsonString(string data)
         {
             if (data.Trim().StartsWith("{") && data.Contains("\\"))
