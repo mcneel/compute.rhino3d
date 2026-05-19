@@ -509,9 +509,8 @@ namespace Hops
             }
             else
             {
-                int index = Path.LastIndexOf('/');
-                var authority = new Uri(Path).Authority;
-                solveUrl = "http://" + authority + "/solve";
+                var uri = new Uri(Path);
+                solveUrl = $"{uri.Scheme}://{uri.Authority}/solve";
             }
 
             if (!string.IsNullOrEmpty(_filename)) inputSchema.FileName = _filename;
