@@ -61,15 +61,15 @@ function Install-ProcessWithTimeout {
 #EndRegion funcs
 
 # Download and install .NET Hosting Bundle
-Write-Step 'Download ASP.NET Core 9.0 Hosting Bundle'
+Write-Step 'Download ASP.NET Core 10.0 Hosting Bundle'
 
-$hbInstallerURL = "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/9.0.4/dotnet-hosting-9.0.4-win.exe"
-$hbInstallerFilename = "dotnet-hosting-9.0.4-win.exe"
+$hbInstallerURL = "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/10.0.8/dotnet-hosting-10.0.8-win.exe"
+$hbInstallerFilename = "dotnet-hosting-10.0.8-win.exe"
 $hbInstallerFilepath = Join-Path -Path $tmpFullPath -ChildPath $hbInstallerFilename
 
 Download $hbInstallerURL $hbInstallerFilepath
 
-Write-Step 'Installing ASP.NET Core 9.0 Hosting Bundle'
+Write-Step 'Installing ASP.NET Core 10.0 Hosting Bundle'
 
 $success = Install-ProcessWithTimeout -ExePath $hbInstallerFilepath -Arguments @('/repair','/quiet','/norestart') -TimeoutSeconds 600 -MaxRetries 2
 
