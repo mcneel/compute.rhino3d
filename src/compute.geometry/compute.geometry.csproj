@@ -10,7 +10,7 @@
     <PublishSingleFile>False</PublishSingleFile>
     <AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>False</AppendRuntimeIdentifierToOutputPath>
-    <Version>10.0.0</Version>
+    <Version>9.0.0</Version>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
