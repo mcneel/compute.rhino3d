@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
-using Carter;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
@@ -12,9 +11,9 @@ using Rhino.PlugIns;
 
 namespace compute.geometry
 {
-    public class FixedEndPointsModule : ICarterModule
+    public static class FixedEndPointsModule
     {
-        public void AddRoutes(IEndpointRouteBuilder app)
+        public static void MapEndpoints(IEndpointRouteBuilder app)
         {
             app.MapGet("", HomePage);
             app.MapGet("version", GetVersion);

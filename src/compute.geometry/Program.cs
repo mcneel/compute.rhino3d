@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Serilog;
-using Carter;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using System.IO;
@@ -170,9 +169,9 @@ namespace compute.geometry
         }
     }
 
-    public class RhinoGetModule : ICarterModule
+    public static class RhinoGetModule
     {
-        public void AddRoutes(IEndpointRouteBuilder app)
+        public static void MapEndpoints(IEndpointRouteBuilder app)
         {
             app.MapGet("/sdk", context => SdkEndpoint(context, app));
             app.MapGet("/sdk/csharp", context => CSharpSdk(context));
@@ -241,9 +240,9 @@ namespace compute.geometry
         }
     }
 
-    public class RhinoPostModule : ICarterModule
+    public static class RhinoPostModule
     {
-        public void AddRoutes(IEndpointRouteBuilder app)
+        public static void MapEndpoints(IEndpointRouteBuilder app)
         {
             foreach (var endpoint in GeometryEndPoint.AllEndPoints)
             {

@@ -9,7 +9,7 @@ using Serilog;
 
 namespace rhino.compute
 {
-    public class ReverseProxyModule : Carter.ICarterModule
+    public class ReverseProxyModule
     {
         static int _initCalled = 0;
         static Task _initTask;
@@ -83,11 +83,18 @@ namespace rhino.compute
             _concurrentRequestLogger.Start();
         }
 
-        public void AddRoutes(IEndpointRouteBuilder app)
+        public static void MapEndpoints(IEndpointRouteBuilder app)
         {
+            Initialize();
+
             app.MapGet("/robots.txt", async (context) => await context.Response.WriteAsync("User-agent: *\nDisallow: / "));
             app.MapGet("/idlespan", async (context) => { Serilog.Log.Debug($"Request received to /idlespan endpoint"); await context.Response.WriteAsync($"{ComputeChildren.IdleSpan()}"); });
-            app.MapGet("/", async (context) => { InitializeChildren(); await context.Response.WriteAsync("compute.rhino3d"); });
+            app.MapGet("/", (context) =>
+            {
+                InitializeChildren();
+                context.Response.Redirect("https://www.rhino3d.com/compute");
+                return Task.CompletedTask;
+            });
             app.MapGet("/activechildren", async (context) =>
             {
                 bool initialize = true;
@@ -109,12 +116,7 @@ namespace rhino.compute
             app.MapPost("/{*uri}", ReverseProxyPost);
         }
 
-        public ReverseProxyModule()
-        {
-            Initialize();
-        }
-
-        Task LaunchChildren(HttpRequest request, HttpResponse response)
+        static Task LaunchChildren(HttpRequest request, HttpResponse response)
         {
             int children = System.Convert.ToInt32(request.Query["children"]);
             int parentProcessId = System.Convert.ToInt32(request.Query["parent"]);
@@ -128,7 +130,7 @@ namespace rhino.compute
             return Task.CompletedTask;
         }
 
-        async Task AwaitInitTask()
+        static async Task AwaitInitTask()
         {
             var task = _initTask;
             if (task != null)
@@ -138,7 +140,7 @@ namespace rhino.compute
             }
         }
 
-        async Task<HttpResponseMessage> SendProxyRequest(HttpRequest initialRequest, HttpMethod method, string baseurl)
+        static async Task<HttpResponseMessage> SendProxyRequest(HttpRequest initialRequest, HttpMethod method, string baseurl)
         {
             string proxyUrl = $"{baseurl}{initialRequest.Path}{initialRequest.QueryString}";
 
@@ -176,16 +178,16 @@ namespace rhino.compute
 
         // GET and POST routes both delegate to the shared handler; the /grasshopper route
         // is intentionally mapped to ReverseProxyPost as it requires no special handling.
-        private async Task ReverseProxyGet(HttpRequest req, HttpResponse res)
+        private static async Task ReverseProxyGet(HttpRequest req, HttpResponse res)
             => await ReverseProxyHandler(req, res, HttpMethod.Get);
 
-        private async Task ReverseProxyPost(HttpRequest req, HttpResponse res)
+        private static async Task ReverseProxyPost(HttpRequest req, HttpResponse res)
             => await ReverseProxyHandler(req, res, HttpMethod.Post);
 
         // Shared proxy handler: forwards the request to a compute.geometry child, propagates
         // the response status code, and promotes the responding child to the front of the queue
         // on success so it is preferred for the next round-robin selection.
-        private async Task ReverseProxyHandler(HttpRequest req, HttpResponse res, HttpMethod method)
+        private static async Task ReverseProxyHandler(HttpRequest req, HttpResponse res, HttpMethod method)
         {
             await AwaitInitTask();
             string responseString;
