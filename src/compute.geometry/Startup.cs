@@ -1,5 +1,4 @@
 ﻿using System;
-using Carter;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -25,7 +24,6 @@ namespace compute.geometry
                     });
             });
             services.AddHealthChecks();
-            services.AddCarter();
         }
 
         public void Configure(IApplicationBuilder app)
@@ -37,7 +35,10 @@ namespace compute.geometry
             app.UseEndpoints(builder =>
             {
                 builder.MapHealthChecks("/healthcheck");
-                builder.MapCarter();
+                FixedEndPointsModule.MapEndpoints(builder);
+                ResthopperEndpointsModule.MapEndpoints(builder);
+                RhinoGetModule.MapEndpoints(builder);
+                RhinoPostModule.MapEndpoints(builder);
             });
         }
 
