@@ -756,11 +756,39 @@ namespace Hops
             }
         }
 
+        // Decode a JSON-encoded string from the wire (the form produced by JsonConvert.SerializeObject
+        // for any non-geometry type — surrounded by quote chars with escape sequences for backslashes,
+        // embedded quotes, etc.). The primary path uses JsonConvert.DeserializeObject<string> which
+        // correctly reverses JSON escapes — so a file path like "C:\\Users\\file.txt" on the wire
+        // comes back as "C:\Users\file.txt". Falls back to the legacy embedded-JSON-object handling
+        // for malformed input that isn't a valid JSON string literal.
+        static string DecodeJsonString(string objData)
+        {
+            try
+            {
+                return JsonConvert.DeserializeObject<string>(objData);
+            }
+            catch (Exception)
+            {
+                return MaybeUnescapeJsonString(objData.Trim('"'));
+            }
+        }
+
+        // Legacy fallback for malformed wire payloads that contain an embedded JSON object
+        // as a string (e.g. "{\"key\":\"value\"}" with literal backslash-quote pairs that
+        // a strict JSON string decoder would reject). Preserves the prior heuristic exactly.
+        static string MaybeUnescapeJsonString(string data)
+        {
+            if (data.Trim().StartsWith("{") && data.Contains("\\"))
+                return System.Text.RegularExpressions.Regex.Unescape(data);
+            return data;
+        }
+
         static IGH_Goo GooFromResthopperObject(ResthopperObject obj)
         {
             if (obj.ResolvedData != null)
                 return obj.ResolvedData as Grasshopper.Kernel.Types.IGH_Goo;
-            
+
             string data = obj.Data.Trim('"');
             switch (obj.Type)
             {
@@ -778,14 +806,7 @@ namespace Hops
                     }
                 case "System.String":
                     {
-                        string unescaped = data;
-                        // TODO: This is a a hack. I understand that JSON needs to escape
-                        // embedded JSON, but I'm not particularly happy with the following code
-                        if (unescaped.Trim().StartsWith("{") && unescaped.Contains("\\"))
-                        {
-                            unescaped = System.Text.RegularExpressions.Regex.Unescape(data);
-                        }
-                        var stringResult = new Grasshopper.Kernel.Types.GH_String(unescaped);
+                        var stringResult = new Grasshopper.Kernel.Types.GH_String(DecodeJsonString(obj.Data));
                         obj.ResolvedData = stringResult;
                         return stringResult;
                     }

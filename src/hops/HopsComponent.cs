@@ -963,6 +963,25 @@ for value in values:
             }
         }
 
+        // Decodes a JSON-encoded default-value string back to its raw form when applying
+        // ResthopperObject defaults to Param_String / Param_FilePath inputs. Without this,
+        // a string default of "Andy" arrives over the wire as `"Andy"` (with literal quote
+        // chars) and gets stuffed into PersistentData with those quotes baked in. Mirrors
+        // the per-item try-JSON / fallback-to-Regex.Unescape pattern used by compute.geometry's
+        // contextual-parameter "Text" dispatch in GrasshopperDefinition. Backslashes round-trip
+        // correctly via either path so file paths are preserved.
+        static string DecodeStringDefault(string data)
+        {
+            try
+            {
+                return JsonConvert.DeserializeObject<string>(data);
+            }
+            catch (Exception)
+            {
+                return System.Text.RegularExpressions.Regex.Unescape(data);
+            }
+        }
+
         public void HopsAddRuntimeMessage(GH_RuntimeMessageLevel level, string message)
         {
             if(HopsLog.Log is object)
@@ -1446,7 +1465,7 @@ for value in values:
                                                 List<ResthopperObject> items = branch.Value;
                                                 foreach (var item in items)
                                                 {
-                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_String).PersistentData.Append(new GH_String(item.Data.ToString()), path);
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_String).PersistentData.Append(new GH_String(DecodeStringDefault(item.Data.ToString())), path);
                                                 }
                                             }
                                         }
@@ -1874,7 +1893,7 @@ for value in values:
                                                 List<ResthopperObject> items = branch.Value;
                                                 foreach (var item in items)
                                                 {
-                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_String).PersistentData.Append(new GH_String(item.Data.ToString()), path);
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_String).PersistentData.Append(new GH_String(DecodeStringDefault(item.Data.ToString())), path);
                                                 }
                                             }
                                         }
