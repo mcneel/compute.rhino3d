@@ -963,6 +963,18 @@ for value in values:
             }
         }
 
+        static string DecodeStringDefault(string data)
+        {
+            try
+            {
+                return JsonConvert.DeserializeObject<string>(data);
+            }
+            catch (Exception)
+            {
+                return System.Text.RegularExpressions.Regex.Unescape(data);
+            }
+        }
+
         public void HopsAddRuntimeMessage(GH_RuntimeMessageLevel level, string message)
         {
             if(HopsLog.Log is object)
@@ -1446,7 +1458,7 @@ for value in values:
                                                 List<ResthopperObject> items = branch.Value;
                                                 foreach (var item in items)
                                                 {
-                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_String).PersistentData.Append(new GH_String(item.Data.ToString()), path);
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_String).PersistentData.Append(new GH_String(DecodeStringDefault(item.Data.ToString())), path);
                                                 }
                                             }
                                         }
@@ -1454,7 +1466,7 @@ for value in values:
                                     else
                                     {
                                         (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_String).PersistentData.Append(new GH_String(input.Default.ToString()));
-                                    }  
+                                    }
                                 }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_GenericObject _:
@@ -1873,7 +1885,7 @@ for value in values:
                                                 List<ResthopperObject> items = branch.Value;
                                                 foreach (var item in items)
                                                 {
-                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_String).PersistentData.Append(new GH_String(item.Data.ToString()), path);
+                                                    (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_String).PersistentData.Append(new GH_String(DecodeStringDefault(item.Data.ToString())), path);
                                                 }
                                             }
                                         }
@@ -1881,7 +1893,7 @@ for value in values:
                                     else
                                     {
                                         (mgr[paramIndex] as Grasshopper.Kernel.Parameters.Param_String).PersistentData.Append(new GH_String(input.Default.ToString()));
-                                    }     
+                                    }
                                 }
                                 break;
                             case Grasshopper.Kernel.Parameters.Param_StructurePath _:
