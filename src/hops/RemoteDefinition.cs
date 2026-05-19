@@ -583,6 +583,11 @@ namespace Hops
                     bool fileExists = File.Exists(Path);
                     if (fileExists && string.IsNullOrEmpty(inputSchema.Algo))
                     {
+                        // Surface this via schema.Warnings rather than AddRuntimeMessage directly.
+                        // SetComponentOutputs reads schema.Warnings on the UI thread during the
+                        // results-application solve cycle, so it survives the async-mode clear
+                        // that BeforeSolveInstance does at the start of that cycle.
+                        string autoUploadMessage = $"Server returned HTTP 500. Uploaded local file '{System.IO.Path.GetFileName(Path)}' to {solveUrl} as a fallback.";
                         var bytes = System.IO.File.ReadAllBytes(Path);
                         string base64 = Convert.ToBase64String(bytes);
                         inputSchema.Algo = base64;
@@ -615,9 +620,12 @@ namespace Hops
                             var errorMsg = "Unable to solve on compute";
                             HopsLog.Log.Error(errorMsg);
                             badSchema.Errors.Add(errorMsg);
+                            badSchema.Warnings.Add(autoUploadMessage);
                             _parentComponent.HTTPRecord.Schema = badSchema;
                             return badSchema;
                         }
+                        if (schema != null)
+                            schema.Warnings.Add(autoUploadMessage);
                     }
                     else
                     {
