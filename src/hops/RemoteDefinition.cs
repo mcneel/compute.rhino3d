@@ -147,11 +147,13 @@ namespace Hops
             {
                 try
                 {
-                    var getTask = HttpClient.GetAsync(path);
-                    var response = getTask.Result;
-                    string mediaType = response.Content.Headers.ContentType.MediaType.ToLowerInvariant();
-                    if (mediaType.Contains("json"))
-                        rc = PathType.Server;
+                    using (var cts = CreateTimeoutCts())
+                    {
+                        var response = HttpClient.GetAsync(path, cts.Token).Result;
+                        string mediaType = response.Content.Headers.ContentType.MediaType.ToLowerInvariant();
+                        if (mediaType.Contains("json"))
+                            rc = PathType.Server;
+                    }
                 }
                 catch (Exception)
                 {
@@ -235,7 +237,11 @@ namespace Hops
 
             IoResponseSchema responseSchema = null;
             System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage> responseTask;
-            IDisposable contentToDispose = null;
+            // Per-request disposables that need to outlive the if/else so the response can be
+            // awaited safely. Disposed in a single sweep at the end of the method.
+            System.Net.Http.StringContent contentToDispose = null;
+            System.Net.Http.HttpRequestMessage requestToDispose = null;
+            System.Threading.CancellationTokenSource ctsToDispose = null;
             if (performPost)
             {
                 string postUrl = Servers.GetDescriptionPostUrl();
@@ -256,7 +262,7 @@ namespace Hops
                         else
                         {
                             HopsLog.Log.Error($"File not found: {address}");
-                        }    
+                        }
                     }
                 }
                 else
@@ -276,18 +282,18 @@ namespace Hops
                 requestContent += "}";
                 _parentComponent.HTTPRecord.IORequest = requestContent;
                 var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
-                HttpClient client = new HttpClient();
-                if(!String.IsNullOrEmpty(HopsAppSettings.APIKey))
-                    client.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
-                if(HopsAppSettings.HTTPTimeout > 0)
-                    client.Timeout = TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout);    
+                var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, postUrl) { Content = content };
+                AddApiKeyHeader(request);
+                var cts = CreateTimeoutCts();
                 var fileNameMsg = String.Empty;
                 if (!String.IsNullOrEmpty(_filename))
-                    fileNameMsg = $" with {_filename}";            
+                    fileNameMsg = $" with {_filename}";
                 HopsLog.Log.Debug($"Sending POST request to {postUrl}{fileNameMsg}");
-                responseTask = client.PostAsync(postUrl, content);
+                responseTask = HttpClient.SendAsync(request, cts.Token);
                 _parentComponent.HTTPRecord.Schema = schema;
                 contentToDispose = content;
+                requestToDispose = request;
+                ctsToDispose = cts;
             }
             else
             {
@@ -296,7 +302,9 @@ namespace Hops
                 requestContent += "\"Method\": \"GET" + "\"" + Environment.NewLine;
                 requestContent += "}";
                 _parentComponent.HTTPRecord.IORequest = requestContent;
-                responseTask = HttpClient.GetAsync(address);
+                var cts = CreateTimeoutCts();
+                responseTask = HttpClient.GetAsync(address, cts.Token);
+                ctsToDispose = cts;
             }
             if (responseTask != null)
             {
@@ -330,8 +338,9 @@ namespace Hops
                 }
             }
 
-            if (contentToDispose != null)
-                contentToDispose.Dispose();
+            contentToDispose?.Dispose();
+            requestToDispose?.Dispose();
+            ctsToDispose?.Dispose();
 
             if (responseSchema != null)
             { 
@@ -476,13 +485,37 @@ namespace Hops
         {
             get
             {
-                if (_httpClient==null)
+                if (_httpClient == null)
                 {
-                    _httpClient = new System.Net.Http.HttpClient();
+                    // One shared HttpClient for all requests (avoids per-request socket allocation).
+                    // Timeout is intentionally infinite — per-request CancellationTokenSource
+                    // controls actual deadlines so HopsAppSettings.HTTPTimeout values larger than
+                    // 100s aren't capped by HttpClient's default.
+                    _httpClient = new System.Net.Http.HttpClient
+                    {
+                        Timeout = System.Threading.Timeout.InfiniteTimeSpan
+                    };
                 }
                 return _httpClient;
             }
         }
+
+        // Per-request timeout via CancellationTokenSource. Uses HopsAppSettings.HTTPTimeout
+        // if configured, otherwise falls back to 100 seconds (HttpClient's historical default).
+        static System.Threading.CancellationTokenSource CreateTimeoutCts()
+        {
+            int seconds = HopsAppSettings.HTTPTimeout > 0 ? HopsAppSettings.HTTPTimeout : 100;
+            return new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(seconds));
+        }
+
+        // Adds the RhinoComputeKey header to the per-request HttpRequestMessage when an API
+        // key is configured. Headers must go on the request, not the shared HttpClient.
+        static void AddApiKeyHeader(System.Net.Http.HttpRequestMessage request)
+        {
+            if (!string.IsNullOrEmpty(HopsAppSettings.APIKey))
+                request.Headers.Add(_apiKeyName, HopsAppSettings.APIKey);
+        }
+
         static Schema SafeSchemaDeserialize(string data)
         {
             try
@@ -529,16 +562,14 @@ namespace Hops
             requestContent += "}";
             _parentComponent.HTTPRecord.SolveRequest = requestContent;
             using (var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json"))
+            using (var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, solveUrl) { Content = content })
+            using (var cts = CreateTimeoutCts())
             {
-                HttpClient client = new HttpClient();
-                if (!String.IsNullOrEmpty(HopsAppSettings.APIKey))
-                    client.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
-                if (HopsAppSettings.HTTPTimeout > 0)
-                    client.Timeout = TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout);
-                var postTask = client.PostAsync(solveUrl, content);
+                AddApiKeyHeader(request);
+                var postTask = HttpClient.SendAsync(request, cts.Token);
                 var fileNameMsg = String.Empty;
                 if (!String.IsNullOrEmpty(inputSchema.FileName))
-                    fileNameMsg = $" with {inputSchema.FileName} input values";                
+                    fileNameMsg = $" with {inputSchema.FileName} input values";
                 HopsLog.Log.Debug($"Sending POST request to {solveUrl}{fileNameMsg}");
                 var sw = Stopwatch.StartNew();
                 var responseMessage = postTask.Result;
@@ -562,13 +593,11 @@ namespace Hops
                         requestContent += "\"content\":" + inputJson + Environment.NewLine;
                         requestContent += "}";
                         _parentComponent.HTTPRecord.SolveRequest = requestContent;
-                        var content2 = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
-                        HttpClient client2 = new HttpClient();
-                        if (!String.IsNullOrEmpty(HopsAppSettings.APIKey))
-                            client2.DefaultRequestHeaders.Add(_apiKeyName, HopsAppSettings.APIKey);
-                        if (HopsAppSettings.HTTPTimeout > 0)
-                            client2.Timeout = TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout);
-                        postTask = client.PostAsync(solveUrl, content2);
+                        using var content2 = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
+                        using var request2 = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, solveUrl) { Content = content2 };
+                        using var cts2 = CreateTimeoutCts();
+                        AddApiKeyHeader(request2);
+                        postTask = HttpClient.SendAsync(request2, cts2.Token);
                         var fileNameMsg2 = String.Empty;
                         if (!String.IsNullOrEmpty(inputSchema.FileName))
                             fileNameMsg2 = $" with {inputSchema.FileName} input values";
@@ -787,83 +816,39 @@ namespace Hops
         static IGH_Goo GooFromResthopperObject(ResthopperObject obj)
         {
             if (obj.ResolvedData != null)
-                return obj.ResolvedData as Grasshopper.Kernel.Types.IGH_Goo;
+                return obj.ResolvedData as IGH_Goo;
 
             string data = obj.Data.Trim('"');
+
+            // Simple types: parse or JSON-deserialize and wrap. Each entry is cached on
+            // obj.ResolvedData so subsequent calls skip the work.
+            IGH_Goo simpleResult = obj.Type switch
+            {
+                "System.Boolean"             => new GH_Boolean(bool.Parse(data)),
+                "System.Double"              => new GH_Number(double.Parse(data)),
+                "System.String"              => new GH_String(DecodeJsonString(obj.Data)),
+                "System.Int32"               => new GH_Integer(int.Parse(data)),
+                "Rhino.Geometry.Circle"      => new GH_Circle(JsonConvert.DeserializeObject<Circle>(data)),
+                "Rhino.Geometry.Arc"         => new GH_Arc(JsonConvert.DeserializeObject<Arc>(data)),
+                "Rhino.Geometry.Line"        => new GH_Line(JsonConvert.DeserializeObject<Line>(data)),
+                "Rhino.Geometry.Rectangle3d" => new GH_Rectangle(JsonConvert.DeserializeObject<Rectangle3d>(data)),
+                "Rhino.Geometry.Plane"       => new GH_Plane(JsonConvert.DeserializeObject<Plane>(data)),
+                "Rhino.Geometry.Point3d"     => new GH_Point(JsonConvert.DeserializeObject<Point3d>(data)),
+                "Rhino.Geometry.Vector3d"    => new GH_Vector(JsonConvert.DeserializeObject<Vector3d>(data)),
+                "Rhino.Geometry.Box"         => new GH_Box(JsonConvert.DeserializeObject<Box>(data)),
+                _                            => null
+            };
+            if (simpleResult != null)
+            {
+                obj.ResolvedData = simpleResult;
+                return simpleResult;
+            }
+
+            // CommonObject geometry types: deserialize as dictionary, rehydrate via FromJSON,
+            // wrap based on runtime type. Original did not cache these on obj.ResolvedData
+            // (preserved).
             switch (obj.Type)
             {
-                case "System.Boolean":
-                    {
-                        var boolResult = new Grasshopper.Kernel.Types.GH_Boolean(bool.Parse(data));
-                        obj.ResolvedData = boolResult;
-                        return boolResult;
-                    }
-                case "System.Double":
-                    {
-                        var doubleResult = new Grasshopper.Kernel.Types.GH_Number(double.Parse(data));
-                        obj.ResolvedData = doubleResult;
-                        return doubleResult;
-                    }
-                case "System.String":
-                    {
-                        var stringResult = new Grasshopper.Kernel.Types.GH_String(DecodeJsonString(obj.Data));
-                        obj.ResolvedData = stringResult;
-                        return stringResult;
-                    }
-                case "System.Int32":
-                    {
-                        var intResult = new Grasshopper.Kernel.Types.GH_Integer(int.Parse(data));
-                        obj.ResolvedData = intResult;
-                        return intResult;
-                    }
-                case "Rhino.Geometry.Circle":
-                    {
-                        var circleResult = new Grasshopper.Kernel.Types.GH_Circle(JsonConvert.DeserializeObject<Circle>(data));
-                        obj.ResolvedData = circleResult;
-                        return circleResult;
-                    }
-                case "Rhino.Geometry.Arc":
-                    {
-                        var arcResult = new Grasshopper.Kernel.Types.GH_Arc(JsonConvert.DeserializeObject<Arc>(data));
-                        obj.ResolvedData = arcResult;
-                        return arcResult;
-                    }
-                case "Rhino.Geometry.Line":
-                    {
-                        var lineResult = new Grasshopper.Kernel.Types.GH_Line(JsonConvert.DeserializeObject<Line>(data));
-                        obj.ResolvedData = lineResult;
-                        return lineResult;
-                    }
-                case "Rhino.Geometry.Rectangle3d":
-                    {
-                        var rectangleResult = new Grasshopper.Kernel.Types.GH_Rectangle(JsonConvert.DeserializeObject<Rectangle3d>(data));
-                        obj.ResolvedData = rectangleResult;
-                        return rectangleResult;
-                    }
-                case "Rhino.Geometry.Plane":
-                    {
-                        var planeResult = new Grasshopper.Kernel.Types.GH_Plane(JsonConvert.DeserializeObject<Plane>(data));
-                        obj.ResolvedData = planeResult;
-                        return planeResult;
-                    }
-                case "Rhino.Geometry.Point3d":
-                    {
-                        var pointResult = new Grasshopper.Kernel.Types.GH_Point(JsonConvert.DeserializeObject<Point3d>(data));
-                        obj.ResolvedData = pointResult;
-                        return pointResult;
-                    }
-                case "Rhino.Geometry.Vector3d":
-                    {
-                        var vectorResult = new Grasshopper.Kernel.Types.GH_Vector(JsonConvert.DeserializeObject<Vector3d>(data));
-                        obj.ResolvedData = vectorResult;
-                        return vectorResult;
-                    }
-                case "Rhino.Geometry.Box":
-                    {
-                        var boxResult = new Grasshopper.Kernel.Types.GH_Box(JsonConvert.DeserializeObject<Box>(data));
-                        obj.ResolvedData = boxResult;
-                        return boxResult;
-                    }
                 case "Rhino.Geometry.Brep":
                 case "Rhino.Geometry.Curve":
                 case "Rhino.Geometry.Extrusion":
@@ -882,54 +867,15 @@ namespace Hops
                 case "Rhino.Geometry.TextEntity":
                 case "Rhino.Geometry.TextDot":
                 case "Rhino.Geometry.Leader":
-                    {
-                        Dictionary<string, string> dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(data);
-                        var geometry = Rhino.Runtime.CommonObject.FromJSON(dict);
-                        if (geometry is Extrusion)
-                            return new Grasshopper.Kernel.Types.GH_Extrusion(geometry as Extrusion);
-                        if (geometry is Surface)
-                            return new Grasshopper.Kernel.Types.GH_Surface(geometry as Surface);
-                        if (geometry is Brep brep)
-                        {
-                           if(brep.Faces.Count > 1)
-                           {
-                                return new Grasshopper.Kernel.Types.GH_Brep(brep);
-                           }
-                           else
-                           {
-                                return new Grasshopper.Kernel.Types.GH_Surface(brep);
-                           }
-                        }   
-                        if (geometry is Curve)
-                            return new Grasshopper.Kernel.Types.GH_Curve(geometry as Curve);
-                        if (geometry is Mesh)
-                            return new Grasshopper.Kernel.Types.GH_Mesh(geometry as Mesh);
-                        if (geometry is SubD)
-                            return new Grasshopper.Kernel.Types.GH_SubD(geometry as SubD);
-                        if (geometry is PointCloud)
-                            return new Grasshopper.Kernel.Types.GH_PointCloud(geometry as PointCloud);
-                        if (geometry is InstanceReferenceGeometry)
-                            return new Grasshopper.Kernel.Types.GH_InstanceReference(geometry as InstanceReferenceGeometry);
-                        if (geometry is Hatch)
-                            return new Grasshopper.Kernel.Types.GH_Hatch(geometry as Hatch);
-                        if (geometry is LinearDimension)
-                            return new Grasshopper.Kernel.Types.GH_LinearDimension(geometry as LinearDimension);
-                        if (geometry is AngularDimension)
-                            return new Grasshopper.Kernel.Types.GH_AngularDimension(geometry as AngularDimension);
-                        if (geometry is RadialDimension)
-                            return new Grasshopper.Kernel.Types.GH_RadialDimension(geometry as RadialDimension);
-                        if (geometry is OrdinateDimension)
-                            return new Grasshopper.Kernel.Types.GH_OrdinateDimension(geometry as OrdinateDimension);
-                        if (geometry is TextEntity)
-                            return new Grasshopper.Kernel.Types.GH_TextEntity(geometry as TextEntity);
-                        if (geometry is TextDot)
-                            return new Grasshopper.Kernel.Types.GH_TextDot(geometry as TextDot);
-                        if (geometry is Leader)
-                            return new Grasshopper.Kernel.Types.GH_Leader(geometry as Leader);
-                    }
+                    var explicitResult = DeserializeExplicitGeometry(data);
+                    if (explicitResult != null)
+                        return explicitResult;
                     break;
             }
 
+            // Fallback for any Rhino.Geometry.* type not handled above: dynamic type resolution
+            // via the assembly that owns Point3d. Surface gets converted to Brep here (different
+            // from the explicit case above, which keeps it as GH_Surface) — preserved verbatim.
             if (obj.Type.StartsWith("Rhino.Geometry"))
             {
                 var pt = new Rhino.Geometry.Point3d();
@@ -940,23 +886,54 @@ namespace Hops
                 System.Type type = System.Type.GetType(sType);
                 if (type != null && typeof(GeometryBase).IsAssignableFrom(type))
                 {
-                    Dictionary<string, string> dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(data);
+                    var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(data);
                     var geometry = Rhino.Runtime.CommonObject.FromJSON(dict);
-                    Surface surface = geometry as Surface;
-                    if (surface != null)
+                    if (geometry is Surface surface)
                         geometry = surface.ToBrep();
-                    if (geometry is Brep)
-                        return new Grasshopper.Kernel.Types.GH_Brep(geometry as Brep);
-                    if (geometry is Curve)
-                        return new Grasshopper.Kernel.Types.GH_Curve(geometry as Curve);
-                    if (geometry is Mesh)
-                        return new Grasshopper.Kernel.Types.GH_Mesh(geometry as Mesh);
-                    if (geometry is SubD)
-                        return new Grasshopper.Kernel.Types.GH_SubD(geometry as SubD);
+                    IGH_Goo fallbackResult = geometry switch
+                    {
+                        Brep brep   => new GH_Brep(brep),
+                        Curve curve => new GH_Curve(curve),
+                        Mesh mesh   => new GH_Mesh(mesh),
+                        SubD subD   => new GH_SubD(subD),
+                        _           => null
+                    };
+                    if (fallbackResult != null)
+                        return fallbackResult;
                 }
             }
 
             throw new Exception("Unable to convert resthopper data");
+        }
+
+        // CommonObject geometry deserializer for the explicit-type cases in GooFromResthopperObject.
+        // Order matters: Extrusion : Surface, so Extrusion must come first. A multi-face Brep
+        // wraps as GH_Brep; a single-face Brep wraps as GH_Surface (preserved from original).
+        static IGH_Goo DeserializeExplicitGeometry(string data)
+        {
+            var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(data);
+            var geometry = Rhino.Runtime.CommonObject.FromJSON(dict);
+            return geometry switch
+            {
+                Extrusion ext                       => new GH_Extrusion(ext),
+                Surface surface                     => new GH_Surface(surface),
+                Brep brep when brep.Faces.Count > 1 => new GH_Brep(brep),
+                Brep brep                           => new GH_Surface(brep),
+                Curve curve                         => new GH_Curve(curve),
+                Mesh mesh                           => new GH_Mesh(mesh),
+                SubD subD                           => new GH_SubD(subD),
+                PointCloud pc                       => new GH_PointCloud(pc),
+                InstanceReferenceGeometry iref      => new GH_InstanceReference(iref),
+                Hatch hatch                         => new GH_Hatch(hatch),
+                LinearDimension lin                 => new GH_LinearDimension(lin),
+                AngularDimension ang                => new GH_AngularDimension(ang),
+                RadialDimension rad                 => new GH_RadialDimension(rad),
+                OrdinateDimension ord               => new GH_OrdinateDimension(ord),
+                TextEntity text                     => new GH_TextEntity(text),
+                TextDot textDot                     => new GH_TextDot(textDot),
+                Leader leader                       => new GH_Leader(leader),
+                _                                   => null
+            };
         }
 
         static List<IGH_Param> _params;
