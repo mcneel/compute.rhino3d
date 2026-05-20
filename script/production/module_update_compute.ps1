@@ -66,19 +66,21 @@ $giturl = "$gitPrefix/$actionurl"
 $response = Invoke-RestMethod -Method Get -Uri $giturl
 $artifacts = $response.artifacts
 $artifactID = -1
-$matchingBranch = "8.x"
+$matchingBranch = "9.x"
+$matchingName = "rhino.compute"
 
 for($i=0; $i -lt $artifacts.Length; $i++){
     $latest = $artifacts[$i]
     $artifactID = $latest.id
+    $artifactName = $latest.name
     $artifactBranch = $latest.workflow_run.head_branch 
-    if ($artifactBranch -eq $matchingBranch) {
+    if ($artifactBranch -eq $matchingBranch -and $artifactName -eq $matchingName) {
         break
     }
 }
 
 if ($artifactID -lt 0){
-    Write-Host "Unable to find the latest $matchingBranch build artifact." -ForegroundColor Red
+    Write-Host "Unable to find the latest $matchingBranch build artifact with name $matchingName." -ForegroundColor Red
     exit 1
 }
 

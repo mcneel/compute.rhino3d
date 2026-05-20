@@ -1,46 +1,22 @@
 # Setup/Install script for installing IIS and various subsystems
 #Requires -RunAsAdministrator
 
+# Minimum IIS feature set required to host rhino.compute under IIS via the
+# AspNetCoreModuleV2 (delivered by the .NET Hosting Bundle in bootstrap step 2).
 $required_IIS_features = @(
     "IIS-WebServerRole",
     "IIS-WebServer",
     "IIS-CommonHttpFeatures",
-    "IIS-HttpErrors",
-    "IIS-HttpRedirect",
-    "IIS-ApplicationDevelopment",
-    "NetFx4Extended-ASPNET45",
-    "IIS-NetFxExtensibility45",
-    "IIS-HealthAndDiagnostics",
-    "IIS-HttpLogging",
-    "IIS-LoggingLibraries",
-    "IIS-RequestMonitor",
-    "IIS-HttpTracing",
-    "IIS-Security",
-    "IIS-RequestFiltering",
-    "IIS-Performance",
-    "IIS-WebServerManagementTools",
-    "IIS-IIS6ManagementCompatibility",
-    "IIS-ManagementConsole",
-    "IIS-BasicAuthentication",
-    "IIS-WindowsAuthentication",
+    "IIS-DefaultDocument",
     "IIS-StaticContent",
-    "IIS-ApplicationInit",
-    "IIS-ISAPIExtensions",
-    "IIS-ISAPIFilter",
-    "IIS-HttpCompressionStatic",
-    "IIS-ASPNET45",
-    "WAS-WindowsActivationService",
-    "WAS-ProcessModel",
-    "WAS-ConfigurationAPI",
-    "WCF-Services45",
-    "WCF-HTTP-Activation45",
-    "WCF-TCP-Activation45",
-    "WCF-Pipe-Activation45",
-    "WCF-TCP-PortSharing45"
+    "IIS-RequestFiltering",
+    "IIS-ApplicationInit",            # required for applicationDefaults.preloadEnabled
+    "IIS-WebServerManagementTools",
+    "IIS-ManagementConsole"           # WebAdministration PS module + IIS Manager GUI
 )
 
 #Region funcs
-function Write-Step { 
+function Write-Step {
     Write-Host
     Write-Host "===> "$args[0] -ForegroundColor Green
     Write-Host
@@ -54,8 +30,6 @@ function Install-IISPrerequisites {
            Enable-WindowsOptionalFeature -Online -FeatureName $feature -NoRestart
         }
     }
-    Install-WindowsFeature WAS
-    Install-WindowsFeature NET-Framework-45-Features
     Write-Step "All of the Necessary IIS Role Services have been installed"
 }
 #EndRegion funcs
