@@ -49,7 +49,7 @@ jobs:
         uses: tj-actions/changed-files@v47
         id: changed-files
         with:
-          files: src
+          files: src/**
 
   build_compute:
     name: build compute
