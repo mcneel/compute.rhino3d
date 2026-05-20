@@ -52,12 +52,25 @@ jobs:
           files: src/**
 
   build_compute:
-    name: build compute
-    runs-on: ubuntu-latest
+    name: build compute (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: read
     needs: [check_workflow, check_src]
     if: ${{ needs.check_src.outputs.any_changed == 'true' || needs.check_workflow.outputs.any_changed == 'true' }}
+    # Matrix over both runners so the csproj OS-conditionals produce a Windows-targeted build
+    # on windows-latest (net10.0-windows + win-x64 + web.config) and a Linux-targeted build on
+    # ubuntu-latest (net10.0 + linux-x64). The "rhino.compute" artifact name is preserved for
+    # the Windows variant since it's the historical deliverable that downstream consumers
+    # (e.g. the VM bootstrap script) reference by that exact name.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: rhino.compute
+          - os: ubuntu-latest
+            artifact_name: rhino.compute-linux-x64
     steps:
       - name: checkout
         uses: actions/checkout@v6
@@ -68,6 +81,9 @@ jobs:
           dotnet-version: '10.0.x'
       - name: revision
         id: revision
+        # shell: bash forces git-bash on windows-latest so ${GITHUB_SHA::9} substring works on
+        # both hosts (default shell on windows-latest is pwsh, which doesn't recognise this).
+        shell: bash
         run: |
           echo "::set-output name=revision::${GITHUB_SHA::9}"
       - name: revision number
@@ -82,4 +98,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           path: src/dist
-          name: rhino.compute
+          name: ${{ matrix.artifact_name }}
