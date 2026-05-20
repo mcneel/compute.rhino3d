@@ -81,6 +81,12 @@ requests while the child processes are launching.")]
              HelpText = "Determines whether to launch a child compute.geometry process when rhino.compute gets started")]
             public bool SpawnOnStartup { get; set; }
 
+            [Option("load-children-sequentially",
+             Required = false,
+             Default = false,
+             HelpText = "When set, child compute.geometry processes spawn one at a time (each child finishes loading before the next starts). Default is parallel spawning for faster warmup. Use this on memory-constrained VMs where N parallel Rhino+Grasshopper loads can exhaust RAM.")]
+            public bool LoadChildrenSequentially { get; set; }
+
             [Option("timeout",
               Required = false,
               HelpText = "Request timeout in seconds (default: 100)")]
@@ -135,6 +141,7 @@ requests while the child processes are launching.")]
                 // Set runtime options
                 ComputeChildren.SpawnCount = o.ChildCount;
                 ComputeChildren.SpawnOnStartup = o.SpawnOnStartup;
+                ComputeChildren.LoadChildrenSequentially = o.LoadChildrenSequentially;
                 ComputeChildren.ChildIdleSpan = new System.TimeSpan(0, 0, o.IdleSpanSeconds);
                 ComputeChildren.RhinoSysDir = o.RhinoSysDir;
                 int parentProcessId = o.ChildOf;
@@ -189,6 +196,7 @@ requests while the child processes are launching.")]
             Log.Debug("  Timeout = {Timeout}", FormatTimeout(Config.ReverseProxyRequestTimeout));
             Log.Debug("  Child Count = {ChildCount}", ComputeChildren.SpawnCount.ToString());
             Log.Debug("  Spawn Children At Startup = {SpawnChild}", ComputeChildren.SpawnOnStartup.ToString());
+            Log.Debug("  Load Children Sequentially = {LoadSequentially}", ComputeChildren.LoadChildrenSequentially.ToString());
             bool loadGrasshopper = true;
             loadGrasshopper = Boolean.TryParse(Environment.GetEnvironmentVariable("RHINO_COMPUTE_LOAD_GRASSHOPPER"), out var loadGH) ? loadGH : true;
             Log.Debug("  Load Grasshopper = {LoadGH}", loadGrasshopper.ToString());
