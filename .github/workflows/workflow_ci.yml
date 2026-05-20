@@ -70,6 +70,7 @@ jobs:
         id: revision
         run: |
           echo "::set-output name=revision::${GITHUB_SHA::9}"
+          echo "{revision}={value}" >> $GITHUB_OUTPUT
       - name: revision number
         shell: pwsh
         run: |
