@@ -246,8 +246,40 @@ namespace rhino.compute
         {
             var startInfo = CreateComputeStartInfo(pathToCompute, port);
             process = Process.Start(startInfo);
+            if (process != null)
+            {
+                // Lines emitted by the child's Serilog (ANSI theme) already begin with an
+                // escape sequence and a "CG {port} [...]" prefix — pass them through verbatim.
+                // Anything else (Grasshopper's raw Console.WriteLine output during plugin load,
+                // the occasional stderr write) is wrapped via _childRawLogger so it picks up
+                // the same prefix, colors, and port enrichment as a normal CG line.
+                void ReEmit(string line)
+                {
+                    if (line == null) return;
+                    if (line.Length > 0 && (line[0] == '\x1B' || line.StartsWith("CG ", StringComparison.Ordinal)))
+                        Console.WriteLine(line);
+                    else
+                        _childRawLogger.ForContext("Port", port).Information("{Line:l}", line);
+                }
+                process.OutputDataReceived += (s, e) => ReEmit(e.Data);
+                process.ErrorDataReceived  += (s, e) => ReEmit(e.Data);
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+            }
             return WaitForChildProcess(process, port);
         }
+
+        // Wraps raw stdout/stderr lines from child processes (e.g. Grasshopper's plugin-load
+        // progress messages written via Console.WriteLine, which bypass the child's Serilog
+        // entirely) so they render with the same "CG {Port} [...]" prefix, color theme, and
+        // port enrichment as Serilog-emitted CG lines. Uses applyThemeToRedirectedOutput so
+        // colors still emit if rhino.compute itself ever runs with redirected stdout.
+        static readonly ILogger _childRawLogger = new LoggerConfiguration()
+            .WriteTo.Console(
+                outputTemplate: "CG {Port} [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
+                theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Literate,
+                applyThemeToRedirectedOutput: true)
+            .CreateLogger();
 
         // Returns the first port >= 6001 that is not in usedPorts and is not already listening.
         // Returns 0 if no free port is found.
@@ -271,6 +303,21 @@ namespace rhino.compute
         {
             var startInfo = new ProcessStartInfo(pathToCompute);
             startInfo.EnvironmentVariables["ASPNETCORE_HOSTINGSTARTUPASSEMBLIES"] = "";
+            // Redirect the child's stdout/stderr so we can re-emit them through the parent's
+            // single Console.Out. Multiple children writing to the OS stdout handle directly
+            // would interleave at byte level (visible when SpawnCount >= 3 spawns siblings in
+            // parallel); routing through a single in-process TextWriter serializes the writes.
+            // The child's own "CG ..." Serilog prefix is preserved.
+            startInfo.UseShellExecute = false;
+            startInfo.RedirectStandardOutput = true;
+            startInfo.RedirectStandardError = true;
+            // Sever inheritance of rhino.compute's console handle. Without this, native code
+            // inside the child (notably Grasshopper's plugin loader) writes its "Loading X
+            // assembly..." progress straight to the inherited CONOUT$ — which bypasses our
+            // stdout pipe and ends up shared between all children, causing byte-level
+            // interleaving on the parent's console. Forcing CreateNoWindow makes those native
+            // writes either fall through to STD_OUTPUT_HANDLE (our pipe) or no-op.
+            startInfo.CreateNoWindow = true;
             var rhinoProcess = Process.GetCurrentProcess();
             string args = $"-port:{port} -childof:{rhinoProcess.Id}";
             Log.Information("Starting compute.geometry instance on port {Port}", port);

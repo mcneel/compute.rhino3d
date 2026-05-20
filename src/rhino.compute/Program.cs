@@ -107,7 +107,9 @@ requests while the child processes are launching.")]
             .MinimumLevel.Is(level)
             .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
             .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico']")
-            .WriteTo.Console(outputTemplate: "RC  [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+            .WriteTo.Console(
+                outputTemplate: "RC  [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
+                theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Literate)
             .WriteTo.File(new ExpressionTemplate("RC   [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
             Log.Logger = loggerConfig.CreateLogger();
 

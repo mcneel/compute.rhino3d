@@ -21,7 +21,11 @@ namespace compute.geometry
         static void Main(string[] args)
         {
             Config.Load();
-            Logging.Init();
+            // Pre-scan for -port so it can be enriched into every log line. Full arg parsing
+            // happens below; this is just a peek so the logger has the port from the very first
+            // line. Without it, "Logging to ..." and "Registering idle span ..." would land in
+            // the console with an empty port column.
+            Logging.Init(FindPortArg(args));
 
             ParseCommandLineArgs(args);
 
@@ -70,6 +74,28 @@ namespace compute.geometry
                 })
                 .UseSerilog(Log.Logger)
                 .Build();
+
+            // When the port wasn't passed via -port:N (standalone launches), Kestrel binds to
+            // its default URL once the host starts. Pull the bound port out of IServerAddressesFeature
+            // and push it into DynamicPortEnricher so subsequent log lines render as "CG NNNN".
+            var lifetime = (Microsoft.Extensions.Hosting.IHostApplicationLifetime)
+                host.Services.GetService(typeof(Microsoft.Extensions.Hosting.IHostApplicationLifetime));
+            lifetime?.ApplicationStarted.Register(() =>
+            {
+                var server = (Microsoft.AspNetCore.Hosting.Server.IServer)
+                    host.Services.GetService(typeof(Microsoft.AspNetCore.Hosting.Server.IServer));
+                var addresses = server?.Features.Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>();
+                if (addresses == null) return;
+                foreach (var url in addresses.Addresses)
+                {
+                    if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Port > 0)
+                    {
+                        DynamicPortEnricher.SetPort(uri.Port);
+                        break;
+                    }
+                }
+            });
+
             Shutdown.StartTimer(host);
             host.Run();
 
@@ -137,6 +163,17 @@ namespace compute.geometry
                         break;
                 }
             }
+        }
+
+        static int FindPortArg(string[] args)
+        {
+            foreach (var arg in args)
+            {
+                SplitArg(arg, out string key, out string value);
+                if (key == "port" && int.TryParse(value, out int port))
+                    return port;
+            }
+            return 0;
         }
 
         static void SplitArg(string arg, out string key, out string value)

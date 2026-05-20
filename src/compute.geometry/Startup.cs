@@ -7,6 +7,7 @@ namespace compute.geometry
 {
     public class Startup
     {
+
         //https://github.com/mcneel/rhino/blob/e1192835cbf03f662d0cf857ee9239b84109eeed/src4/rhino4/Plug-ins/RhinoCodePlugins/RhinoCodePlugin/AssemblyInfo.cs
         static readonly Guid s_rhinoCodePluginId = new Guid("c9cba87a-23ce-4f15-a918-97645c05cde7");
 
@@ -107,6 +108,7 @@ namespace compute.geometry
             if (Config.LoadGrasshopper)
             {
                 Log.Information("(3/4) Loading grasshopper");
+
 #if LINUX
                 var ghpath = RhinoInside.Resolver.RhinoSystemDirectory + "/Plug-ins/Grasshopper/GrasshopperPlugin.rhp";
                 var pluginresult = Rhino.PlugIns.PlugIn.LoadPlugIn(ghpath, out Guid ghid);
@@ -120,6 +122,30 @@ namespace compute.geometry
                     runheadless.Invoke(pluginObject, null);
 #endif
 
+                // Only emit the "Loaded assembly: X" burst when we're running as a child of
+                // rhino.compute (signalled by the -childof:<pid> arg, which populates
+                // Shutdown.ParentProcesses). In that mode CreateNoWindow=true on the child
+                // ProcessStartInfo suppresses Grasshopper's native "* Loading X assembly..."
+                // chatter, so re-emitting via Serilog restores per-plugin visibility through
+                // the CG-prefixed channel. When launched standalone, the native chatter is
+                // already visible on the console and adding our burst would just duplicate it,
+                // so we skip the enumeration.
+                bool launchedByRhinoCompute = Shutdown.ParentProcesses != null && Shutdown.ParentProcesses.Count > 0;
+                if (launchedByRhinoCompute)
+                {
+                    try
+                    {
+                        foreach (var lib in Grasshopper.Instances.ComponentServer.Libraries)
+                        {
+                            if (lib != null && !string.IsNullOrEmpty(lib.Name))
+                                Log.Information("Loaded assembly: {Name}", lib.Name);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning(ex, "Unable to enumerate Grasshopper libraries after RunHeadless");
+                    }
+                }
             }
             else
             {
