@@ -35,6 +35,16 @@ namespace rhino.compute
         /// </summary>
         public static bool SpawnOnStartup { get; set; } = false;
 
+        /// <summary>
+        /// When true, post-bootstrap child spawns run one at a time on a single background
+        /// task — each LaunchCompute() call blocks until that child's port is open before the
+        /// next is started. When false (default), the (SpawnCount-1) post-bootstrap spawns are
+        /// dispatched as separate Task.Run calls and run in parallel.
+        /// Sequential is the escape hatch for memory-constrained VMs where parallel
+        /// Rhino+Grasshopper loads can exhaust RAM.
+        /// </summary>
+        public static bool LoadChildrenSequentially { get; set; } = false;
+
         /// <summary>Port that rhino.compute is running on</summary>
         public static int ParentPort { get; set; } = 5000;
         /// <summary>
@@ -134,8 +144,26 @@ namespace rhino.compute
             {
                 spawnTasksToQueue = Math.Max(0, SpawnCount - (_computeProcesses.Count + _pendingSpawnPorts.Count));
             }
-            for (int i = 0; i < spawnTasksToQueue; i++)
-                System.Threading.Tasks.Task.Run(() => LaunchCompute());
+            if (spawnTasksToQueue > 0)
+            {
+                if (LoadChildrenSequentially)
+                {
+                    // Single background task that drains the queue serially. LaunchCompute()
+                    // blocks until the spawned child's port opens, so each iteration waits for
+                    // the previous to finish — caps peak Rhino+Grasshopper memory at one extra
+                    // child at a time.
+                    System.Threading.Tasks.Task.Run(() =>
+                    {
+                        for (int i = 0; i < spawnTasksToQueue; i++)
+                            LaunchCompute();
+                    });
+                }
+                else
+                {
+                    for (int i = 0; i < spawnTasksToQueue; i++)
+                        System.Threading.Tasks.Task.Run(() => LaunchCompute());
+                }
+            }
 
             //Log.Information($"Started child process at http://localhost:{activePort} at {DateTime.Now.ToLocalTime()}");
             return ($"http://localhost:{activePort}", activePort);
