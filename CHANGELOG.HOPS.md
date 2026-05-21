@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.16.29] - 2026-05-19
+## [0.16.29] - 2026-05-21
 
 ### Added
 
@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Removed the Carter NuGet dependency from both rhino.compute and compute.geometry. All HTTP endpoints are now wired up using native ASP.NET Core endpoint routing. The three duplicated reverse-proxy methods in rhino.compute have also been consolidated into a single helper.
 - The rhino.compute root endpoint (`/`) now redirects to https://www.rhino3d.com/compute, matching the behavior of compute.geometry. Previously this endpoint returned the plain text "compute.rhino3d".
+- The Windows VM bootstrap process under `script/production/` has been consolidated from two scripts (with a required system restart in between) into a single pass. The IIS feature list installed by `module_iis_install.ps1` has been trimmed from 35 features down to 9 by removing ASP.NET 4.5 Framework, WCF, WAS, ISAPI, IIS6 compatibility, BasicAuth/WindowsAuth, and unused diagnostic features that rhino.compute does not need. The three former step-2 modules (`module_compute.ps1`, `module_hostingbundle.ps1`, `module_iis_configure.ps1`) now live alongside the step-1 modules, and `boostrap_step-1.ps1` invokes all of them in order. Net result: significantly faster VM provisioning and no mid-setup reboot.
 
 ### Fixed
 
