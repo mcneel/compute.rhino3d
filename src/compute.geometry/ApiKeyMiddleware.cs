@@ -1,0 +1,63 @@
+using Microsoft.AspNetCore.Http;
+using Serilog;
+using System.Threading.Tasks;
+
+namespace compute.geometry
+{
+    // Native ASP.NET Core middleware that requires the RhinoComputeKey header on
+    // every request when Config.ApiKey is non-empty. Mirrors the rhino.compute
+    // ApiKeyMiddleware so the rhino.compute → compute.geometry proxy chain works
+    // end-to-end (rhino.compute's ReverseProxy already forwards this header).
+    //
+    // Wired in Startup.Configure conditionally on Config.ApiKey, matching the
+    // rhino.compute pattern — a missing/empty key disables the middleware so
+    // existing deployments that don't set RHINO_COMPUTE_KEY are unaffected.
+    //
+    // GET and OPTIONS are exempted to match the historical Nancy-era behavior
+    // (informational endpoints like /version, /sdk, /healthcheck are free) and
+    // because the rhino.compute reverse proxy only forwards the RhinoComputeKey
+    // header on POST requests (ReverseProxy.SendProxyRequest GET branch passes
+    // no headers). Auth-sensitive work happens on POST (e.g. /grasshopper).
+    public class ApiKeyMiddleware
+    {
+        const string APIKEYNAME = "RhinoComputeKey";
+        readonly RequestDelegate _next;
+
+        public ApiKeyMiddleware(RequestDelegate next)
+        {
+            _next = next;
+        }
+
+        public async Task InvokeAsync(HttpContext context)
+        {
+            // GET is informational; OPTIONS is CORS preflight. Both pass through.
+            var method = context.Request.Method;
+            if (HttpMethods.IsGet(method) || HttpMethods.IsOptions(method))
+            {
+                await _next(context);
+                return;
+            }
+
+            if (!context.Request.Headers.TryGetValue(APIKEYNAME, out var extractedApiKey))
+            {
+                Log.Warning("401 rejecting {Method} {Path}: missing {HeaderName} header",
+                    method, context.Request.Path, APIKEYNAME);
+                context.Response.StatusCode = 401;
+                await context.Response.WriteAsync("Api Key was not provided.");
+                return;
+            }
+
+            var apiKey = Config.ApiKey;
+            if (!apiKey.Equals(extractedApiKey))
+            {
+                Log.Warning("401 rejecting {Method} {Path}: {HeaderName} header does not match server's configured key",
+                    method, context.Request.Path, APIKEYNAME);
+                context.Response.StatusCode = 401;
+                await context.Response.WriteAsync("Unauthorized client.");
+                return;
+            }
+
+            await _next(context);
+        }
+    }
+}

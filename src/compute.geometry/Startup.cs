@@ -32,6 +32,12 @@ namespace compute.geometry
 
             app.UseRouting();
             app.UseCors();
+            // Only enforce API-key auth when a key is actually configured. This mirrors
+            // the rhino.compute pattern: deployments that don't set RHINO_COMPUTE_KEY
+            // continue to work unauthenticated (e.g. local dev), while production
+            // deployments that set the env var get every endpoint protected.
+            if (!String.IsNullOrEmpty(Config.ApiKey))
+                app.UseMiddleware<ApiKeyMiddleware>();
             app.UseEndpoints(builder =>
             {
                 builder.MapHealthChecks("/healthcheck");
