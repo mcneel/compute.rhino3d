@@ -311,14 +311,30 @@ namespace Hops
                 HopsLog.Log.Debug($"Received response {responseMessage.StatusCode} in {sw.ElapsedMilliseconds}ms");
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-                if (string.IsNullOrEmpty(stringResult))
+                _parentComponent.HTTPRecord.IOResponse = stringResult;
+
+                // Detect 401 BEFORE attempting to parse the body as JSON. The middleware's
+                // response body is plain text ("Api Key was not provided." / "Unauthorized
+                // client."), which would throw JsonReaderException inside the deserializer
+                // below. Surface via IOResponseSchema.Errors so DefineInputsAndOutputs picks
+                // it up and displays a red runtime message on the Hops component.
+                if (responseMessage.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    var serverMessage = string.IsNullOrWhiteSpace(stringResult)
+                        ? "Server returned 401 Unauthorized — verify the RHINO_COMPUTE_KEY environment variable on the Hops client matches the server's configured key."
+                        : $"Server returned 401 Unauthorized: {stringResult.Trim()}";
+                    HopsLog.Log.Error(serverMessage);
+                    var errSchema = new IoResponseSchema();
+                    errSchema.Errors.Add(serverMessage);
+                    _parentComponent.HTTPRecord.IOResponseSchema = errSchema;
+                }
+                else if (string.IsNullOrEmpty(stringResult))
                 {
                     _pathType = PathType.InvalidUrl; // Looks like a valid but not related URL
                     _parentComponent.HTTPRecord.IOResponse = "Invalid URL";
                 }
                 else
                 {
-                    _parentComponent.HTTPRecord.IOResponse = stringResult;
                     responseSchema = JsonConvert.DeserializeObject<IoResponseSchema>(stringResult);
                     _cacheKey = responseSchema.CacheKey;
                     _filename = responseSchema.FileName;
@@ -630,6 +646,25 @@ namespace Hops
                     var errorMsg = $"Request timeout: {Path}";
                     HopsLog.Log.Error(errorMsg);
                     badSchema.Errors.Add(errorMsg);
+                    _parentComponent.HTTPRecord.Schema = badSchema;
+                    return badSchema;
+                }
+
+                // Authentication failure. The same 401 can come from either rhino.compute's
+                // ApiKeyMiddleware (when rhino.compute is the front-door) or compute.geometry's
+                // ApiKeyMiddleware (when targeted directly), so we don't need to distinguish.
+                // Surface it as a component error so the user sees it in Grasshopper rather
+                // than getting a silent solve failure.
+                if (responseMessage.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    var badSchema = new Schema();
+                    // Use the server's response body when available — it explains whether the
+                    // header was missing or the key was wrong. Fall back to a generic message.
+                    var serverMessage = string.IsNullOrWhiteSpace(stringResult)
+                        ? "Server returned 401 Unauthorized — verify the RHINO_COMPUTE_KEY environment variable on the Hops client matches the server's configured key."
+                        : $"Server returned 401 Unauthorized: {stringResult.Trim()}";
+                    HopsLog.Log.Error(serverMessage);
+                    badSchema.Errors.Add(serverMessage);
                     _parentComponent.HTTPRecord.Schema = badSchema;
                     return badSchema;
                 }
