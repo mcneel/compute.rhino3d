@@ -61,9 +61,7 @@ if ($os -notlike '*server*') {
 Write-Host
 Write-Host "Root Script Path:" $PSScriptRoot
 
-# Run modules in order. The trimmed IIS feature list no longer requires a restart
-# between IIS install and the rest of the setup, so this used to be two separate
-# scripts but is now a single pass.
+# Run modules in order. 
 & "$PSScriptRoot\module_rhino.ps1"
 & "$PSScriptRoot\module_firewall.ps1"
 & "$PSScriptRoot\module_iis_install.ps1"
