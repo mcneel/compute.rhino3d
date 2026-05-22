@@ -24,6 +24,13 @@ namespace compute.geometry
         public static string ApiKey { get; private set; }
 
         /// <summary>
+        /// RHINO_COMPUTE_MAX_REQUEST_SIZE: maximum allowed size of any request body in bytes.
+        /// Defaults to 50 MB. Matches the rhino.compute env-var pattern so child processes
+        /// inherit the same limit when launched under the proxy.
+        /// </summary>
+        public static long MaxRequestSize { get; private set; }
+
+        /// <summary>
         /// RHINO_COMPUTE_LOG_PATH: the directory in which to write logs.
         /// </summary>
         public static string LogPath { get; private set; }
@@ -59,6 +66,7 @@ namespace compute.geometry
         {
             Urls = GetEnvironmentVariable(RHINO_COMPUTE_URLS, "http://localhost:8081", COMPUTE_BIND_URLS).Split(';');
             ApiKey = GetEnvironmentVariable<string>(RHINO_COMPUTE_KEY, null);
+            MaxRequestSize = GetEnvironmentVariable<long>(RHINO_COMPUTE_MAX_REQUEST_SIZE, 52428800);
             LogPath = GetEnvironmentVariable(RHINO_COMPUTE_LOG_PATH, Path.Combine(Path.GetTempPath(), "Compute", "Logs"), COMPUTE_LOG_PATH);
             LogRetainDays = GetEnvironmentVariable(RHINO_COMPUTE_LOG_RETAIN_DAYS, 10, COMPUTE_LOG_RETAIN_DAYS);
             CreateHeadlessDoc = GetEnvironmentVariable<bool>(RHINO_COMPUTE_CREATE_HEADLESS_DOC, false);
@@ -83,6 +91,7 @@ namespace compute.geometry
         // environment variables
         const string RHINO_COMPUTE_URLS = "RHINO_COMPUTE_URLS";
         const string RHINO_COMPUTE_KEY = "RHINO_COMPUTE_KEY";
+        const string RHINO_COMPUTE_MAX_REQUEST_SIZE = "RHINO_COMPUTE_MAX_REQUEST_SIZE";
         const string RHINO_COMPUTE_LOG_PATH = "RHINO_COMPUTE_LOG_PATH";
         const string RHINO_COMPUTE_LOG_RETAIN_DAYS = "RHINO_COMPUTE_LOG_RETAIN_DAYS";
         const string RHINO_COMPUTE_DEBUG = "RHINO_COMPUTE_DEBUG";
@@ -125,6 +134,15 @@ namespace compute.geometry
                     return (T)(object)result;
 
                 _warnings.Add($"{name} set to '{value}'; unable to parse as integer");
+                return defaultValue;
+            }
+
+            if (typeof(T) == typeof(long))
+            {
+                if (long.TryParse(value, out long result))
+                    return (T)(object)result;
+
+                _warnings.Add($"{name} set to '{value}'; unable to parse as long");
                 return defaultValue;
             }
 
