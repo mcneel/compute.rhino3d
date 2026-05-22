@@ -32,6 +32,15 @@ namespace compute.geometry
         public static long MaxRequestSize { get; private set; }
 
         /// <summary>
+        /// RHINO_COMPUTE_CACHE_PHYSICAL_LIMIT_PERCENT: percentage of the host's physical
+        /// memory at which the solve-results cache (and URL-fetched data cache) begins
+        /// LRU-evicting entries. Defaults to 70. Definitions are cached in a separate
+        /// instance with no eviction so pointer-based clients (the /io → pointer →
+        /// /grasshopper flow) don't break when memory pressure rises.
+        /// </summary>
+        public static int CachePhysicalLimitPercent { get; private set; }
+
+        /// <summary>
         /// RHINO_COMPUTE_BLOCK_PRIVATE_URLS: when true, refuses server-side URL fetches
         /// whose hostname DNS-resolves to a private, loopback, or link-local IP. Defaults
         /// to false to preserve backward compatibility for deployments that legitimately
@@ -84,6 +93,7 @@ namespace compute.geometry
             ApiKey = GetEnvironmentVariable<string>(RHINO_COMPUTE_KEY, null);
             MaxRequestSize = GetEnvironmentVariable<long>(RHINO_COMPUTE_MAX_REQUEST_SIZE, 52428800);
             BlockPrivateUrls = GetEnvironmentVariable<bool>(RHINO_COMPUTE_BLOCK_PRIVATE_URLS, false);
+            CachePhysicalLimitPercent = GetEnvironmentVariable<int>(RHINO_COMPUTE_CACHE_PHYSICAL_LIMIT_PERCENT, 70);
             LogPath = GetEnvironmentVariable(RHINO_COMPUTE_LOG_PATH, Path.Combine(Path.GetTempPath(), "Compute", "Logs"), COMPUTE_LOG_PATH);
             LogRetainDays = GetEnvironmentVariable(RHINO_COMPUTE_LOG_RETAIN_DAYS, 10, COMPUTE_LOG_RETAIN_DAYS);
             CreateHeadlessDoc = GetEnvironmentVariable<bool>(RHINO_COMPUTE_CREATE_HEADLESS_DOC, false);
@@ -110,6 +120,7 @@ namespace compute.geometry
         const string RHINO_COMPUTE_KEY = "RHINO_COMPUTE_KEY";
         const string RHINO_COMPUTE_MAX_REQUEST_SIZE = "RHINO_COMPUTE_MAX_REQUEST_SIZE";
         const string RHINO_COMPUTE_BLOCK_PRIVATE_URLS = "RHINO_COMPUTE_BLOCK_PRIVATE_URLS";
+        const string RHINO_COMPUTE_CACHE_PHYSICAL_LIMIT_PERCENT = "RHINO_COMPUTE_CACHE_PHYSICAL_LIMIT_PERCENT";
         const string RHINO_COMPUTE_LOG_PATH = "RHINO_COMPUTE_LOG_PATH";
         const string RHINO_COMPUTE_LOG_RETAIN_DAYS = "RHINO_COMPUTE_LOG_RETAIN_DAYS";
         const string RHINO_COMPUTE_DEBUG = "RHINO_COMPUTE_DEBUG";

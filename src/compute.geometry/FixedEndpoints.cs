@@ -20,6 +20,7 @@ namespace compute.geometry
             app.MapGet("servertime", ServerTime);
             app.MapGet("plugins/rhino/installed", GetInstalledPluginsRhino);
             app.MapGet("plugins/gh/installed", GetInstalledPluginsGrasshopper);
+            app.MapPost("cache/purge", PurgeCache);
         }
 
         static void HomePage(HttpContext context)
@@ -62,6 +63,20 @@ namespace compute.geometry
 
             ctx.Response.ContentType = "application/json";
             await ctx.Response.WriteAsJsonAsync(rhPluginInfo);
+        }
+
+        // POST /cache/purge — wipes the solve-results / URL-data cache. Does NOT touch
+        // the definition cache, since active clients may hold Pointer references to
+        // entries there and a purge would cause subsequent /grasshopper calls with those
+        // pointers to fail. Operators expecting memory relief without breaking pointer-
+        // based flows should use this endpoint. Auth-gated by ApiKeyMiddleware (POST
+        // method requires the RhinoComputeKey header when Config.ApiKey is set).
+        static async Task PurgeCache(HttpContext ctx)
+        {
+            long removed = DataCache.PurgeSolveResults();
+            Serilog.Log.Information("Cache purge requested: removed {Count} solve-results / URL-data entries", removed);
+            ctx.Response.ContentType = "application/json";
+            await ctx.Response.WriteAsJsonAsync(new { purged = removed });
         }
 
         static async Task GetInstalledPluginsGrasshopper(HttpContext ctx)
