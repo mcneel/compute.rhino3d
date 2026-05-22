@@ -109,7 +109,7 @@ namespace compute.geometry
         {
             if (string.IsNullOrWhiteSpace(key))
                 return null;
-            var def = System.Runtime.Caching.MemoryCache.Default.Get(key) as CachedDefinition;
+            var def = _definitionCache.Get(key) as CachedDefinition;
             if (def == null)
             {
                 string filename = DefinitionCacheFileName(key);
@@ -132,7 +132,7 @@ namespace compute.geometry
             {
                 if(def.WatchedFileRuntimeSerialNumber != GrasshopperDefinition.WatchedFileRuntimeSerialNumber)
                 {
-                    System.Runtime.Caching.MemoryCache.Default.Remove(key);
+                    _definitionCache.Remove(key);
                     return null;
                 }
             }
@@ -146,7 +146,7 @@ namespace compute.geometry
                 Definition = definition,
                 WatchedFileRuntimeSerialNumber = GrasshopperDefinition.WatchedFileRuntimeSerialNumber
             };
-            System.Runtime.Caching.MemoryCache.Default.Set(key, cachedef, CachePolicy);
+            _definitionCache.Set(key, cachedef, CachePolicy);
 
             if (!string.IsNullOrWhiteSpace(data))
             {
@@ -174,7 +174,7 @@ namespace compute.geometry
         {
             if (string.IsNullOrWhiteSpace(key))
                 return null;
-            var cache = System.Runtime.Caching.MemoryCache.Default.Get(key) as CachedResults;
+            var cache = _resultsCache.Get(key) as CachedResults;
             if (cache == null)
                 return null;
 
@@ -182,7 +182,7 @@ namespace compute.geometry
             {
                 if (cache.WatchedFileRuntimeSerialNumber != GrasshopperDefinition.WatchedFileRuntimeSerialNumber)
                 {
-                    System.Runtime.Caching.MemoryCache.Default.Remove(key);
+                    _resultsCache.Remove(key);
                     return null;
                 }
             }
@@ -202,7 +202,7 @@ namespace compute.geometry
                 Json = jsonResults
             };
 
-            System.Runtime.Caching.MemoryCache.Default.Add(key, cache, CachePolicy);
+            _resultsCache.Add(key, cache, CachePolicy);
         }
 
         public static object GetCachedItem(JToken token, Type objectType, JsonSerializer serializer)
@@ -221,7 +221,7 @@ namespace compute.geometry
 
                 JToken jtoken = null;
                 string key = $"url:{url.ToLower()}";
-                Tuple<JToken, object> cacheEntry = System.Runtime.Caching.MemoryCache.Default.Get(key) as Tuple<JToken, object>;
+                Tuple<JToken, object> cacheEntry = _resultsCache.Get(key) as Tuple<JToken, object>;
                 if( cacheEntry!=null)
                 {
                     Rhino.Geometry.GeometryBase geometry = cacheEntry.Item2 as Rhino.Geometry.GeometryBase;
@@ -248,7 +248,7 @@ namespace compute.geometry
                         rc = jtoken.ToObject(objectType, serializer);
 
                     cacheEntry = new Tuple<JToken, object>(jtoken, rc);
-                    System.Runtime.Caching.MemoryCache.Default.Add(key, cacheEntry, CachePolicy);
+                    _resultsCache.Add(key, cacheEntry, CachePolicy);
                     Rhino.Geometry.GeometryBase geometry = rc as Rhino.Geometry.GeometryBase;
                     if (geometry != null)
                         return geometry.DuplicateShallow();
@@ -267,6 +267,45 @@ namespace compute.geometry
                 //policy.SlidingExpiration = new TimeSpan(14, 0, 0, 0);
                 return policy;
             }
+        }
+
+        // Two separate MemoryCache instances with deliberately different eviction policies:
+        //
+        //  - _definitionCache: stores parsed GrasshopperDefinitions. NEVER evicts under
+        //    memory pressure. Clients send a /io request, receive a Pointer in the
+        //    response, then reference that Pointer in subsequent /grasshopper calls so
+        //    they don't have to re-upload the full definition. Evicting an entry here
+        //    breaks every pointer-based client holding that Pointer.
+        //
+        //  - _resultsCache: stores serialized solve outputs AND URL-fetched JSON data.
+        //    LRU-evicts under host memory pressure (configured via
+        //    PhysicalMemoryLimitPercentage = Config.CachePhysicalLimitPercent, default 70%).
+        //    On cache miss, both kinds of entry are re-derivable: a missing solve result
+        //    just triggers another solve (slower but correct), and a missing URL fetch
+        //    re-pulls from the source via UrlGuard.
+        //
+        // PollingInterval controls how often the cache checks host memory. 30 seconds is
+        // a balance — fast enough to keep up with bursty allocations from Rhino/Grasshopper,
+        // slow enough to avoid pure-syscall overhead.
+        static readonly System.Runtime.Caching.MemoryCache _definitionCache =
+            new System.Runtime.Caching.MemoryCache("compute.geometry.definitions");
+        static readonly System.Runtime.Caching.MemoryCache _resultsCache =
+            new System.Runtime.Caching.MemoryCache("compute.geometry.results",
+                new System.Collections.Specialized.NameValueCollection
+                {
+                    { "PhysicalMemoryLimitPercentage", Config.CachePhysicalLimitPercent.ToString() },
+                    { "PollingInterval", "00:00:30" },
+                });
+
+        /// <summary>
+        /// Purges every entry from the solve-results / URL-data cache. Does NOT touch the
+        /// definition cache, since active clients may hold Pointer references to entries
+        /// there. Returns the number of items removed. Exposed via the POST /cache/purge
+        /// endpoint for operator-driven cleanup when host memory pressure is observed.
+        /// </summary>
+        public static long PurgeSolveResults()
+        {
+            return _resultsCache.Trim(100);
         }
     }
 }
