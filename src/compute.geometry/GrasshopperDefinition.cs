@@ -709,9 +709,10 @@ namespace compute.geometry
 
             if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
             {
-                // HttpClientHelper.Client has GZip/Deflate decompression enabled at the handler
-                // level, matching the prior HttpWebRequest.AutomaticDecompression = GZip behavior.
-                byte[] byteArray = HttpClientHelper.Client.GetByteArrayAsync(url).Result;
+                // UrlGuard validates scheme + optional private-IP block, then streams the
+                // response with a size cap from Config.MaxRequestSize. HttpClientHelper.Client
+                // (used by UrlGuard under the hood) has GZip/Deflate decompression enabled.
+                byte[] byteArray = UrlGuard.GetByteArrayAsync(url, Config.MaxRequestSize).Result;
 
                 try
                 {
