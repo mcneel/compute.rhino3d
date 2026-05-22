@@ -59,6 +59,12 @@ namespace compute.geometry
             var logger = new LoggerConfiguration()
                 .MinimumLevel.Is(level)
                 .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+                // Silence ASP.NET Core's built-in "An unhandled exception has occurred while
+                // executing the request." log emitted by ExceptionHandlerMiddleware. Our own
+                // app.UseExceptionHandler handler logs a categorized, formatted version with
+                // the same stack trace, so without this override the same exception shows up
+                // twice on the console.
+                .MinimumLevel.Override("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogEventLevel.Fatal)
                 .Enrich.With(new DynamicPortEnricher())
                 .WriteTo.Console(outputTemplate: "CG {Port} [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
                 .WriteTo.File(new ExpressionTemplate("CG {Port} [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
