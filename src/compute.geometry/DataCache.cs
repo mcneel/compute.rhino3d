@@ -231,7 +231,9 @@ namespace compute.geometry
                 }
                 if (jtoken == null)
                 {
-                    string cacheString = HttpClientHelper.Client.GetStringAsync(url).Result;
+                    // UrlGuard adds scheme validation, optional private-IP blocking,
+                    // and a Config.MaxRequestSize cap to the outbound fetch.
+                    string cacheString = UrlGuard.GetStringAsync(url, Config.MaxRequestSize).Result;
                     object data = string.IsNullOrWhiteSpace(cacheString) ? null : Newtonsoft.Json.JsonConvert.DeserializeObject(cacheString);
                     var ja = data as Newtonsoft.Json.Linq.JArray;
                     jtoken = ja[0];
