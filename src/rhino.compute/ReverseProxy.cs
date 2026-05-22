@@ -109,10 +109,27 @@ namespace rhino.compute
             app.MapPost("/{*uri}", (HttpRequest req, HttpResponse res) => ProxyRequest(req, res, HttpMethod.Post));
         }
 
-        static Task LaunchChildren(HttpRequest request, HttpResponse response)
+        static async Task LaunchChildren(HttpRequest request, HttpResponse response)
         {
-            int children = System.Convert.ToInt32(request.Query["children"]);
-            int parentProcessId = System.Convert.ToInt32(request.Query["parent"]);
+            // Reject malformed input cleanly instead of letting Convert.ToInt32 throw a
+            // FormatException that would bubble up to the global exception handler.
+            if (!int.TryParse(request.Query["children"], out int children) || children <= 0)
+            {
+                response.StatusCode = 400;
+                await response.WriteAsync("children query parameter must be a positive integer");
+                return;
+            }
+            if (!int.TryParse(request.Query["parent"], out int parentProcessId))
+            {
+                response.StatusCode = 400;
+                await response.WriteAsync("parent query parameter must be an integer");
+                return;
+            }
+            if (children > ComputeChildren.MaxChildren)
+            {
+                Log.Warning("/launch capped from {Requested} to {Cap} children", children, ComputeChildren.MaxChildren);
+                children = ComputeChildren.MaxChildren;
+            }
             if (Program.IsParentRhinoProcess(parentProcessId))
             {
                 for (int i = 0; i < children; i++)
@@ -120,7 +137,6 @@ namespace rhino.compute
                     ComputeChildren.LaunchCompute(false);
                 }
             }
-            return Task.CompletedTask;
         }
 
         static async Task AwaitInitTask()
