@@ -68,8 +68,12 @@ namespace compute.geometry
                 {
                     var b = webBuilder.ConfigureKestrel((context, options) =>
                     {
-                        // Handle requests up to 50 MB
-                        options.Limits.MaxRequestBodySize = null;//Config.MaxRequestSize;
+                        // Cap request body to Config.MaxRequestSize (default 50 MB, override via
+                        // RHINO_COMPUTE_MAX_REQUEST_SIZE). Previously this was set to null
+                        // (unlimited), which allowed a single caller to send an unbounded body
+                        // and exhaust server memory. The env var name matches rhino.compute's
+                        // so child processes inherit the parent's configured value automatically.
+                        options.Limits.MaxRequestBodySize = Config.MaxRequestSize;
                         if (Config.LocalhostPort > 0)
                             options.ListenLocalhost(Config.LocalhostPort);
                     })

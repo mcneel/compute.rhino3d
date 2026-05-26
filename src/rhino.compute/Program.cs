@@ -144,8 +144,17 @@ requests while the child processes are launching.")]
                 if (o.CreateHeadlessDoc.HasValue)
                     Environment.SetEnvironmentVariable("RHINO_COMPUTE_CREATE_HEADLESS_DOC", o.CreateHeadlessDoc.Value ? "true" : "false");
 
-                // Set runtime options
-                ComputeChildren.SpawnCount = o.ChildCount;
+                // Set runtime options. ChildCount is capped at ComputeChildren.MaxChildren
+                // (same cap that protects the /launch?children=N endpoint) so the Config
+                // block below prints the actual-effective value and downstream code never
+                // sees an unsafe value.
+                int requestedChildren = o.ChildCount;
+                if (requestedChildren > ComputeChildren.MaxChildren)
+                {
+                    Log.Warning("--childcount capped from {Requested} to {Cap}", requestedChildren, ComputeChildren.MaxChildren);
+                    requestedChildren = ComputeChildren.MaxChildren;
+                }
+                ComputeChildren.SpawnCount = requestedChildren;
                 ComputeChildren.SpawnOnStartup = o.SpawnOnStartup;
                 ComputeChildren.LoadChildrenSequentially = o.LoadChildrenSequentially;
                 ComputeChildren.ChildIdleSpan = new System.TimeSpan(0, 0, o.IdleSpanSeconds);
