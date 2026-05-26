@@ -28,15 +28,19 @@ namespace compute.geometry
             // warnings would land with an empty port column.
             Logging.Init(FindPortArg(args));
 
+            ParseCommandLineArgs(args);
+
             // Loud warning if the server is starting unauthenticated. The ApiKeyMiddleware
             // only wires up when Config.ApiKey is non-empty, so a missing key means every
             // POST endpoint accepts any caller. Operators sometimes don't realize the env
             // var didn't propagate (running process predates the setx, IIS app pool not
             // recycled, etc.) — this surfaces the problem at startup instead of silently.
-            if (string.IsNullOrWhiteSpace(Config.ApiKey))
+            // Skip it when launched by rhino.compute (signalled by -childof:<pid>, which
+            // populates Shutdown.ParentProcesses during ParseCommandLineArgs): the parent
+            // already prints this same warning, so emitting it per child just duplicates it.
+            bool launchedByRhinoCompute = Shutdown.ParentProcesses != null && Shutdown.ParentProcesses.Count > 0;
+            if (!launchedByRhinoCompute && string.IsNullOrWhiteSpace(Config.ApiKey))
                 Log.Warning("RHINO_COMPUTE_KEY is not set; API authentication is disabled. All endpoints are open to any caller.");
-
-            ParseCommandLineArgs(args);
 
 #if DEBUG
             // Uncomment the following to debug with core Rhino source. This
