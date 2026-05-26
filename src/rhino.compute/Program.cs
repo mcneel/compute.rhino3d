@@ -112,6 +112,12 @@ requests while the child processes are launching.")]
             var loggerConfig = new LoggerConfiguration()
             .MinimumLevel.Is(level)
             .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+            // Silence ASP.NET Core's built-in "An unhandled exception has occurred while
+            // executing the request." log emitted by ExceptionHandlerMiddleware. Our own
+            // app.UseExceptionHandler handler logs a categorized, formatted version with
+            // the same stack trace, so without this override the same exception shows up
+            // twice on the console.
+            .MinimumLevel.Override("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogEventLevel.Fatal)
             .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico']")
             .WriteTo.Console(
                 outputTemplate: "RC  [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
@@ -191,6 +197,15 @@ requests while the child processes are launching.")]
             }
 
             Log.Information($"Rhino compute started at {DateTime.Now.ToLocalTime()}");
+
+            // Loud warning if the proxy is starting unauthenticated. The ApiKeyMiddleware
+            // only wires up when Config.ApiKey is non-empty, so a missing key means every
+            // endpoint accepts any caller. Operators sometimes don't realize the env var
+            // didn't propagate (running process predates the setx, IIS app pool not
+            // recycled, etc.) — this surfaces the problem at startup instead of silently.
+            if (string.IsNullOrWhiteSpace(Config.ApiKey))
+                Log.Warning("RHINO_COMPUTE_KEY is not set; API authentication is disabled. All endpoints are open to any caller.");
+
             Log.Debug($"Config:");
             Log.Debug("  Max Request Size = {RequestSize}", (Config.MaxRequestSize / 1024.0 / 1024.0).ToString("F2") + " MB");
             Log.Debug("  Timeout = {Timeout}", FormatTimeout(Config.ReverseProxyRequestTimeout));

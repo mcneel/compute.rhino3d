@@ -57,6 +57,12 @@ namespace compute.geometry
             var logger = new LoggerConfiguration()
                 .MinimumLevel.Is(level)
                 .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+                // Silence ASP.NET Core's built-in "An unhandled exception has occurred while
+                // executing the request." log emitted by ExceptionHandlerMiddleware. Our own
+                // app.UseExceptionHandler handler logs a categorized, formatted version with
+                // the same stack trace, so without this override the same exception shows up
+                // twice on the console.
+                .MinimumLevel.Override("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogEventLevel.Fatal)
                 .Enrich.With(new DynamicPortEnricher())
                 // ANSI theme embeds colors as escape sequences in the output text so they
                 // survive rhino.compute's stdout pipe (the default SystemConsoleTheme.Literate

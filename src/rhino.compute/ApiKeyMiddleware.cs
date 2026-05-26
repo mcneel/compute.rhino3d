@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Serilog;
-using System;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace rhino.compute
@@ -24,9 +25,14 @@ namespace rhino.compute
                 return;
             }
 
-            var apiKey = Config.ApiKey;
-
-            if (!string.Equals(extractedApiKey.ToString(), apiKey, StringComparison.Ordinal))
+            // Timing-safe comparison. String.Equals exits early on the first byte that
+            // differs, which leaks key-prefix information to an attacker measuring response
+            // times across many requests. FixedTimeEquals walks both buffers fully every
+            // time, so the per-byte work is constant regardless of where they differ.
+            // (Length difference still short-circuits — that's not a meaningful leak.)
+            var providedBytes = Encoding.UTF8.GetBytes(extractedApiKey.ToString());
+            var configuredBytes = Encoding.UTF8.GetBytes(Config.ApiKey);
+            if (!CryptographicOperations.FixedTimeEquals(providedBytes, configuredBytes))
             {
                 Log.Warning("401 rejected {Method} {Path}: {HeaderName} header does not match server's configured key",
                     context.Request.Method, context.Request.Path, APIKEYNAME);
