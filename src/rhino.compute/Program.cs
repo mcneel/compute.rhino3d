@@ -45,6 +45,12 @@ of this handle and will shut down when this process has exited")]
               HelpText = "Create a new headless Rhino doc upon each received request (default: false)")]
             public bool? CreateHeadlessDoc { get; set; }
 
+            [Option("block-private-urls",
+              Required = false,
+              Default = false,
+              HelpText = "When set, compute.geometry refuses to fetch server-side URLs whose hostname resolves to a private, loopback, or link-local IP address. Recommended for public-facing deployments to defend against SSRF attacks targeting cloud metadata endpoints (e.g. 169.254.169.254 on AWS/Azure/GCP) and internal LAN services. Default is off so deployments fetching from internal hosts continue to work.")]
+            public bool BlockPrivateUrls { get; set; }
+
             [Option("idlespan",
              Required = false,
              HelpText =
@@ -144,6 +150,13 @@ requests while the child processes are launching.")]
                 if (o.CreateHeadlessDoc.HasValue)
                     Environment.SetEnvironmentVariable("RHINO_COMPUTE_CREATE_HEADLESS_DOC", o.CreateHeadlessDoc.Value ? "true" : "false");
 
+                // --block-private-urls enables SSRF protection in spawned compute.geometry
+                // children by setting the env var they read at startup. Only set when the
+                // flag is present so an external RHINO_COMPUTE_BLOCK_PRIVATE_URLS=true (set
+                // before launching rhino.compute) still takes effect without the flag.
+                if (o.BlockPrivateUrls)
+                    Environment.SetEnvironmentVariable("RHINO_COMPUTE_BLOCK_PRIVATE_URLS", "true");
+
                 // Set runtime options. ChildCount is capped at ComputeChildren.MaxChildren
                 // (same cap that protects the /launch?children=N endpoint) so the Config
                 // block below prints the actual-effective value and downstream code never
@@ -227,6 +240,8 @@ requests while the child processes are launching.")]
             bool createHeadlessDoc = false;
             createHeadlessDoc = Boolean.TryParse(Environment.GetEnvironmentVariable("RHINO_COMPUTE_CREATE_HEADLESS_DOC"), out var createHeadless) ? createHeadless : false;
             Log.Debug("  Create Headless Document = {CreateHeadlessDoc}", createHeadlessDoc.ToString());
+            bool blockPrivateUrls = Boolean.TryParse(Environment.GetEnvironmentVariable("RHINO_COMPUTE_BLOCK_PRIVATE_URLS"), out var blockPrivate) && blockPrivate;
+            Log.Debug("  Block Private URLs = {BlockPrivateUrls}", blockPrivateUrls.ToString());
             Log.Debug("  Log Path = {LogPath}", Config.LogPath);
 
             var logger = host.Services.GetRequiredService<ILogger<ReverseProxyModule>>();
