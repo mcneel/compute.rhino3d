@@ -55,7 +55,7 @@
     <PackageReference Include="System.Runtime.Caching" Version="9.0.0" />
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
     <PackageReference Include="System.Runtime.Serialization.Formatters" Version="9.0.0" />
-    <PackageReference Include="Rhino.Inside" Version="9.0.10-beta" />
+    <PackageReference Include="Rhino.Inside" Version="9.0.26084.13070-beta" />
   </ItemGroup>
 
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform(windows))">
