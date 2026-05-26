@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Http;
+using Serilog;
+using System;
 using System.Threading.Tasks;
 
 namespace rhino.compute
@@ -17,6 +17,8 @@ namespace rhino.compute
         {
             if (!context.Request.Headers.TryGetValue(APIKEYNAME, out var extractedApiKey))
             {
+                Log.Warning("401 rejected {Method} {Path}: missing {HeaderName} header",
+                    context.Request.Method, context.Request.Path, APIKEYNAME);
                 context.Response.StatusCode = 401;
                 await context.Response.WriteAsync("Api Key was not provided.");
                 return;
@@ -24,8 +26,10 @@ namespace rhino.compute
 
             var apiKey = Config.ApiKey;
 
-            if (!apiKey.Equals(extractedApiKey))
+            if (!string.Equals(extractedApiKey.ToString(), apiKey, StringComparison.Ordinal))
             {
+                Log.Warning("401 rejected {Method} {Path}: {HeaderName} header does not match server's configured key",
+                    context.Request.Method, context.Request.Path, APIKEYNAME);
                 context.Response.StatusCode = 401;
                 await context.Response.WriteAsync("Unauthorized client.");
                 return;
