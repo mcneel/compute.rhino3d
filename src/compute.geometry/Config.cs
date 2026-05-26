@@ -26,9 +26,25 @@ namespace compute.geometry
         /// <summary>
         /// RHINO_COMPUTE_MAX_REQUEST_SIZE: maximum allowed size of any request body in bytes.
         /// Defaults to 50 MB. Matches the rhino.compute env-var pattern so child processes
-        /// inherit the same limit when launched under the proxy.
+        /// inherit the same limit when launched under the proxy. Also used as the cap for
+        /// server-side URL fetches in UrlGuard.
         /// </summary>
         public static long MaxRequestSize { get; private set; }
+
+        /// <summary>
+        /// RHINO_COMPUTE_BLOCK_PRIVATE_URLS: when true, refuses server-side URL fetches
+        /// whose hostname DNS-resolves to a private, loopback, or link-local IP. Defaults
+        /// to false to preserve backward compatibility for deployments that legitimately
+        /// fetch from internal hosts (intranet file servers, VPC endpoints, etc.).
+        ///
+        /// Recommended for any deployment that has a public IP — especially cloud VMs,
+        /// where this protects against SSRF attacks targeting the cloud metadata endpoint
+        /// at 169.254.169.254 (which exposes IAM credentials on AWS/Azure/GCP).
+        ///
+        /// rhino.compute exposes this via --block-private-urls in its CLI; setting the
+        /// flag on the parent propagates the env var to spawned compute.geometry children.
+        /// </summary>
+        public static bool BlockPrivateUrls { get; private set; }
 
         /// <summary>
         /// RHINO_COMPUTE_LOG_PATH: the directory in which to write logs.
@@ -67,6 +83,7 @@ namespace compute.geometry
             Urls = GetEnvironmentVariable(RHINO_COMPUTE_URLS, "http://localhost:8081", COMPUTE_BIND_URLS).Split(';');
             ApiKey = GetEnvironmentVariable<string>(RHINO_COMPUTE_KEY, null);
             MaxRequestSize = GetEnvironmentVariable<long>(RHINO_COMPUTE_MAX_REQUEST_SIZE, 52428800);
+            BlockPrivateUrls = GetEnvironmentVariable<bool>(RHINO_COMPUTE_BLOCK_PRIVATE_URLS, false);
             LogPath = GetEnvironmentVariable(RHINO_COMPUTE_LOG_PATH, Path.Combine(Path.GetTempPath(), "Compute", "Logs"), COMPUTE_LOG_PATH);
             LogRetainDays = GetEnvironmentVariable(RHINO_COMPUTE_LOG_RETAIN_DAYS, 10, COMPUTE_LOG_RETAIN_DAYS);
             CreateHeadlessDoc = GetEnvironmentVariable<bool>(RHINO_COMPUTE_CREATE_HEADLESS_DOC, false);
@@ -92,6 +109,7 @@ namespace compute.geometry
         const string RHINO_COMPUTE_URLS = "RHINO_COMPUTE_URLS";
         const string RHINO_COMPUTE_KEY = "RHINO_COMPUTE_KEY";
         const string RHINO_COMPUTE_MAX_REQUEST_SIZE = "RHINO_COMPUTE_MAX_REQUEST_SIZE";
+        const string RHINO_COMPUTE_BLOCK_PRIVATE_URLS = "RHINO_COMPUTE_BLOCK_PRIVATE_URLS";
         const string RHINO_COMPUTE_LOG_PATH = "RHINO_COMPUTE_LOG_PATH";
         const string RHINO_COMPUTE_LOG_RETAIN_DAYS = "RHINO_COMPUTE_LOG_RETAIN_DAYS";
         const string RHINO_COMPUTE_DEBUG = "RHINO_COMPUTE_DEBUG";
