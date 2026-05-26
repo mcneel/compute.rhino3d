@@ -15,6 +15,14 @@ namespace rhino.compute
         /// </summary>
         public static int SpawnCount { get; set; } = 1;
 
+        /// <summary>
+        /// Upper bound on the number of children that may run at once. Applies to both
+        /// the startup <c>--childcount</c> CLI flag and the runtime <c>/launch?children=N</c>
+        /// endpoint. Well above any realistic deployment need; typical configs run 1-8.
+        /// Raise carefully — beyond this each child uses hundreds of MB and a CPU core.
+        /// </summary>
+        public const int MaxChildren = 64;
+
         static DateTime _lastCall = DateTime.MinValue;
         public static void UpdateLastCall()
         {
