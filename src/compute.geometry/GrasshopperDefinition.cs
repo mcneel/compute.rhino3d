@@ -712,7 +712,18 @@ namespace compute.geometry
                 // UrlGuard validates scheme + optional private-IP block, then streams the
                 // response with a size cap from Config.MaxRequestSize. HttpClientHelper.Client
                 // (used by UrlGuard under the hood) has GZip/Deflate decompression enabled.
-                byte[] byteArray = UrlGuard.GetByteArrayAsync(url, Config.MaxRequestSize).Result;
+                // Unwrap the AggregateException that .Result wraps around the real failure so
+                // the clean inner message (e.g. "The server responded with 503 ...") surfaces
+                // instead of "One or more errors occurred. (...)".
+                byte[] byteArray;
+                try
+                {
+                    byteArray = UrlGuard.GetByteArrayAsync(url, Config.MaxRequestSize).Result;
+                }
+                catch (AggregateException ex) when (ex.InnerException != null)
+                {
+                    throw ex.InnerException;
+                }
 
                 try
                 {

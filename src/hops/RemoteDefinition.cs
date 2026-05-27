@@ -53,6 +53,36 @@ namespace Hops
             }
             return false;
         }
+
+        // Pull the human-readable "message" out of compute's JSON error body
+        // ({"error":...,"message":"...","stackTrace":[...]}) so the component shows a clean
+        // message instead of the raw JSON + stack trace. Falls back to the trimmed body for
+        // non-JSON responses (e.g. a plain-text 401).
+        static string ExtractServerErrorMessage(string body)
+        {
+            if (string.IsNullOrWhiteSpace(body))
+                return null;
+            string message = body.Trim();
+            try
+            {
+                if (Newtonsoft.Json.Linq.JToken.Parse(body) is Newtonsoft.Json.Linq.JObject obj)
+                {
+                    var m = obj["message"]?.ToString();
+                    if (!string.IsNullOrWhiteSpace(m))
+                        message = m;
+                }
+            }
+            catch (Exception)
+            {
+                // not JSON — keep the raw body
+            }
+            // compute.geometry's global exception handler prefixes unrecognized exception types
+            // with the type name (e.g. "HttpRequestException: ..."); strip it so the text is clean.
+            var match = System.Text.RegularExpressions.Regex.Match(message, @"^[A-Za-z0-9_.]+Exception:\s*");
+            if (match.Success)
+                message = message.Substring(match.Length);
+            return message;
+        }
         private static bool IsGrasshopperDefinition(string filename)
         {
             if (!String.IsNullOrEmpty(filename))
@@ -328,6 +358,22 @@ namespace Hops
                     errSchema.Errors.Add(serverMessage);
                     parentComponent.HTTPRecord.IOResponseSchema = errSchema;
                 }
+                else if (!responseMessage.IsSuccessStatusCode)
+                {
+                    // Any other non-success status (500/502/503/etc.) — e.g. the server's
+                    // global exception handler returned a JSON error body, or an upstream
+                    // URL fetch failed. Deserializing that body into an IoResponseSchema
+                    // yields null Inputs/Outputs and would NRE in the foreach loops below,
+                    // so surface it as a component error instead.
+                    var detail = ExtractServerErrorMessage(stringResult);
+                    var serverMessage = string.IsNullOrWhiteSpace(detail)
+                        ? $"Could not load the remote definition from {Path}\r\nThe server responded with {(int)responseMessage.StatusCode} ({responseMessage.StatusCode})."
+                        : $"Could not load the remote definition from {Path}\r\n{detail}";
+                    HopsLog.Log.Error(serverMessage);
+                    var errSchema = new IoResponseSchema();
+                    errSchema.Errors.Add(serverMessage);
+                    parentComponent.HTTPRecord.IOResponseSchema = errSchema;
+                }
                 else if (string.IsNullOrEmpty(stringResult))
                 {
                     this.pathType = PathType.InvalidUrl; // Looks like a valid but not related URL
@@ -403,7 +449,9 @@ namespace Hops
                 HopsLog.Log.Debug($"Compute.Geometry found {responseSchema.InputNames?.Count} input{inputSuffix} and {responseSchema.OutputNames?.Count} output{outputSuffix}{fileNameMsg}");
                 inputParams = new Dictionary<string, Tuple<InputParamSchema, IGH_Param>>();
                 outputParams = new Dictionary<string, IGH_Param>();
-                foreach (var input in responseSchema.Inputs)
+                // Defensive: a well-formed /io success response always populates these, but
+                // guard against null so a partial/unexpected body can't NullReference here.
+                foreach (var input in responseSchema.Inputs ?? Enumerable.Empty<InputParamSchema>())
                 {
                     string inputParamName = input.Name;
                     if (inputParamName.StartsWith("RH_IN:"))
@@ -413,7 +461,7 @@ namespace Hops
                     }
                     inputParams[inputParamName] = Tuple.Create(input, ParamFromIoResponseSchema(input));
                 }
-                foreach (var output in responseSchema.Outputs)
+                foreach (var output in responseSchema.Outputs ?? Enumerable.Empty<IoParamSchema>())
                 {
                     string outputParamName = output.Name;
                     if (outputParamName.StartsWith("RH_OUT:"))
