@@ -94,7 +94,7 @@ namespace compute.geometry
 
                 rc = Construct(archive);
                 rc.CacheKey = url;
-                rc.IsLocalFileDefinition = !url.StartsWith("http", StringComparison.OrdinalIgnoreCase) && File.Exists(url);
+                rc.IsLocalFileDefinition = !UrlGuard.IsWebUrl(url) && File.Exists(url);
             }
             if (cache)
             {
@@ -707,7 +707,7 @@ namespace compute.geometry
                 return null;
             }
 
-            if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            if (UrlGuard.IsWebUrl(url))
             {
                 // UrlGuard validates scheme + optional private-IP block, then streams the
                 // response with a size cap from Config.MaxRequestSize. HttpClientHelper.Client
