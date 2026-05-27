@@ -7,20 +7,20 @@ namespace Hops
 {
     static class SolveIterationQueue
     {
-        static Task _solveTask;
-        static ConcurrentStack<SolveDataList> _stack = new ConcurrentStack<SolveDataList>();
-        static int _maxConcurrentRequests;
-        static bool _idleSet = false;
-        static ConcurrentDictionary<Guid, Action> _componentCallbacks = new ConcurrentDictionary<Guid, Action>();
+        static Task solveTask;
+        static ConcurrentStack<SolveDataList> stack = new ConcurrentStack<SolveDataList>();
+        static int maxConcurrentRequests;
+        static bool idleSet = false;
+        static ConcurrentDictionary<Guid, Action> componentCallbacks = new ConcurrentDictionary<Guid, Action>();
 
         static public void Add(SolveDataList datalist)
         {
-            if (!_idleSet && !datalist.Synchronous)
+            if (!idleSet && !datalist.Synchronous)
             {
-                _idleSet = true;
+                idleSet = true;
                 Rhino.RhinoApp.Idle += RhinoApp_Idle;
             }
-            _maxConcurrentRequests = HopsAppSettings.MaxConcurrentRequests;
+            maxConcurrentRequests = HopsAppSettings.MaxConcurrentRequests;
 
             if (datalist.Synchronous)
             {
@@ -31,24 +31,24 @@ namespace Hops
                 return;
             }
 
-            _stack.Push(datalist);
-            if (_solveTask == null || _solveTask.IsCompleted)
-                _solveTask = Task.Run(() => ProcessStack(_stack));
+            stack.Push(datalist);
+            if (solveTask == null || solveTask.IsCompleted)
+                solveTask = Task.Run(() => ProcessStack(stack));
         }
 
         private static void RhinoApp_Idle(object sender, System.EventArgs e)
         {
-            if (_stack.Count > 0 && (_solveTask == null || _solveTask.IsCompleted))
-                _solveTask = Task.Run(() => ProcessStack(_stack));
+            if (stack.Count > 0 && (solveTask == null || solveTask.IsCompleted))
+                solveTask = Task.Run(() => ProcessStack(stack));
 
-            foreach (var callback in _componentCallbacks.Values)
+            foreach (var callback in componentCallbacks.Values)
                 callback();
-            _componentCallbacks.Clear();
+            componentCallbacks.Clear();
         }
 
         public static void AddIdleCallback(Guid componentId, System.Action callback)
         {
-            _componentCallbacks[componentId] = callback;
+            componentCallbacks[componentId] = callback;
         }
 
         static void ProcessStack(ConcurrentStack<SolveDataList> stack)
@@ -63,7 +63,7 @@ namespace Hops
                     if (t != null)
                     {
                         childTasks.Add(t);
-                        if (childTasks.Count >= _maxConcurrentRequests)
+                        if (childTasks.Count >= maxConcurrentRequests)
                         {
                             var taskArray = childTasks.ToArray();
                             Task.WaitAny(childTasks.ToArray());

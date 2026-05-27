@@ -8,10 +8,10 @@ namespace Hops
 {
     public class FunctionPathInfo
     {
-        public FunctionPathInfo(string _fullpath, bool _isfolder)
+        public FunctionPathInfo(string fullPath, bool isFolder)
         {
-            FullPath = _fullpath;
-            IsFolder = _isfolder;
+            FullPath = fullPath;
+            IsFolder = isFolder;
             if (IsFolder)
             {
                 Extension = "";
@@ -111,10 +111,10 @@ namespace Hops
 
     public class UriFunctionPathInfo
     {
-        public UriFunctionPathInfo(string _endpoint, bool _isfolder)
+        public UriFunctionPathInfo(string endpoint, bool isFolder)
         {
-            EndPoint = _endpoint;
-            IsFolder = _isfolder;
+            EndPoint = endpoint;
+            IsFolder = isFolder;
         }
 
         public string EndPoint { get; set; }

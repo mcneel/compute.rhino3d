@@ -9,24 +9,24 @@ namespace Hops
     /// </summary>
     static class MemoryCache
     {
-        static System.Runtime.Caching.MemoryCache _memCache = new System.Runtime.Caching.MemoryCache("HopsCache");
+        static System.Runtime.Caching.MemoryCache memoryCache = new System.Runtime.Caching.MemoryCache("HopsCache");
 
         public static Schema Get(string key)
         {
-            var cachedResults = _memCache.Get(key) as Schema;
+            var cachedResults = memoryCache.Get(key) as Schema;
             return cachedResults;
         }
 
         public static void Set(string key, Schema schema)
         {
             EntryCount++;
-            _memCache.Set(key, schema, new System.Runtime.Caching.CacheItemPolicy());
+            memoryCache.Set(key, schema, new System.Runtime.Caching.CacheItemPolicy());
         }
 
         public static void ClearCache()
         {
-            _memCache.Dispose();
-            _memCache = new System.Runtime.Caching.MemoryCache("HopsCache");
+            memoryCache.Dispose();
+            memoryCache = new System.Runtime.Caching.MemoryCache("HopsCache");
             EntryCount = 0;
         }
 

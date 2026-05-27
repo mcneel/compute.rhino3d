@@ -6,11 +6,11 @@ namespace Hops
 {
     class SolveData
     {
-        readonly Resthopper.IO.Schema _input;
+        readonly Resthopper.IO.Schema input;
 
         public SolveData(Resthopper.IO.Schema input)
         {
-            _input = input;
+            this.input = input;
         }
 
         public bool HasSolveData
@@ -23,84 +23,84 @@ namespace Hops
 
         public Resthopper.IO.Schema Output { get; private set; }
 
-        Task _workingTask;
+        Task workingTask;
         public Task Solve(RemoteDefinition remoteDefinition, bool useMemoryCache, Action completedCallback)
         {
-            _workingTask = Task.Run(() =>
+            workingTask = Task.Run(() =>
             {
-                Output = remoteDefinition.Solve(_input, useMemoryCache);
+                Output = remoteDefinition.Solve(input, useMemoryCache);
                 completedCallback();
             });
-            return _workingTask;
+            return workingTask;
         }
     }
 
     class SolveDataList
     {
-        readonly int _solveSerialNumber;
-        readonly HopsComponent _parentComponent;
-        readonly bool _useMemoryCacheWhenSolving;
-        readonly RemoteDefinition _remoteDefinition;
-        bool _synchronous = false;
+        readonly int solveSerialNumber;
+        readonly HopsComponent parentComponent;
+        readonly bool useMemoryCacheWhenSolving;
+        readonly RemoteDefinition remoteDefinition;
+        bool synchronous = false;
 
-        List<SolveData> _data = new List<SolveData>();
-        bool _solveStarted = false;
+        List<SolveData> data = new List<SolveData>();
+        bool solveStarted = false;
 
         public SolveDataList(int serialNumber, HopsComponent component, RemoteDefinition remoteDefinition, bool useMemoryCache)
         {
-            _solveSerialNumber = serialNumber;
-            _parentComponent = component;
-            _useMemoryCacheWhenSolving = useMemoryCache;
-            _remoteDefinition = remoteDefinition;
+            solveSerialNumber = serialNumber;
+            parentComponent = component;
+            useMemoryCacheWhenSolving = useMemoryCache;
+            this.remoteDefinition = remoteDefinition;
         }
 
         public void Add(Resthopper.IO.Schema inputSchema)
         {
-            _data.Add(new SolveData(inputSchema));
+            data.Add(new SolveData(inputSchema));
         }
 
         public void StartSolving(bool waitUntilComplete)
         {
-            if (_solveStarted || Canceled)
+            if (solveStarted || Canceled)
                 return;
-            _solveStarted = true;
-            _synchronous = waitUntilComplete;
+            solveStarted = true;
+            synchronous = waitUntilComplete;
 
             SolveIterationQueue.Add(this);
         }
 
-        public int Count => _data.Count;
+        public int Count => data.Count;
         public bool Canceled { get; set; } = false;
-        public bool Synchronous => _synchronous;
+        public bool Synchronous => synchronous;
 
         public Task Solve(int index)
         {
             if (Canceled)
                 return null;
 
-            return _data[index].Solve(_remoteDefinition, _useMemoryCacheWhenSolving, OnItemSolved);
+            return data[index].Solve(remoteDefinition, useMemoryCacheWhenSolving, OnItemSolved);
         }
 
-        int _solvedCount = 0;
+        int solvedCount = 0;
         void OnItemSolved()
         {
-            System.Threading.Interlocked.Increment(ref _solvedCount);
-            if (_solvedCount == _data.Count && !_synchronous)
+            System.Threading.Interlocked.Increment(ref solvedCount);
+            if (solvedCount == data.Count && !synchronous)
             {
-                SolveIterationQueue.AddIdleCallback(_parentComponent.InstanceGuid, () => _parentComponent.OnWorkingListComplete());
+                SolveIterationQueue.AddIdleCallback(parentComponent.InstanceGuid, () => parentComponent.OnWorkingListComplete());
             }
         }
         private void RhinoApp_Idle(object sender, EventArgs e)
         {
-            if (_solveSerialNumber != _parentComponent.SolveSerialNumber || Canceled)
+            if (solveSerialNumber != parentComponent.SolveSerialNumber || Canceled)
             {
                 Rhino.RhinoApp.Idle -= RhinoApp_Idle;
                 return;
             }
 
-            if (SolvedFor(_parentComponent.SolveSerialNumber))
+            if (SolvedFor(parentComponent.SolveSerialNumber))
             {
-                _parentComponent.ExpireSolution(true);
+                parentComponent.ExpireSolution(true);
                 Rhino.RhinoApp.Idle -= RhinoApp_Idle;
             }
         }
@@ -108,14 +108,14 @@ namespace Hops
 
         public Resthopper.IO.Schema SolvedSchema(int index)
         {
-            return _data[index].Output;
+            return data[index].Output;
         }
 
         public bool SolvedFor(int serialNumber)
         {
-            if (!_solveStarted || _solveSerialNumber != serialNumber)
+            if (!solveStarted || solveSerialNumber != serialNumber)
                 return false;
-            foreach(var item in _data)
+            foreach(var item in data)
             {
                 if (!item.HasSolveData)
                     return false;
