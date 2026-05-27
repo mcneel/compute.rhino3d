@@ -50,17 +50,17 @@ namespace compute.geometry
             return true;
         }
 
-        static string _definitionCacheDirectory;
+        static string definitionCacheDirectory;
         static string DefinitionCacheDirectory
         {
             get
             {
-                if (string.IsNullOrWhiteSpace(_definitionCacheDirectory))
+                if (string.IsNullOrWhiteSpace(definitionCacheDirectory))
                 {
                     string path = System.Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                    _definitionCacheDirectory = System.IO.Path.Combine(path, "McNeel", "rhino.compute", "definitioncache");
+                    definitionCacheDirectory = System.IO.Path.Combine(path, "McNeel", "rhino.compute", "definitioncache");
                 }
-                return _definitionCacheDirectory;
+                return definitionCacheDirectory;
             }
         }
 
@@ -109,7 +109,7 @@ namespace compute.geometry
         {
             if (string.IsNullOrWhiteSpace(key))
                 return null;
-            var def = _definitionCache.Get(key) as CachedDefinition;
+            var def = definitionCache.Get(key) as CachedDefinition;
             if (def == null)
             {
                 string filename = DefinitionCacheFileName(key);
@@ -132,7 +132,7 @@ namespace compute.geometry
             {
                 if(def.WatchedFileRuntimeSerialNumber != GrasshopperDefinition.WatchedFileRuntimeSerialNumber)
                 {
-                    _definitionCache.Remove(key);
+                    definitionCache.Remove(key);
                     return null;
                 }
             }
@@ -146,7 +146,7 @@ namespace compute.geometry
                 Definition = definition,
                 WatchedFileRuntimeSerialNumber = GrasshopperDefinition.WatchedFileRuntimeSerialNumber
             };
-            _definitionCache.Set(key, cachedef, CachePolicy);
+            definitionCache.Set(key, cachedef, CachePolicy);
 
             if (!string.IsNullOrWhiteSpace(data))
             {
@@ -174,7 +174,7 @@ namespace compute.geometry
         {
             if (string.IsNullOrWhiteSpace(key))
                 return null;
-            var cache = _resultsCache.Get(key) as CachedResults;
+            var cache = resultsCache.Get(key) as CachedResults;
             if (cache == null)
                 return null;
 
@@ -182,7 +182,7 @@ namespace compute.geometry
             {
                 if (cache.WatchedFileRuntimeSerialNumber != GrasshopperDefinition.WatchedFileRuntimeSerialNumber)
                 {
-                    _resultsCache.Remove(key);
+                    resultsCache.Remove(key);
                     return null;
                 }
             }
@@ -202,7 +202,7 @@ namespace compute.geometry
                 Json = jsonResults
             };
 
-            _resultsCache.Add(key, cache, CachePolicy);
+            resultsCache.Add(key, cache, CachePolicy);
         }
 
         public static object GetCachedItem(JToken token, Type objectType, JsonSerializer serializer)
@@ -221,7 +221,7 @@ namespace compute.geometry
 
                 JToken jtoken = null;
                 string key = $"url:{url.ToLower()}";
-                Tuple<JToken, object> cacheEntry = _resultsCache.Get(key) as Tuple<JToken, object>;
+                Tuple<JToken, object> cacheEntry = resultsCache.Get(key) as Tuple<JToken, object>;
                 if( cacheEntry!=null)
                 {
                     Rhino.Geometry.GeometryBase geometry = cacheEntry.Item2 as Rhino.Geometry.GeometryBase;
@@ -248,7 +248,7 @@ namespace compute.geometry
                         rc = jtoken.ToObject(objectType, serializer);
 
                     cacheEntry = new Tuple<JToken, object>(jtoken, rc);
-                    _resultsCache.Add(key, cacheEntry, CachePolicy);
+                    resultsCache.Add(key, cacheEntry, CachePolicy);
                     Rhino.Geometry.GeometryBase geometry = rc as Rhino.Geometry.GeometryBase;
                     if (geometry != null)
                         return geometry.DuplicateShallow();
@@ -287,9 +287,9 @@ namespace compute.geometry
         // PollingInterval controls how often the cache checks host memory. 30 seconds is
         // a balance — fast enough to keep up with bursty allocations from Rhino/Grasshopper,
         // slow enough to avoid pure-syscall overhead.
-        static readonly System.Runtime.Caching.MemoryCache _definitionCache =
+        static readonly System.Runtime.Caching.MemoryCache definitionCache =
             new System.Runtime.Caching.MemoryCache("compute.geometry.definitions");
-        static readonly System.Runtime.Caching.MemoryCache _resultsCache =
+        static readonly System.Runtime.Caching.MemoryCache resultsCache =
             new System.Runtime.Caching.MemoryCache("compute.geometry.results",
                 new System.Collections.Specialized.NameValueCollection
                 {
@@ -305,7 +305,7 @@ namespace compute.geometry
         /// </summary>
         public static long PurgeSolveResults()
         {
-            return _resultsCache.Trim(100);
+            return resultsCache.Trim(100);
         }
     }
 }
