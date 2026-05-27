@@ -602,7 +602,7 @@ namespace Hops
         {
             if (String.IsNullOrEmpty(row.SourceName) || String.IsNullOrEmpty(row.SourcePath))
                 return;
-            if (row.SourcePath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            if (RemoteDefinition.IsWebUrl(row.SourcePath))
             {
                 try
                 {
