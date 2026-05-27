@@ -275,13 +275,13 @@ namespace compute.geometry
 
         // Two separate MemoryCache instances with deliberately different eviction policies:
         //
-        //  - _definitionCache: stores parsed GrasshopperDefinitions. NEVER evicts under
+        //  - definitionCache: stores parsed GrasshopperDefinitions. NEVER evicts under
         //    memory pressure. Clients send a /io request, receive a Pointer in the
         //    response, then reference that Pointer in subsequent /grasshopper calls so
         //    they don't have to re-upload the full definition. Evicting an entry here
         //    breaks every pointer-based client holding that Pointer.
         //
-        //  - _resultsCache: stores serialized solve outputs AND URL-fetched JSON data.
+        //  - resultsCache: stores serialized solve outputs AND URL-fetched JSON data.
         //    LRU-evicts under host memory pressure (configured via
         //    PhysicalMemoryLimitPercentage = Config.CachePhysicalLimitPercent, default 70%).
         //    On cache miss, both kinds of entry are re-derivable: a missing solve result

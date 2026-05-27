@@ -23,10 +23,10 @@ namespace rhino.compute
         /// </summary>
         public const int MaxChildren = 64;
 
-        static DateTime _lastCall = DateTime.MinValue;
+        static DateTime lastCall = DateTime.MinValue;
         public static void UpdateLastCall()
         {
-            _lastCall = DateTime.Now;
+            lastCall = DateTime.Now;
         }
 
         /// <summary>
@@ -60,9 +60,9 @@ namespace rhino.compute
         /// </returns>
         public static int IdleSpan()
         {
-            if (_lastCall == DateTime.MinValue)
+            if (lastCall == DateTime.MinValue)
                 return -1;
-            var span = DateTime.Now - _lastCall;
+            var span = DateTime.Now - lastCall;
             return (int)span.TotalSeconds;
         }
         /// <summary>
@@ -89,28 +89,28 @@ namespace rhino.compute
             // Simple round robin scheduler using a queue of compute.geometry processes
             int activePort = 0;
 
-            lock (_lockObject)
+            lock (lockObject)
             {
-                if (_computeProcesses.Count > 0)
+                if (computeProcesses.Count > 0)
                 {
-                    Tuple<Process, int> current = _computeProcesses.Dequeue();
+                    Tuple<Process, int> current = computeProcesses.Dequeue();
                     if (!current.Item1.HasExited)
                     {
-                        _computeProcesses.Enqueue(current);
+                        computeProcesses.Enqueue(current);
                         activePort = current.Item2;
                     }
                 }
 
                 if (activePort == 0)
                 {
-                    var aliveProcesses = _computeProcesses.Where(tuple => !tuple.Item1.HasExited).ToList();
-                    _computeProcesses = new Queue<Tuple<Process, int>>(aliveProcesses);
-                    LaunchCompute(_computeProcesses, true);
+                    var aliveProcesses = computeProcesses.Where(tuple => !tuple.Item1.HasExited).ToList();
+                    computeProcesses = new Queue<Tuple<Process, int>>(aliveProcesses);
+                    LaunchCompute(computeProcesses, true);
 
-                    if (_computeProcesses.Count > 0)
+                    if (computeProcesses.Count > 0)
                     {
-                        Tuple<Process, int> current = _computeProcesses.Dequeue();
-                        _computeProcesses.Enqueue(current);
+                        Tuple<Process, int> current = computeProcesses.Dequeue();
+                        computeProcesses.Enqueue(current);
                         activePort = current.Item2;
                     }
                 }
@@ -119,10 +119,10 @@ namespace rhino.compute
             if (0 == activePort)
                 throw new Exception("No compute server found");
 
-            if (_computeProcesses.Count < SpawnCount)
+            if (computeProcesses.Count < SpawnCount)
             {
                 // Bring up other child computes to SpawnCount level
-                for(int i=_computeProcesses.Count; i<SpawnCount; i++)
+                for(int i=computeProcesses.Count; i<SpawnCount; i++)
                 {
                     LaunchCompute(false);
                 }
@@ -134,18 +134,18 @@ namespace rhino.compute
 
         public static void MoveToFrontOfQueue(int port)
         {
-            lock (_lockObject)
+            lock (lockObject)
             {
                 // TODO: We really should be using a simple list with an index
                 // pointing at the next item to use
-                if (_computeProcesses.Count > 1)
+                if (computeProcesses.Count > 1)
                 {
-                    for( int i=0; i<_computeProcesses.Count; i++)
+                    for( int i=0; i<computeProcesses.Count; i++)
                     {
-                        if (_computeProcesses.Peek().Item2 == port)
+                        if (computeProcesses.Peek().Item2 == port)
                             break;
-                        var item = _computeProcesses.Dequeue();
-                        _computeProcesses.Enqueue(item);
+                        var item = computeProcesses.Dequeue();
+                        computeProcesses.Enqueue(item);
                     }
                 }
             }
@@ -153,11 +153,11 @@ namespace rhino.compute
 
         public static void LaunchCompute(bool waitUntilServing)
         {
-            lock (_lockObject)
+            lock (lockObject)
             {
-                if (_computeProcesses.Count >= SpawnCount)
+                if (computeProcesses.Count >= SpawnCount)
                     return;
-                LaunchCompute(_computeProcesses, waitUntilServing);
+                LaunchCompute(computeProcesses, waitUntilServing);
             }
         }
 
@@ -271,7 +271,7 @@ namespace rhino.compute
                 return false;
             }
         }
-        static object _lockObject = new object();
-        static Queue<Tuple<Process, int>> _computeProcesses = new Queue<Tuple<Process, int>>();
+        static object lockObject = new object();
+        static Queue<Tuple<Process, int>> computeProcesses = new Queue<Tuple<Process, int>>();
     }
 }

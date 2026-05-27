@@ -85,18 +85,18 @@ namespace Resthopper.IO
     {
 
         public DataTree() {
-            _tree = new Dictionary<string, List<T>>();
+            tree = new Dictionary<string, List<T>>();
             //_GhPathIndexer = new Dictionary<int, GhPath>();
         }
 
-        private Dictionary<string, List<T>> _tree;
+        private Dictionary<string, List<T>> tree;
         public string ParamName { get; set; }
         //Dictionary<int, GhPath> _GhPathIndexer;
 
 
         public Dictionary<string, List<T>> InnerTree {
-            get { return _tree; }
-            set { _tree = value; }
+            get { return tree; }
+            set { tree = value; }
         }
 
         //public string ParamName { get; set; }
@@ -104,41 +104,41 @@ namespace Resthopper.IO
 /*
         public ICollection<string> Keys {
             get {
-                return ((IDictionary<string, List<T>>)_tree).Keys;
+                return ((IDictionary<string, List<T>>)tree).Keys;
             }
         }
 
         public ICollection<List<T>> Values {
             get {
-                return ((IDictionary<string, List<T>>)_tree).Values;
+                return ((IDictionary<string, List<T>>)tree).Values;
             }
         }
 
         public int Count {
             get {
-                return ((IDictionary<string, List<T>>)_tree).Count;
+                return ((IDictionary<string, List<T>>)tree).Count;
             }
         }
 
         public bool IsReadOnly {
             get {
-                return ((IDictionary<string, List<T>>)_tree).IsReadOnly;
+                return ((IDictionary<string, List<T>>)tree).IsReadOnly;
             }
         }
 */
         public List<T> this[string key] {
             get {
-                return ((IDictionary<string, List<T>>)_tree)[key];
+                return ((IDictionary<string, List<T>>)tree)[key];
             }
 
             set {
-                ((IDictionary<string, List<T>>)_tree)[key] = value;
+                ((IDictionary<string, List<T>>)tree)[key] = value;
             }
         }
 
         public bool Contains(T item) {
 
-            foreach (var list in _tree.Values) {
+            foreach (var list in tree.Values) {
                 if (list.Contains(item)) {
                     return true;
                 }
@@ -152,10 +152,10 @@ namespace Resthopper.IO
 
         public void Append(List<T> items, string GhPath) {
 
-            if (!_tree.ContainsKey(GhPath)) {
-                _tree.Add(GhPath, new List<T>());
+            if (!tree.ContainsKey(GhPath)) {
+                tree.Add(GhPath, new List<T>());
             }
-            _tree[GhPath].AddRange(items);
+            tree[GhPath].AddRange(items);
             //_GhPathIndexer.Add(item.Index, GhPath);
         }
 
@@ -164,55 +164,55 @@ namespace Resthopper.IO
         }
 
         public void Append(T item, string GhPath) {
-            if (!_tree.ContainsKey(GhPath)) {
-                _tree.Add(GhPath, new List<T>());
+            if (!tree.ContainsKey(GhPath)) {
+                tree.Add(GhPath, new List<T>());
             }
-            _tree[GhPath].Add(item);
+            tree[GhPath].Add(item);
             //_GhPathIndexer.Add(item.Index, GhPath);
         }
 
         public bool ContainsKey(string key) {
-            return ((IDictionary<string, List<T>>)_tree).ContainsKey(key);
+            return ((IDictionary<string, List<T>>)tree).ContainsKey(key);
         }
 
         public void Add(string key, List<T> value) {
-            ((IDictionary<string, List<T>>)_tree).Add(key, value);
+            ((IDictionary<string, List<T>>)tree).Add(key, value);
         }
 
         public bool Remove(string key) {
-            return ((IDictionary<string, List<T>>)_tree).Remove(key);
+            return ((IDictionary<string, List<T>>)tree).Remove(key);
         }
 
         public bool TryGetValue(string key, out List<T> value) {
-            return ((IDictionary<string, List<T>>)_tree).TryGetValue(key, out value);
+            return ((IDictionary<string, List<T>>)tree).TryGetValue(key, out value);
         }
 
         public void Add(KeyValuePair<string, List<T>> item) {
-            ((IDictionary<string, List<T>>)_tree).Add(item);
+            ((IDictionary<string, List<T>>)tree).Add(item);
         }
 
         public void Clear() {
-            ((IDictionary<string, List<T>>)_tree).Clear();
+            ((IDictionary<string, List<T>>)tree).Clear();
         }
 
         public bool Contains(KeyValuePair<string, List<T>> item) {
-            return ((IDictionary<string, List<T>>)_tree).Contains(item);
+            return ((IDictionary<string, List<T>>)tree).Contains(item);
         }
 
         public void CopyTo(KeyValuePair<string, List<T>>[] array, int arrayIndex) {
-            ((IDictionary<string, List<T>>)_tree).CopyTo(array, arrayIndex);
+            ((IDictionary<string, List<T>>)tree).CopyTo(array, arrayIndex);
         }
 
         public bool Remove(KeyValuePair<string, List<T>> item) {
-            return ((IDictionary<string, List<T>>)_tree).Remove(item);
+            return ((IDictionary<string, List<T>>)tree).Remove(item);
         }
 
         public IEnumerator<KeyValuePair<string, List<T>>> GetEnumerator() {
-            return ((IDictionary<string, List<T>>)_tree).GetEnumerator();
+            return ((IDictionary<string, List<T>>)tree).GetEnumerator();
         }
 
         //IEnumerator IEnumerable.GetEnumerator() {
-            //return ((IDictionary<string, List<T>>)_tree).GetEnumerator();
+            //return ((IDictionary<string, List<T>>)tree).GetEnumerator();
         //}
     }
 
