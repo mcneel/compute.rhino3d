@@ -22,29 +22,29 @@ namespace compute.geometry
 {
     class GrasshopperDefinition
     {
-        static Dictionary<string, FileSystemWatcher> _filewatchers;
-        static HashSet<string> _watchedFiles = new HashSet<string>();
-        static uint _watchedFileRuntimeSerialNumber = 1;
+        static Dictionary<string, FileSystemWatcher> filewatchers;
+        static HashSet<string> watchedFiles = new HashSet<string>();
+        static uint watchedFileRuntimeSerialNumber = 1;
         public static uint WatchedFileRuntimeSerialNumber
         {
-            get { return _watchedFileRuntimeSerialNumber; }
+            get { return watchedFileRuntimeSerialNumber; }
         }
         static void RegisterFileWatcher(string path)
         {
-            if (_filewatchers == null)
+            if (filewatchers == null)
             {
-                _filewatchers = new Dictionary<string, FileSystemWatcher>();
+                filewatchers = new Dictionary<string, FileSystemWatcher>();
             }
             if (!File.Exists(path))
                 return;
 
             path = Path.GetFullPath(path);
-            if (_watchedFiles.Contains(path.ToLowerInvariant()))
+            if (watchedFiles.Contains(path.ToLowerInvariant()))
                 return;
 
-            _watchedFiles.Add(path.ToLowerInvariant());
+            watchedFiles.Add(path.ToLowerInvariant());
             string directory = Path.GetDirectoryName(path);
-            if (_filewatchers.ContainsKey(directory) || !Directory.Exists(directory))
+            if (filewatchers.ContainsKey(directory) || !Directory.Exists(directory))
                 return;
 
             var fsw = new FileSystemWatcher(directory);
@@ -57,14 +57,14 @@ namespace compute.geometry
                 NotifyFilters.Security;
             fsw.Changed += Fsw_Changed;
             fsw.EnableRaisingEvents = true;
-            _filewatchers[directory] = fsw;
+            filewatchers[directory] = fsw;
         }
 
         private static void Fsw_Changed(object sender, FileSystemEventArgs e)
         {
             string path = e.FullPath.ToLowerInvariant();
-            if (_watchedFiles.Contains(path))
-                _watchedFileRuntimeSerialNumber++;
+            if (watchedFiles.Contains(path))
+                watchedFileRuntimeSerialNumber++;
         }
 
         public static void LogDebug(string message) { Log.Debug(message); }
@@ -143,20 +143,20 @@ namespace compute.geometry
             }
 
             GrasshopperDefinition rc = new GrasshopperDefinition(definition, null);
-            rc._singularComponent = component;
+            rc.singularComponent = component;
             foreach(var input in component.Params.Input)
             {
-                rc._input[input.NickName] = new InputGroup(input);
+                rc.input[input.NickName] = new InputGroup(input);
             }
             foreach(var output in component.Params.Output)
             {
-                rc._output[output.NickName] = output;
+                rc.output[output.NickName] = output;
             }
             return rc;
         }
         private static void AddInput(IGH_Param param, string name, ref GrasshopperDefinition rc)
         {
-            if (rc._input.ContainsKey(name))
+            if (rc.input.ContainsKey(name))
             {
                 string msg = "Multiple input parameters with the same name were detected. Parameter names must be unique.";
                 rc.HasErrors = true;
@@ -164,11 +164,11 @@ namespace compute.geometry
                 LogError(msg);
             }   
             else
-                rc._input[name] = new InputGroup(param);
+                rc.input[name] = new InputGroup(param);
         }
         private static void AddOutput(IGH_Param param, string name, ref GrasshopperDefinition rc)
         {
-            if (rc._output.ContainsKey(name))
+            if (rc.output.ContainsKey(name))
             {
                 string msg = "Multiple output parameters with the same name were detected. Parameter names must be unique.";
                 rc.HasErrors = true;
@@ -176,7 +176,7 @@ namespace compute.geometry
                 LogError(msg);
             }  
             else
-                rc._output[name] = param;
+                rc.output[name] = param;
         }
 
         private static GrasshopperDefinition Construct(GH_Archive archive)
@@ -291,8 +291,8 @@ namespace compute.geometry
         private GrasshopperDefinition(GH_Document definition, string icon)
         {
             Definition = definition;
-            _iconString = icon;
-            FileRuntimeCacheSerialNumber = _watchedFileRuntimeSerialNumber;
+            iconString = icon;
+            FileRuntimeCacheSerialNumber = watchedFileRuntimeSerialNumber;
         }
 
         public GH_Document Definition { get; }
@@ -301,10 +301,10 @@ namespace compute.geometry
         public bool IsLocalFileDefinition { get; set; } // default: false
         public uint FileRuntimeCacheSerialNumber { get; private set; }
         public string CacheKey { get; set; }
-        string _iconString;
-        GH_Component _singularComponent;
-        Dictionary<string, InputGroup> _input = new Dictionary<string, InputGroup>();
-        Dictionary<string, IGH_Param> _output = new Dictionary<string, IGH_Param>();
+        string iconString;
+        GH_Component singularComponent;
+        Dictionary<string, InputGroup> input = new Dictionary<string, InputGroup>();
+        Dictionary<string, IGH_Param> output = new Dictionary<string, IGH_Param>();
         public List<string> ErrorMessages = new List<string>();
 
         public GH_Path GetPath(string p)
@@ -318,7 +318,7 @@ namespace compute.geometry
         {
             foreach (var tree in values)
             {
-                if( !_input.TryGetValue(tree.ParamName, out var inputGroup))
+                if( !input.TryGetValue(tree.ParamName, out var inputGroup))
                 {
                     continue;
                 }
@@ -427,7 +427,7 @@ namespace compute.geometry
             }
         }
 
-        static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, MethodInfo> _assignContextualDataTreeMethods = new System.Collections.Concurrent.ConcurrentDictionary<Type, MethodInfo>();
+        static readonly System.Collections.Concurrent.ConcurrentDictionary<Type, MethodInfo> assignContextualDataTreeMethods = new System.Collections.Concurrent.ConcurrentDictionary<Type, MethodInfo>();
 
         void BuildAndAssignContextualTree<T>(IGH_ContextualParameter param,
                                              Resthopper.IO.DataTree<ResthopperObject> tree,
@@ -440,7 +440,7 @@ namespace compute.geometry
                 foreach (var restobj in entree.Value)
                     inputTree.Add(convert(restobj), path);
             }
-            var method = _assignContextualDataTreeMethods.GetOrAdd(
+            var method = assignContextualDataTreeMethods.GetOrAdd(
                 param.GetType(),
                 t => t.GetMethod("AssignContextualDataTree"));
             method?.Invoke(param, new object[] { inputTree });
@@ -485,7 +485,7 @@ namespace compute.geometry
 
             LogRuntimeMessages(Definition.ActiveObjects(), outputSchema);
 
-            foreach (var kvp in _output)
+            foreach (var kvp in output)
             {
                 var param = kvp.Value;
                 if (param == null)
@@ -606,13 +606,13 @@ namespace compute.geometry
 
         public string GetIconAsString()
         {
-            if (!string.IsNullOrWhiteSpace(_iconString))
-                return _iconString;
+            if (!string.IsNullOrWhiteSpace(iconString))
+                return iconString;
 
             System.Drawing.Bitmap bmp = null;
-            if (_singularComponent!=null)
+            if (singularComponent!=null)
             {
-                bmp = _singularComponent.Icon_24x24;
+                bmp = singularComponent.Icon_24x24;
             }
 
             if (bmp!=null)
@@ -622,7 +622,7 @@ namespace compute.geometry
                     bmp.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
                     byte[] bytes = ms.ToArray();
                     string rc = Convert.ToBase64String(bytes);
-                    _iconString = rc;
+                    iconString = rc;
                     return rc;
                 }
             }
@@ -637,8 +637,8 @@ namespace compute.geometry
             var inputs = new List<InputParamSchema>();
             var outputs = new List<IoParamSchema>();
 
-            var sortedInputs = from x in _input orderby x.Value.Param.Attributes.Pivot.Y select x;
-            var sortedOutputs = from x in _output orderby x.Value.Attributes.Pivot.Y select x;
+            var sortedInputs = from x in input orderby x.Value.Param.Attributes.Pivot.Y select x;
+            var sortedOutputs = from x in output orderby x.Value.Attributes.Pivot.Y select x;
 
             foreach (var i in sortedInputs)
             {
@@ -655,7 +655,7 @@ namespace compute.geometry
                     Minimum = i.Value.GetMinimum(),
                     Maximum = i.Value.GetMaximum(),
                 };
-                if (_singularComponent != null)
+                if (singularComponent != null)
                 {
                     inputSchema.Description = i.Value.Param.Description;
                     if (i.Value.Param.Access == GH_ParamAccess.item)
@@ -676,9 +676,9 @@ namespace compute.geometry
                 });
             }
 
-            string description = _singularComponent == null ?
+            string description = singularComponent == null ?
                 Definition.Properties.Description :
-                _singularComponent.Description;
+                singularComponent.Description;
 
             return new IoResponseSchema
             {
@@ -777,14 +777,14 @@ namespace compute.geometry
 
         class InputGroup
         {
-            object _default = null;
+            object defaultValue = null;
             public InputGroup(IGH_Param param)
             {
                 Param = param;
 
                 param.ClearData();
                 param.CollectData();
-                _default = SerializeDataTree(param.VolatileData, param.Name);
+                defaultValue = SerializeDataTree(param.VolatileData, param.Name);
             }
 
             public IGH_Param Param { get; }
@@ -835,7 +835,7 @@ namespace compute.geometry
 
             public object GetDefault()
             {
-                return _default;
+                return defaultValue;
             }
 
             public double? GetMinimum()
@@ -917,10 +917,10 @@ namespace compute.geometry
 
             public bool AlreadySet(Resthopper.IO.DataTree<ResthopperObject> tree)
             {
-                if (_tree == null)
+                if (this.tree == null)
                     return false;
 
-                var oldDictionary = _tree.InnerTree;
+                var oldDictionary = this.tree.InnerTree;
                 var newDictionary = tree.InnerTree;
 
                 if (!oldDictionary.Keys.SequenceEqual(newDictionary.Keys))
@@ -945,10 +945,10 @@ namespace compute.geometry
 
             public void CacheTree(Resthopper.IO.DataTree<ResthopperObject> tree)
             {
-                _tree = tree;
+                this.tree = tree;
             }
 
-            Resthopper.IO.DataTree<ResthopperObject> _tree;
+            Resthopper.IO.DataTree<ResthopperObject> tree;
         }
     }
 }

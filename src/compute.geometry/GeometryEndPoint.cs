@@ -16,19 +16,19 @@ namespace compute.geometry
 {
     class GeometryEndPoint
     {
-        static List<GeometryEndPoint> _allEndPoints;
+        static List<GeometryEndPoint> allEndPoints;
         public static IEnumerable<GeometryEndPoint> AllEndPoints
         {
             get
             {
-                if(_allEndPoints==null)
+                if(allEndPoints==null)
                 {
-                    _allEndPoints = new List<GeometryEndPoint>();
+                    allEndPoints = new List<GeometryEndPoint>();
                     foreach (string nameSpace in new string[] { "Rhino.Geometry", "Rhino.Geometry.Intersect" })
                     {
                         foreach (var endpoint in CreateEndpoints(typeof(Rhino.RhinoApp).Assembly, nameSpace))
                         {
-                            _allEndPoints.Add(endpoint);
+                            allEndPoints.Add(endpoint);
                         }
                     }
 
@@ -44,13 +44,13 @@ namespace compute.geometry
                                 foreach (var endpoint in GeometryEndPoint.Create(customEndpoint.Item2))
                                 {
                                     endpoint.UpdatePath(customEndpoint.Item1);
-                                    _allEndPoints.Add(endpoint);
+                                    allEndPoints.Add(endpoint);
                                 }
                             }
                         }
                     }
                 }
-                return _allEndPoints;
+                return allEndPoints;
             }
         }
 
@@ -74,18 +74,18 @@ namespace compute.geometry
         }
 
 
-        Type _classType;
-        ConstructorInfo[] _constructors;
-        MethodInfo[] _methods;
-        string _path;
+        Type classType;
+        ConstructorInfo[] constructors;
+        MethodInfo[] methods;
+        string path;
 
         public string Path
         {
-            get { return _path; }
+            get { return path; }
             private set
             {
-                _path = value;
-                PathURL = _path.ToLowerInvariant();
+                path = value;
+                PathURL = path.ToLowerInvariant();
             }
         }
 
@@ -93,27 +93,27 @@ namespace compute.geometry
 
         public void UpdatePath(string basePath)
         {
-            int index = _path.LastIndexOf('/');
+            int index = path.LastIndexOf('/');
             if( index > 0 )
             {
                 basePath = basePath.Replace('.', '/').ToLowerInvariant();
-                Path = basePath + _path.Substring(index);
+                Path = basePath + path.Substring(index);
             }
         }
 
         private GeometryEndPoint(Type classType, ConstructorInfo[] constructors)
         {
-            _classType = classType;
-            _constructors = constructors;
-            string basepath = _classType.FullName.Replace('.', '/');
+            this.classType = classType;
+            this.constructors = constructors;
+            string basepath = classType.FullName.Replace('.', '/');
             Path = basepath + "/New";
         }
 
         private GeometryEndPoint(Type classType, MethodInfo[] methods, bool explicitPath)
         {
-            _classType = classType;
-            _methods = methods;
-            string basepath = _classType.FullName.Replace('.', '/');
+            this.classType = classType;
+            this.methods = methods;
+            string basepath = classType.FullName.Replace('.', '/');
             string funcname = methods[0].Name;
             if (funcname.StartsWith("get_"))
                 funcname = "Get" + funcname.Substring("get_".Length);
@@ -159,7 +159,7 @@ namespace compute.geometry
         protected GeometryEndPoint(string path, Type classType)
         {
             Path = path;
-            _classType = classType;
+            this.classType = classType;
         }
 
         public static List<GeometryEndPoint> Create(Type t)
@@ -243,15 +243,15 @@ namespace compute.geometry
             var sb = new System.Text.StringBuilder("<!DOCTYPE html><html><body>");
             sb.AppendLine($"<H1>{funcname}</H1>");
             sb.AppendLine("<p>");
-            if (_methods != null)
+            if (methods != null)
             {
-                foreach (var method in _methods)
+                foreach (var method in methods)
                 {
                     var inParams = new List<Tuple<Type, string>>();
                     var outParams = new List<Tuple<Type, string>>();
                     {
                         if (!method.IsStatic)
-                            inParams.Add(new Tuple<Type, string>(_classType, "self"));
+                            inParams.Add(new Tuple<Type, string>(classType, "self"));
                         if (method.ReturnType != typeof(void))
                             outParams.Add(new Tuple<Type, string>(method.ReturnType, ""));
                         foreach (var parameter in method.GetParameters())
@@ -277,7 +277,7 @@ namespace compute.geometry
                                     }
                                 }
                                 if (!isConst)
-                                    outParams.Add(new Tuple<Type, string>(_classType, ""));
+                                    outParams.Add(new Tuple<Type, string>(classType, ""));
                             }
                         }
                     }
@@ -305,11 +305,11 @@ namespace compute.geometry
                     sb.AppendLine(")<br>");
                 }
             }
-            if (_constructors != null)
+            if (constructors != null)
             {
-                foreach (var constructor in _constructors)
+                foreach (var constructor in constructors)
                 {
-                    sb.Append($"{_classType.Name} {funcname}(");
+                    sb.Append($"{classType.Name} {funcname}(");
                     var parameters = constructor.GetParameters();
                     for (int pi = 0; pi < parameters.Length; pi++)
                     {
@@ -472,12 +472,12 @@ namespace compute.geometry
         string HandlePostHelper(Newtonsoft.Json.Linq.JArray ja, Dictionary<string, string> returnModifiers)
         {
             int tokenCount = ja == null ? 0 : ja.Count;
-            if (_methods != null)
+            if (methods != null)
             {
                 JsonSerializer serializer = new JsonSerializer();
                 serializer.Converters.Add(new ArchivableDictionaryResolver());
                 int methodIndex = -1;
-                foreach (var method in _methods)
+                foreach (var method in methods)
                 {
                     methodIndex++;
                     int paramCount = method.GetParameters().Length;
@@ -496,7 +496,7 @@ namespace compute.geometry
                         int currentJa = 0;
                         if (!method.IsStatic)
                         {
-                            invokeObj = ToObjectHelper(ja[currentJa++], _classType, null);
+                            invokeObj = ToObjectHelper(ja[currentJa++], classType, null);
                         }
 
                         int outParamCount = 0;
@@ -565,7 +565,7 @@ namespace compute.geometry
                         }
                         catch (Exception)
                         {
-                            if (methodIndex < (_methods.Count() - 1))
+                            if (methodIndex < (methods.Count() - 1))
                                 continue;
                             throw;
                         }
@@ -618,11 +618,11 @@ namespace compute.geometry
                 }
             }
 
-            if (_constructors != null)
+            if (constructors != null)
             {
-                for (int k = 0; k < _constructors.Length; k++)
+                for (int k = 0; k < constructors.Length; k++)
                 {
-                    var constructor = _constructors[k];
+                    var constructor = constructors[k];
                     int paramCount = constructor.GetParameters().Length;
                     if (paramCount == tokenCount)
                     {
@@ -636,7 +636,7 @@ namespace compute.geometry
                                 var generics = p[ip].ParameterType.GetGenericArguments();
                                 if (generics == null || generics.Length != 1)
                                 {
-                                    if (_constructors.Length > 0 && p[ip].ParameterType == typeof(Rhino.Geometry.Plane))
+                                    if (constructors.Length > 0 && p[ip].ParameterType == typeof(Rhino.Geometry.Plane))
                                     {
                                         if (ja[ip].Count() < 4)
                                         {
@@ -765,22 +765,22 @@ namespace compute.geometry
 
     public class GeometryResolver : DefaultContractResolver
     {
-        static int _rhinoVersion = 0;
-        static JsonSerializerSettings _settings;
+        static int rhinoVersion = 0;
+        static JsonSerializerSettings settings;
         public static JsonSerializerSettings Settings(int rhinoVersion)
         {
-            if (_settings == null || rhinoVersion != _rhinoVersion)
+            if (settings == null || rhinoVersion != GeometryResolver.rhinoVersion)
             {
-                _settings = new JsonSerializerSettings { ContractResolver = new GeometryResolver() };
-                _rhinoVersion = rhinoVersion;
+                settings = new JsonSerializerSettings { ContractResolver = new GeometryResolver() };
+                GeometryResolver.rhinoVersion = rhinoVersion;
                 // return V7 ON_Objects for now
                 var options = new Rhino.FileIO.SerializationOptions();
                 options.RhinoVersion = rhinoVersion;
                 options.WriteUserData = true;
-                _settings.Context = new System.Runtime.Serialization.StreamingContext(System.Runtime.Serialization.StreamingContextStates.All, options);
-                _settings.Converters.Add(new ArchivableDictionaryResolver());
+                settings.Context = new System.Runtime.Serialization.StreamingContext(System.Runtime.Serialization.StreamingContextStates.All, options);
+                settings.Converters.Add(new ArchivableDictionaryResolver());
             }
-            return _settings;
+            return settings;
         }
 
         protected override JsonProperty CreateProperty(MemberInfo member, MemberSerialization memberSerialization)

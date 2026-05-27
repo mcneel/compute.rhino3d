@@ -59,7 +59,7 @@ namespace compute.geometry
             }
         }
 
-        static object _ghsolvelock = new object();
+        static object ghSolveLock = new object();
 
         static string GrasshopperSolveHelper(Schema input, string body, System.Diagnostics.Stopwatch stopwatch, HttpContext ctx)
         {
@@ -168,7 +168,7 @@ namespace compute.geometry
                 // We can narrow down this lock over time. As it stands, launching many
                 // compute instances on one computer is going to be a better solution anyway
                 // to deal with solving many times simultaniously.
-                lock (_ghsolvelock)
+                lock (ghSolveLock)
                 {
                     json = GrasshopperSolveHelper(input, body, stopwatch, ctx);
                 }

@@ -17,7 +17,7 @@ namespace compute.geometry
     {
         public static IDisposable RhinoCore { get; set; }
         public static DateTime StartTime { get; set; }
-        static string _RhinoSystemDirectory { get; set; }
+        static string rhinoSystemDirectory { get; set; }
 
         static void Main(string[] args)
         {
@@ -50,14 +50,14 @@ namespace compute.geometry
 
             //string rhinoSystemDir = @"C:\dev\github\mcneel\rhino8\src4\bin\Debug";
             //if (System.IO.File.Exists(rhinoSystemDir + "\\Rhino.exe"))
-            //    _RhinoSystemDirectory = rhinoSystemDir;
+            //    rhinoSystemDirectory = rhinoSystemDir;
 
 #endif
 
-            if (String.IsNullOrEmpty(_RhinoSystemDirectory))
+            if (String.IsNullOrEmpty(rhinoSystemDirectory))
                 RhinoInside.Resolver.Initialize();
             else
-                RhinoInside.Resolver.Initialize(_RhinoSystemDirectory);
+                RhinoInside.Resolver.Initialize(rhinoSystemDirectory);
 
 
             StartTime = DateTime.Now;
@@ -164,7 +164,7 @@ namespace compute.geometry
                         }
                         break;
                     case "rhinosysdir":
-                        _RhinoSystemDirectory = value;
+                        rhinoSystemDirectory = value;
                         break;
                     case "load-grasshopper":
                         {
