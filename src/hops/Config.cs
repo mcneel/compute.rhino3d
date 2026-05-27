@@ -44,7 +44,7 @@ namespace Hops
         const string RHINO_COMPUTE_LOG_RETAIN_DAYS = "RHINO_COMPUTE_LOG_RETAIN_DAYS";
         const string RHINO_COMPUTE_DEBUG = "RHINO_COMPUTE_DEBUG";
 
-        readonly static List<string> _warnings = new List<string>();
+        readonly static List<string> warnings = new List<string>();
 
         static T GetEnvironmentVariable<T>(string name, T defaultValue, string deprecatedName = null)
         {
@@ -54,7 +54,7 @@ namespace Hops
             {
                 value = Environment.GetEnvironmentVariable(deprecatedName);
                 if (!string.IsNullOrWhiteSpace(value))
-                    _warnings.Add($"{deprecatedName} is deprecated; use {name} instead");
+                    warnings.Add($"{deprecatedName} is deprecated; use {name} instead");
             }
 
             if (string.IsNullOrWhiteSpace(value))
@@ -72,7 +72,7 @@ namespace Hops
                 if (int.TryParse(value, out int result))
                     return (T)(object)result;
 
-                _warnings.Add($"{name} set to '{value}'; unable to parse as integer");
+                warnings.Add($"{name} set to '{value}'; unable to parse as integer");
                 return defaultValue;
             }
 
@@ -81,7 +81,7 @@ namespace Hops
                 if (long.TryParse(value, out long result))
                     return (T)(object)result;
 
-                _warnings.Add($"{name} set to '{value}'; unable to parse as long");
+                warnings.Add($"{name} set to '{value}'; unable to parse as long");
                 return defaultValue;
             }
 

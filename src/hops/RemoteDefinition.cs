@@ -33,17 +33,17 @@ namespace Hops
             InvalidUrl //responding, but does not appear to have anything to do with solving
         }
 
-        HopsComponent _parentComponent;
-        Dictionary<string, Tuple<InputParamSchema, IGH_Param>> _inputParams;
-        Dictionary<string, IGH_Param> _outputParams;
-        string _description = null;
-        System.Drawing.Bitmap _customIcon = null;
-        string _path = null;
-        string _cacheKey = null;
-        public byte[] _internalizedDefinition = null;
-        const string _apiKeyName = "RhinoComputeKey";
-        public PathType? _pathType;
-        public string _filename = string.Empty;
+        HopsComponent parentComponent;
+        Dictionary<string, Tuple<InputParamSchema, IGH_Param>> inputParams;
+        Dictionary<string, IGH_Param> outputParams;
+        string description = null;
+        System.Drawing.Bitmap customIcon = null;
+        string path = null;
+        string cacheKey = null;
+        public byte[] internalizedDefinition = null;
+        const string API_KEY_NAME = "RhinoComputeKey";
+        public PathType? pathType;
+        public string filename = string.Empty;
 
         public static bool IsWebUrl(string path)
         {
@@ -82,29 +82,29 @@ namespace Hops
             }
             if (IsGrasshopperDefinition(filename))
             {
-                rc._filename = filename;
+                rc.filename = filename;
             }
             return rc;
         }
 
         public void InternalizeDefinition(string path)
         {
-            _internalizedDefinition = System.IO.File.ReadAllBytes(path);
-            _pathType = PathType.InternalizedDefinition;
+            internalizedDefinition = System.IO.File.ReadAllBytes(path);
+            pathType = PathType.InternalizedDefinition;
             RemoteDefinitionCache.Remove(this);
-            _path = null;
+            this.path = null;
         }
 
         private RemoteDefinition(string path, HopsComponent parentComponent)
         {
-            _parentComponent = parentComponent;
-            _path = path;
-            _internalizedDefinition = null;
+            this.parentComponent = parentComponent;
+            this.path = path;
+            internalizedDefinition = null;
         }
 
         public void Dispose()
         {
-            _parentComponent = null;
+            parentComponent = null;
             RemoteDefinitionCache.Remove(this);
         }
 
@@ -122,16 +122,16 @@ namespace Hops
 
         public void ResetPathType()
         {
-            _pathType = null;
+            pathType = null;
         }
 
         PathType GetPathType()
         {
-            if (!_pathType.HasValue)
+            if (!pathType.HasValue)
             {
-                _pathType = GetPathType(_path);
+                pathType = GetPathType(path);
             }
-            return _pathType.Value;
+            return pathType.Value;
         }
 
         public static PathType GetPathType(string path)
@@ -160,43 +160,43 @@ namespace Hops
             return rc;
         }
 
-        public string Path { get { return _path; } set { _path = value; } }
-        public byte[] InternalizedDefinition { get { return _internalizedDefinition; } set { _internalizedDefinition = value; } }
+        public string Path { get { return path; } set { path = value; } }
+        public byte[] InternalizedDefinition { get { return internalizedDefinition; } set { internalizedDefinition = value; } }
 
         public void OnWatchedFileChanged()
         {
-            _cacheKey = null;
-            _description = null;
-            if (_parentComponent != null)
-                _parentComponent.OnRemoteDefinitionChanged();
+            cacheKey = null;
+            description = null;
+            if (parentComponent != null)
+                parentComponent.OnRemoteDefinitionChanged();
         }
 
         public Dictionary<string, Tuple<InputParamSchema, IGH_Param>> GetInputParams()
         {
-            if( _inputParams == null)
+            if( inputParams == null)
             {
                 GetRemoteDescription();
             }
-            return _inputParams;
+            return inputParams;
         }
 
         public Dictionary<string, IGH_Param> GetOutputParams()
         {
-            if (_outputParams == null)
+            if (outputParams == null)
             {
                 GetRemoteDescription();
             }
-            return _outputParams;
+            return outputParams;
         }
 
         public string GetDescription(out System.Drawing.Bitmap customIcon)
         {
-            if (_description == null)
+            if (description == null)
             {
                 GetRemoteDescription();
             }
-            customIcon = _customIcon;
-            return _description;
+            customIcon = this.customIcon;
+            return description;
         }
 
         public void GetRemoteDescription()
@@ -265,30 +265,30 @@ namespace Hops
                 }
                 else
                 {
-                    if(_internalizedDefinition != null)
-                        schema.Algo = Convert.ToBase64String(_internalizedDefinition);
+                    if(internalizedDefinition != null)
+                        schema.Algo = Convert.ToBase64String(internalizedDefinition);
                 }
                 schema.AbsoluteTolerance = GetDocumentTolerance();
                 schema.AngleTolerance = GetDocumentAngleTolerance();
                 schema.ModelUnits = GetDocumentUnits();
-                schema.FileName = _filename;
+                schema.FileName = filename;
                 string inputJson = JsonConvert.SerializeObject(schema);
                 string requestContent = "{";
                 requestContent += "\"URL\": \"" + postUrl + "\"," + Environment.NewLine;
                 requestContent += "\"Method\": \"POST" + "\"," + Environment.NewLine;
                 requestContent += "\"Content\": " + inputJson  + Environment.NewLine;
                 requestContent += "}";
-                _parentComponent.HTTPRecord.IORequest = requestContent;
+                parentComponent.HTTPRecord.IORequest = requestContent;
                 var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
                 var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, postUrl) { Content = content };
                 AddApiKeyHeader(request);
                 var cts = CreateTimeoutCts();
                 var fileNameMsg = String.Empty;
-                if (!String.IsNullOrEmpty(_filename))
-                    fileNameMsg = $" with {_filename}";
+                if (!String.IsNullOrEmpty(filename))
+                    fileNameMsg = $" with {filename}";
                 HopsLog.Log.Debug($"Sending POST request to {postUrl}{fileNameMsg}");
                 responseTask = HttpClient.SendAsync(request, cts.Token);
-                _parentComponent.HTTPRecord.Schema = schema;
+                parentComponent.HTTPRecord.Schema = schema;
                 contentToDispose = content;
                 requestToDispose = request;
                 ctsToDispose = cts;
@@ -299,7 +299,7 @@ namespace Hops
                 requestContent += "\"URL\": \"" + address + "\"," + Environment.NewLine;
                 requestContent += "\"Method\": \"GET" + "\"" + Environment.NewLine;
                 requestContent += "}";
-                _parentComponent.HTTPRecord.IORequest = requestContent;
+                parentComponent.HTTPRecord.IORequest = requestContent;
                 var cts = CreateTimeoutCts();
                 responseTask = HttpClient.GetAsync(address, cts.Token);
                 ctsToDispose = cts;
@@ -311,7 +311,7 @@ namespace Hops
                 HopsLog.Log.Debug($"Received response {responseMessage.StatusCode} in {sw.ElapsedMilliseconds}ms");
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-                _parentComponent.HTTPRecord.IOResponse = stringResult;
+                parentComponent.HTTPRecord.IOResponse = stringResult;
 
                 // Detect 401 BEFORE attempting to parse the body as JSON. The middleware's
                 // response body is plain text ("Api Key was not provided." / "Unauthorized
@@ -326,19 +326,19 @@ namespace Hops
                     HopsLog.Log.Error(serverMessage);
                     var errSchema = new IoResponseSchema();
                     errSchema.Errors.Add(serverMessage);
-                    _parentComponent.HTTPRecord.IOResponseSchema = errSchema;
+                    parentComponent.HTTPRecord.IOResponseSchema = errSchema;
                 }
                 else if (string.IsNullOrEmpty(stringResult))
                 {
-                    _pathType = PathType.InvalidUrl; // Looks like a valid but not related URL
-                    _parentComponent.HTTPRecord.IOResponse = "Invalid URL";
+                    this.pathType = PathType.InvalidUrl; // Looks like a valid but not related URL
+                    parentComponent.HTTPRecord.IOResponse = "Invalid URL";
                 }
                 else
                 {
                     responseSchema = JsonConvert.DeserializeObject<IoResponseSchema>(stringResult);
-                    _cacheKey = responseSchema.CacheKey;
-                    _filename = responseSchema.FileName;
-                    _parentComponent.HTTPRecord.IOResponseSchema = responseSchema;
+                    cacheKey = responseSchema.CacheKey;
+                    filename = responseSchema.FileName;
+                    parentComponent.HTTPRecord.IOResponseSchema = responseSchema;
                 }
             }
 
@@ -348,8 +348,8 @@ namespace Hops
 
             if (responseSchema != null)
             { 
-                _description = responseSchema.Description;
-                _customIcon = null;
+                description = responseSchema.Description;
+                this.customIcon = null;
                 if (!string.IsNullOrWhiteSpace(responseSchema.Icon))
                 {
                     try
@@ -366,21 +366,21 @@ namespace Hops
                             var method = typeof(Rhino.UI.DrawingUtilities).GetMethod("BitmapFromSvg", new[] {typeof(string), typeof(int), typeof(int)} );
                             if (method != null)
                             {
-                                _customIcon = method.Invoke(null, new object[] { svg, 24, 24 }) as System.Drawing.Bitmap;
+                                this.customIcon = method.Invoke(null, new object[] { svg, 24, 24 }) as System.Drawing.Bitmap;
                             }
-                            //_customIcon = Rhino.UI.DrawingUtilities.BitmapFromSvg(responseSchema.Icon, 24, 24);
+                            //this.customIcon = Rhino.UI.DrawingUtilities.BitmapFromSvg(responseSchema.Icon, 24, 24);
                         }
-                        if (_customIcon == null)
+                        if (this.customIcon == null)
                         {
                             byte[] bytes = Convert.FromBase64String(responseSchema.Icon);
                             using (var ms = new MemoryStream(bytes))
                             {
-                                _customIcon = new System.Drawing.Bitmap(ms);
-                                if (_customIcon != null && (_customIcon.Width != 24 || _customIcon.Height != 24))
+                                this.customIcon = new System.Drawing.Bitmap(ms);
+                                if (this.customIcon != null && (this.customIcon.Width != 24 || this.customIcon.Height != 24))
                                 {
                                     // Make sure the custom icon is 24x24 which is what GH expects.
-                                    var temp = _customIcon;
-                                    _customIcon = new System.Drawing.Bitmap(temp, new System.Drawing.Size(24, 24));
+                                    var temp = this.customIcon;
+                                    this.customIcon = new System.Drawing.Bitmap(temp, new System.Drawing.Size(24, 24));
                                     temp.Dispose();
                                 }
                             }
@@ -401,8 +401,8 @@ namespace Hops
                 if (!String.IsNullOrEmpty(responseSchema.FileName))
                     fileNameMsg = $" in {responseSchema.FileName}";
                 HopsLog.Log.Debug($"Compute.Geometry found {responseSchema.InputNames?.Count} input{inputSuffix} and {responseSchema.OutputNames?.Count} output{outputSuffix}{fileNameMsg}");
-                _inputParams = new Dictionary<string, Tuple<InputParamSchema, IGH_Param>>();
-                _outputParams = new Dictionary<string, IGH_Param>();
+                inputParams = new Dictionary<string, Tuple<InputParamSchema, IGH_Param>>();
+                outputParams = new Dictionary<string, IGH_Param>();
                 foreach (var input in responseSchema.Inputs)
                 {
                     string inputParamName = input.Name;
@@ -411,7 +411,7 @@ namespace Hops
                         var chunks = inputParamName.Split(new char[] { ':' });
                         inputParamName = chunks[chunks.Length - 1];
                     }
-                    _inputParams[inputParamName] = Tuple.Create(input, ParamFromIoResponseSchema(input));
+                    inputParams[inputParamName] = Tuple.Create(input, ParamFromIoResponseSchema(input));
                 }
                 foreach (var output in responseSchema.Outputs)
                 {
@@ -421,9 +421,9 @@ namespace Hops
                         var chunks = outputParamName.Split(new char[] { ':' });
                         outputParamName = chunks[chunks.Length - 1];
                     }
-                    _outputParams[outputParamName] = ParamFromIoResponseSchema(output);
+                    outputParams[outputParamName] = ParamFromIoResponseSchema(output);
                 }
-                _parentComponent.HTTPRecord.IOResponseSchema = responseSchema;
+                parentComponent.HTTPRecord.IOResponseSchema = responseSchema;
             }
         }
 
@@ -484,23 +484,23 @@ namespace Hops
             }
         }
 
-        static System.Net.Http.HttpClient _httpClient = null;
+        static System.Net.Http.HttpClient httpClient = null;
         public static System.Net.Http.HttpClient HttpClient
         {
             get
             {
-                if (_httpClient == null)
+                if (httpClient == null)
                 {
                     // One shared HttpClient for all requests (avoids per-request socket allocation).
                     // Timeout is intentionally infinite — per-request CancellationTokenSource
                     // controls actual deadlines so HopsAppSettings.HTTPTimeout values larger than
                     // 100s aren't capped by HttpClient's default.
-                    _httpClient = new System.Net.Http.HttpClient
+                    httpClient = new System.Net.Http.HttpClient
                     {
                         Timeout = System.Threading.Timeout.InfiniteTimeSpan
                     };
                 }
-                return _httpClient;
+                return httpClient;
             }
         }
 
@@ -517,7 +517,7 @@ namespace Hops
         static void AddApiKeyHeader(System.Net.Http.HttpRequestMessage request)
         {
             if (!string.IsNullOrEmpty(HopsAppSettings.APIKey))
-                request.Headers.Add(_apiKeyName, HopsAppSettings.APIKey);
+                request.Headers.Add(API_KEY_NAME, HopsAppSettings.APIKey);
         }
         static Schema SafeSchemaDeserialize(string data)
         {
@@ -540,8 +540,8 @@ namespace Hops
             if (pathType == PathType.GrasshopperDefinition || pathType == PathType.ComponentGuid || pathType == PathType.InternalizedDefinition)
             {
                 solveUrl = Servers.GetSolveUrl();
-                if (!string.IsNullOrEmpty(_cacheKey))
-                    inputSchema.Pointer = _cacheKey;
+                if (!string.IsNullOrEmpty(cacheKey))
+                    inputSchema.Pointer = cacheKey;
             }
             else
             {
@@ -549,7 +549,7 @@ namespace Hops
                 solveUrl = $"{uri.Scheme}://{uri.Authority}/solve";
             }
 
-            if (!string.IsNullOrEmpty(_filename)) inputSchema.FileName = _filename;
+            if (!string.IsNullOrEmpty(filename)) inputSchema.FileName = filename;
             string inputJson = JsonConvert.SerializeObject(inputSchema);
             if (useMemoryCache && inputSchema.Algo == null)
             {
@@ -563,7 +563,7 @@ namespace Hops
             requestContent += "\"URL\": \"" + solveUrl + "\"," + Environment.NewLine;
             requestContent += "\"content\": " + inputJson + Environment.NewLine;
             requestContent += "}";
-            _parentComponent.HTTPRecord.SolveRequest = requestContent;
+            parentComponent.HTTPRecord.SolveRequest = requestContent;
             using (var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json"))
             using (var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, solveUrl) { Content = content })
             using (var cts = CreateTimeoutCts())
@@ -579,7 +579,7 @@ namespace Hops
                 HopsLog.Log.Debug($"Received response {responseMessage.StatusCode} in {sw.ElapsedMilliseconds}ms");
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-                _parentComponent.HTTPRecord.SolveResponse = stringResult;
+                parentComponent.HTTPRecord.SolveResponse = stringResult;
                 Schema schema = SafeSchemaDeserialize(stringResult);
                 if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
                 {
@@ -596,7 +596,7 @@ namespace Hops
                         requestContent += "\"URL\": \"" + solveUrl + "\"," + Environment.NewLine;
                         requestContent += "\"content\":" + inputJson + Environment.NewLine;
                         requestContent += "}";
-                        _parentComponent.HTTPRecord.SolveRequest = requestContent;
+                        parentComponent.HTTPRecord.SolveRequest = requestContent;
                         using var content2 = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
                         using var request2 = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, solveUrl) { Content = content2 };
                         using var cts2 = CreateTimeoutCts();
@@ -611,7 +611,7 @@ namespace Hops
                         HopsLog.Log.Debug($"Received response {responseMessage.StatusCode} in {sw2.ElapsedMilliseconds}ms");
                         remoteSolvedData = responseMessage.Content;
                         stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-                        _parentComponent.HTTPRecord.SolveResponse = stringResult;
+                        parentComponent.HTTPRecord.SolveResponse = stringResult;
                         schema = SafeSchemaDeserialize(stringResult);
                         if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
                         {
@@ -620,7 +620,7 @@ namespace Hops
                             HopsLog.Log.Error(errorMsg);
                             badSchema.Errors.Add(errorMsg);
                             badSchema.Warnings.Add(autoUploadMessage);
-                            _parentComponent.HTTPRecord.Schema = badSchema;
+                            parentComponent.HTTPRecord.Schema = badSchema;
                             return badSchema;
                         }
                         if (schema != null)
@@ -634,7 +634,7 @@ namespace Hops
                             var errorMsg = $"Unable to find file: {Path}";
                             HopsLog.Log.Error(errorMsg);
                             badSchema.Errors.Add(errorMsg);
-                            _parentComponent.HTTPRecord.Schema = badSchema;
+                            parentComponent.HTTPRecord.Schema = badSchema;
                             return badSchema;
                         }
                     }
@@ -646,7 +646,7 @@ namespace Hops
                     var errorMsg = $"Request timeout: {Path}";
                     HopsLog.Log.Error(errorMsg);
                     badSchema.Errors.Add(errorMsg);
-                    _parentComponent.HTTPRecord.Schema = badSchema;
+                    parentComponent.HTTPRecord.Schema = badSchema;
                     return badSchema;
                 }
 
@@ -665,7 +665,7 @@ namespace Hops
                         : $"Server returned 401 Unauthorized: {stringResult.Trim()}";
                     HopsLog.Log.Error(serverMessage);
                     badSchema.Errors.Add(serverMessage);
-                    _parentComponent.HTTPRecord.Schema = badSchema;
+                    parentComponent.HTTPRecord.Schema = badSchema;
                     return badSchema;
                 }
 
@@ -674,14 +674,14 @@ namespace Hops
                     && string.Equals(schema?.Errors[0], "Bad inputs", StringComparison.OrdinalIgnoreCase));
                 if (!rebuildDefinition)
                 {
-                    if (schema?.Values?.Count > 0 && schema?.Values?.Count != _outputParams?.Count)
+                    if (schema?.Values?.Count > 0 && schema?.Values?.Count != outputParams?.Count)
                         rebuildDefinition = true;
                 }
 
                 if (rebuildDefinition)
                 {
                     GetRemoteDescription();
-                    _parentComponent.OnRemoteDefinitionChanged();
+                    parentComponent.OnRemoteDefinitionChanged();
                 }
                 else
                 {
@@ -693,7 +693,7 @@ namespace Hops
                         }
                     }
                 }
-                _cacheKey = schema?.Pointer;
+                cacheKey = schema?.Pointer;
                 return schema;
             }
         }
@@ -937,50 +937,50 @@ namespace Hops
             };
         }
 
-        static List<IGH_Param> _params;
+        static List<IGH_Param> parameters;
         static IGH_Param ParamFromIoResponseSchema(IoParamSchema item)
         {
-            if (_params == null)
+            if (parameters == null)
             {
-                _params = new List<IGH_Param>();
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Arc());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Boolean());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Box());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Brep());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Circle());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Colour());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Complex());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Culture());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Curve());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Field());
+                parameters = new List<IGH_Param>();
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Arc());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Boolean());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Box());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Brep());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Circle());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Colour());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Complex());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Culture());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Curve());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Field());
                 //FilePath has the same ParamType as String
-                //_params.Add(new Grasshopper.Kernel.Parameters.Param_FilePath());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_GenericObject());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Geometry());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Group());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Guid());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Integer());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Interval());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Interval2D());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_LatLonLocation());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Line());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Matrix());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Mesh());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_MeshFace());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_MeshParameters());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Number());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Plane());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Point());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Rectangle());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_String());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_StructurePath());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_SubD());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Surface());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Time());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Transform());
-                _params.Add(new Grasshopper.Kernel.Parameters.Param_Vector());
+                //parameters.Add(new Grasshopper.Kernel.Parameters.Param_FilePath());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_GenericObject());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Geometry());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Group());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Guid());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Integer());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Interval());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Interval2D());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_LatLonLocation());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Line());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Matrix());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Mesh());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_MeshFace());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_MeshParameters());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Number());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Plane());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Point());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Rectangle());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_String());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_StructurePath());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_SubD());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Surface());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Time());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Transform());
+                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Vector());
             }
-            foreach(var p in _params)
+            foreach(var p in parameters)
             {
                 if (p.TypeName.Equals(item.ParamType, StringComparison.OrdinalIgnoreCase))
                 {
@@ -1296,7 +1296,7 @@ namespace Hops
             schema.AbsoluteTolerance = GetDocumentTolerance();
             schema.AngleTolerance = GetDocumentAngleTolerance();
             schema.ModelUnits = GetDocumentUnits();
-            schema.FileName = _filename;
+            schema.FileName = filename;
             schema.CacheSolve = cacheSolveOnServer;
             var inputs = GetInputParams();
             if (inputs != null)
@@ -1319,111 +1319,111 @@ namespace Hops
                     switch (param)
                     {
                         case Grasshopper.Kernel.Parameters.Param_Arc _:
-                            CollectDataHelperWithTree<Arc, GH_Arc>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<Arc, GH_Arc>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Boolean _:
-                            CollectDataHelperWithTree<bool, GH_Boolean>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<bool, GH_Boolean>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Box _:
-                            CollectDataHelperWithTree<Box, GH_Box>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<Box, GH_Box>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Brep _:
-                            CollectDataHelperWithTree<Brep, GH_Brep>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<Brep, GH_Brep>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Circle _:
-                            CollectDataHelperWithTree<Circle, GH_Circle>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<Circle, GH_Circle>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Colour _:
-                            CollectDataHelperWithTree<System.Drawing.Color, GH_Colour>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<System.Drawing.Color, GH_Colour>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Complex _:
-                            CollectDataHelperWithTree<Complex, GH_ComplexNumber>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<Complex, GH_ComplexNumber>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Culture _:
-                            CollectDataHelperWithTree<System.Globalization.CultureInfo, GH_Culture>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<System.Globalization.CultureInfo, GH_Culture>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Curve _:
-                            CollectDataHelperWithTree<Curve, GH_Curve>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<Curve, GH_Curve>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Field _:
-                            CollectDataHelper<Grasshopper.Kernel.Types.GH_Field>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelper<Grasshopper.Kernel.Types.GH_Field>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_FilePath _:
-                            CollectDataHelperWithTree<string, GH_String>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<string, GH_String>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_GenericObject _:
                             throw new Exception("generic param not supported");
                         case Grasshopper.Kernel.Parameters.Param_Geometry _:
-                            CollectDataHelperGeometryBase<IGH_GeometricGoo>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperGeometryBase<IGH_GeometricGoo>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Group _:
                             throw new Exception("group param not supported");
                         case Grasshopper.Kernel.Parameters.Param_Guid _:
-                            CollectDataHelperWithTree<Guid, GH_Guid>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<Guid, GH_Guid>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Integer _:
-                            CollectDataHelperWithTree<int, GH_Integer>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<int, GH_Integer>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Interval _:
-                            CollectDataHelperWithTree<Interval, GH_Interval>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<Interval, GH_Interval>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Interval2D _:
-                            CollectDataHelperWithTree<UVInterval, GH_Interval2D>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<UVInterval, GH_Interval2D>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_LatLonLocation _:
                             throw new Exception("latlonlocation param not supported");
                         case Grasshopper.Kernel.Parameters.Param_Line _:
-                            CollectDataHelperWithTree<Line, GH_Line>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<Line, GH_Line>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Matrix _:
-                            CollectDataHelperWithTree<Matrix, GH_Matrix>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<Matrix, GH_Matrix>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Mesh _:
-                            CollectDataHelperWithTree<Mesh, GH_Mesh>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<Mesh, GH_Mesh>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_MeshFace _:
-                            CollectDataHelperWithTree<MeshFace, GH_MeshFace>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<MeshFace, GH_MeshFace>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_MeshParameters _:
-                            CollectDataHelperWithTree<MeshingParameters, GH_MeshingParameters>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<MeshingParameters, GH_MeshingParameters>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Number _:
-                            CollectDataHelperWithTree<double, GH_Number>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<double, GH_Number>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         //case Grasshopper.Kernel.Parameters.Param_OGLShader:
                         case Grasshopper.Kernel.Parameters.Param_Plane _:
-                            CollectDataHelperWithTree<Plane, GH_Plane>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<Plane, GH_Plane>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Point _:
-                            CollectDataHelperPoints<Point3d>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperPoints<Point3d>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Rectangle _:
-                            CollectDataHelperWithTree<Rectangle3d, GH_Rectangle>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<Rectangle3d, GH_Rectangle>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         //case Grasshopper.Kernel.Parameters.Param_ScriptVariable _:
                         case Grasshopper.Kernel.Parameters.Param_String _:
-                            CollectDataHelperWithTree<string, GH_String>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<string, GH_String>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_StructurePath _:
-                            CollectDataHelperWithTree<Grasshopper.Kernel.Data.GH_Path, GH_StructurePath>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<Grasshopper.Kernel.Data.GH_Path, GH_StructurePath>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_SubD _:
-                            CollectDataHelperWithTree<SubD, GH_SubD>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<SubD, GH_SubD>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Surface _:
-                            CollectDataHelper<Surface>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelper<Surface>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Time _:
-                            CollectDataHelperWithTree<DateTime, GH_Time>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<DateTime, GH_Time>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Transform _:
-                            CollectDataHelperWithTree<Transform, GH_Transform>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<Transform, GH_Transform>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Parameters.Param_Vector _:
-                            CollectDataHelperWithTree<Vector3d, GH_Vector>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<Vector3d, GH_Vector>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                         case Grasshopper.Kernel.Special.GH_NumberSlider _:
-                            CollectDataHelperWithTree<double, GH_Number>(DA, _parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
+                            CollectDataHelperWithTree<double, GH_Number>(DA, parentComponent, inputName, input, access, ref inputListCount, dataTree, ref errors);
                             break;
                     }
 
@@ -1452,7 +1452,7 @@ namespace Hops
                 var pointer = new Uri(Path).AbsolutePath;
                 schema.Pointer = pointer.Substring(1);
             }
-            _parentComponent.HTTPRecord.Schema = schema;
+            parentComponent.HTTPRecord.Schema = schema;
             return schema;
         }
     }
@@ -1460,9 +1460,9 @@ namespace Hops
 
     static class RemoteDefinitionCache
     {
-        static List<RemoteDefinition> _definitions = new List<RemoteDefinition>();
-        static Dictionary<string, FileSystemWatcher> _filewatchers;
-        static HashSet<string> _watchedFiles = new HashSet<string>();
+        static List<RemoteDefinition> definitions = new List<RemoteDefinition>();
+        static Dictionary<string, FileSystemWatcher> filewatchers;
+        static HashSet<string> watchedFiles = new HashSet<string>();
 
         public static void Add(RemoteDefinition definition)
         {
@@ -1473,20 +1473,20 @@ namespace Hops
                 return;
             if (!File.Exists(definition.Path))
                 return;
-            if (_definitions.Contains(definition))
+            if (definitions.Contains(definition))
                 return;
-            _definitions.Add(definition);
+            definitions.Add(definition);
             RegisterFileWatcher(definition.Path);
         }
 
         public static void Remove(RemoteDefinition definition)
         {
-            if (_definitions.Remove(definition) && definition.Path != null)
+            if (definitions.Remove(definition) && definition.Path != null)
             {
                 string path = Path.GetFullPath(definition.Path);
                 string directory = Path.GetDirectoryName(path);
                 bool removeFileWatcher = true;
-                foreach(var existingDefinition in _definitions)
+                foreach(var existingDefinition in definitions)
                 {
                     string existingDefPath = Path.GetFullPath(existingDefinition.Path);
                     string existingDefDirectory = Path.GetDirectoryName(existingDefPath);
@@ -1498,11 +1498,11 @@ namespace Hops
                 }
                 if (removeFileWatcher)
                 {
-                    if (_filewatchers.TryGetValue(directory, out FileSystemWatcher watcher))
+                    if (filewatchers.TryGetValue(directory, out FileSystemWatcher watcher))
                     {
                         watcher.EnableRaisingEvents = false;
                         watcher.Dispose();
-                        _filewatchers.Remove(directory);
+                        filewatchers.Remove(directory);
                     }
                 }
             }
@@ -1513,18 +1513,18 @@ namespace Hops
             if (!File.Exists(path))
                 return;
 
-            if (_filewatchers == null)
+            if (filewatchers == null)
             {
-                _filewatchers = new Dictionary<string, FileSystemWatcher>();
+                filewatchers = new Dictionary<string, FileSystemWatcher>();
             }
 
             path = Path.GetFullPath(path);
-            if (_watchedFiles.Contains(path.ToLowerInvariant()))
+            if (watchedFiles.Contains(path.ToLowerInvariant()))
                 return;
 
-            _watchedFiles.Add(path.ToLowerInvariant());
+            watchedFiles.Add(path.ToLowerInvariant());
             string directory = Path.GetDirectoryName(path);
-            if (_filewatchers.ContainsKey(directory) || !Directory.Exists(directory))
+            if (filewatchers.ContainsKey(directory) || !Directory.Exists(directory))
                 return;
 
             var fsw = new FileSystemWatcher(directory);
@@ -1537,15 +1537,15 @@ namespace Hops
                 NotifyFilters.Security;
             fsw.Changed += Fsw_Changed;
             fsw.EnableRaisingEvents = true;
-            _filewatchers[directory] = fsw;
+            filewatchers[directory] = fsw;
         }
 
         private static void Fsw_Changed(object sender, FileSystemEventArgs e)
         {
             string path = e.FullPath.ToLowerInvariant();
-            if (_watchedFiles.Contains(path))
+            if (watchedFiles.Contains(path))
             {
-                foreach(var definition in _definitions)
+                foreach(var definition in definitions)
                 {
                     string definitionPath = Path.GetFullPath(definition.Path);
                     if( path.Equals(definitionPath, StringComparison.OrdinalIgnoreCase))
