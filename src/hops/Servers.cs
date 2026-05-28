@@ -15,14 +15,14 @@ namespace Hops
     /// </summary>
     class Servers
     {
-        static System.Threading.Tasks.Task<bool> _initServerTask;
+        static System.Threading.Tasks.Task<bool> initServerTask;
         public static void StartServerOnLaunch()
         {
-            _initServerTask = System.Threading.Tasks.Task.Run(() =>
+            initServerTask = System.Threading.Tasks.Task.Run(() =>
             {
-                lock (_lockObject)
+                lock (lockObject)
                 {
-                    LaunchLocalRhinoCompute(_computeServerQueue, true);
+                    LaunchLocalRhinoCompute(computeServerQueue, true);
                 }
                 return true;
             });
@@ -30,7 +30,7 @@ namespace Hops
 
         public static void SettingsChanged()
         {
-            _settingsNeedReading = true;
+            settingsNeedReading = true;
         }
 
         /// <summary>Number of local compute.geometry processes running</summary>
@@ -77,59 +77,59 @@ namespace Hops
         /// <returns></returns>
         static string GetComputeServerBaseUrl()
         {
-            if (_initServerTask != null)
+            if (initServerTask != null)
             {
-                _initServerTask.Wait();
-                _initServerTask = null;
+                initServerTask.Wait();
+                initServerTask = null;
             }
             // Simple round robin scheduler using a queue of compute.geometry processes
             string url = null;
 
-            lock (_lockObject)
+            lock (lockObject)
             {
                 // Check application level settings to see if there are remote
                 // compute servers defined.
-                if (_settingsNeedReading)
+                if (settingsNeedReading)
                 {
-                    _settingsNeedReading = false;
+                    settingsNeedReading = false;
                     string[] servers = Hops.HopsAppSettings.Servers;
-                    var serverArray = _computeServerQueue.ToArray();
-                    _computeServerQueue.Clear();
+                    var serverArray = computeServerQueue.ToArray();
+                    computeServerQueue.Clear();
                     foreach (var server in servers)
                     {
                         if (string.IsNullOrWhiteSpace(server))
                             continue;
-                        _computeServerQueue.Enqueue(new ComputeServer(server));
+                        computeServerQueue.Enqueue(new ComputeServer(server));
                     }
                     foreach(var item in serverArray)
                     {
                         if (item.IsLocalProcess)
-                            _computeServerQueue.Enqueue(item);
+                            computeServerQueue.Enqueue(item);
                     }
                 }
 
-                if (_computeServerQueue.Count > 0)
+                if (computeServerQueue.Count > 0)
                 {
-                    var current = _computeServerQueue.Dequeue();
+                    var current = computeServerQueue.Dequeue();
                     url = current.GetUrl();
                     if( !string.IsNullOrEmpty(url))
                     {
-                        _computeServerQueue.Enqueue(current);
+                        computeServerQueue.Enqueue(current);
                     }
                 }
 
                 if (string.IsNullOrEmpty(url) && Rhino.Runtime.HostUtils.RunningOnWindows)
                 {
-                    _computeServerQueue = new Queue<ComputeServer>();
-                    if (_computeServerQueue.Count == 0)
+                    computeServerQueue = new Queue<ComputeServer>();
+                    if (computeServerQueue.Count == 0)
                     {
-                        LaunchLocalRhinoCompute(_computeServerQueue, true);
+                        LaunchLocalRhinoCompute(computeServerQueue, true);
                     }
 
-                    if (_computeServerQueue.Count > 0)
+                    if (computeServerQueue.Count > 0)
                     {
-                        var current = _computeServerQueue.Dequeue();
-                        _computeServerQueue.Enqueue(current);
+                        var current = computeServerQueue.Dequeue();
+                        computeServerQueue.Enqueue(current);
                         url = current.GetUrl();
                     }
                 }
@@ -283,54 +283,54 @@ namespace Hops
             }
         }
 
-        static object _lockObject = new Object();
-        static Queue<ComputeServer> _computeServerQueue = new Queue<ComputeServer>();
-        static bool _settingsNeedReading = true;
+        static object lockObject = new Object();
+        static Queue<ComputeServer> computeServerQueue = new Queue<ComputeServer>();
+        static bool settingsNeedReading = true;
 
         class ComputeServer
         {
-            readonly Process _process;
-            readonly int _port;
-            readonly string _url;
+            readonly Process process;
+            readonly int port;
+            readonly string url;
             public ComputeServer(Process proc, int port)
             {
-                _process = proc;
-                _port = port;
-                _url = null;
+                this.process = proc;
+                this.port = port;
+                this.url = null;
             }
             public ComputeServer(string url)
             {
-                _process = null;
-                _port = 0;
-                _url = url.Trim(new char[] { '/' });
+                this.process = null;
+                this.port = 0;
+                this.url = url.Trim(new char[] { '/' });
             }
 
             public bool IsLocalProcess
             {
-                get { return _process != null; }
+                get { return process != null; }
             }
 
             public bool IsProcess(Process proc)
             {
-                if (_process == null)
+                if (process == null)
                     return false;
 
-                return _process.Id == proc.Id;
+                return process.Id == proc.Id;
             }
             public int LocalProcessPort()
             {
-                return _port;
+                return port;
             }
 
             public string GetUrl()
             {
-                if(_process != null)
+                if(process != null)
                 {
-                    if (_process.HasExited)
+                    if (process.HasExited)
                         return null;
-                    return $"http://localhost:{_port}";
+                    return $"http://localhost:{port}";
                 }
-                return _url;
+                return url;
             }
         }
     }

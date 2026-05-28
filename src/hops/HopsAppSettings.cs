@@ -270,21 +270,21 @@ namespace Hops
             }
         }
 
-        static int _httpTimeout = 0;
+        static int httpTimeout = 0;
         public static int HTTPTimeout
         {
             get
             {
-                if (0 == _httpTimeout)
-                    _httpTimeout = Grasshopper.Instances.Settings.GetValue(HOPS_HTTP_TIMEOUT, 100);
-                return _httpTimeout;
+                if (0 == httpTimeout)
+                    httpTimeout = Grasshopper.Instances.Settings.GetValue(HOPS_HTTP_TIMEOUT, 100);
+                return httpTimeout;
             }
             set
             {
                 if (value >= 1)
                 {
                     Grasshopper.Instances.Settings.SetValue(HOPS_HTTP_TIMEOUT, value);
-                    _httpTimeout = value;
+                    httpTimeout = value;
                 }
             }
 
@@ -309,21 +309,21 @@ namespace Hops
         //    }
         //}
 
-        static int _maxConcurrentRequests = 0;
+        static int maxConcurrentRequests = 0;
         public static int MaxConcurrentRequests
         {
             get
             {
-                if (0 == _maxConcurrentRequests)
-                    _maxConcurrentRequests = Grasshopper.Instances.Settings.GetValue(MAX_CONCURRENT_REQUESTS, 4);
-                return _maxConcurrentRequests;
+                if (0 == maxConcurrentRequests)
+                    maxConcurrentRequests = Grasshopper.Instances.Settings.GetValue(MAX_CONCURRENT_REQUESTS, 4);
+                return maxConcurrentRequests;
             }
             set
             {
                 if (value >= 1)
                 {
                     Grasshopper.Instances.Settings.SetValue(MAX_CONCURRENT_REQUESTS, value);
-                    _maxConcurrentRequests = value;
+                    maxConcurrentRequests = value;
                 }
             }
 
