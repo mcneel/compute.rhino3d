@@ -235,7 +235,11 @@ namespace compute.geometry
                     // and a Config.MaxRequestSize cap to the outbound fetch.
                     string cacheString = UrlGuard.GetStringAsync(url, Config.MaxRequestSize).Result;
                     object data = string.IsNullOrWhiteSpace(cacheString) ? null : Newtonsoft.Json.JsonConvert.DeserializeObject(cacheString);
-                    var ja = data as Newtonsoft.Json.Linq.JArray;
+                    // Expect the URL to return a non-empty JSON array. Throw a descriptive
+                    // error instead of a bare NullReferenceException/IndexOutOfRange when the
+                    // fetched content is the wrong shape (this is an external-data boundary).
+                    if (!(data is Newtonsoft.Json.Linq.JArray ja) || ja.Count == 0)
+                        throw new InvalidOperationException($"Expected URL '{url}' to return a non-empty JSON array.");
                     jtoken = ja[0];
                 }
 
