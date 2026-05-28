@@ -155,6 +155,22 @@ namespace Hops
             return System.IO.File.ReadAllBytes(path);
         }
 
+        // Builds the debug envelope captured into HttpRecord.{IoRequest,SolveRequest}.
+        // Using a JObject (Newtonsoft is already a dependency) instead of hand-rolled string
+        // concat gives a consistent shape across all sites and proper JSON escaping for free.
+        // contentJson is embedded as a parsed JToken (not a string) so it nests cleanly.
+        static string BuildRequestEnvelope(string url, string method, string contentJson = null)
+        {
+            var obj = new Newtonsoft.Json.Linq.JObject
+            {
+                ["URL"] = url,
+                ["Method"] = method,
+            };
+            if (!string.IsNullOrEmpty(contentJson))
+                obj["Content"] = Newtonsoft.Json.Linq.JToken.Parse(contentJson);
+            return obj.ToString();
+        }
+
         public void InternalizeDefinition(string path)
         {
             internalizedDefinition = ReadLocalFileWithSizeCap(path);
@@ -336,7 +352,7 @@ namespace Hops
                                 HopsLog.Log.Error(ex.Message);
                                 var errSchema = new IoResponseSchema();
                                 errSchema.Errors.Add(ex.Message);
-                                parentComponent.HTTPRecord.IOResponseSchema = errSchema;
+                                parentComponent.HttpRecord.IoResponseSchema = errSchema;
                                 return;
                             }
                         }
@@ -356,12 +372,7 @@ namespace Hops
                 schema.ModelUnits = GetDocumentUnits();
                 schema.FileName = filename;
                 string inputJson = JsonConvert.SerializeObject(schema);
-                string requestContent = "{";
-                requestContent += "\"URL\": \"" + postUrl + "\"," + Environment.NewLine;
-                requestContent += "\"Method\": \"POST" + "\"," + Environment.NewLine;
-                requestContent += "\"Content\": " + inputJson  + Environment.NewLine;
-                requestContent += "}";
-                parentComponent.HTTPRecord.IORequest = requestContent;
+                parentComponent.HttpRecord.IoRequest = BuildRequestEnvelope(postUrl, "POST", inputJson);
                 var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
                 var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, postUrl) { Content = content };
                 AddApiKeyHeader(request);
@@ -371,18 +382,14 @@ namespace Hops
                     fileNameMsg = $" with {filename}";
                 HopsLog.Log.Debug($"Sending POST request to {postUrl}{fileNameMsg}");
                 responseTask = HttpClient.SendAsync(request, cts.Token);
-                parentComponent.HTTPRecord.Schema = schema;
+                parentComponent.HttpRecord.Schema = schema;
                 contentToDispose = content;
                 requestToDispose = request;
                 ctsToDispose = cts;
             }
             else
             {
-                string requestContent = "{";
-                requestContent += "\"URL\": \"" + address + "\"," + Environment.NewLine;
-                requestContent += "\"Method\": \"GET" + "\"" + Environment.NewLine;
-                requestContent += "}";
-                parentComponent.HTTPRecord.IORequest = requestContent;
+                parentComponent.HttpRecord.IoRequest = BuildRequestEnvelope(address, "GET");
                 var cts = CreateTimeoutCts();
                 responseTask = HttpClient.GetAsync(address, cts.Token);
                 ctsToDispose = cts;
@@ -396,12 +403,12 @@ namespace Hops
                     HopsLog.Log.Debug($"Received response {responseMessage.StatusCode} in {sw.ElapsedMilliseconds}ms");
                     var remoteSolvedData = responseMessage.Content;
                     var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-                    parentComponent.HTTPRecord.IOResponse = stringResult;
+                    parentComponent.HttpRecord.IoResponse = stringResult;
 
                     // Detect 401 BEFORE attempting to parse the body as JSON. The middleware's
                     // response body is plain text ("Api Key was not provided." / "Unauthorized
                     // client."), which would throw JsonReaderException inside the deserializer
-                    // below. Surface via IOResponseSchema.Errors so DefineInputsAndOutputs picks
+                    // below. Surface via IoResponseSchema.Errors so DefineInputsAndOutputs picks
                     // it up and displays a red runtime message on the Hops component.
                     if (responseMessage.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                     {
@@ -411,7 +418,7 @@ namespace Hops
                         HopsLog.Log.Error(serverMessage);
                         var errSchema = new IoResponseSchema();
                         errSchema.Errors.Add(serverMessage);
-                        parentComponent.HTTPRecord.IOResponseSchema = errSchema;
+                        parentComponent.HttpRecord.IoResponseSchema = errSchema;
                     }
                     else if (!responseMessage.IsSuccessStatusCode)
                     {
@@ -427,24 +434,24 @@ namespace Hops
                         HopsLog.Log.Error(serverMessage);
                         var errSchema = new IoResponseSchema();
                         errSchema.Errors.Add(serverMessage);
-                        parentComponent.HTTPRecord.IOResponseSchema = errSchema;
+                        parentComponent.HttpRecord.IoResponseSchema = errSchema;
                     }
                     else if (string.IsNullOrEmpty(stringResult))
                     {
                         this.pathType = PathType.InvalidUrl; // Looks like a valid but not related URL
-                        parentComponent.HTTPRecord.IOResponse = "Invalid URL";
+                        parentComponent.HttpRecord.IoResponse = "Invalid URL";
                     }
                     else
                     {
                         responseSchema = JsonConvert.DeserializeObject<IoResponseSchema>(stringResult);
                         cacheKey = responseSchema.CacheKey;
                         filename = responseSchema.FileName;
-                        parentComponent.HTTPRecord.IOResponseSchema = responseSchema;
+                        parentComponent.HttpRecord.IoResponseSchema = responseSchema;
                     }
                 }
                 catch (Exception ex)
                 {
-                    // Surface cancellation (HTTPTimeout exceeded) or network failure as a clear
+                    // Surface cancellation (HttpTimeout exceeded) or network failure as a clear
                     // runtime message on the component instead of bubbling up to Grasshopper
                     // where the exception is swallowed silently. .Result wraps the underlying
                     // failure in AggregateException; unwrap one level so the message is clean.
@@ -454,7 +461,7 @@ namespace Hops
                     string serverMessage;
                     if (inner is OperationCanceledException)
                     {
-                        serverMessage = $"Could not load the remote definition from {Path}\r\nRequest timed out after {sw.Elapsed.TotalSeconds:0.0}s (configured timeout: {HopsAppSettings.HTTPTimeout}s — raise it in the Hops settings panel if the server is just slow).";
+                        serverMessage = $"Could not load the remote definition from {Path}\r\nRequest timed out after {sw.Elapsed.TotalSeconds:0.0}s (configured timeout: {HopsAppSettings.HttpTimeout}s — raise it in the Hops settings panel if the server is just slow).";
                     }
                     else
                     {
@@ -463,7 +470,7 @@ namespace Hops
                     HopsLog.Log.Error(serverMessage);
                     var errSchema = new IoResponseSchema();
                     errSchema.Errors.Add(serverMessage);
-                    parentComponent.HTTPRecord.IOResponseSchema = errSchema;
+                    parentComponent.HttpRecord.IoResponseSchema = errSchema;
                 }
             }
 
@@ -550,7 +557,7 @@ namespace Hops
                     }
                     outputParams[outputParamName] = ParamFromIoResponseSchema(output);
                 }
-                parentComponent.HTTPRecord.IOResponseSchema = responseSchema;
+                parentComponent.HttpRecord.IoResponseSchema = responseSchema;
             }
         }
 
@@ -620,7 +627,7 @@ namespace Hops
                 {
                     // One shared HttpClient for all requests (avoids per-request socket allocation).
                     // Timeout is intentionally infinite — per-request CancellationTokenSource
-                    // controls actual deadlines so HopsAppSettings.HTTPTimeout values larger than
+                    // controls actual deadlines so HopsAppSettings.HttpTimeout values larger than
                     // 100s aren't capped by HttpClient's default.
                     httpClient = new System.Net.Http.HttpClient
                     {
@@ -631,11 +638,11 @@ namespace Hops
             }
         }
 
-        // Per-request timeout via CancellationTokenSource. Uses HopsAppSettings.HTTPTimeout
+        // Per-request timeout via CancellationTokenSource. Uses HopsAppSettings.HttpTimeout
         // if configured, otherwise falls back to 100 seconds (HttpClient's historical default).
         static System.Threading.CancellationTokenSource CreateTimeoutCts()
         {
-            int seconds = HopsAppSettings.HTTPTimeout > 0 ? HopsAppSettings.HTTPTimeout : 100;
+            int seconds = HopsAppSettings.HttpTimeout > 0 ? HopsAppSettings.HttpTimeout : 100;
             return new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(seconds));
         }
 
@@ -686,11 +693,8 @@ namespace Hops
                     return cachedResults;
                 }
             }
-            string requestContent = "{";
-            requestContent += "\"URL\": \"" + solveUrl + "\"," + Environment.NewLine;
-            requestContent += "\"content\": " + inputJson + Environment.NewLine;
-            requestContent += "}";
-            parentComponent.HTTPRecord.SolveRequest = requestContent;
+            string requestContent = BuildRequestEnvelope(solveUrl, "POST", inputJson);
+            parentComponent.HttpRecord.SolveRequest = requestContent;
             using (var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json"))
             using (var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, solveUrl) { Content = content })
             using (var cts = CreateTimeoutCts())
@@ -706,7 +710,7 @@ namespace Hops
                 HopsLog.Log.Debug($"Received response {responseMessage.StatusCode} in {sw.ElapsedMilliseconds}ms");
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-                parentComponent.HTTPRecord.SolveResponse = stringResult;
+                parentComponent.HttpRecord.SolveResponse = stringResult;
                 Schema schema = SafeSchemaDeserialize(stringResult);
                 if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
                 {
@@ -724,18 +728,15 @@ namespace Hops
                             var badSchema = new Schema();
                             HopsLog.Log.Error(ex.Message);
                             badSchema.Errors.Add(ex.Message);
-                            parentComponent.HTTPRecord.Schema = badSchema;
+                            parentComponent.HttpRecord.Schema = badSchema;
                             return badSchema;
                         }
                         string base64 = Convert.ToBase64String(bytes);
                         inputSchema.Algo = base64;
                         inputSchema.FileName = System.IO.Path.GetFileName(Path);
                         inputJson = JsonConvert.SerializeObject(inputSchema);
-                        requestContent = "{";
-                        requestContent += "\"URL\": \"" + solveUrl + "\"," + Environment.NewLine;
-                        requestContent += "\"content\":" + inputJson + Environment.NewLine;
-                        requestContent += "}";
-                        parentComponent.HTTPRecord.SolveRequest = requestContent;
+                        requestContent = BuildRequestEnvelope(solveUrl, "POST", inputJson);
+                        parentComponent.HttpRecord.SolveRequest = requestContent;
                         using var content2 = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
                         using var request2 = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, solveUrl) { Content = content2 };
                         using var cts2 = CreateTimeoutCts();
@@ -750,7 +751,7 @@ namespace Hops
                         HopsLog.Log.Debug($"Received response {responseMessage.StatusCode} in {sw2.ElapsedMilliseconds}ms");
                         remoteSolvedData = responseMessage.Content;
                         stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-                        parentComponent.HTTPRecord.SolveResponse = stringResult;
+                        parentComponent.HttpRecord.SolveResponse = stringResult;
                         schema = SafeSchemaDeserialize(stringResult);
                         if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
                         {
@@ -759,7 +760,7 @@ namespace Hops
                             HopsLog.Log.Error(errorMsg);
                             badSchema.Errors.Add(errorMsg);
                             badSchema.Warnings.Add(autoUploadMessage);
-                            parentComponent.HTTPRecord.Schema = badSchema;
+                            parentComponent.HttpRecord.Schema = badSchema;
                             return badSchema;
                         }
                         if (schema != null)
@@ -773,7 +774,7 @@ namespace Hops
                             var errorMsg = $"Unable to find file: {Path}";
                             HopsLog.Log.Error(errorMsg);
                             badSchema.Errors.Add(errorMsg);
-                            parentComponent.HTTPRecord.Schema = badSchema;
+                            parentComponent.HttpRecord.Schema = badSchema;
                             return badSchema;
                         }
                     }
@@ -785,7 +786,7 @@ namespace Hops
                     var errorMsg = $"Request timeout: {Path}";
                     HopsLog.Log.Error(errorMsg);
                     badSchema.Errors.Add(errorMsg);
-                    parentComponent.HTTPRecord.Schema = badSchema;
+                    parentComponent.HttpRecord.Schema = badSchema;
                     return badSchema;
                 }
 
@@ -804,7 +805,7 @@ namespace Hops
                         : $"Server returned 401 Unauthorized: {stringResult.Trim()}";
                     HopsLog.Log.Error(serverMessage);
                     badSchema.Errors.Add(serverMessage);
-                    parentComponent.HTTPRecord.Schema = badSchema;
+                    parentComponent.HttpRecord.Schema = badSchema;
                     return badSchema;
                 }
 
@@ -1591,7 +1592,7 @@ namespace Hops
                 var pointer = new Uri(Path).AbsolutePath;
                 schema.Pointer = pointer.Substring(1);
             }
-            parentComponent.HTTPRecord.Schema = schema;
+            parentComponent.HttpRecord.Schema = schema;
             return schema;
         }
     }

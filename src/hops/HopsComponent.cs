@@ -151,13 +151,13 @@ namespace Hops
 
         public int SolveSerialNumber => solveSerialNumber;
 
-        HTTPRecord httpRecord;
-        public HTTPRecord HTTPRecord
+        HttpRecord httpRecord;
+        public HttpRecord HttpRecord
         {
             get
             {
                 if (httpRecord == null)
-                    httpRecord = new HTTPRecord();
+                    httpRecord = new HttpRecord();
                 return httpRecord; 
             }
         }
@@ -206,9 +206,9 @@ namespace Hops
             // location is set, but Grasshopper clears runtime messages at the start of every
             // solve — so re-surface it here, during SolveInstance, where it survives to render.
             // Skip solving a definition that never loaded.
-            if (HTTPRecord.IOResponseSchema != null && HTTPRecord.IOResponseSchema.Errors.Count > 0)
+            if (HttpRecord.IoResponseSchema != null && HttpRecord.IoResponseSchema.Errors.Count > 0)
             {
-                foreach (var error in HTTPRecord.IOResponseSchema.Errors)
+                foreach (var error in HttpRecord.IoResponseSchema.Errors)
                     HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
                 return;
             }
@@ -586,10 +586,10 @@ namespace Hops
             restAPITsi.Enabled = remoteDefinition != null;
             exportTsi.DropDownItems.Add(restAPITsi);
 
-            tsi = new ToolStripMenuItem("Last IO request...", null, (s, e) => { ExportLastIORequest(); });
+            tsi = new ToolStripMenuItem("Last IO request...", null, (s, e) => { ExportLastIoRequest(); });
             restAPITsi.DropDownItems.Add(tsi);
 
-            tsi = new ToolStripMenuItem("Last IO response...", null, (s, e) => { ExportLastIOResponse(); });
+            tsi = new ToolStripMenuItem("Last IO response...", null, (s, e) => { ExportLastIoResponse(); });
             restAPITsi.DropDownItems.Add(tsi);
 
             tsi = new ToolStripMenuItem("Last Solve request...", null, (s, e) => { ExportLastSolveRequest(); });
@@ -626,7 +626,7 @@ namespace Hops
                 try
                 {
                     using var cts = new System.Threading.CancellationTokenSource(
-                        TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout));
+                        TimeSpan.FromSeconds(HopsAppSettings.HttpTimeout));
                     var getTask = HopsFunctionMgr.HttpClient.GetAsync(row.SourcePath, cts.Token);
                     if (getTask != null)
                     {
@@ -858,9 +858,9 @@ for value in values:
             }
         }
 
-        void ExportLastIORequest()
+        void ExportLastIoRequest()
         {
-            if (String.IsNullOrEmpty(HTTPRecord.IORequest))
+            if (String.IsNullOrEmpty(HttpRecord.IoRequest))
             {
                 Eto.Forms.MessageBox.Show("No IO request has been made. Run this component at least once", Eto.Forms.MessageBoxType.Error);
                 return;
@@ -869,13 +869,13 @@ for value in values:
             dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
             if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
             {
-                System.IO.File.WriteAllText(dlg.FileName, HTTPRecord.IORequest);
+                System.IO.File.WriteAllText(dlg.FileName, HttpRecord.IoRequest);
             }
         }
 
-        void ExportLastIOResponse()
+        void ExportLastIoResponse()
         {
-            if (String.IsNullOrEmpty(HTTPRecord.IOResponse))
+            if (String.IsNullOrEmpty(HttpRecord.IoResponse))
             {
                 Eto.Forms.MessageBox.Show("No IO response has been received. Run this component at least once", Eto.Forms.MessageBoxType.Error);
                 return;
@@ -884,13 +884,13 @@ for value in values:
             dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
             if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
             {
-                System.IO.File.WriteAllText(dlg.FileName, HTTPRecord.IOResponse);
+                System.IO.File.WriteAllText(dlg.FileName, HttpRecord.IoResponse);
             }
         }
 
         void ExportLastSolveRequest()
         {
-            if (String.IsNullOrEmpty(HTTPRecord.SolveRequest))
+            if (String.IsNullOrEmpty(HttpRecord.SolveRequest))
             {
                 Eto.Forms.MessageBox.Show("No solve request has been made. Run this component at least once", Eto.Forms.MessageBoxType.Error);
                 return;
@@ -899,13 +899,13 @@ for value in values:
             dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
             if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
             {
-                System.IO.File.WriteAllText(dlg.FileName, HTTPRecord.SolveRequest);
+                System.IO.File.WriteAllText(dlg.FileName, HttpRecord.SolveRequest);
             }
         }
 
         void ExportLastSolveResponse()
         {
-            if (String.IsNullOrEmpty(HTTPRecord.SolveResponse))
+            if (String.IsNullOrEmpty(HttpRecord.SolveResponse))
             {
                 Eto.Forms.MessageBox.Show("No solve response has been received. Run this component at least once", Eto.Forms.MessageBoxType.Error);
                 return;
@@ -914,7 +914,7 @@ for value in values:
             dlg.Filters.Add(new Eto.Forms.FileFilter("JSON file", ".json"));
             if (dlg.ShowDialog(Grasshopper.Instances.EtoDocumentEditor) == Eto.Forms.DialogResult.Ok)
             {
-                System.IO.File.WriteAllText(dlg.FileName, HTTPRecord.SolveResponse);
+                System.IO.File.WriteAllText(dlg.FileName, HttpRecord.SolveResponse);
             }
         }
 
@@ -1089,10 +1089,10 @@ for value in values:
 
                 if (remoteDefinition.IsNotRespondingUrl())
                 {
-                    var msg = $"Unable to connect to {RemoteDefinitionLocation} within the configured {HopsAppSettings.HTTPTimeout}-second HTTP timeout (raise it in the Hops settings panel if the server is just slow).";
+                    var msg = $"Unable to connect to {RemoteDefinitionLocation} within the configured {HopsAppSettings.HttpTimeout}-second HTTP timeout (raise it in the Hops settings panel if the server is just slow).";
                     var errSchema = new IoResponseSchema();
                     errSchema.Errors.Add(msg);
-                    HTTPRecord.IOResponseSchema = errSchema;
+                    HttpRecord.IoResponseSchema = errSchema;
                     HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, msg);
                     Grasshopper.Instances.ActiveCanvas?.Invalidate();
                     return;
@@ -1103,23 +1103,23 @@ for value in values:
                     var msg = $"The URL {RemoteDefinitionLocation} responded but did not return any Hops definition data. Verify it points to a Hops/Compute endpoint or to a Grasshopper .gh/.ghx file.";
                     var errSchema = new IoResponseSchema();
                     errSchema.Errors.Add(msg);
-                    HTTPRecord.IOResponseSchema = errSchema;
+                    HttpRecord.IoResponseSchema = errSchema;
                     HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, msg);
                     Grasshopper.Instances.ActiveCanvas?.Invalidate();
                     return;
                 }
-                if(HTTPRecord.IOResponseSchema != null && HTTPRecord.IOResponseSchema.Errors.Count > 0)
+                if(HttpRecord.IoResponseSchema != null && HttpRecord.IoResponseSchema.Errors.Count > 0)
                 {
-                    foreach(var error in HTTPRecord.IOResponseSchema.Errors)
+                    foreach(var error in HttpRecord.IoResponseSchema.Errors)
                     {
                         HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
                         Grasshopper.Instances.ActiveCanvas?.Invalidate();
                         return;
                     }
                 }
-                if(HTTPRecord.IOResponseSchema != null && HTTPRecord.IOResponseSchema.Warnings.Count > 0)
+                if(HttpRecord.IoResponseSchema != null && HttpRecord.IoResponseSchema.Warnings.Count > 0)
                 {
-                    foreach (var warning in HTTPRecord.IOResponseSchema.Warnings)
+                    foreach (var warning in HttpRecord.IoResponseSchema.Warnings)
                     {
                         HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Warning, warning);
                     }
