@@ -9,12 +9,12 @@ namespace compute.geometry
 {
     public class ApiKeyMiddleware
     {
-        private readonly RequestDelegate _next;
-        private const string APIKEYNAME = "RhinoComputeKey";
+        private readonly RequestDelegate next;
+        private const string API_KEY_NAME = "RhinoComputeKey";
 
         public ApiKeyMiddleware(RequestDelegate next)
         {
-            _next = next;
+            this.next = next;
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -26,16 +26,16 @@ namespace compute.geometry
             var method = context.Request.Method;
             if (HttpMethods.IsGet(method) || HttpMethods.IsOptions(method))
             {
-                await _next(context);
+                await next(context);
                 return;
             }
 
-            if (!context.Request.Headers.TryGetValue(APIKEYNAME, out var extractedApiKey))
+            if (!context.Request.Headers.TryGetValue(API_KEY_NAME, out var extractedApiKey))
             {
                 Log.Warning("401 rejecting {Method} {Path}: missing {HeaderName} header",
-                    method, context.Request.Path, APIKEYNAME);
+                    method, context.Request.Path, API_KEY_NAME);
                 context.Response.StatusCode = 401;
-                await context.Response.WriteAsync($"Requires {APIKEYNAME} header");
+                await context.Response.WriteAsync($"Requires {API_KEY_NAME} header");
                 return;
             }
 
@@ -49,13 +49,13 @@ namespace compute.geometry
             if (!CryptographicOperations.FixedTimeEquals(providedBytes, configuredBytes))
             {
                 Log.Warning("401 rejecting {Method} {Path}: {HeaderName} header does not match server's configured key",
-                    method, context.Request.Path, APIKEYNAME);
+                    method, context.Request.Path, API_KEY_NAME);
                 context.Response.StatusCode = 401;
                 await context.Response.WriteAsync("Unauthorized client.");
                 return;
             }
 
-            await _next(context);
+            await next(context);
         }
     }
 }

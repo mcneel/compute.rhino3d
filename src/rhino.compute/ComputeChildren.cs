@@ -23,10 +23,10 @@ namespace rhino.compute
         /// </summary>
         public const int MaxChildren = 64;
 
-        static DateTime _lastCall = DateTime.MinValue;
+        static DateTime lastCall = DateTime.MinValue;
         public static void UpdateLastCall()
         {
-            _lastCall = DateTime.Now;
+            lastCall = DateTime.Now;
         }
 
         /// <summary>
@@ -70,9 +70,9 @@ namespace rhino.compute
         /// </returns>
         public static int IdleSpan()
         {
-            if (_lastCall == DateTime.MinValue)
+            if (lastCall == DateTime.MinValue)
                 return -1;
-            var span = DateTime.Now - _lastCall;
+            var span = DateTime.Now - lastCall;
             return (int)span.TotalSeconds;
         }
         /// <summary>
@@ -99,14 +99,14 @@ namespace rhino.compute
             // Simple round robin scheduler using a queue of compute.geometry processes
             int activePort = 0;
 
-            lock (_lockObject)
+            lock (lockObject)
             {
-                if (_computeProcesses.Count > 0)
+                if (computeProcesses.Count > 0)
                 {
-                    Tuple<Process, int> current = _computeProcesses.Dequeue();
+                    Tuple<Process, int> current = computeProcesses.Dequeue();
                     if (!current.Item1.HasExited)
                     {
-                        _computeProcesses.Enqueue(current);
+                        computeProcesses.Enqueue(current);
                         activePort = current.Item2;
                     }
                 }
@@ -114,29 +114,29 @@ namespace rhino.compute
                 if (activePort == 0)
                 {
                     // Prune any dead processes before the bootstrap launch below
-                    var aliveProcesses = _computeProcesses.Where(tuple => !tuple.Item1.HasExited).ToList();
-                    _computeProcesses = new Queue<Tuple<Process, int>>(aliveProcesses);
+                    var aliveProcesses = computeProcesses.Where(tuple => !tuple.Item1.HasExited).ToList();
+                    computeProcesses = new Queue<Tuple<Process, int>>(aliveProcesses);
                 }
             }
 
             if (activePort == 0)
             {
                 // Bootstrap: no running children — launch one synchronously (outside the lock
-                // so we don't hold _lockObject for the full startup wait) then pick it up.
+                // so we don't hold lockObject for the full startup wait) then pick it up.
                 LaunchCompute();
 
-                lock (_lockObject)
+                lock (lockObject)
                 {
                     // If a spawn is in-flight but not yet ready, wait for it to complete
                     // rather than failing immediately. PulseAll is called in LaunchCompute's
                     // finally block, so we will be woken when the spawn succeeds or fails.
-                    while (_computeProcesses.Count == 0 && _pendingSpawnPorts.Count > 0)
-                        Monitor.Wait(_lockObject, millisecondsTimeout: 1000);
+                    while (computeProcesses.Count == 0 && pendingSpawnPorts.Count > 0)
+                        Monitor.Wait(lockObject, millisecondsTimeout: 1000);
 
-                    if (_computeProcesses.Count > 0)
+                    if (computeProcesses.Count > 0)
                     {
-                        Tuple<Process, int> current = _computeProcesses.Dequeue();
-                        _computeProcesses.Enqueue(current);
+                        Tuple<Process, int> current = computeProcesses.Dequeue();
+                        computeProcesses.Enqueue(current);
                         activePort = current.Item2;
                     }
                 }
@@ -148,9 +148,9 @@ namespace rhino.compute
             // Compute how many background spawns are needed under the lock so we don't
             // schedule redundant tasks based on a stale unsynchronised count.
             int spawnTasksToQueue;
-            lock (_lockObject)
+            lock (lockObject)
             {
-                spawnTasksToQueue = Math.Max(0, SpawnCount - (_computeProcesses.Count + _pendingSpawnPorts.Count));
+                spawnTasksToQueue = Math.Max(0, SpawnCount - (computeProcesses.Count + pendingSpawnPorts.Count));
             }
             if (spawnTasksToQueue > 0)
             {
@@ -179,18 +179,18 @@ namespace rhino.compute
 
         public static void MoveToFrontOfQueue(int port)
         {
-            lock (_lockObject)
+            lock (lockObject)
             {
                 // TODO: We really should be using a simple list with an index
                 // pointing at the next item to use
-                if (_computeProcesses.Count > 1)
+                if (computeProcesses.Count > 1)
                 {
-                    for( int i=0; i<_computeProcesses.Count; i++)
+                    for( int i=0; i<computeProcesses.Count; i++)
                     {
-                        if (_computeProcesses.Peek().Item2 == port)
+                        if (computeProcesses.Peek().Item2 == port)
                             break;
-                        var item = _computeProcesses.Dequeue();
-                        _computeProcesses.Enqueue(item);
+                        var item = computeProcesses.Dequeue();
+                        computeProcesses.Enqueue(item);
                     }
                 }
             }
@@ -203,26 +203,26 @@ namespace rhino.compute
             if (pathToCompute == null) return;
 
             // Under a brief lock: check whether we need another child and reserve a port.
-            // _pendingSpawnPorts tracks ports currently being started in background tasks so
+            // pendingSpawnPorts tracks ports currently being started in background tasks so
             // we do not double-reserve them or exceed SpawnCount.
             // Snapshot listening ports before the lock to avoid an OS syscall inside it.
             var listeningPorts = GetListeningPorts();
             int port;
-            lock (_lockObject)
+            lock (lockObject)
             {
-                if (_computeProcesses.Count + _pendingSpawnPorts.Count >= SpawnCount)
+                if (computeProcesses.Count + pendingSpawnPorts.Count >= SpawnCount)
                     return;
 
-                var usedPorts = new HashSet<int>(_computeProcesses.Select(t => t.Item2));
-                usedPorts.UnionWith(_pendingSpawnPorts);
+                var usedPorts = new HashSet<int>(computeProcesses.Select(t => t.Item2));
+                usedPorts.UnionWith(pendingSpawnPorts);
                 port = FindFreePort(usedPorts, listeningPorts);
                 if (port == 0) return;
-                _pendingSpawnPorts.Add(port);
+                pendingSpawnPorts.Add(port);
             }
 
             // Start the process and wait outside the lock so that other threads can
             // continue serving requests through already-ready children while this one loads.
-            // Use try/catch/finally so that _pendingSpawnPorts is always cleaned up — even if
+            // Use try/catch/finally so that pendingSpawnPorts is always cleaned up — even if
             // Process.Start or the startup wait throws — preventing permanent capacity reduction.
             Process process = null;
             bool started = false;
@@ -239,13 +239,13 @@ namespace rhino.compute
             }
             finally
             {
-                lock (_lockObject)
+                lock (lockObject)
                 {
-                    _pendingSpawnPorts.Remove(port);
+                    pendingSpawnPorts.Remove(port);
                     if (started && process != null && !process.HasExited)
-                        _computeProcesses.Enqueue(Tuple.Create(process, port));
+                        computeProcesses.Enqueue(Tuple.Create(process, port));
                     // Wake any threads waiting in GetComputeServerBaseUrl for this spawn to finish.
-                    Monitor.PulseAll(_lockObject);
+                    Monitor.PulseAll(lockObject);
                 }
             }
         }
@@ -287,7 +287,7 @@ namespace rhino.compute
                 // Lines emitted by the child's Serilog (ANSI theme) already begin with an
                 // escape sequence and a "CG {port} [...]" prefix — pass them through verbatim.
                 // Anything else (Grasshopper's raw Console.WriteLine output during plugin load,
-                // the occasional stderr write) is wrapped via _childRawLogger so it picks up
+                // the occasional stderr write) is wrapped via childRawLogger so it picks up
                 // the same prefix, colors, and port enrichment as a normal CG line.
                 void ReEmit(string line)
                 {
@@ -295,7 +295,7 @@ namespace rhino.compute
                     if (line.Length > 0 && (line[0] == '\x1B' || line.StartsWith("CG ", StringComparison.Ordinal)))
                         Console.WriteLine(line);
                     else
-                        _childRawLogger.ForContext("Port", port).Information("{Line:l}", line);
+                        childRawLogger.ForContext("Port", port).Information("{Line:l}", line);
                 }
                 process.OutputDataReceived += (s, e) => ReEmit(e.Data);
                 process.ErrorDataReceived  += (s, e) => ReEmit(e.Data);
@@ -310,7 +310,7 @@ namespace rhino.compute
         // entirely) so they render with the same "CG {Port} [...]" prefix, color theme, and
         // port enrichment as Serilog-emitted CG lines. Uses applyThemeToRedirectedOutput so
         // colors still emit if rhino.compute itself ever runs with redirected stdout.
-        static readonly ILogger _childRawLogger = new LoggerConfiguration()
+        static readonly ILogger childRawLogger = new LoggerConfiguration()
             .WriteTo.Console(
                 outputTemplate: "CG {Port} [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
                 theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Literate,
@@ -409,10 +409,10 @@ namespace rhino.compute
 
         // Returns true if any TCP listener is currently bound to the given port.
         static bool IsPortOpen(int port) => GetListeningPorts().Contains(port);
-        static object _lockObject = new object();
-        static Queue<Tuple<Process, int>> _computeProcesses = new Queue<Tuple<Process, int>>();
+        static object lockObject = new object();
+        static Queue<Tuple<Process, int>> computeProcesses = new Queue<Tuple<Process, int>>();
         // Ports for which a child process has been started but has not yet been confirmed
-        // ready and added to _computeProcesses. Protected by _lockObject.
-        static readonly HashSet<int> _pendingSpawnPorts = new HashSet<int>();
+        // ready and added to computeProcesses. Protected by lockObject.
+        static readonly HashSet<int> pendingSpawnPorts = new HashSet<int>();
     }
 }

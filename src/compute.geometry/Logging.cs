@@ -9,15 +9,15 @@ namespace compute.geometry
 {
     // Reads a mutable static port at log-event time so the prefix can switch from "CG " to
     // "CG NNNN" mid-run — useful for standalone launches where the port isn't known until
-    // Kestrel binds (default 5000). When _port == 0, the property is not added and the
+    // Kestrel binds (default 5000). When port == 0, the property is not added and the
     // output template's {Port} placeholder renders empty.
     sealed class DynamicPortEnricher : ILogEventEnricher
     {
-        static int _port;
-        public static void SetPort(int port) => _port = port;
+        static int port;
+        public static void SetPort(int port) => DynamicPortEnricher.port = port;
         public void Enrich(LogEvent logEvent, ILogEventPropertyFactory factory)
         {
-            int port = _port;
+            int port = DynamicPortEnricher.port;
             if (port > 0)
                 logEvent.AddPropertyIfAbsent(factory.CreateProperty("Port", port));
         }
@@ -25,7 +25,7 @@ namespace compute.geometry
 
     static class Logging
     {
-        static bool _enabled = false;
+        static bool enabled = false;
         public static List<string> Warnings { get; set; }
         public static List<string> Errors { get; set; }
 
@@ -38,7 +38,7 @@ namespace compute.geometry
         /// (typically from the Kestrel ApplicationStarted callback) will start populating it.</param>
         public static void Init(int port = 0)
         {
-            if (_enabled)
+            if (enabled)
                 return;
             if (Warnings == null)
                 Warnings = new List<string>();
@@ -83,7 +83,7 @@ namespace compute.geometry
 
             Log.Debug("Logging to {LogPath}", Path.GetDirectoryName(path));
 
-            _enabled = true;
+            enabled = true;
         }
 
         internal static void LogExceptionData(System.Exception ex)

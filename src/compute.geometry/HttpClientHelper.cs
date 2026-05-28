@@ -11,19 +11,19 @@ namespace compute.geometry
     /// </summary>
     static class HttpClientHelper
     {
-        static HttpClient _client;
+        static HttpClient client;
         public static HttpClient Client
         {
             get
             {
-                if (_client == null)
+                if (client == null)
                 {
-                    _client = new HttpClient(new HttpClientHandler
+                    client = new HttpClient(new HttpClientHandler
                     {
                         AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
                     });
                 }
-                return _client;
+                return client;
             }
         }
     }

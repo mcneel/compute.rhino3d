@@ -77,7 +77,7 @@ namespace compute.geometry
         /// </summary>
         public static bool LoadGrasshopper { get; private set; }
 
-        public static string[] GetDeprecationWarnings() => _warnings.ToArray();
+        public static string[] GetDeprecationWarnings() => warnings.ToArray();
 
         /// <summary>
         /// RHINO_COMPUTE_DEBUG: enables debug logging (defaults to true in DEBUG).
@@ -106,10 +106,10 @@ namespace compute.geometry
 #endif
             Debug = GetEnvironmentVariable(RHINO_COMPUTE_DEBUG, Debug);
 
-            foreach (var name in _ignored)
+            foreach (var name in ignored)
             {
                 if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(name)))
-                    _warnings.Add($"Ignoring deprecated {name} environment variable");
+                    warnings.Add($"Ignoring deprecated {name} environment variable");
             }
         }
 
@@ -132,9 +132,9 @@ namespace compute.geometry
         const string COMPUTE_LOG_PATH = "COMPUTE_LOG_PATH";
         const string COMPUTE_LOG_RETAIN_DAYS = "COMPUTE_LOG_RETAIN_DAYS";
 
-        readonly static string[] _ignored = new string[] { "COMPUTE_BACKEND_PORT" };
+        readonly static string[] ignored = new string[] { "COMPUTE_BACKEND_PORT" };
 
-        readonly static List<string> _warnings = new List<string>();
+        readonly static List<string> warnings = new List<string>();
 
         static T GetEnvironmentVariable<T>(string name, T defaultValue, string deprecatedName = null)
         {
@@ -144,7 +144,7 @@ namespace compute.geometry
             {
                 value = Environment.GetEnvironmentVariable(deprecatedName);
                 if (!string.IsNullOrWhiteSpace(value))
-                    _warnings.Add($"{deprecatedName} is deprecated; use {name} instead");
+                    warnings.Add($"{deprecatedName} is deprecated; use {name} instead");
             }
 
             if (string.IsNullOrWhiteSpace(value))
@@ -162,7 +162,7 @@ namespace compute.geometry
                 if (int.TryParse(value, out int result))
                     return (T)(object)result;
 
-                _warnings.Add($"{name} set to '{value}'; unable to parse as integer");
+                warnings.Add($"{name} set to '{value}'; unable to parse as integer");
                 return defaultValue;
             }
 
@@ -171,7 +171,7 @@ namespace compute.geometry
                 if (long.TryParse(value, out long result))
                     return (T)(object)result;
 
-                _warnings.Add($"{name} set to '{value}'; unable to parse as long");
+                warnings.Add($"{name} set to '{value}'; unable to parse as long");
                 return defaultValue;
             }
 
