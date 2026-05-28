@@ -22,6 +22,18 @@ namespace compute.geometry
     //     a malicious server hosting a multi-GB body can't exhaust memory
     static class UrlGuard
     {
+        // Lightweight classifier: true only if the string is a well-formed ABSOLUTE
+        // http/https URL. Prefer this over a StartsWith("http") prefix check, which is
+        // both too loose and not a real parse — it accepts look-alikes like "httpfoo://"
+        // or a relative path named "httpdocs/model.gh". Used to decide whether a path
+        // should be fetched over HTTP vs treated as a local file. (Validate() enforces the
+        // same scheme rule but throws on violation; use IsWebUrl where a bool fits.)
+        public static bool IsWebUrl(string url)
+        {
+            return Uri.TryCreate(url, UriKind.Absolute, out var uri)
+                && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+        }
+
         // Throws an exception describing the violation if the URL is malformed,
         // uses a non-http(s) scheme, or (when Config.BlockPrivateUrls is true)
         // resolves to a private/loopback IP. Returns normally on success.
