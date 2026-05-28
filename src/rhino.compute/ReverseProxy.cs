@@ -163,16 +163,13 @@ namespace rhino.compute
                 if (initialRequest.Headers.TryGetValue(API_KEY_HEADER, out var keyHeader))
                     req.Headers.Add(API_KEY_HEADER, keyHeader.ToString());
 
-                using (var stream = initialRequest.BodyReader.AsStream(false))
+                using (var sw = new System.IO.StreamReader(initialRequest.BodyReader.AsStream()))
                 {
-                    using (var sw = new System.IO.StreamReader(initialRequest.BodyReader.AsStream()))
+                    string body = sw.ReadToEnd();
+                    using (var stringContent = new StringContent(body, System.Text.Encoding.UTF8, "application/json"))
                     {
-                        string body = sw.ReadToEnd();
-                        using (var stringContent = new StringContent(body, System.Text.Encoding.UTF8, "applicaton/json"))
-                        {
-                            req.Content = stringContent;
-                            return await client.SendAsync(req);
-                        }
+                        req.Content = stringContent;
+                        return await client.SendAsync(req);
                     }
                 }
             }
@@ -191,12 +188,16 @@ namespace rhino.compute
             using (var tracker = new ConcurrentRequestTracker())
             {
                 var (baseurl, port) = ComputeChildren.GetComputeServerBaseUrl();
-                var proxyResponse = await SendProxyRequest(req, method, baseurl);
+                using var proxyResponse = await SendProxyRequest(req, method, baseurl);
                 ComputeChildren.UpdateLastCall();
                 if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
                     ComputeChildren.MoveToFrontOfQueue(port);
 
                 res.StatusCode = (int)proxyResponse.StatusCode;
+                // Forward the upstream Content-Type so JSON responses arrive at the caller as
+                // application/json rather than the ASP.NET Core default text/plain.
+                if (proxyResponse.Content.Headers.ContentType != null)
+                    res.ContentType = proxyResponse.Content.Headers.ContentType.ToString();
                 var responseString = await proxyResponse.Content.ReadAsStringAsync();
                 await res.WriteAsync(responseString);
             }
