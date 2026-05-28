@@ -176,7 +176,7 @@ namespace Hops
             RemoteDefinitionCache.Remove(this);
         }
 
-        public bool IsNotResponingUrl()
+        public bool IsNotRespondingUrl()
         {
             var pathtype = GetPathType();
             return pathtype == PathType.NonresponsiveUrl;
@@ -390,54 +390,80 @@ namespace Hops
             if (responseTask != null)
             {
                 var sw = Stopwatch.StartNew();
-                var responseMessage = responseTask.Result;
-                HopsLog.Log.Debug($"Received response {responseMessage.StatusCode} in {sw.ElapsedMilliseconds}ms");
-                var remoteSolvedData = responseMessage.Content;
-                var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
-                parentComponent.HTTPRecord.IOResponse = stringResult;
+                try
+                {
+                    var responseMessage = responseTask.Result;
+                    HopsLog.Log.Debug($"Received response {responseMessage.StatusCode} in {sw.ElapsedMilliseconds}ms");
+                    var remoteSolvedData = responseMessage.Content;
+                    var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
+                    parentComponent.HTTPRecord.IOResponse = stringResult;
 
-                // Detect 401 BEFORE attempting to parse the body as JSON. The middleware's
-                // response body is plain text ("Api Key was not provided." / "Unauthorized
-                // client."), which would throw JsonReaderException inside the deserializer
-                // below. Surface via IOResponseSchema.Errors so DefineInputsAndOutputs picks
-                // it up and displays a red runtime message on the Hops component.
-                if (responseMessage.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    // Detect 401 BEFORE attempting to parse the body as JSON. The middleware's
+                    // response body is plain text ("Api Key was not provided." / "Unauthorized
+                    // client."), which would throw JsonReaderException inside the deserializer
+                    // below. Surface via IOResponseSchema.Errors so DefineInputsAndOutputs picks
+                    // it up and displays a red runtime message on the Hops component.
+                    if (responseMessage.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        var serverMessage = string.IsNullOrWhiteSpace(stringResult)
+                            ? "Server returned 401 Unauthorized — verify the RHINO_COMPUTE_KEY environment variable on the Hops client matches the server's configured key."
+                            : $"Server returned 401 Unauthorized: {stringResult.Trim()}";
+                        HopsLog.Log.Error(serverMessage);
+                        var errSchema = new IoResponseSchema();
+                        errSchema.Errors.Add(serverMessage);
+                        parentComponent.HTTPRecord.IOResponseSchema = errSchema;
+                    }
+                    else if (!responseMessage.IsSuccessStatusCode)
+                    {
+                        // Any other non-success status (500/502/503/etc.) — e.g. the server's
+                        // global exception handler returned a JSON error body, or an upstream
+                        // URL fetch failed. Deserializing that body into an IoResponseSchema
+                        // yields null Inputs/Outputs and would NRE in the foreach loops below,
+                        // so surface it as a component error instead.
+                        var detail = ExtractServerErrorMessage(stringResult);
+                        var serverMessage = string.IsNullOrWhiteSpace(detail)
+                            ? $"Could not load the remote definition from {Path}\r\nThe server responded with {(int)responseMessage.StatusCode} ({responseMessage.StatusCode})."
+                            : $"Could not load the remote definition from {Path}\r\n{detail}";
+                        HopsLog.Log.Error(serverMessage);
+                        var errSchema = new IoResponseSchema();
+                        errSchema.Errors.Add(serverMessage);
+                        parentComponent.HTTPRecord.IOResponseSchema = errSchema;
+                    }
+                    else if (string.IsNullOrEmpty(stringResult))
+                    {
+                        this.pathType = PathType.InvalidUrl; // Looks like a valid but not related URL
+                        parentComponent.HTTPRecord.IOResponse = "Invalid URL";
+                    }
+                    else
+                    {
+                        responseSchema = JsonConvert.DeserializeObject<IoResponseSchema>(stringResult);
+                        cacheKey = responseSchema.CacheKey;
+                        filename = responseSchema.FileName;
+                        parentComponent.HTTPRecord.IOResponseSchema = responseSchema;
+                    }
+                }
+                catch (Exception ex)
                 {
-                    var serverMessage = string.IsNullOrWhiteSpace(stringResult)
-                        ? "Server returned 401 Unauthorized — verify the RHINO_COMPUTE_KEY environment variable on the Hops client matches the server's configured key."
-                        : $"Server returned 401 Unauthorized: {stringResult.Trim()}";
+                    // Surface cancellation (HTTPTimeout exceeded) or network failure as a clear
+                    // runtime message on the component instead of bubbling up to Grasshopper
+                    // where the exception is swallowed silently. .Result wraps the underlying
+                    // failure in AggregateException; unwrap one level so the message is clean.
+                    var inner = ex is AggregateException ae && ae.InnerException != null
+                        ? ae.InnerException
+                        : ex;
+                    string serverMessage;
+                    if (inner is OperationCanceledException)
+                    {
+                        serverMessage = $"Could not load the remote definition from {Path}\r\nRequest timed out after {sw.Elapsed.TotalSeconds:0.0}s (configured timeout: {HopsAppSettings.HTTPTimeout}s — raise it in the Hops settings panel if the server is just slow).";
+                    }
+                    else
+                    {
+                        serverMessage = $"Could not load the remote definition from {Path}\r\n{inner.Message}";
+                    }
                     HopsLog.Log.Error(serverMessage);
                     var errSchema = new IoResponseSchema();
                     errSchema.Errors.Add(serverMessage);
                     parentComponent.HTTPRecord.IOResponseSchema = errSchema;
-                }
-                else if (!responseMessage.IsSuccessStatusCode)
-                {
-                    // Any other non-success status (500/502/503/etc.) — e.g. the server's
-                    // global exception handler returned a JSON error body, or an upstream
-                    // URL fetch failed. Deserializing that body into an IoResponseSchema
-                    // yields null Inputs/Outputs and would NRE in the foreach loops below,
-                    // so surface it as a component error instead.
-                    var detail = ExtractServerErrorMessage(stringResult);
-                    var serverMessage = string.IsNullOrWhiteSpace(detail)
-                        ? $"Could not load the remote definition from {Path}\r\nThe server responded with {(int)responseMessage.StatusCode} ({responseMessage.StatusCode})."
-                        : $"Could not load the remote definition from {Path}\r\n{detail}";
-                    HopsLog.Log.Error(serverMessage);
-                    var errSchema = new IoResponseSchema();
-                    errSchema.Errors.Add(serverMessage);
-                    parentComponent.HTTPRecord.IOResponseSchema = errSchema;
-                }
-                else if (string.IsNullOrEmpty(stringResult))
-                {
-                    this.pathType = PathType.InvalidUrl; // Looks like a valid but not related URL
-                    parentComponent.HTTPRecord.IOResponse = "Invalid URL";
-                }
-                else
-                {
-                    responseSchema = JsonConvert.DeserializeObject<IoResponseSchema>(stringResult);
-                    cacheKey = responseSchema.CacheKey;
-                    filename = responseSchema.FileName;
-                    parentComponent.HTTPRecord.IOResponseSchema = responseSchema;
                 }
             }
 

@@ -625,7 +625,9 @@ namespace Hops
             {
                 try
                 {
-                    var getTask = HopsFunctionMgr.HttpClient.GetAsync(row.SourcePath);
+                    using var cts = new System.Threading.CancellationTokenSource(
+                        TimeSpan.FromSeconds(HopsAppSettings.HTTPTimeout));
+                    var getTask = HopsFunctionMgr.HttpClient.GetAsync(row.SourcePath, cts.Token);
                     if (getTask != null)
                     {
                         var responseMessage = getTask.Result;
@@ -1085,16 +1087,24 @@ for value in values:
                 ClearRuntimeMessages();
                 string description = remoteDefinition.GetDescription(out System.Drawing.Bitmap customIcon);
 
-                if (remoteDefinition.IsNotResponingUrl())
+                if (remoteDefinition.IsNotRespondingUrl())
                 {
-                    HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unable to connect to server");
+                    var msg = $"Unable to connect to {RemoteDefinitionLocation} within the configured {HopsAppSettings.HTTPTimeout}-second HTTP timeout (raise it in the Hops settings panel if the server is just slow).";
+                    var errSchema = new IoResponseSchema();
+                    errSchema.Errors.Add(msg);
+                    HTTPRecord.IOResponseSchema = errSchema;
+                    HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, msg);
                     Grasshopper.Instances.ActiveCanvas?.Invalidate();
                     return;
                 }
 
                 if (remoteDefinition.IsInvalidUrl())
                 {
-                    HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Path appears valid, but to something that is not Hops related");
+                    var msg = $"The URL {RemoteDefinitionLocation} responded but did not return any Hops definition data. Verify it points to a Hops/Compute endpoint or to a Grasshopper .gh/.ghx file.";
+                    var errSchema = new IoResponseSchema();
+                    errSchema.Errors.Add(msg);
+                    HTTPRecord.IOResponseSchema = errSchema;
+                    HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, msg);
                     Grasshopper.Instances.ActiveCanvas?.Invalidate();
                     return;
                 }
