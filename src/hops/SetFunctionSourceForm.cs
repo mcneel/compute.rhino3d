@@ -59,7 +59,8 @@ namespace Hops
             };
 
             var filePickButton = new Rhino.UI.Controls.ImageButton();
-            filePickButton.Image = Rhino.Resources.Assets.Rhino.Eto.Bitmaps.TryGet(Rhino.Resources.ResourceIds.FolderopenPng, new Eto.Drawing.Size(24, 24));
+            filePickButton.ToolTip = "Select a path containing one or more Grasshopper definitions";
+            filePickButton.Image = Rhino.Resources.Assets.Rhino.Eto.Icons.TryGet(Rhino.Resources.ResourceIds.FolderopenPng, new Eto.Drawing.Size(24, 24));
             filePickButton.Click += (sender, e) =>
             {
                 var dlg = new SelectFolderDialog();
