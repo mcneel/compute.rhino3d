@@ -24,6 +24,16 @@ namespace compute.geometry
         public static string ApiKey { get; private set; }
 
         /// <summary>
+        /// RHINO_COMPUTE_TIMEOUT: time in seconds for outbound HTTP fetches performed by this
+        /// process (e.g. downloading a Grasshopper definition from a URL via UrlGuard /
+        /// HttpClientHelper). Defaults to 100 seconds — matches the .NET HttpClient default
+        /// and rhino.compute's reverse-proxy timeout, so the same env var configures both
+        /// processes via a single knob. Spawned compute.geometry children automatically
+        /// inherit the value rhino.compute sets when launched with --timeout.
+        /// </summary>
+        public static int RequestTimeout { get; private set; }
+
+        /// <summary>
         /// RHINO_COMPUTE_MAX_REQUEST_SIZE: maximum allowed size of any request body in bytes.
         /// Defaults to 50 MB. Matches the rhino.compute env-var pattern so child processes
         /// inherit the same limit when launched under the proxy. Also used as the cap for
@@ -91,6 +101,7 @@ namespace compute.geometry
         {
             Urls = GetEnvironmentVariable(RHINO_COMPUTE_URLS, "http://localhost:8081", COMPUTE_BIND_URLS).Split(';');
             ApiKey = GetEnvironmentVariable<string>(RHINO_COMPUTE_KEY, null);
+            RequestTimeout = GetEnvironmentVariable<int>(RHINO_COMPUTE_TIMEOUT, 100);
             MaxRequestSize = GetEnvironmentVariable<long>(RHINO_COMPUTE_MAX_REQUEST_SIZE, 52428800);
             BlockPrivateUrls = GetEnvironmentVariable<bool>(RHINO_COMPUTE_BLOCK_PRIVATE_URLS, false);
             CachePhysicalLimitPercent = GetEnvironmentVariable<int>(RHINO_COMPUTE_CACHE_PHYSICAL_LIMIT_PERCENT, 70);
@@ -118,6 +129,7 @@ namespace compute.geometry
         // environment variables
         const string RHINO_COMPUTE_URLS = "RHINO_COMPUTE_URLS";
         const string RHINO_COMPUTE_KEY = "RHINO_COMPUTE_KEY";
+        const string RHINO_COMPUTE_TIMEOUT = "RHINO_COMPUTE_TIMEOUT";
         const string RHINO_COMPUTE_MAX_REQUEST_SIZE = "RHINO_COMPUTE_MAX_REQUEST_SIZE";
         const string RHINO_COMPUTE_BLOCK_PRIVATE_URLS = "RHINO_COMPUTE_BLOCK_PRIVATE_URLS";
         const string RHINO_COMPUTE_CACHE_PHYSICAL_LIMIT_PERCENT = "RHINO_COMPUTE_CACHE_PHYSICAL_LIMIT_PERCENT";

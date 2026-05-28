@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using System.Net.Http;
 
@@ -22,6 +23,10 @@ namespace compute.geometry
                     {
                         AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
                     });
+                    // Use the shared RHINO_COMPUTE_TIMEOUT setting so this process's outbound
+                    // fetches honor the same timeout knob rhino.compute applies to its proxy
+                    // (children inherit the env var when launched via the proxy).
+                    client.Timeout = TimeSpan.FromSeconds(Config.RequestTimeout);
                 }
                 return client;
             }
