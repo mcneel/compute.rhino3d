@@ -201,6 +201,18 @@ namespace Hops
                 return;
             }
 
+            // The remote definition failed to load its IO description (e.g. the server errored
+            // while fetching the definition). DefineInputsAndOutputs surfaces this when the
+            // location is set, but Grasshopper clears runtime messages at the start of every
+            // solve — so re-surface it here, during SolveInstance, where it survives to render.
+            // Skip solving a definition that never loaded.
+            if (HTTPRecord.IOResponseSchema != null && HTTPRecord.IOResponseSchema.Errors.Count > 0)
+            {
+                foreach (var error in HTTPRecord.IOResponseSchema.Errors)
+                    HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, error);
+                return;
+            }
+
             if (showEnabledInput && DA.Iteration == 0)
             {
                 bool enabled = true;
