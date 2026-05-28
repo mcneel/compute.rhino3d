@@ -11,15 +11,15 @@ namespace rhino.compute
 {
     public class ReverseProxyModule
     {
-        static int _initCalled = 0;
-        static Task _initTask;
-        static HttpClient _client;
-        private const string _apiKeyHeader = "RhinoComputeKey";
+        static int initCalled = 0;
+        static Task initTask;
+        static HttpClient client;
+        private const string API_KEY_HEADER = "RhinoComputeKey";
         static void Initialize()
         {
             // Use an atomic compare-and-swap so that concurrent first requests cannot
             // both pass this guard and double-initialize the HttpClient or child processes.
-            if (System.Threading.Interlocked.CompareExchange(ref _initCalled, 1, 0) != 0)
+            if (System.Threading.Interlocked.CompareExchange(ref initCalled, 1, 0) != 0)
                 return;
 
             Log.Debug($"Initializing reverse proxy at {DateTime.Now.ToLocalTime()}");
@@ -27,13 +27,13 @@ namespace rhino.compute
             // SocketsHttpHandler gives direct control over connection pool lifetime.
             // PooledConnectionIdleTimeout ensures we close idle connections to compute.geometry
             // before it closes them on its end, avoiding SocketExceptions in the pool scavenger.
-            _client = new HttpClient(new SocketsHttpHandler
+            client = new HttpClient(new SocketsHttpHandler
             {
                 AllowAutoRedirect = false,
                 PooledConnectionIdleTimeout = TimeSpan.FromSeconds(60)
             });
-            _client.DefaultRequestHeaders.Add("User-Agent", $"compute.rhino3d-proxy/1.0.0");
-            _client.Timeout = TimeSpan.FromSeconds(Config.ReverseProxyRequestTimeout);
+            client.DefaultRequestHeaders.Add("User-Agent", $"compute.rhino3d-proxy/1.0.0");
+            client.Timeout = TimeSpan.FromSeconds(Config.ReverseProxyRequestTimeout);
 
             // Launch child processes on start. Getting the base url is enough to get things rolling
             if (ComputeChildren.SpawnOnStartup)
@@ -45,42 +45,42 @@ namespace rhino.compute
         static void InitializeChildren()
         {
             ComputeChildren.UpdateLastCall();
-            _initTask = Task.Run(() =>
+            initTask = Task.Run(() =>
             {
                 var (url, port) = ComputeChildren.GetComputeServerBaseUrl();
                 ComputeChildren.MoveToFrontOfQueue(port);
             });
         }
 
-        static System.Timers.Timer _concurrentRequestLogger;
-        static int _activeConcurrentRequests;
-        static int _maxConcurrentRequests;
+        static System.Timers.Timer concurrentRequestLogger;
+        static int activeConcurrentRequests;
+        static int maxConcurrentRequests;
         class ConcurrentRequestTracker : System.IDisposable
         {
             public ConcurrentRequestTracker()
             {
-                _activeConcurrentRequests++;
-                if (_activeConcurrentRequests > _maxConcurrentRequests)
-                    _maxConcurrentRequests = _activeConcurrentRequests;
+                activeConcurrentRequests++;
+                if (activeConcurrentRequests > maxConcurrentRequests)
+                    maxConcurrentRequests = activeConcurrentRequests;
             }
 
             public void Dispose()
             {
-                _activeConcurrentRequests--;
+                activeConcurrentRequests--;
             }
         }
         public static void InitializeConcurrentRequestLogging(Microsoft.Extensions.Logging.ILogger logger)
         {
             // log once per minute
             var span = new System.TimeSpan(0, 1, 0);
-            _concurrentRequestLogger = new System.Timers.Timer(span.TotalMilliseconds);
-            _concurrentRequestLogger.Elapsed += (s, e) =>
+            concurrentRequestLogger = new System.Timers.Timer(span.TotalMilliseconds);
+            concurrentRequestLogger.Elapsed += (s, e) =>
             {
-                logger.LogInformation($"Max concurrent requests = {_maxConcurrentRequests}");
-                _maxConcurrentRequests = _activeConcurrentRequests;
+                logger.LogInformation($"Max concurrent requests = {maxConcurrentRequests}");
+                maxConcurrentRequests = activeConcurrentRequests;
             };
-            _concurrentRequestLogger.AutoReset = true;
-            _concurrentRequestLogger.Start();
+            concurrentRequestLogger.AutoReset = true;
+            concurrentRequestLogger.Start();
         }
 
         public static void MapEndpoints(IEndpointRouteBuilder app)
@@ -151,11 +151,11 @@ namespace rhino.compute
 
         static async Task AwaitInitTask()
         {
-            var task = _initTask;
+            var task = initTask;
             if (task != null)
             {
                 await task;
-                _initTask = null;
+                initTask = null;
             }
         }
 
@@ -170,8 +170,8 @@ namespace rhino.compute
             {
                 // include RhinoComputeKey header in request to compute child process
                 using var req = new HttpRequestMessage(HttpMethod.Post, proxyUrl);
-                if (initialRequest.Headers.TryGetValue(_apiKeyHeader, out var keyHeader))
-                    req.Headers.Add(_apiKeyHeader, keyHeader.ToString());
+                if (initialRequest.Headers.TryGetValue(API_KEY_HEADER, out var keyHeader))
+                    req.Headers.Add(API_KEY_HEADER, keyHeader.ToString());
 
                 // Stream the request body directly to the child process rather than
                 // buffering it as a string, avoiding a full in-memory copy of the payload.
@@ -184,12 +184,12 @@ namespace rhino.compute
                 req.Content = streamContent;
                 // SendAsync fully consumes the request body before returning, so disposing
                 // req (and its owned StreamContent) here is safe.
-                return await _client.SendAsync(req);
+                return await client.SendAsync(req);
             }
 
             if (method == HttpMethod.Get)
             {
-                return await _client.GetAsync(proxyUrl);
+                return await client.GetAsync(proxyUrl);
             }
 
             throw new System.NotSupportedException("Only GET and POST are currently supported for reverse proxy");

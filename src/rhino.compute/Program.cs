@@ -103,8 +103,8 @@ requests while the child processes are launching.")]
 
         }
 
-        static System.Diagnostics.Process _parentProcess;
-        static System.Timers.Timer _selfDestructTimer;
+        static System.Diagnostics.Process parentProcess;
+        static System.Timers.Timer selfDestructTimer;
 
         public static void Main(string[] args)
         {
@@ -174,7 +174,7 @@ requests while the child processes are launching.")]
                 ComputeChildren.RhinoSysDir = o.RhinoSysDir;
                 int parentProcessId = o.ChildOf;
                 if (parentProcessId > 0)
-                    _parentProcess = System.Diagnostics.Process.GetProcessById(parentProcessId);
+                    parentProcess = System.Diagnostics.Process.GetProcessById(parentProcessId);
                 port = o.Port;
                 
             }).WithNotParsed(errors =>
@@ -209,9 +209,9 @@ requests while the child processes are launching.")]
 
                 }).Build();
 
-            if(_parentProcess?.MainModule != null)
+            if(parentProcess?.MainModule != null)
             {
-                var parentPath = _parentProcess.MainModule.FileName;
+                var parentPath = parentProcess.MainModule.FileName;
                 if (Path.GetFileName(parentPath) == "Rhino.exe")
                 {
                     ComputeChildren.RhinoSysDir = Directory.GetParent(parentPath).FullName;
@@ -247,22 +247,22 @@ requests while the child processes are launching.")]
             var logger = host.Services.GetRequiredService<ILogger<ReverseProxyModule>>();
             ReverseProxyModule.InitializeConcurrentRequestLogging(logger);
 
-            if (_parentProcess != null)
+            if (parentProcess != null)
             {
-                _selfDestructTimer = new System.Timers.Timer(1000);
-                _selfDestructTimer.Elapsed += (s, e) =>
+                selfDestructTimer = new System.Timers.Timer(1000);
+                selfDestructTimer.Elapsed += (s, e) =>
                 {
-                    if (_parentProcess.HasExited)
+                    if (parentProcess.HasExited)
                     {
-                        _selfDestructTimer.Stop();
-                        _parentProcess = null;
+                        selfDestructTimer.Stop();
+                        parentProcess = null;
                         Console.WriteLine("self-destruct");
                         Log.Information($"Self-destruct called at {DateTime.Now.ToLocalTime()}");
                         host.StopAsync();
                     }
                 };
-                _selfDestructTimer.AutoReset = true;
-                _selfDestructTimer.Start();
+                selfDestructTimer.AutoReset = true;
+                selfDestructTimer.Start();
             }
             host.Run();
         }
@@ -283,9 +283,9 @@ requests while the child processes are launching.")]
 
         public static bool IsParentRhinoProcess(int processId)
         {
-            if (_parentProcess != null && _parentProcess.ProcessName.Contains("rhino", StringComparison.OrdinalIgnoreCase))
+            if (parentProcess != null && parentProcess.ProcessName.Contains("rhino", StringComparison.OrdinalIgnoreCase))
             {
-                return (_parentProcess.Id == processId);
+                return (parentProcess.Id == processId);
             }
             return false;
         }
