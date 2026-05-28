@@ -91,18 +91,18 @@ namespace Resthopper.IO
         public List<string> Errors { get; set; } = new List<string>();
     }
 
-    public class HTTPRecord
+    public class HttpRecord
     {
-        public HTTPRecord()
+        public HttpRecord()
         {
 
         }
-        public string IORequest { get; set; }
-        public string IOResponse { get; set; }
+        public string IoRequest { get; set; }
+        public string IoResponse { get; set; }
         public string SolveRequest { get; set; }
         public string SolveResponse { get; set; }
         public Schema Schema { get; set; }
-        public IoResponseSchema IOResponseSchema { get; set; }
+        public IoResponseSchema IoResponseSchema { get; set; }
     }
 
     public class ResthopperObject : IEquatable<ResthopperObject>
