@@ -374,8 +374,22 @@ namespace compute.geometry
                 return;
             }
 
-            object data = string.IsNullOrWhiteSpace(jsonString) ? null : JsonConvert.DeserializeObject(jsonString);
-            var ja = data as Newtonsoft.Json.Linq.JArray;
+            // The POST body is expected to be a JSON array of arguments. Deserialize to the
+            // expected shape and reject anything else (non-array JSON, malformed JSON, or an
+            // empty body) with a 400 — otherwise a null `ja` would NullReference below. This
+            // is a client-input boundary, so a bad shape is a 400, not a 500.
+            Newtonsoft.Json.Linq.JArray ja = null;
+            if (!string.IsNullOrWhiteSpace(jsonString))
+            {
+                try { ja = JsonConvert.DeserializeObject(jsonString) as Newtonsoft.Json.Linq.JArray; }
+                catch (Newtonsoft.Json.JsonException) { ja = null; }
+            }
+            if (ja == null)
+            {
+                context.Response.StatusCode = 400;
+                await context.Response.WriteAsync("Request body must be a JSON array.");
+                return;
+            }
             string resultString = null;
             if (multiple && ja.Count > 1)
             {
