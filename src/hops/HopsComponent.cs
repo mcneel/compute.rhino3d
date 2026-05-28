@@ -525,8 +525,15 @@ namespace Hops
             tsi = new ToolStripMenuItem("Internalize Definition", null, (s, e) => {
                 if (File.Exists(RemoteDefinitionLocation))
                 {
-                    remoteDefinition.InternalizeDefinition(RemoteDefinitionLocation);
-                    DefineInputsAndOutputs();                 
+                    try
+                    {
+                        remoteDefinition.InternalizeDefinition(RemoteDefinitionLocation);
+                        DefineInputsAndOutputs();
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, ex.Message);
+                    }
                 }
             });
             tsi.ToolTipText = "Make the referenced definition permanent and clear any existing source paths";
