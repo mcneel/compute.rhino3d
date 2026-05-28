@@ -84,7 +84,12 @@ namespace compute.geometry
             using var response = await HttpClientHelper.Client
                 .SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct)
                 .ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
+            // Surface the source server's own status in a clean message rather than the
+            // generic EnsureSuccessStatusCode text ("Response status code does not indicate
+            // success: ..."), so callers can show the user exactly what the remote URL returned.
+            if (!response.IsSuccessStatusCode)
+                throw new HttpRequestException(
+                    $"The server responded with {(int)response.StatusCode} ({response.StatusCode}).");
 
             if (response.Content.Headers.ContentLength is long len && len > maxBytes)
                 throw new InvalidOperationException(
