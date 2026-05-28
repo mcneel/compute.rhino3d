@@ -52,24 +52,24 @@ namespace Hops
     public class HopsComponent : GH_TaskCapableComponent<Schema>, IGH_VariableParameterComponent
     {
         #region Fields
-        int _majorVersion = 0;
-        int _minorVersion = 1;
-        RemoteDefinition _remoteDefinition = null;
-        bool _cacheResultsInMemory = true;
-        bool _cacheResultsOnServer = true;
-        bool _remoteDefinitionRequiresRebuild = false;
-        bool _synchronous = true;
-        bool _showEnabledInput = false;
-        bool _enabledThisSolve = true;
-        bool _showPathInput = false;
-        int _iteration = 0;
+        int majorVersion = 0;
+        int minorVersion = 1;
+        RemoteDefinition remoteDefinition = null;
+        bool cacheResultsInMemory = true;
+        bool cacheResultsOnServer = true;
+        bool remoteDefinitionRequiresRebuild = false;
+        bool synchronous = true;
+        bool showEnabledInput = false;
+        bool enabledThisSolve = true;
+        bool showPathInput = false;
+        int iteration = 0;
 
-        SolveDataList _workingSolveList;
-        int _solveSerialNumber = 0;
-        int _solveRecursionLevel = 0;
-        Schema _lastCreatedSchema = null;
-        static bool _isHeadless = false;
-        static int _currentSolveSerialNumber = 1;
+        SolveDataList workingSolveList;
+        int solveSerialNumber = 0;
+        int solveRecursionLevel = 0;
+        Schema lastCreatedSchema = null;
+        static bool isHeadless = false;
+        static int currentSolveSerialNumber = 1;
         #endregion
 
         static HopsComponent()
@@ -89,7 +89,7 @@ namespace Hops
         public HopsComponent()
           : base("Hops", "Hops", "Solve an external definition using Rhino Compute", "Params", "Util")
         {
-            _isHeadless = Rhino.RhinoApp.IsRunningHeadless;
+            isHeadless = Rhino.RhinoApp.IsRunningHeadless;
         }
 
         public override Guid ComponentGuid => GetType().GUID;
@@ -113,63 +113,63 @@ namespace Hops
         protected override void BeforeSolveInstance()
         {
             Message = "";
-            _enabledThisSolve = true;
-            _lastCreatedSchema = null;
-            _solveRecursionLevel = 0;
+            enabledThisSolve = true;
+            lastCreatedSchema = null;
+            solveRecursionLevel = 0;
 
-            if (_isHeadless &&
+            if (isHeadless &&
                     OnPingDocument() is GH_Document doc)
             {
                 if (doc.ConstantServer.TryGetValue("ComputeRecursionLevel", out GH_Variant recursionLevel))
                     // compute will set the ComputeRecursionLevel 
-                    _solveRecursionLevel = recursionLevel._Int;
+                    solveRecursionLevel = recursionLevel._Int;
                 else
-                    _solveRecursionLevel = HopsAppSettings.RecursionLimit;
+                    solveRecursionLevel = HopsAppSettings.RecursionLimit;
             }
 
-            if (!_solvedCallback)
+            if (!solvedCallback)
             {
-                _solveSerialNumber = _currentSolveSerialNumber++;
-                if (_workingSolveList != null)
-                    _workingSolveList.Canceled = true;
-                _workingSolveList = new SolveDataList(_solveSerialNumber, this, _remoteDefinition, _cacheResultsInMemory);
+                solveSerialNumber = currentSolveSerialNumber++;
+                if (workingSolveList != null)
+                    workingSolveList.Canceled = true;
+                workingSolveList = new SolveDataList(solveSerialNumber, this, remoteDefinition, cacheResultsInMemory);
             }
 
             base.BeforeSolveInstance();
         }
 
-        bool _solvedCallback = false;
+        bool solvedCallback = false;
         public void OnWorkingListComplete()
         {
-            _solvedCallback = true;
-            if (_workingSolveList.SolvedFor(_solveSerialNumber))
+            solvedCallback = true;
+            if (workingSolveList.SolvedFor(solveSerialNumber))
             {
                 ExpireSolution(true);
             }
-            _solvedCallback = false;
+            solvedCallback = false;
         }
 
-        public int SolveSerialNumber => _solveSerialNumber;
+        public int SolveSerialNumber => solveSerialNumber;
 
-        HTTPRecord _httpRecord;
+        HTTPRecord httpRecord;
         public HTTPRecord HTTPRecord
         {
             get
             {
-                if (_httpRecord == null)
-                    _httpRecord = new HTTPRecord();
-                return _httpRecord; 
+                if (httpRecord == null)
+                    httpRecord = new HTTPRecord();
+                return httpRecord; 
             }
         }
 
         protected override void SolveInstance(IGH_DataAccess DA)
         {
-            if (!_enabledThisSolve)
+            if (!enabledThisSolve)
                 return;
-            _iteration++;
+            iteration++;
 
             // Limit recursive calls on compute
-            if (_isHeadless && _solveRecursionLevel > HopsAppSettings.RecursionLimit)
+            if (isHeadless && solveRecursionLevel > HopsAppSettings.RecursionLimit)
             {
                 // Don't allow hops components to run on compute for now. Recursive calls will lock
                 HopsAddRuntimeMessage(
@@ -179,7 +179,7 @@ namespace Hops
 
             }
 
-            if (_showPathInput && DA.Iteration == 0)
+            if (showPathInput && DA.Iteration == 0)
             {
                 string path = "";
                 if (!DA.GetData("_Path", ref path))
@@ -195,34 +195,34 @@ namespace Hops
                 }
             }
 
-            if (string.IsNullOrWhiteSpace(RemoteDefinitionLocation)  && _remoteDefinition?.InternalizedDefinition == null)
+            if (string.IsNullOrWhiteSpace(RemoteDefinitionLocation)  && remoteDefinition?.InternalizedDefinition == null)
             {
                 HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Warning, "No URL or path defined for definition");
                 return;
             }
 
-            if (_showEnabledInput && DA.Iteration == 0)
+            if (showEnabledInput && DA.Iteration == 0)
             {
                 bool enabled = true;
                 if (DA.GetData("_Enabled", ref enabled) && enabled == false)
                 {
-                    _enabledThisSolve = false;
+                    enabledThisSolve = false;
                     return;
                 }
             }
 
             if (InPreSolve)
             {
-                if (_workingSolveList.SolvedFor(_solveSerialNumber))
+                if (workingSolveList.SolvedFor(solveSerialNumber))
                 {
-                    var solvedTask = Task.FromResult(_workingSolveList.SolvedSchema(DA.Iteration));
+                    var solvedTask = Task.FromResult(workingSolveList.SolvedSchema(DA.Iteration));
                     TaskList.Add(solvedTask);
                     return;
                 }
 
                 List<string> warnings;
                 List<string> errors;
-                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheResultsOnServer, _solveRecursionLevel, out warnings, out errors);
+                var inputSchema = remoteDefinition.CreateSolveInput(DA, cacheResultsOnServer, solveRecursionLevel, out warnings, out errors);
                 if (warnings != null && warnings.Count > 0)
                 {
                     foreach (var warning in warnings)
@@ -241,26 +241,26 @@ namespace Hops
                 }
                 if (inputSchema != null)
                 {
-                    if (_lastCreatedSchema==null)
-                        _lastCreatedSchema = inputSchema;
-                    _workingSolveList.Add(inputSchema);
+                    if (lastCreatedSchema==null)
+                        lastCreatedSchema = inputSchema;
+                    workingSolveList.Add(inputSchema);
                 }
                 return;
             }
 
             if (TaskList.Count == 0)
             {
-                _workingSolveList.StartSolving(_synchronous);
-                if (!_synchronous)
+                workingSolveList.StartSolving(synchronous);
+                if (!synchronous)
                 {
                     Message = "solving...";
                     return;
                 }
                 else
                 {
-                    for (int i = 0; i < _workingSolveList.Count; i++)
+                    for (int i = 0; i < workingSolveList.Count; i++)
                     {
-                        var output = _workingSolveList.SolvedSchema(i);
+                        var output = workingSolveList.SolvedSchema(i);
                         TaskList.Add(Task.FromResult(output));
                     }
                 }
@@ -270,7 +270,7 @@ namespace Hops
             {
                 List<string> errors;
                 List<string> warnings;
-                var inputSchema = _remoteDefinition.CreateSolveInput(DA, _cacheResultsOnServer, _solveRecursionLevel, out warnings, out errors);
+                var inputSchema = remoteDefinition.CreateSolveInput(DA, cacheResultsOnServer, solveRecursionLevel, out warnings, out errors);
                 if (warnings != null && warnings.Count > 0)
                 {
                     foreach (var warning in warnings)
@@ -289,9 +289,9 @@ namespace Hops
                 }
                 if (inputSchema != null)
                 {
-                    schema = _remoteDefinition.Solve(inputSchema, _cacheResultsInMemory);
-                    if (_lastCreatedSchema == null)
-                        _lastCreatedSchema = inputSchema;
+                    schema = remoteDefinition.Solve(inputSchema, cacheResultsInMemory);
+                    if (lastCreatedSchema == null)
+                        lastCreatedSchema = inputSchema;
                 }
                 else
                     schema = null;
@@ -307,7 +307,7 @@ namespace Hops
 
             if (schema != null)
             {
-                _remoteDefinition.SetComponentOutputs(schema, DA, Params.Output, this);
+                remoteDefinition.SetComponentOutputs(schema, DA, Params.Output, this);
             }
         }
 
@@ -326,16 +326,16 @@ namespace Hops
             bool rc = base.Write(writer);
             if (rc)
             {
-                writer.SetVersion(TagVersion, _majorVersion, _minorVersion, 0);
+                writer.SetVersion(TagVersion, majorVersion, minorVersion, 0);
                 writer.SetString(TagPath, RemoteDefinitionLocation);
-                writer.SetBoolean(TagCacheResultsOnServer, _cacheResultsOnServer);
-                writer.SetBoolean(TagCacheResultsInMemory, _cacheResultsInMemory);
-                writer.SetBoolean(TagSynchronousSolve, _synchronous);
-                writer.SetBoolean(TagShowEnabled, _showEnabledInput);
-                writer.SetBoolean(TagShowPath, _showPathInput);
-                if(_remoteDefinition?.InternalizedDefinition != null)
+                writer.SetBoolean(TagCacheResultsOnServer, cacheResultsOnServer);
+                writer.SetBoolean(TagCacheResultsInMemory, cacheResultsInMemory);
+                writer.SetBoolean(TagSynchronousSolve, synchronous);
+                writer.SetBoolean(TagShowEnabled, showEnabledInput);
+                writer.SetBoolean(TagShowPath, showPathInput);
+                if(remoteDefinition?.InternalizedDefinition != null)
                 {
-                    writer.SetByteArray(TagInternalizeDefinition, _remoteDefinition.InternalizedDefinition);
+                    writer.SetByteArray(TagInternalizeDefinition, remoteDefinition.InternalizedDefinition);
                 }
             }
             return rc;
@@ -346,40 +346,40 @@ namespace Hops
             if (rc)
             {
                 var version = reader.GetVersion(TagVersion);
-                _majorVersion = version.major;
-                _minorVersion = version.minor;
+                majorVersion = version.major;
+                minorVersion = version.minor;
                 string path = reader.GetString(TagPath);
 
-                bool cacheResults = _cacheResultsOnServer;
+                bool cacheResults = cacheResultsOnServer;
                 if (reader.TryGetBoolean(TagCacheResultsOnServer, ref cacheResults))
-                    _cacheResultsOnServer = cacheResults;
+                    cacheResultsOnServer = cacheResults;
 
-                cacheResults = _cacheResultsInMemory;
+                cacheResults = cacheResultsInMemory;
                 if (reader.TryGetBoolean(TagCacheResultsInMemory, ref cacheResults))
-                    _cacheResultsInMemory = cacheResults;
+                    cacheResultsInMemory = cacheResults;
 
-                bool synchronous = _synchronous;
+                bool synchronous = this.synchronous;
                 if (reader.TryGetBoolean(TagSynchronousSolve, ref synchronous))
-                    _synchronous = synchronous;
+                    this.synchronous = synchronous;
 
-                bool showEnabled = _showEnabledInput;
+                bool showEnabled = showEnabledInput;
                 if (reader.TryGetBoolean(TagShowEnabled, ref showEnabled))
-                    _showEnabledInput = showEnabled;
+                    showEnabledInput = showEnabled;
 
-                bool showPath = _showPathInput;
+                bool showPath = showPathInput;
                 if (reader.TryGetBoolean(TagShowPath, ref showPath))
-                    _showPathInput = showPath;
+                    showPathInput = showPath;
 
                 if(reader.ItemExists(TagInternalizeDefinition))
                 {
                     try
                     {
                         byte[] internalizedDefinition = reader.GetByteArray(TagInternalizeDefinition);
-                        if(_remoteDefinition == null)
-                            _remoteDefinition = RemoteDefinition.Create(null, this);
-                        _remoteDefinition.InternalizedDefinition = internalizedDefinition;
-                        _remoteDefinition._pathType = RemoteDefinition.PathType.InternalizedDefinition;
-                        _remoteDefinition.GetRemoteDescription();
+                        if(remoteDefinition == null)
+                            remoteDefinition = RemoteDefinition.Create(null, this);
+                        remoteDefinition.InternalizedDefinition = internalizedDefinition;
+                        remoteDefinition.pathType = RemoteDefinition.PathType.InternalizedDefinition;
+                        remoteDefinition.GetRemoteDescription();
                     }
                     catch(Exception ex)
                     {
@@ -452,25 +452,25 @@ namespace Hops
             }
         }
 
-        static System.Drawing.Bitmap _hops24Icon;
-        static System.Drawing.Bitmap _hops48Icon;
+        static System.Drawing.Bitmap hops24Icon;
+        static System.Drawing.Bitmap hops48Icon;
         static System.Drawing.Bitmap Hops24Icon()
         {
-            if (_hops24Icon == null)
+            if (hops24Icon == null)
             {
                 var stream = typeof(HopsComponent).Assembly.GetManifestResourceStream("Hops.resources.Hops_24x24.png");
-                _hops24Icon = new System.Drawing.Bitmap(stream);
+                hops24Icon = new System.Drawing.Bitmap(stream);
             }
-            return _hops24Icon;
+            return hops24Icon;
         }
         public static System.Drawing.Bitmap Hops48Icon()
         {
-            if (_hops48Icon == null)
+            if (hops48Icon == null)
             {
                 var stream = typeof(HopsComponent).Assembly.GetManifestResourceStream("Hops.resources.Hops_48x48.png");
-                _hops48Icon = new System.Drawing.Bitmap(stream);
+                hops48Icon = new System.Drawing.Bitmap(stream);
             }
-            return _hops48Icon;
+            return hops48Icon;
         }
 
         public override void AppendAdditionalMenuItems(ToolStripDropDown menu)
@@ -501,9 +501,9 @@ namespace Hops
             menu.Items.Add(new ToolStripSeparator());
 
             var tsi = new ToolStripMenuItem("&Path...", null, (sender, e) => { ShowSetDefinitionUi(); });
-            if (!_showPathInput)
+            if (!showPathInput)
                 tsi.Font = new System.Drawing.Font(tsi.Font, System.Drawing.FontStyle.Bold);
-            tsi.Enabled = !_showPathInput;
+            tsi.Enabled = !showPathInput;
             menu.Items.Add(tsi);
 
             tsi = AddFunctionMgrControl();
@@ -513,7 +513,7 @@ namespace Hops
             tsi = new ToolStripMenuItem("Internalize Definition", null, (s, e) => {
                 if (File.Exists(RemoteDefinitionLocation))
                 {
-                    _remoteDefinition.InternalizeDefinition(RemoteDefinitionLocation);
+                    remoteDefinition.InternalizeDefinition(RemoteDefinitionLocation);
                     DefineInputsAndOutputs();                 
                 }
             });
@@ -527,44 +527,44 @@ namespace Hops
             menu.Items.Add(new ToolStripSeparator());
 
             tsi = new ToolStripMenuItem("Show Input: Path", null, (s, e) => {
-                _showPathInput = !_showPathInput;
+                showPathInput = !showPathInput;
                 DefineInputsAndOutputs();
             });
             tsi.ToolTipText = "Create input for path";
-            tsi.Checked = _showPathInput;
+            tsi.Checked = showPathInput;
             menu.Items.Add(tsi);
 
             tsi = new ToolStripMenuItem("Show Input: Enabled", null, (s, e) => {
-                _showEnabledInput = !_showEnabledInput;
+                showEnabledInput = !showEnabledInput;
                 DefineInputsAndOutputs();
             });
             tsi.ToolTipText = "Create input for enabled";
-            tsi.Checked = _showEnabledInput;
+            tsi.Checked = showEnabledInput;
             menu.Items.Add(tsi);
 
-            tsi = new ToolStripMenuItem("Asynchronous", null, (s, e) => { _synchronous = !_synchronous; });
+            tsi = new ToolStripMenuItem("Asynchronous", null, (s, e) => { synchronous = !synchronous; });
             tsi.ToolTipText = "Do not block while solving";
-            tsi.Checked = !_synchronous;
+            tsi.Checked = !synchronous;
             menu.Items.Add(tsi);
 
-            tsi = new ToolStripMenuItem("Cache In Memory", null, (s, e) => { _cacheResultsInMemory = !_cacheResultsInMemory; });
+            tsi = new ToolStripMenuItem("Cache In Memory", null, (s, e) => { cacheResultsInMemory = !cacheResultsInMemory; });
             tsi.ToolTipText = "Keep previous results in memory cache";
-            tsi.Checked = _cacheResultsInMemory;
+            tsi.Checked = cacheResultsInMemory;
             menu.Items.Add(tsi);
 
-            tsi = new ToolStripMenuItem("Cache On Server", null, (s, e) => { _cacheResultsOnServer = !_cacheResultsOnServer; });
+            tsi = new ToolStripMenuItem("Cache On Server", null, (s, e) => { cacheResultsOnServer = !cacheResultsOnServer; });
             tsi.ToolTipText = "Tell the compute server to cache results for reuse in the future";
-            tsi.Checked = _cacheResultsOnServer;
+            tsi.Checked = cacheResultsOnServer;
             menu.Items.Add(tsi);
 
             var exportTsi = new ToolStripMenuItem("Export");
-            exportTsi.Enabled = _remoteDefinition != null;
+            exportTsi.Enabled = remoteDefinition != null;
             menu.Items.Add(exportTsi);
             tsi = new ToolStripMenuItem("Export python sample...", null, (s, e) => { ExportAsPython(); });
             exportTsi.DropDownItems.Add(tsi);
 
             var restAPITsi = new ToolStripMenuItem("REST API");
-            restAPITsi.Enabled = _remoteDefinition != null;
+            restAPITsi.Enabled = remoteDefinition != null;
             exportTsi.DropDownItems.Add(restAPITsi);
 
             tsi = new ToolStripMenuItem("Last IO request...", null, (s, e) => { ExportLastIORequest(); });
@@ -703,10 +703,10 @@ namespace Hops
         /// </summary>
         class ComponentAttributes : GH_ComponentAttributes
         {
-            HopsComponent _component;
+            HopsComponent component;
             public ComponentAttributes(HopsComponent parentComponent) : base(parentComponent)
             {
-                _component = parentComponent;
+                component = parentComponent;
             }
 
             protected override void Render(GH_Canvas canvas, System.Drawing.Graphics graphics, GH_CanvasChannel channel)
@@ -714,7 +714,7 @@ namespace Hops
                 base.Render(canvas, graphics, channel);
                 if (channel == GH_CanvasChannel.Objects &&
                     GH_Canvas.ZoomFadeMedium > 0 &&
-                    !string.IsNullOrWhiteSpace(_component.RemoteDefinitionLocation)
+                    !string.IsNullOrWhiteSpace(component.RemoteDefinitionLocation)
                     )
                 {
                     RenderHop(graphics, GH_Canvas.ZoomFadeMedium, new System.Drawing.PointF(Bounds.Right, Bounds.Bottom));
@@ -732,11 +732,11 @@ namespace Hops
             {
                 try
                 {
-                    _component.ShowSetDefinitionUi();
+                    component.ShowSetDefinitionUi();
                 }
                 catch(Exception ex)
                 {
-                    _component.HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, ex.Message);
+                    component.HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, ex.Message);
                 }
                 return base.RespondToMouseDoubleClick(sender, e);
             }
@@ -762,7 +762,7 @@ namespace Hops
 
         void ExportAsPython()
         {
-            if (_lastCreatedSchema == null)
+            if (lastCreatedSchema == null)
             {
                 Eto.Forms.MessageBox.Show("No input created. Run this component at least once", Eto.Forms.MessageBoxType.Error);
                 return;
@@ -790,7 +790,7 @@ sb.Append(@"'
 input_trees = []
 ");
 
-                foreach(var val in _lastCreatedSchema.Values)
+                foreach(var val in lastCreatedSchema.Values)
                 {
                     sb.AppendLine($"tree = gh.DataTree(\"{val.ParamName}\")");
                     foreach (var kv in val.InnerTree)
@@ -897,12 +897,12 @@ for value in values:
             }
         }
 
-        string _tempPath;
+        string tempPath;
         void RebuildWithNewPathAndRecompute(string path)
         {
             if (string.Equals(path, RemoteDefinitionLocation))
                 return;
-            _tempPath = path;
+            tempPath = path;
             Rhino.RhinoApp.Idle += RebuildAfterSolution;
         }
 
@@ -912,8 +912,8 @@ for value in values:
             if (doc != null && doc.SolutionDepth == 0)
             {
                 Rhino.RhinoApp.Idle -= RebuildAfterSolution;
-                RemoteDefinitionLocation = _tempPath;
-                _tempPath = null;
+                RemoteDefinitionLocation = tempPath;
+                tempPath = null;
             }
         }
 
@@ -922,9 +922,9 @@ for value in values:
         {
             get
             {
-                if (_remoteDefinition != null)
+                if (remoteDefinition != null)
                 {
-                    return _remoteDefinition.Path;
+                    return remoteDefinition.Path;
                 }
                 return string.Empty;
             }
@@ -934,14 +934,14 @@ for value in values:
                 // This way you can poke the path button to force a refresh in case the situation
                 // on the server has changed.
                 {
-                    if(_remoteDefinition != null)
+                    if(remoteDefinition != null)
                     {
-                        _remoteDefinition.Dispose();
-                        _remoteDefinition = null;
+                        remoteDefinition.Dispose();
+                        remoteDefinition = null;
                     }
                     if (!string.IsNullOrWhiteSpace(value))
                     {
-                        _remoteDefinition = RemoteDefinition.Create(value, this);
+                        remoteDefinition = RemoteDefinition.Create(value, this);
                         HopsLog.Log.Debug($"Remote definition location set to {value}");
                         DefineInputsAndOutputs();
                     }
@@ -952,7 +952,7 @@ for value in values:
         public override void CollectData()
         {
             base.CollectData();
-            if (_showPathInput &&
+            if (showPathInput &&
                 !string.IsNullOrWhiteSpace(RemoteDefinitionLocation) &&
                 !Params.Input[0].VolatileData.IsEmpty)
             {
@@ -1068,19 +1068,19 @@ for value in values:
 
         void DefineInputsAndOutputs()
         {
-            if (_remoteDefinition != null)
+            if (remoteDefinition != null)
             {
                 ClearRuntimeMessages();
-                string description = _remoteDefinition.GetDescription(out System.Drawing.Bitmap customIcon);
+                string description = remoteDefinition.GetDescription(out System.Drawing.Bitmap customIcon);
 
-                if (_remoteDefinition.IsNotResponingUrl())
+                if (remoteDefinition.IsNotResponingUrl())
                 {
                     HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Unable to connect to server");
                     Grasshopper.Instances.ActiveCanvas?.Invalidate();
                     return;
                 }
 
-                if (_remoteDefinition.IsInvalidUrl())
+                if (remoteDefinition.IsInvalidUrl())
                 {
                     HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Path appears valid, but to something that is not Hops related");
                     Grasshopper.Instances.ActiveCanvas?.Invalidate();
@@ -1107,8 +1107,8 @@ for value in values:
                 {
                     Description = description;
                 }
-                var inputs = _remoteDefinition.GetInputParams();
-                var outputs = _remoteDefinition.GetOutputParams();
+                var inputs = remoteDefinition.GetInputParams();
+                var outputs = remoteDefinition.GetOutputParams();
 
                 bool buildInputs = inputs != null;
                 bool buildOutputs = outputs != null;
@@ -1127,12 +1127,12 @@ for value in values:
                 }
 
                 int inputCount = inputs!=null ? inputs.Count : 0;
-                if (_showEnabledInput)
+                if (showEnabledInput)
                     inputCount++;
-                if (_showPathInput)
+                if (showPathInput)
                     inputCount++;
      
-                if(_iteration == 0)
+                if(iteration == 0)
                 {
                     if (buildInputs && Params.Input.Count == inputCount)
                     {
@@ -1188,7 +1188,7 @@ for value in values:
 
                     var mgr = CreateInputManager();
 
-                    if (_showPathInput)
+                    if (showPathInput)
                     {
                         const string name = "_Path";
                         int paramIndex = mgr.AddTextParameter(name, "Path", "URL to remote process", GH_ParamAccess.item);
@@ -1199,7 +1199,7 @@ for value in values:
                         }
                     }
 
-                    if (_showEnabledInput)
+                    if (showEnabledInput)
                     {
                         const string name = "_Enabled";
                         int paramIndex = mgr.AddBooleanParameter(name, "Enabled", "Enabled state for solving", GH_ParamAccess.item);
@@ -1599,9 +1599,9 @@ for value in values:
                 }
 
                 var mgr = CreateInputManager();
-                if (_showPathInput)
+                if (showPathInput)
                     mgr.AddTextParameter("_Path", "Path", "URL to remote process", GH_ParamAccess.item);
-                if (_showEnabledInput)
+                if (showEnabledInput)
                     mgr.AddBooleanParameter("_Enabled", "Enabled", "Enabled state for solving", GH_ParamAccess.item, true);
                 Params.OnParametersChanged();
                 Grasshopper.Instances.ActiveCanvas?.Invalidate();
@@ -1623,17 +1623,17 @@ for value in values:
 
         public void OnRemoteDefinitionChanged()
         {
-            if (_remoteDefinitionRequiresRebuild)
+            if (remoteDefinitionRequiresRebuild)
                 return;
 
             // this is typically called on a different thread than the main UI thread
-            _remoteDefinitionRequiresRebuild = true;
+            remoteDefinitionRequiresRebuild = true;
             Rhino.RhinoApp.Idle += RhinoApp_Idle;
         }
 
         private void RhinoApp_Idle(object sender, EventArgs e)
         {
-            if (!_remoteDefinitionRequiresRebuild)
+            if (!remoteDefinitionRequiresRebuild)
             {
                 // not sure how this could happen, but in case it does just
                 // remove the idle event and bail
@@ -1650,7 +1650,7 @@ for value in values:
 
             // stop the idle event watcher
             Rhino.RhinoApp.Idle -= RhinoApp_Idle;
-            _remoteDefinitionRequiresRebuild = false;
+            remoteDefinitionRequiresRebuild = false;
             DefineInputsAndOutputs();
         }
     }

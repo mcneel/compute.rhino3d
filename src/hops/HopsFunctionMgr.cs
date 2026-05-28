@@ -103,67 +103,67 @@ namespace Hops
             }
         }
 
-        static Image _funcMgr24Icon;
-        static Image _funcMgr48Icon;
-        static Image _deleteIcon;
-        static Image _addIcon;
-        static Image _editIcon;
+        static Image funcMgr24Icon;
+        static Image funcMgr48Icon;
+        static Image deleteIcon;
+        static Image addIcon;
+        static Image editIcon;
 
         public static Image FuncMgr24Icon()
         {
-            if (_funcMgr24Icon == null)
+            if (funcMgr24Icon == null)
             {
                 var stream = typeof(HopsComponent).Assembly.GetManifestResourceStream("Hops.resources.Hops_Function_Mgr_24x24.png");
-                _funcMgr24Icon = Image.FromStream(stream);
+                funcMgr24Icon = Image.FromStream(stream);
             }
-            return _funcMgr24Icon;
+            return funcMgr24Icon;
         }
         public static Image FuncMgr48Icon()
         {
-            if (_funcMgr48Icon == null)
+            if (funcMgr48Icon == null)
             {
                 var stream = typeof(HopsComponent).Assembly.GetManifestResourceStream("Hops.resources.Hops_Function_Mgr_48x48.png");
-                _funcMgr48Icon = Image.FromStream(stream);
+                funcMgr48Icon = Image.FromStream(stream);
             }
-            return _funcMgr48Icon;
+            return funcMgr48Icon;
         }
         public static Image DeleteIcon()
         {
-            if (_deleteIcon == null)
+            if (deleteIcon == null)
             {
                 var stream = typeof(HopsComponent).Assembly.GetManifestResourceStream("Hops.resources.Close_Toolbar_Active_20x20.png");
-                _deleteIcon = Image.FromStream(stream);
+                deleteIcon = Image.FromStream(stream);
             }
-            return _deleteIcon;
+            return deleteIcon;
         }
         public static Image AddIcon()
         {
-            if (_addIcon == null)
+            if (addIcon == null)
             {
                 var stream = typeof(HopsComponent).Assembly.GetManifestResourceStream("Hops.resources.Open_Toolbar_Active_20x20.png");
-                _addIcon = Image.FromStream(stream);
+                addIcon = Image.FromStream(stream);
             }
-            return _addIcon;
+            return addIcon;
         }
         public static Image EditIcon()
         {
-            if (_editIcon == null)
+            if (editIcon == null)
             {
                 var stream = typeof(HopsComponent).Assembly.GetManifestResourceStream("Hops.resources.edit_16x16.png");
-                _editIcon = Image.FromStream(stream);
+                editIcon = Image.FromStream(stream);
             }
-            return _editIcon;
+            return editIcon;
         }
-        static System.Net.Http.HttpClient _httpClient = null;
+        static System.Net.Http.HttpClient httpClient = null;
         public static System.Net.Http.HttpClient HttpClient
         {
             get
             {
-                if (_httpClient == null)
+                if (httpClient == null)
                 {
-                    _httpClient = new System.Net.Http.HttpClient();
+                    httpClient = new System.Net.Http.HttpClient();
                 }
-                return _httpClient;
+                return httpClient;
             }
         }
     }
