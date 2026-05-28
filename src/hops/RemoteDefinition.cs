@@ -117,9 +117,47 @@ namespace Hops
             return rc;
         }
 
+        // Refuse to read excessively large local files into memory. Hops has historically
+        // hit raw File.ReadAllBytes on user-supplied paths, which crashes the entire Rhino
+        // process if the user accidentally points at a non-Grasshopper file (a multi-GB log,
+        // database dump, etc.). A real Grasshopper definition is well under the default cap;
+        // anything larger is almost certainly a misconfiguration. Surfaced cleanly so the
+        // caller can show a runtime error on the component instead of taking down Rhino.
+        //
+        // Override via the HOPS_MAX_LOCAL_FILE_SIZE environment variable (bytes). The value
+        // is read once on first access and cached for the lifetime of the process.
+        const string HOPS_MAX_LOCAL_FILE_SIZE = "HOPS_MAX_LOCAL_FILE_SIZE";
+        const long DefaultMaxLocalFileSize = 100L * 1024 * 1024; // 100 MB
+        static long? maxLocalFileSize;
+        static long MaxLocalFileSize
+        {
+            get
+            {
+                if (!maxLocalFileSize.HasValue)
+                {
+                    var raw = Environment.GetEnvironmentVariable(HOPS_MAX_LOCAL_FILE_SIZE);
+                    if (!string.IsNullOrWhiteSpace(raw) && long.TryParse(raw, out long parsed) && parsed > 0)
+                        maxLocalFileSize = parsed;
+                    else
+                        maxLocalFileSize = DefaultMaxLocalFileSize;
+                }
+                return maxLocalFileSize.Value;
+            }
+        }
+
+        static byte[] ReadLocalFileWithSizeCap(string path)
+        {
+            var info = new System.IO.FileInfo(path);
+            long cap = MaxLocalFileSize;
+            if (info.Length > cap)
+                throw new InvalidOperationException(
+                    $"File '{System.IO.Path.GetFileName(path)}' is {info.Length:N0} bytes — exceeds the {cap:N0}-byte cap on local definition files (override via the {HOPS_MAX_LOCAL_FILE_SIZE} environment variable).");
+            return System.IO.File.ReadAllBytes(path);
+        }
+
         public void InternalizeDefinition(string path)
         {
-            internalizedDefinition = System.IO.File.ReadAllBytes(path);
+            internalizedDefinition = ReadLocalFileWithSizeCap(path);
             pathType = PathType.InternalizedDefinition;
             RemoteDefinitionCache.Remove(this);
             this.path = null;
@@ -284,8 +322,23 @@ namespace Hops
                     {
                         if (File.Exists(address))
                         {
-                            var bytes = System.IO.File.ReadAllBytes(address);
-                            schema.Algo = Convert.ToBase64String(bytes);
+                            try
+                            {
+                                var bytes = ReadLocalFileWithSizeCap(address);
+                                schema.Algo = Convert.ToBase64String(bytes);
+                            }
+                            catch (InvalidOperationException ex)
+                            {
+                                // Surface the size-cap failure on the component AND skip the
+                                // doomed POST — otherwise the server would just see an empty
+                                // Algo and return a generic deserialize error, masking the
+                                // real cause.
+                                HopsLog.Log.Error(ex.Message);
+                                var errSchema = new IoResponseSchema();
+                                errSchema.Errors.Add(ex.Message);
+                                parentComponent.HTTPRecord.IOResponseSchema = errSchema;
+                                return;
+                            }
                         }
                         else
                         {
@@ -635,7 +688,19 @@ namespace Hops
                     if (fileExists && string.IsNullOrEmpty(inputSchema.Algo))
                     {
                         string autoUploadMessage = $"Server returned HTTP 500. Uploaded local file '{System.IO.Path.GetFileName(Path)}' to {solveUrl} as a fallback.";
-                        var bytes = System.IO.File.ReadAllBytes(Path);
+                        byte[] bytes;
+                        try
+                        {
+                            bytes = ReadLocalFileWithSizeCap(Path);
+                        }
+                        catch (InvalidOperationException ex)
+                        {
+                            var badSchema = new Schema();
+                            HopsLog.Log.Error(ex.Message);
+                            badSchema.Errors.Add(ex.Message);
+                            parentComponent.HTTPRecord.Schema = badSchema;
+                            return badSchema;
+                        }
                         string base64 = Convert.ToBase64String(bytes);
                         inputSchema.Algo = base64;
                         inputSchema.FileName = System.IO.Path.GetFileName(Path);
