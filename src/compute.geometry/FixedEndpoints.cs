@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using Rhino.PlugIns;
@@ -21,6 +23,29 @@ namespace compute.geometry
             app.MapGet("plugins/rhino/installed", GetInstalledPluginsRhino);
             app.MapGet("plugins/gh/installed", GetInstalledPluginsGrasshopper);
             app.MapPost("cache/purge", PurgeCache);
+            app.MapPost("shutdown", ShutdownChild);
+        }
+
+        // POST /shutdown — graceful self-shutdown for this compute.geometry child. Auth-gated
+        // by ApiKeyMiddleware (POST). Used by rhino.compute when its ApplicationStopping
+        // lifecycle hook fires (clean parent exit), and by the /shutdown-children +
+        // /recycle-children endpoints in rhino.compute for manual control. The existing
+        // 5-second self-monitoring TimerTask in Shutdown.cs remains as the fallback for
+        // hard-crash scenarios where the parent dies without running its lifecycle hooks.
+        //
+        // Responds 202 Accepted immediately and triggers app.StopAsync() on a background
+        // task so the response can flush before the host stops.
+        static Task ShutdownChild(HttpContext ctx)
+        {
+            Serilog.Log.Information("Received /shutdown request from {RemoteIp}", ctx.Connection.RemoteIpAddress);
+            var lifetime = ctx.RequestServices.GetService<IHostApplicationLifetime>();
+            ctx.Response.StatusCode = 202;
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(50);  // let the response flush before stopping the host
+                lifetime?.StopApplication();
+            });
+            return Task.CompletedTask;
         }
 
         static void HomePage(HttpContext context)
