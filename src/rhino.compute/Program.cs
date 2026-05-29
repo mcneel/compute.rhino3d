@@ -230,7 +230,7 @@ namespace rhino.compute
             lifetime.ApplicationStopping.Register(() =>
             {
                 Log.Information("rhino.compute shutting down; signaling compute.geometry children");
-                try { ComputeChildren.ShutdownAllChildren(); }
+                try { ComputeChildren.ShutdownChildren(); }
                 catch (Exception ex) { Log.Warning("Error during child shutdown: {Message}", ex.Message); }
             });
 

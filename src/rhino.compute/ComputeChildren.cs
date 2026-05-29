@@ -162,7 +162,26 @@ namespace rhino.compute
             }
         }
 
-        static void LaunchCompute(Queue<Tuple<Process, int>> processQueue, bool waitUntilServing)
+        // Finds the next free port in the 6001-6256 range — skips ports already held by an
+        // existing child AND ports already bound externally. Returns 0 when none are free.
+        static int FindAvailablePort(Queue<Tuple<Process, int>> processQueue)
+        {
+            var existingPorts = new HashSet<int>();
+            foreach (var proc in processQueue)
+                existingPorts.Add(proc.Item2);
+            for (int i = 0; i < 256; i++)
+            {
+                int candidate = 6001 + i;
+                if (existingPorts.Contains(candidate))
+                    continue;
+                if (IsPortOpen("localhost", candidate, new TimeSpan(0, 0, 0, 0, 100)))
+                    continue;
+                return candidate;
+            }
+            return 0;
+        }
+
+        static void LaunchCompute(Queue<Tuple<Process, int>> processQueue, bool waitUntilServing, int requestedPort = 0)
         {
             var pathToThisAssembly = new System.IO.FileInfo(typeof(ComputeChildren).Assembly.Location);
             // compute.geometry is allowed to be either in:
@@ -178,28 +197,18 @@ namespace rhino.compute
                     return;
             }
 
-            var existingProcesses = processQueue.ToArray();
-            var existingPorts = new HashSet<int>();
-            foreach (var proc in existingProcesses)
-                existingPorts.Add(proc.Item2);
-
-            int port = 0;
-            for (int i = 0; i < 256; i++)
+            // Use the requested port when callers (LaunchChild) have pre-validated it; otherwise
+            // walk for the next free port. requestedPort=0 preserves the original behavior.
+            int port;
+            if (requestedPort > 0)
             {
-                // start at port 6001. Feel free to change this if there is a reason
-                // to use a different port
-                port = 6001 + i;
-                if (i == 255)
+                port = requestedPort;
+            }
+            else
+            {
+                port = FindAvailablePort(processQueue);
+                if (port == 0)
                     return;
-
-                if (existingPorts.Contains(port))
-                    continue;
-
-                bool isOpen = IsPortOpen("localhost", port, new TimeSpan(0, 0, 0, 0, 100));
-                if (isOpen)
-                    continue;
-
-                break;
             }
 
             var startInfo = new ProcessStartInfo(pathToCompute);
@@ -324,26 +333,55 @@ namespace rhino.compute
             .CreateLogger();
 
         /// <summary>
-        /// Gracefully shut down all spawned compute.geometry children. POSTs /shutdown to
-        /// each child (API key forwarded automatically since children inherit RHINO_COMPUTE_KEY
-        /// from the parent's environment, so both ends agree on the key when one is configured).
-        /// Waits up to gracefulTimeoutSeconds for each child to exit cleanly, then Kill()'s any
-        /// stragglers as a fallback. Called by Program.cs on ApplicationStopping (clean parent
-        /// exit). Hard-crash scenarios bypass this entirely — children fall back to the
-        /// existing 5-second HasExited poll in their own Shutdown.TimerTask.
+        /// Gracefully shut down compute.geometry children. POSTs /shutdown to each child
+        /// (API key forwarded automatically since children inherit RHINO_COMPUTE_KEY from the
+        /// parent's environment, so both ends agree on the key when one is configured). Waits
+        /// up to <paramref name="gracefulTimeoutSeconds"/> for each child to exit cleanly,
+        /// then Kill()'s any stragglers as a fallback.
+        ///
+        /// <para>Called by Program.cs on ApplicationStopping (clean parent exit, no respawn),
+        /// and by the /shutdown-children and /recycle-children endpoints (with respawn=true for
+        /// the latter). Hard-crash scenarios bypass this entirely — children fall back to the
+        /// existing 5-second HasExited poll in their own Shutdown.TimerTask.</para>
         /// </summary>
-        public static void ShutdownAllChildren(int gracefulTimeoutSeconds = 3)
+        /// <param name="portFilter">When non-null, only the child on this port is shut down
+        /// (others are left running). When null, all children are shut down.</param>
+        /// <param name="respawn">When true, spawn one fresh replacement per shut-down child,
+        /// sequentially (one at a time, with waitUntilServing=true) so the queue is never empty
+        /// mid-recycle if other children are handling traffic. Respects SpawnCount.</param>
+        /// <returns>Ports that were shut down, and ports of any newly-spawned replacements.</returns>
+        public static (int[] shutdown, int[] spawned) ShutdownChildren(
+            int? portFilter = null,
+            bool respawn = false,
+            int gracefulTimeoutSeconds = 3)
         {
-            Tuple<Process, int>[] snapshot;
+            Tuple<Process, int>[] toShutdown;
             lock (lockObject)
             {
-                snapshot = computeProcesses.ToArray();
-                computeProcesses.Clear();
+                if (portFilter.HasValue)
+                {
+                    var match = new List<Tuple<Process, int>>();
+                    var keep = new Queue<Tuple<Process, int>>();
+                    foreach (var t in computeProcesses)
+                    {
+                        if (t.Item2 == portFilter.Value)
+                            match.Add(t);
+                        else
+                            keep.Enqueue(t);
+                    }
+                    computeProcesses = keep;
+                    toShutdown = match.ToArray();
+                }
+                else
+                {
+                    toShutdown = computeProcesses.ToArray();
+                    computeProcesses.Clear();
+                }
             }
-            if (snapshot.Length == 0)
-                return;
+            if (toShutdown.Length == 0)
+                return (Array.Empty<int>(), Array.Empty<int>());
 
-            Log.Information("Shutting down {Count} compute.geometry child process(es)", snapshot.Length);
+            Log.Information("Shutting down {Count} compute.geometry child process(es)", toShutdown.Length);
 
             // Short HttpClient timeout: in the Ctrl-C case the child may already be mid-shutdown
             // (Windows broadcasts CTRL_C_EVENT to every process attached to the console), so
@@ -354,7 +392,7 @@ namespace rhino.compute
             if (!string.IsNullOrEmpty(Config.ApiKey))
                 client.DefaultRequestHeaders.Add("RhinoComputeKey", Config.ApiKey);
 
-            foreach (var tuple in snapshot)
+            foreach (var tuple in toShutdown)
             {
                 if (tuple.Item1.HasExited) continue;
                 try
@@ -370,7 +408,7 @@ namespace rhino.compute
                 }
             }
 
-            foreach (var tuple in snapshot)
+            foreach (var tuple in toShutdown)
             {
                 try
                 {
@@ -384,6 +422,137 @@ namespace rhino.compute
                 {
                     Log.Warning("Error while waiting for compute.geometry on port {Port} to exit: {Message}", tuple.Item2, ex.Message);
                 }
+            }
+
+            var shutdownPorts = toShutdown.Select(t => t.Item2).ToArray();
+            int[] spawnedPorts = Array.Empty<int>();
+            if (respawn)
+            {
+                var spawned = new List<int>();
+                foreach (var _ in shutdownPorts)
+                {
+                    int portBefore;
+                    lock (lockObject)
+                        portBefore = computeProcesses.Count;
+                    try
+                    {
+                        LaunchCompute(waitUntilServing: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning("Error during recycle respawn: {Message}", ex.Message);
+                        break;
+                    }
+                    lock (lockObject)
+                    {
+                        if (computeProcesses.Count > portBefore)
+                            spawned.Add(computeProcesses.Last().Item2);
+                    }
+                }
+                spawnedPorts = spawned.ToArray();
+            }
+
+            return (shutdownPorts, spawnedPorts);
+        }
+
+        /// <summary>
+        /// Fill the compute.geometry child pool up to <see cref="SpawnCount"/>. If already at
+        /// or above SpawnCount, no-op (returns empty array). Sequential launches via
+        /// LaunchCompute(waitUntilServing: true) so each new child is actually serving before
+        /// the next is spawned. Used by the POST /launch-children endpoint.
+        /// </summary>
+        /// <returns>Ports newly spawned by this call.</returns>
+        public static int[] LaunchChildren()
+        {
+            var spawned = new List<int>();
+            while (true)
+            {
+                int countBefore;
+                lock (lockObject)
+                    countBefore = computeProcesses.Count;
+                if (countBefore >= SpawnCount)
+                    break;
+                try
+                {
+                    LaunchCompute(waitUntilServing: true);
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning("Error during LaunchChildren: {Message}", ex.Message);
+                    break;
+                }
+                int countAfter;
+                int newestPort = 0;
+                lock (lockObject)
+                {
+                    countAfter = computeProcesses.Count;
+                    if (countAfter > countBefore)
+                        newestPort = computeProcesses.Last().Item2;
+                }
+                if (countAfter <= countBefore)
+                    break;  // didn't add, avoid infinite loop
+                spawned.Add(newestPort);
+            }
+            return spawned.ToArray();
+        }
+
+        /// <summary>
+        /// Spawn exactly one compute.geometry child. Bypasses the SpawnCount auto-fill cap so
+        /// callers can push above the configured baseline, but enforces the absolute MaxChildren
+        /// ceiling. Used by the POST /launch-child endpoint.
+        /// </summary>
+        /// <param name="requestedPort">Optional port to bind. When null, uses the next available
+        /// port in the 6001-6256 range. When specified, validates that the port is in 6001-65535,
+        /// not held by an existing child, and not already bound externally.</param>
+        /// <returns>The port the new child was spawned on.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">When requestedPort is outside 6001-65535.</exception>
+        /// <exception cref="InvalidOperationException">When the port is already in use, the pool
+        /// is at MaxChildren, no port is available, or compute.geometry.exe is missing.</exception>
+        public static int LaunchChild(int? requestedPort)
+        {
+            lock (lockObject)
+            {
+                if (computeProcesses.Count >= MaxChildren)
+                    throw new InvalidOperationException($"Maximum child count reached ({MaxChildren}).");
+
+                int port;
+                if (requestedPort.HasValue)
+                {
+                    if (requestedPort.Value < 6001 || requestedPort.Value > 65535)
+                        throw new ArgumentOutOfRangeException(nameof(requestedPort),
+                            "Port must be in range 6001-65535.");
+                    if (computeProcesses.Any(t => t.Item2 == requestedPort.Value))
+                        throw new InvalidOperationException(
+                            $"Port {requestedPort.Value} is already in use by an existing child.");
+                    if (IsPortOpen("localhost", requestedPort.Value, new TimeSpan(0, 0, 0, 0, 100)))
+                        throw new InvalidOperationException(
+                            $"Port {requestedPort.Value} is already in use.");
+                    port = requestedPort.Value;
+                }
+                else
+                {
+                    port = FindAvailablePort(computeProcesses);
+                    if (port == 0)
+                        throw new InvalidOperationException(
+                            "No available port found in the 6001-6256 range.");
+                }
+
+                int countBefore = computeProcesses.Count;
+                LaunchCompute(computeProcesses, waitUntilServing: true, requestedPort: port);
+                if (computeProcesses.Count <= countBefore)
+                    throw new InvalidOperationException(
+                        "Failed to spawn child (compute.geometry.exe may be missing).");
+                return port;
+            }
+        }
+
+        /// <summary>Returns the current count of tracked compute.geometry children.</summary>
+        public static int CurrentChildCount
+        {
+            get
+            {
+                lock (lockObject)
+                    return computeProcesses.Count;
             }
         }
     }
