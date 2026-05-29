@@ -161,7 +161,12 @@ namespace Hops
             {
                 if (httpClient == null)
                 {
-                    httpClient = new System.Net.Http.HttpClient();
+                    // Per-request deadlines come from the call site's CancellationTokenSource
+                    // so HopsAppSettings.HTTPTimeout values larger than 100s aren't capped here.
+                    httpClient = new System.Net.Http.HttpClient
+                    {
+                        Timeout = System.Threading.Timeout.InfiniteTimeSpan
+                    };
                 }
                 return httpClient;
             }
