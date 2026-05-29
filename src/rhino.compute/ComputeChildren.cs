@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using Serilog;
 
@@ -203,6 +204,21 @@ namespace rhino.compute
 
             var startInfo = new ProcessStartInfo(pathToCompute);
             startInfo.EnvironmentVariables["ASPNETCORE_HOSTINGSTARTUPASSEMBLIES"] = ""; //required for debugging compute.geometry via Visual Studio
+            // Redirect the child's stdout/stderr so we can re-emit them through the parent's
+            // single Console.Out. Multiple children writing to the OS stdout handle directly
+            // would interleave at byte level (visible when SpawnCount >= 2 spawns siblings in
+            // parallel, badly visible at 3+); routing through a single in-process TextWriter
+            // serializes the writes. The child's own "CG ..." Serilog prefix is preserved.
+            startInfo.UseShellExecute = false;
+            startInfo.RedirectStandardOutput = true;
+            startInfo.RedirectStandardError = true;
+            // Sever inheritance of rhino.compute's console handle. Without this, native code
+            // inside the child (notably Grasshopper's plugin loader) writes its "Loading X
+            // assembly..." progress straight to the inherited CONOUT$ — which bypasses our
+            // stdout pipe and ends up shared between all children, causing byte-level
+            // interleaving on the parent's console. Forcing CreateNoWindow makes those native
+            // writes either fall through to STD_OUTPUT_HANDLE (our pipe) or no-op.
+            startInfo.CreateNoWindow = true;
             var rhinoProcess = Process.GetCurrentProcess();
             Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
             string commandLineArgs = $"-port:{port} -childof:{rhinoProcess.Id}";
@@ -219,6 +235,27 @@ namespace rhino.compute
             startInfo.Arguments = commandLineArgs;
 
             var process = Process.Start(startInfo);
+            if (process != null)
+            {
+                // Lines emitted by the child's Serilog (ANSI theme) already begin with an
+                // escape sequence and a "CG {port} [...]" prefix — pass them through verbatim.
+                // Anything else (Grasshopper's raw Console.WriteLine output during plugin load,
+                // the occasional stderr write) is wrapped via childRawLogger so it picks up
+                // the same prefix, colors, and port enrichment as a normal CG line.
+                int capturedPort = port;
+                void ReEmit(string line)
+                {
+                    if (line == null) return;
+                    if (line.Length > 0 && (line[0] == '\x1B' || line.StartsWith("CG ", StringComparison.Ordinal)))
+                        Console.WriteLine(line);
+                    else
+                        childRawLogger.ForContext("Port", capturedPort).Information("{Line:l}", line);
+                }
+                process.OutputDataReceived += (s, e) => ReEmit(e.Data);
+                process.ErrorDataReceived  += (s, e) => ReEmit(e.Data);
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+            }
             var start = DateTime.Now;
 
             if (waitUntilServing)
@@ -273,5 +310,81 @@ namespace rhino.compute
         }
         static object lockObject = new object();
         static Queue<Tuple<Process, int>> computeProcesses = new Queue<Tuple<Process, int>>();
+
+        // Wraps raw stdout/stderr lines from child processes (e.g. Grasshopper's plugin-load
+        // progress messages written via Console.WriteLine, which bypass the child's Serilog
+        // entirely) so they render with the same "CG {Port} [...]" prefix, color theme, and
+        // port enrichment as Serilog-emitted CG lines. Uses applyThemeToRedirectedOutput so
+        // colors still emit if rhino.compute itself ever runs with redirected stdout.
+        static readonly ILogger childRawLogger = new LoggerConfiguration()
+            .WriteTo.Console(
+                outputTemplate: "CG {Port} [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
+                theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Literate,
+                applyThemeToRedirectedOutput: true)
+            .CreateLogger();
+
+        /// <summary>
+        /// Gracefully shut down all spawned compute.geometry children. POSTs /shutdown to
+        /// each child (API key forwarded automatically since children inherit RHINO_COMPUTE_KEY
+        /// from the parent's environment, so both ends agree on the key when one is configured).
+        /// Waits up to gracefulTimeoutSeconds for each child to exit cleanly, then Kill()'s any
+        /// stragglers as a fallback. Called by Program.cs on ApplicationStopping (clean parent
+        /// exit). Hard-crash scenarios bypass this entirely — children fall back to the
+        /// existing 5-second HasExited poll in their own Shutdown.TimerTask.
+        /// </summary>
+        public static void ShutdownAllChildren(int gracefulTimeoutSeconds = 3)
+        {
+            Tuple<Process, int>[] snapshot;
+            lock (lockObject)
+            {
+                snapshot = computeProcesses.ToArray();
+                computeProcesses.Clear();
+            }
+            if (snapshot.Length == 0)
+                return;
+
+            Log.Information("Shutting down {Count} compute.geometry child process(es)", snapshot.Length);
+
+            // Short HttpClient timeout: in the Ctrl-C case the child may already be mid-shutdown
+            // (Windows broadcasts CTRL_C_EVENT to every process attached to the console), so
+            // Kestrel has stopped accepting connections and the POST will hang. We don't need
+            // the POST to succeed — the WaitForExit loop below is the actual source of truth.
+            // Healthy children respond to /shutdown in milliseconds.
+            using var client = new HttpClient { Timeout = TimeSpan.FromMilliseconds(500) };
+            if (!string.IsNullOrEmpty(Config.ApiKey))
+                client.DefaultRequestHeaders.Add("RhinoComputeKey", Config.ApiKey);
+
+            foreach (var tuple in snapshot)
+            {
+                if (tuple.Item1.HasExited) continue;
+                try
+                {
+                    var response = client.PostAsync($"http://localhost:{tuple.Item2}/shutdown", null).GetAwaiter().GetResult();
+                    Log.Debug("Shutdown request to compute.geometry on port {Port} returned {Status}", tuple.Item2, (int)response.StatusCode);
+                }
+                catch (Exception)
+                {
+                    // Expected when the child is already shutting down via its own signal
+                    // handling (typical in Ctrl-C scenarios). The WaitForExit + Kill fallback
+                    // below handles both paths uniformly.
+                }
+            }
+
+            foreach (var tuple in snapshot)
+            {
+                try
+                {
+                    if (!tuple.Item1.HasExited && !tuple.Item1.WaitForExit(gracefulTimeoutSeconds * 1000))
+                    {
+                        Log.Warning("compute.geometry on port {Port} did not exit gracefully within {Timeout}s; killing", tuple.Item2, gracefulTimeoutSeconds);
+                        tuple.Item1.Kill(entireProcessTree: true);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning("Error while waiting for compute.geometry on port {Port} to exit: {Message}", tuple.Item2, ex.Message);
+                }
+            }
+        }
     }
 }

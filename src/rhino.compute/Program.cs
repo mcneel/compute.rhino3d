@@ -158,7 +158,9 @@ namespace rhino.compute
                 // twice on the console.
                 .MinimumLevel.Override("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogEventLevel.Fatal)
                 .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico']")
-                .WriteTo.Console(outputTemplate: "RC  [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+                .WriteTo.Console(
+                    outputTemplate: "RC  [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
+                    theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Literate)
                 .WriteTo.File(new ExpressionTemplate("RC   [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
             Log.Logger = loggerConfig.CreateLogger();
 
@@ -219,6 +221,18 @@ namespace rhino.compute
 
             var logger = host.Services.GetRequiredService<ILogger<ReverseProxyModule>>();
             ReverseProxyModule.InitializeConcurrentRequestLogging(logger);
+
+            // On clean shutdown of rhino.compute (Ctrl-C, IIS app pool recycle, host.StopAsync()
+            // from selfDestructTimer when parent exits), gracefully stop spawned compute.geometry
+            // children. Hard-crash scenarios (kill -9, segfault) bypass this hook — children fall
+            // back to the existing 5-second HasExited poll in their own Shutdown.cs TimerTask.
+            var lifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
+            lifetime.ApplicationStopping.Register(() =>
+            {
+                Log.Information("rhino.compute shutting down; signaling compute.geometry children");
+                try { ComputeChildren.ShutdownAllChildren(); }
+                catch (Exception ex) { Log.Warning("Error during child shutdown: {Message}", ex.Message); }
+            });
 
             if (parentProcess != null)
             {

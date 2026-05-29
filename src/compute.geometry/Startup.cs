@@ -156,6 +156,30 @@ namespace compute.geometry
                 var runheadless = pluginObject?.GetType().GetMethod("RunHeadless");
                 if (runheadless != null)
                     runheadless.Invoke(pluginObject, null);
+
+                // Only emit the "Loaded assembly: X" burst when running as a child of
+                // rhino.compute (signalled by -childof:<pid>, which populates
+                // Shutdown.ParentProcesses). In that mode CreateNoWindow=true on the child
+                // ProcessStartInfo suppresses Grasshopper's native "* Loading X assembly..."
+                // chatter, so re-emitting via Serilog restores per-plugin visibility through
+                // the CG-prefixed channel. When launched standalone the native chatter is
+                // already visible on the console; adding our burst would just duplicate it.
+                bool launchedByRhinoCompute = Shutdown.ParentProcesses != null && Shutdown.ParentProcesses.Count > 0;
+                if (launchedByRhinoCompute)
+                {
+                    try
+                    {
+                        foreach (var lib in Grasshopper.Instances.ComponentServer.Libraries)
+                        {
+                            if (lib != null && !string.IsNullOrEmpty(lib.Name))
+                                Log.Information("Loaded assembly: {Name}", lib.Name);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning(ex, "Unable to enumerate Grasshopper libraries after RunHeadless");
+                    }
+                }
             }
             else
             {

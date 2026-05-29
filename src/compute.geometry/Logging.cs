@@ -66,7 +66,15 @@ namespace compute.geometry
                 // twice on the console.
                 .MinimumLevel.Override("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogEventLevel.Fatal)
                 .Enrich.With(new DynamicPortEnricher())
-                .WriteTo.Console(outputTemplate: "CG {Port} [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+                // ANSI theme embeds colors as escape sequences in the output text so they
+                // survive rhino.compute's stdout pipe (the default SystemConsoleTheme.Literate
+                // uses Console.ForegroundColor, a Win32 API that has no effect on a piped handle).
+                // applyThemeToRedirectedOutput: true is required because the sink otherwise
+                // swaps our theme for ConsoleTheme.None whenever Console.IsOutputRedirected.
+                .WriteTo.Console(
+                    outputTemplate: "CG {Port} [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
+                    theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Literate,
+                    applyThemeToRedirectedOutput: true)
                 .WriteTo.File(new ExpressionTemplate("CG {Port} [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
 
             Log.Logger = logger.CreateLogger();
