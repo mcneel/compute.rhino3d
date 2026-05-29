@@ -222,6 +222,10 @@ namespace rhino.compute
                             ComputeChildren.MoveToFrontOfQueue(port);
 
                         res.StatusCode = (int)proxyResponse.StatusCode;
+                        // Forward the upstream Content-Type so JSON responses arrive at the caller
+                        // as application/json rather than the ASP.NET Core default text/plain.
+                        if (proxyResponse.Content.Headers.ContentType != null)
+                            res.ContentType = proxyResponse.Content.Headers.ContentType.ToString();
                         responseString = await proxyResponse.Content.ReadAsStringAsync();
                     }
                 }
