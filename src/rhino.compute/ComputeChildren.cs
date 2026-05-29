@@ -1,7 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -44,12 +43,26 @@ namespace rhino.compute
         /// </summary>
         public static bool SpawnOnStartup { get; set; } = false;
 
+        /// <summary>
+        /// When true, post-bootstrap child spawns (the ones <see cref="GetComputeServerBaseUrl"/>
+        /// fires to fill the queue up to <see cref="SpawnCount"/>) run one at a time on a single
+        /// background task — each LaunchCompute() call blocks until the spawned child's port is
+        /// open before the next is started. When false (default), the (SpawnCount-1) post-bootstrap
+        /// spawns are dispatched as separate Task.Run calls and run in parallel.
+        ///
+        /// Sequential is the escape hatch for memory-constrained VMs where parallel
+        /// Rhino+Grasshopper loads can exhaust RAM. Does not affect the synchronous endpoint
+        /// handlers (/launch-children, /launch-child, /recycle-children); those always block
+        /// until their work is done so the response can report the spawned ports accurately.
+        /// </summary>
+        public static bool LoadChildrenSequentially { get; set; } = false;
+
         /// <summary>Port that rhino.compute is running on</summary>
         public static int ParentPort { get; set; } = 5000;
         /// <summary>
         /// The system directory for the Rhino executable
         /// </summary>
-        public static string RhinoSysDir { get; set; } 
+        public static string RhinoSysDir { get; set; }
         /// <summary>
         /// Length of time (in seconds) since rhino.compute last made a call
         /// to a child process. The child processes use this information to
@@ -104,9 +117,25 @@ namespace rhino.compute
 
                 if (activePort == 0)
                 {
+                    // Prune any dead processes before the bootstrap launch below
                     var aliveProcesses = computeProcesses.Where(tuple => !tuple.Item1.HasExited).ToList();
                     computeProcesses = new Queue<Tuple<Process, int>>(aliveProcesses);
-                    LaunchCompute(computeProcesses, true);
+                }
+            }
+
+            if (activePort == 0)
+            {
+                // Bootstrap: no running children — launch one synchronously (outside the lock
+                // so we don't hold lockObject for the full startup wait) then pick it up.
+                LaunchCompute();
+
+                lock (lockObject)
+                {
+                    // If a spawn is in-flight but not yet ready, wait for it to complete
+                    // rather than failing immediately. PulseAll is called in LaunchCompute's
+                    // finally block, so we will be woken when the spawn succeeds or fails.
+                    while (computeProcesses.Count == 0 && pendingSpawnPorts.Count > 0)
+                        Monitor.Wait(lockObject, millisecondsTimeout: 1000);
 
                     if (computeProcesses.Count > 0)
                     {
@@ -120,12 +149,31 @@ namespace rhino.compute
             if (0 == activePort)
                 throw new Exception("No compute server found");
 
-            if (computeProcesses.Count < SpawnCount)
+            // Compute how many background spawns are needed under the lock so we don't
+            // schedule redundant tasks based on a stale unsynchronised count.
+            int spawnTasksToQueue;
+            lock (lockObject)
             {
-                // Bring up other child computes to SpawnCount level
-                for(int i=computeProcesses.Count; i<SpawnCount; i++)
+                spawnTasksToQueue = Math.Max(0, SpawnCount - (computeProcesses.Count + pendingSpawnPorts.Count));
+            }
+            if (spawnTasksToQueue > 0)
+            {
+                if (LoadChildrenSequentially)
                 {
-                    LaunchCompute(false);
+                    // Single background task that drains the queue serially. LaunchCompute()
+                    // blocks until the spawned child's port opens, so each iteration waits for
+                    // the previous to finish — caps peak Rhino+Grasshopper memory at one extra
+                    // child at a time.
+                    System.Threading.Tasks.Task.Run(() =>
+                    {
+                        for (int i = 0; i < spawnTasksToQueue; i++)
+                            LaunchCompute();
+                    });
+                }
+                else
+                {
+                    for (int i = 0; i < spawnTasksToQueue; i++)
+                        System.Threading.Tasks.Task.Run(() => LaunchCompute());
                 }
             }
 
@@ -141,7 +189,7 @@ namespace rhino.compute
                 // pointing at the next item to use
                 if (computeProcesses.Count > 1)
                 {
-                    for( int i=0; i<computeProcesses.Count; i++)
+                    for (int i = 0; i < computeProcesses.Count; i++)
                     {
                         if (computeProcesses.Peek().Item2 == port)
                             break;
@@ -152,98 +200,104 @@ namespace rhino.compute
             }
         }
 
-        public static void LaunchCompute(bool waitUntilServing)
+        /// <summary>
+        /// Spawn one compute.geometry child up to the SpawnCount cap. Reserves a port under a
+        /// brief lock, performs the actual Process.Start + startup wait outside the lock (so
+        /// other threads can continue serving requests through already-ready children), then
+        /// re-locks to enqueue. Cleans up the port reservation on failure. No-op when the pool
+        /// is already at or above SpawnCount.
+        /// </summary>
+        public static void LaunchCompute()
         {
+            // Resolve path before acquiring the lock to keep lock duration short.
+            string pathToCompute = FindComputeExecutablePath();
+            if (pathToCompute == null) return;
+
+            // Under a brief lock: check whether we need another child and reserve a port.
+            // pendingSpawnPorts tracks ports currently being started in background tasks so
+            // we do not double-reserve them or exceed SpawnCount.
+            // Snapshot listening ports before the lock to avoid an OS syscall inside it.
+            var listeningPorts = GetListeningPorts();
+            int port;
             lock (lockObject)
             {
-                if (computeProcesses.Count >= SpawnCount)
+                if (computeProcesses.Count + pendingSpawnPorts.Count >= SpawnCount)
                     return;
-                LaunchCompute(computeProcesses, waitUntilServing);
+
+                var usedPorts = new HashSet<int>(computeProcesses.Select(t => t.Item2));
+                usedPorts.UnionWith(pendingSpawnPorts);
+                port = FindFreePort(usedPorts, listeningPorts);
+                if (port == 0) return;
+                pendingSpawnPorts.Add(port);
             }
+
+            StartChildOnReservedPort(pathToCompute, port);
         }
 
-        // Finds the next free port in the 6001-6256 range — skips ports already held by an
-        // existing child AND ports already bound externally. Returns 0 when none are free.
-        static int FindAvailablePort(Queue<Tuple<Process, int>> processQueue)
+        // Performs the actual spawn for a port that has ALREADY been added to pendingSpawnPorts
+        // under the lock. Spawns outside the lock; in finally, re-acquires the lock to remove
+        // the reservation and enqueue on success. Always pulses lockObject so threads waiting
+        // in GetComputeServerBaseUrl (via Monitor.Wait) are woken whether we succeed or fail.
+        static void StartChildOnReservedPort(string pathToCompute, int port)
         {
-            var existingPorts = new HashSet<int>();
-            foreach (var proc in processQueue)
-                existingPorts.Add(proc.Item2);
-            for (int i = 0; i < 256; i++)
+            Process process = null;
+            bool started = false;
+            try
             {
-                int candidate = 6001 + i;
-                if (existingPorts.Contains(candidate))
-                    continue;
-                if (IsPortOpen("localhost", candidate, new TimeSpan(0, 0, 0, 0, 100)))
-                    continue;
-                return candidate;
+                started = TryStartChild(pathToCompute, port, out process);
+                if (!started)
+                    Log.Warning("compute.geometry on port {Port} failed to start within 60 seconds", port);
             }
-            return 0;
+            catch (Exception ex) when (ex is System.ComponentModel.Win32Exception ||
+                                       ex is InvalidOperationException)
+            {
+                Log.Error(ex, "Exception while starting compute.geometry on port {Port}", port);
+            }
+            finally
+            {
+                lock (lockObject)
+                {
+                    pendingSpawnPorts.Remove(port);
+                    if (started && process != null && !process.HasExited)
+                        computeProcesses.Enqueue(Tuple.Create(process, port));
+                    // Wake any threads waiting in GetComputeServerBaseUrl for this spawn to finish.
+                    Monitor.PulseAll(lockObject);
+                }
+            }
         }
 
-        static void LaunchCompute(Queue<Tuple<Process, int>> processQueue, bool waitUntilServing, int requestedPort = 0)
+        // Looks for compute.geometry in a sibling directory named compute.geometry relative to
+        // this assembly's parent directory. Returns null if the executable cannot be found.
+        static string FindComputeExecutablePath()
         {
             var pathToThisAssembly = new System.IO.FileInfo(typeof(ComputeChildren).Assembly.Location);
-            // compute.geometry is allowed to be either in:
-            // - a sibling directory named compute.geometry
-            // - a child directory named compute.geometry
-            var parentDirectory = pathToThisAssembly.Directory.Parent;
-            string pathToCompute = System.IO.Path.Combine(parentDirectory.FullName, "compute.geometry", "compute.geometry.exe");
-
-            if (!System.IO.File.Exists(pathToCompute))
+            var parentDirectory = pathToThisAssembly.Directory?.Parent;
+            if (parentDirectory == null)
             {
-                pathToCompute = System.IO.Path.Combine(pathToThisAssembly.Directory.FullName, "compute.geometry", "compute.geometry.exe");
-                if (!System.IO.File.Exists(pathToCompute))
-                    return;
+                Log.Warning("Could not determine parent directory of assembly {Assembly}; cannot locate compute.geometry", pathToThisAssembly.FullName);
+                return null;
             }
 
-            // Use the requested port when callers (LaunchChild) have pre-validated it; otherwise
-            // walk for the next free port. requestedPort=0 preserves the original behavior.
-            int port;
-            if (requestedPort > 0)
+            string computeDirectoryPath = System.IO.Path.Join(parentDirectory.FullName, "compute.geometry");
+            string path = System.IO.Path.Join(computeDirectoryPath, "compute.geometry");
+            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+                path += ".exe";
+
+            if (!System.IO.File.Exists(path))
             {
-                port = requestedPort;
-            }
-            else
-            {
-                port = FindAvailablePort(processQueue);
-                if (port == 0)
-                    return;
+                Log.Warning("compute.geometry executable not found at {Path}", path);
+                return null;
             }
 
-            var startInfo = new ProcessStartInfo(pathToCompute);
-            startInfo.EnvironmentVariables["ASPNETCORE_HOSTINGSTARTUPASSEMBLIES"] = ""; //required for debugging compute.geometry via Visual Studio
-            // Redirect the child's stdout/stderr so we can re-emit them through the parent's
-            // single Console.Out. Multiple children writing to the OS stdout handle directly
-            // would interleave at byte level (visible when SpawnCount >= 2 spawns siblings in
-            // parallel, badly visible at 3+); routing through a single in-process TextWriter
-            // serializes the writes. The child's own "CG ..." Serilog prefix is preserved.
-            startInfo.UseShellExecute = false;
-            startInfo.RedirectStandardOutput = true;
-            startInfo.RedirectStandardError = true;
-            // Sever inheritance of rhino.compute's console handle. Without this, native code
-            // inside the child (notably Grasshopper's plugin loader) writes its "Loading X
-            // assembly..." progress straight to the inherited CONOUT$ — which bypasses our
-            // stdout pipe and ends up shared between all children, causing byte-level
-            // interleaving on the parent's console. Forcing CreateNoWindow makes those native
-            // writes either fall through to STD_OUTPUT_HANDLE (our pipe) or no-op.
-            startInfo.CreateNoWindow = true;
-            var rhinoProcess = Process.GetCurrentProcess();
-            Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
-            string commandLineArgs = $"-port:{port} -childof:{rhinoProcess.Id}";
-            Log.Information($"Starting compute.geometry instance on port {port}");
-            if (!string.IsNullOrEmpty(RhinoSysDir))
-            {
-                commandLineArgs += $" -rhinosysdir:\"{RhinoSysDir}\"";
-            }
-            if (ParentPort > 0 && ChildIdleSpan.TotalSeconds > 1.0)
-            {
-                int seconds = (int)ChildIdleSpan.TotalSeconds;
-                commandLineArgs += $" -parentport:{ParentPort} -idlespan:{seconds}";
-            }
-            startInfo.Arguments = commandLineArgs;
+            return path;
+        }
 
-            var process = Process.Start(startInfo);
+        // Shared helper: creates the start info, starts the process on the given port, and waits
+        // for the port to open. Returns true on success, false if the port never opened (timeout).
+        static bool TryStartChild(string pathToCompute, int port, out Process process)
+        {
+            var startInfo = CreateComputeStartInfo(pathToCompute, port);
+            process = Process.Start(startInfo);
             if (process != null)
             {
                 // Lines emitted by the child's Serilog (ANSI theme) already begin with an
@@ -251,74 +305,21 @@ namespace rhino.compute
                 // Anything else (Grasshopper's raw Console.WriteLine output during plugin load,
                 // the occasional stderr write) is wrapped via childRawLogger so it picks up
                 // the same prefix, colors, and port enrichment as a normal CG line.
-                int capturedPort = port;
                 void ReEmit(string line)
                 {
                     if (line == null) return;
                     if (line.Length > 0 && (line[0] == '\x1B' || line.StartsWith("CG ", StringComparison.Ordinal)))
                         Console.WriteLine(line);
                     else
-                        childRawLogger.ForContext("Port", capturedPort).Information("{Line:l}", line);
+                        childRawLogger.ForContext("Port", port).Information("{Line:l}", line);
                 }
                 process.OutputDataReceived += (s, e) => ReEmit(e.Data);
-                process.ErrorDataReceived  += (s, e) => ReEmit(e.Data);
+                process.ErrorDataReceived += (s, e) => ReEmit(e.Data);
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
             }
-            var start = DateTime.Now;
-
-            if (waitUntilServing)
-            {
-                while (true)
-                {
-                    bool isOpen = IsPortOpen("localhost", port, new TimeSpan(0, 0, 1));
-
-                    if (isOpen)
-                    {
-                        break;
-                    }
-                        
-                    var span = DateTime.Now - start;
-                    if (span.TotalSeconds > 60)
-                    {
-                        process.Kill();
-                        string msg = "Unable to start a local compute server";
-                        Log.Information(msg);
-                        throw new Exception(msg);
-                    }
-                }
-            }
-            else
-            {
-                // no matter what, give compute a little time to start
-                System.Threading.Thread.Sleep(100);
-            }
-
-            if (process != null)
-            {
-                processQueue.Enqueue(Tuple.Create(process, port));
-            }
+            return WaitForChildProcess(process, port);
         }
-
-        static bool IsPortOpen(string host, int port, TimeSpan timeout)
-        {
-            try
-            {
-                using (var client = new System.Net.Sockets.TcpClient())
-                {
-                    var result = client.BeginConnect(host, port, null, null);
-                    var success = result.AsyncWaitHandle.WaitOne(timeout);
-                    client.EndConnect(result);
-                    return success;
-                }
-            }
-            catch(Exception)
-            {
-                return false;
-            }
-        }
-        static object lockObject = new object();
-        static Queue<Tuple<Process, int>> computeProcesses = new Queue<Tuple<Process, int>>();
 
         // Wraps raw stdout/stderr lines from child processes (e.g. Grasshopper's plugin-load
         // progress messages written via Console.WriteLine, which bypass the child's Serilog
@@ -331,6 +332,99 @@ namespace rhino.compute
                 theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Literate,
                 applyThemeToRedirectedOutput: true)
             .CreateLogger();
+
+        // Returns the first port >= 6001 that is not in usedPorts and is not already listening.
+        // Returns 0 if no free port is found.
+        // Callers that already hold a lock should pass a pre-fetched listeningPorts snapshot
+        // to avoid an OS syscall inside the lock.
+        static int FindFreePort(HashSet<int> usedPorts, HashSet<int> listeningPorts = null)
+        {
+            listeningPorts ??= GetListeningPorts();
+
+            for (int i = 0; i < 256; i++)
+            {
+                int port = 6001 + i;
+                if (usedPorts.Contains(port)) continue;
+                if (listeningPorts.Contains(port)) continue;
+                return port;
+            }
+            return 0;
+        }
+
+        static ProcessStartInfo CreateComputeStartInfo(string pathToCompute, int port)
+        {
+            var startInfo = new ProcessStartInfo(pathToCompute);
+            startInfo.EnvironmentVariables["ASPNETCORE_HOSTINGSTARTUPASSEMBLIES"] = "";
+            // Redirect the child's stdout/stderr so we can re-emit them through the parent's
+            // single Console.Out. Multiple children writing to the OS stdout handle directly
+            // would interleave at byte level (visible when SpawnCount >= 3 spawns siblings in
+            // parallel); routing through a single in-process TextWriter serializes the writes.
+            // The child's own "CG ..." Serilog prefix is preserved.
+            startInfo.UseShellExecute = false;
+            startInfo.RedirectStandardOutput = true;
+            startInfo.RedirectStandardError = true;
+            // Sever inheritance of rhino.compute's console handle. Without this, native code
+            // inside the child (notably Grasshopper's plugin loader) writes its "Loading X
+            // assembly..." progress straight to the inherited CONOUT$ — which bypasses our
+            // stdout pipe and ends up shared between all children, causing byte-level
+            // interleaving on the parent's console. Forcing CreateNoWindow makes those native
+            // writes either fall through to STD_OUTPUT_HANDLE (our pipe) or no-op.
+            startInfo.CreateNoWindow = true;
+            var rhinoProcess = Process.GetCurrentProcess();
+            string args = $"-port:{port} -childof:{rhinoProcess.Id}";
+            Log.Information("Starting compute.geometry instance on port {Port}", port);
+            if (!string.IsNullOrEmpty(RhinoSysDir))
+                args += $" -rhinosysdir:\"{RhinoSysDir}\"";
+            if (ParentPort > 0 && ChildIdleSpan.TotalSeconds > 1.0)
+                args += $" -parentport:{ParentPort} -idlespan:{(int)ChildIdleSpan.TotalSeconds}";
+            startInfo.Arguments = args;
+            return startInfo;
+        }
+
+        // Polls until the child process port is confirmed open, or kills the process after timeout.
+        // Returns true if the port opened within the timeout, false otherwise.
+        static bool WaitForChildProcess(Process process, int port, int timeoutSeconds = 60)
+        {
+            var start = DateTime.Now;
+            while (true)
+            {
+                if (process == null || process.HasExited)
+                    return false;
+
+                if (IsPortOpen(port))
+                    return true;
+
+                if ((DateTime.Now - start).TotalSeconds > timeoutSeconds)
+                {
+                    try { process.Kill(); } catch (Exception ex) { Log.Debug(ex, "Exception killing timed-out compute.geometry process on port {Port}", port); }
+                    process.Dispose();
+                    return false;
+                }
+
+                Thread.Sleep(1000);
+            }
+        }
+
+        // Returns a snapshot of all ports with active TCP listeners.
+        // Returns an empty set if the OS query fails, so callers degrade gracefully.
+        static HashSet<int> GetListeningPorts()
+        {
+            try
+            {
+                var listeners = System.Net.NetworkInformation.IPGlobalProperties
+                    .GetIPGlobalProperties()
+                    .GetActiveTcpListeners();
+                return new HashSet<int>(listeners.Select(ep => ep.Port));
+            }
+            catch (System.Net.NetworkInformation.NetworkInformationException ex)
+            {
+                Log.Warning(ex, "Failed to enumerate TCP listeners; treating all ports as available");
+                return new HashSet<int>();
+            }
+        }
+
+        // Returns true if any TCP listener is currently bound to the given port.
+        static bool IsPortOpen(int port) => GetListeningPorts().Contains(port);
 
         /// <summary>
         /// Gracefully shut down compute.geometry children. POSTs /shutdown to each child
@@ -347,8 +441,8 @@ namespace rhino.compute
         /// <param name="portFilter">When non-null, only the child on this port is shut down
         /// (others are left running). When null, all children are shut down.</param>
         /// <param name="respawn">When true, spawn one fresh replacement per shut-down child,
-        /// sequentially (one at a time, with waitUntilServing=true) so the queue is never empty
-        /// mid-recycle if other children are handling traffic. Respects SpawnCount.</param>
+        /// sequentially (one at a time) so the queue is never empty mid-recycle if other
+        /// children are handling traffic. Respects SpawnCount.</param>
         /// <returns>Ports that were shut down, and ports of any newly-spawned replacements.</returns>
         public static (int[] shutdown, int[] spawned) ShutdownChildren(
             int? portFilter = null,
@@ -431,12 +525,12 @@ namespace rhino.compute
                 var spawned = new List<int>();
                 foreach (var _ in shutdownPorts)
                 {
-                    int portBefore;
+                    int countBefore;
                     lock (lockObject)
-                        portBefore = computeProcesses.Count;
+                        countBefore = computeProcesses.Count;
                     try
                     {
-                        LaunchCompute(waitUntilServing: true);
+                        LaunchCompute();
                     }
                     catch (Exception ex)
                     {
@@ -445,7 +539,7 @@ namespace rhino.compute
                     }
                     lock (lockObject)
                     {
-                        if (computeProcesses.Count > portBefore)
+                        if (computeProcesses.Count > countBefore)
                             spawned.Add(computeProcesses.Last().Item2);
                     }
                 }
@@ -457,43 +551,54 @@ namespace rhino.compute
 
         /// <summary>
         /// Fill the compute.geometry child pool up to <see cref="SpawnCount"/>. If already at
-        /// or above SpawnCount, no-op (returns empty array). Sequential launches via
-        /// LaunchCompute(waitUntilServing: true) so each new child is actually serving before
-        /// the next is spawned. Used by the POST /launch-children endpoint.
+        /// or above SpawnCount, no-op (returns empty array). Used by the POST /launch-children
+        /// endpoint. Honors <see cref="LoadChildrenSequentially"/> — same flag, same semantics
+        /// as the auto-spawn path in <see cref="GetComputeServerBaseUrl"/>: parallel by default
+        /// for fast warmup, sequential when the flag is set. Always blocks until all spawns
+        /// complete so the response can report the spawned ports accurately.
         /// </summary>
         /// <returns>Ports newly spawned by this call.</returns>
         public static int[] LaunchChildren()
         {
-            var spawned = new List<int>();
-            while (true)
+            int targetSpawns;
+            int[] existingPortsSnapshot;
+            lock (lockObject)
             {
-                int countBefore;
-                lock (lockObject)
-                    countBefore = computeProcesses.Count;
-                if (countBefore >= SpawnCount)
-                    break;
-                try
-                {
-                    LaunchCompute(waitUntilServing: true);
-                }
-                catch (Exception ex)
-                {
-                    Log.Warning("Error during LaunchChildren: {Message}", ex.Message);
-                    break;
-                }
-                int countAfter;
-                int newestPort = 0;
-                lock (lockObject)
-                {
-                    countAfter = computeProcesses.Count;
-                    if (countAfter > countBefore)
-                        newestPort = computeProcesses.Last().Item2;
-                }
-                if (countAfter <= countBefore)
-                    break;  // didn't add, avoid infinite loop
-                spawned.Add(newestPort);
+                int currentCount = computeProcesses.Count + pendingSpawnPorts.Count;
+                targetSpawns = Math.Max(0, SpawnCount - currentCount);
+                existingPortsSnapshot = computeProcesses.Select(t => t.Item2).ToArray();
             }
-            return spawned.ToArray();
+            if (targetSpawns == 0)
+                return Array.Empty<int>();
+
+            if (LoadChildrenSequentially)
+            {
+                // One spawn at a time — caps peak Rhino+Grasshopper memory at one extra child
+                // mid-load. Each LaunchCompute() call blocks until the spawned child's port opens.
+                for (int i = 0; i < targetSpawns; i++)
+                    LaunchCompute();
+            }
+            else
+            {
+                // Parallel spawning for fast warmup. Each task does its own port reservation +
+                // start + enqueue under the pendingSpawnPorts protocol, so concurrent spawns
+                // can't collide on a port.
+                var tasks = new System.Threading.Tasks.Task[targetSpawns];
+                for (int i = 0; i < targetSpawns; i++)
+                    tasks[i] = System.Threading.Tasks.Task.Run(() => LaunchCompute());
+                System.Threading.Tasks.Task.WaitAll(tasks);
+            }
+
+            // Diff the queue against the pre-spawn snapshot to find newly-added ports.
+            // (Order is non-deterministic in parallel mode; that's fine.)
+            lock (lockObject)
+            {
+                var existingSet = new HashSet<int>(existingPortsSnapshot);
+                return computeProcesses
+                    .Select(t => t.Item2)
+                    .Where(p => !existingSet.Contains(p))
+                    .ToArray();
+            }
         }
 
         /// <summary>
@@ -503,19 +608,24 @@ namespace rhino.compute
         /// </summary>
         /// <param name="requestedPort">Optional port to bind. When null, uses the next available
         /// port in the 6001-6256 range. When specified, validates that the port is in 6001-65535,
-        /// not held by an existing child, and not already bound externally.</param>
+        /// not held by an existing child, not already being spawned, and not already bound externally.</param>
         /// <returns>The port the new child was spawned on.</returns>
         /// <exception cref="ArgumentOutOfRangeException">When requestedPort is outside 6001-65535.</exception>
         /// <exception cref="InvalidOperationException">When the port is already in use, the pool
         /// is at MaxChildren, no port is available, or compute.geometry.exe is missing.</exception>
         public static int LaunchChild(int? requestedPort)
         {
+            string pathToCompute = FindComputeExecutablePath();
+            if (pathToCompute == null)
+                throw new InvalidOperationException("compute.geometry executable not found.");
+
+            var listeningPorts = GetListeningPorts();
+            int port;
             lock (lockObject)
             {
-                if (computeProcesses.Count >= MaxChildren)
+                if (computeProcesses.Count + pendingSpawnPorts.Count >= MaxChildren)
                     throw new InvalidOperationException($"Maximum child count reached ({MaxChildren}).");
 
-                int port;
                 if (requestedPort.HasValue)
                 {
                     if (requestedPort.Value < 6001 || requestedPort.Value > 65535)
@@ -524,26 +634,38 @@ namespace rhino.compute
                     if (computeProcesses.Any(t => t.Item2 == requestedPort.Value))
                         throw new InvalidOperationException(
                             $"Port {requestedPort.Value} is already in use by an existing child.");
-                    if (IsPortOpen("localhost", requestedPort.Value, new TimeSpan(0, 0, 0, 0, 100)))
+                    if (pendingSpawnPorts.Contains(requestedPort.Value))
+                        throw new InvalidOperationException(
+                            $"Port {requestedPort.Value} is already being spawned.");
+                    if (listeningPorts.Contains(requestedPort.Value))
                         throw new InvalidOperationException(
                             $"Port {requestedPort.Value} is already in use.");
                     port = requestedPort.Value;
                 }
                 else
                 {
-                    port = FindAvailablePort(computeProcesses);
+                    var usedPorts = new HashSet<int>(computeProcesses.Select(t => t.Item2));
+                    usedPorts.UnionWith(pendingSpawnPorts);
+                    port = FindFreePort(usedPorts, listeningPorts);
                     if (port == 0)
                         throw new InvalidOperationException(
                             "No available port found in the 6001-6256 range.");
                 }
-
-                int countBefore = computeProcesses.Count;
-                LaunchCompute(computeProcesses, waitUntilServing: true, requestedPort: port);
-                if (computeProcesses.Count <= countBefore)
-                    throw new InvalidOperationException(
-                        "Failed to spawn child (compute.geometry.exe may be missing).");
-                return port;
+                pendingSpawnPorts.Add(port);
             }
+
+            StartChildOnReservedPort(pathToCompute, port);
+
+            // Verify the spawn actually landed in the queue (startup might have timed out
+            // or failed inside StartChildOnReservedPort, in which case it's gone from
+            // pendingSpawnPorts but not in computeProcesses).
+            lock (lockObject)
+            {
+                if (!computeProcesses.Any(t => t.Item2 == port))
+                    throw new InvalidOperationException(
+                        $"Failed to spawn child on port {port} (startup timed out or process exited).");
+            }
+            return port;
         }
 
         /// <summary>Returns the current count of tracked compute.geometry children.</summary>
@@ -555,5 +677,11 @@ namespace rhino.compute
                     return computeProcesses.Count;
             }
         }
+
+        static object lockObject = new object();
+        static Queue<Tuple<Process, int>> computeProcesses = new Queue<Tuple<Process, int>>();
+        // Ports for which a child process has been started but has not yet been confirmed
+        // ready and added to computeProcesses. Protected by lockObject.
+        static readonly HashSet<int> pendingSpawnPorts = new HashSet<int>();
     }
 }

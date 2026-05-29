@@ -275,9 +275,12 @@ namespace rhino.compute
             }
             if (Program.IsParentRhinoProcess(parentProcessId))
             {
+                // LaunchCompute() blocks until the spawned child is ready. The legacy semantics
+                // here are fire-and-forget — Rhino startup doesn't want to wait — so dispatch
+                // each launch to a background task.
                 for (int i = 0; i < children; i++)
                 {
-                    ComputeChildren.LaunchCompute(false);
+                    _ = System.Threading.Tasks.Task.Run(() => ComputeChildren.LaunchCompute());
                 }
             }
         }
