@@ -271,7 +271,7 @@ namespace Hops
         }
 
         static int httpTimeout = 0;
-        public static int HTTPTimeout
+        public static int HttpTimeout
         {
             get
             {
