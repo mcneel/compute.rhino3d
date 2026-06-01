@@ -72,7 +72,7 @@ namespace Hops
                         message = m;
                 }
             }
-            catch (Exception)
+            catch (Newtonsoft.Json.JsonException)
             {
                 // not JSON — keep the raw body
             }
@@ -518,8 +518,9 @@ namespace Hops
                             }
                         }
                     }
-                    catch(Exception)
+                    catch (Exception ex)
                     {
+                        HopsLog.Log.Debug(ex, "Failed to parse custom icon for remote definition at {Path}", Path);
                     }
                 }
 
@@ -659,8 +660,10 @@ namespace Hops
             {
                 return JsonConvert.DeserializeObject<Resthopper.IO.Schema>(data);
             }
-            catch (Exception)
+            catch (Newtonsoft.Json.JsonException)
             {
+                // Method-name promises "safe" — caller treats null as parse failure and
+                // handles it via the bad-schema / status-code paths.
             }
             return null;
         }
@@ -1031,8 +1034,10 @@ namespace Hops
             {
                 return JsonConvert.DeserializeObject<string>(objData);
             }
-            catch (Exception)
+            catch (Newtonsoft.Json.JsonException)
             {
+                // Intentional fallback: when objData isn't valid JSON-encoded string syntax,
+                // treat it as already-decoded and just strip wrapping quotes / unescape.
                 return MaybeUnescapeJsonString(objData.Trim('"'));
             }
         }
@@ -1165,9 +1170,11 @@ namespace Hops
                         return false;
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is FormatException || ex is OverflowException || ex is InvalidCastException)
                 {
-                    errors.Add(ex.ToString());
+                    // Conversion of `item` or `min` to double failed. Surface the short error
+                    // message rather than the full ex.ToString() (which includes the stack trace).
+                    errors.Add($"{name} value could not be evaluated for the minimum-bound check: {ex.Message}");
                     return false;
                 }
 
@@ -1185,9 +1192,11 @@ namespace Hops
                         return false;
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is FormatException || ex is OverflowException || ex is InvalidCastException)
                 {
-                    errors.Add(ex.ToString());
+                    // Conversion of `item` or `max` to double failed. Surface the short error
+                    // message rather than the full ex.ToString() (which includes the stack trace).
+                    errors.Add($"{name} value could not be evaluated for the maximum-bound check: {ex.Message}");
                     return false;
                 }
             }
