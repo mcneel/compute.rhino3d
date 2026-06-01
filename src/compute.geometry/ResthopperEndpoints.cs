@@ -195,11 +195,24 @@ namespace compute.geometry
             string fileName = String.Empty;
             if (asPost)
             {
-                var body = await new System.IO.StreamReader(ctx.Request.Body).ReadToEndAsync();
-                if (body.StartsWith("[") && body.EndsWith("]"))
-                    body = body.Substring(1, body.Length - 2);
-
-                Schema input = JsonConvert.DeserializeObject<Schema>(body);
+                // Stream-deserialize the request body asynchronously instead of materializing
+                // it as a string first. Saves ~MaxRequestSize bytes of peak memory per request
+                // (default 50 MB) since we don't hold both the stream buffer AND a full string
+                // copy in memory at the same time. Uses Newtonsoft's async APIs (ReadFromAsync,
+                // ReadAsync) so the underlying reads on Request.Body are async — Kestrel
+                // disallows synchronous IO on the request stream by default.
+                //
+                // Historical request shape: the body is sometimes wrapped in a single-element
+                // JSON array (`[{...}]`). Detect that via the parsed token kind and unwrap.
+                Schema input;
+                using (var streamReader = new System.IO.StreamReader(ctx.Request.Body))
+                using (var jsonReader = new Newtonsoft.Json.JsonTextReader(streamReader))
+                {
+                    var token = await Newtonsoft.Json.Linq.JToken.ReadFromAsync(jsonReader);
+                    if (token is Newtonsoft.Json.Linq.JArray ja && ja.Count > 0)
+                        token = ja[0];
+                    input = token.ToObject<Schema>();
+                }
 
                 string httpType = ctx.Request.IsHttps ? "HTTPS" : "HTTP";
                 string endpoint = ctx.GetEndpoint().DisplayName;
