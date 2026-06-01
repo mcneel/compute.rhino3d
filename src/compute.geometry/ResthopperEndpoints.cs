@@ -99,7 +99,6 @@ namespace compute.geometry
             }
             int recursionLevel = input.RecursionLevel + 1;
             definition.Definition.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(recursionLevel));
-            Serilog.Log.Debug("Setting input values");
             definition.SetInputs(input.Values);
             long decodeTime = stopwatch.ElapsedMilliseconds;
             stopwatch.Restart();
