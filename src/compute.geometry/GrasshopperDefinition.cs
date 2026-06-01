@@ -316,6 +316,11 @@ namespace compute.geometry
 
         public void SetInputs(List<Resthopper.IO.DataTree<ResthopperObject>> values)
         {
+            // Collect names of inputs that were actually updated vs ones whose value was already
+            // current, and log each group as a single summary line after the loop. With many
+            // parameters and one changed value, per-input messages drowned out anything useful.
+            var updatedInputs = new List<string>();
+            var skippedInputs = new List<string>();
             foreach (var tree in values)
             {
                 if( !input.TryGetValue(tree.ParamName, out var inputGroup))
@@ -325,10 +330,11 @@ namespace compute.geometry
 
                 if (inputGroup.AlreadySet(tree))
                 {
-                    LogDebug("Skipping input tree... same input");
+                    skippedInputs.Add(tree.ParamName);
                     continue;
                 }
 
+                updatedInputs.Add(tree.ParamName);
                 inputGroup.CacheTree(tree);
 
                 IGH_ContextualParameter contextualParameter = inputGroup.Param as IGH_ContextualParameter;
@@ -395,6 +401,10 @@ namespace compute.geometry
                     AddTreeData(inputGroup.Param, tree, convert);
             }
 
+            if (updatedInputs.Count > 0)
+                LogDebug($"Setting values for {updatedInputs.Count} input{(updatedInputs.Count == 1 ? "" : "s")}: {string.Join(", ", updatedInputs)}");
+            if (skippedInputs.Count > 0)
+                LogDebug($"Skipping {skippedInputs.Count} unchanged input{(skippedInputs.Count == 1 ? "" : "s")}: {string.Join(", ", skippedInputs)}");
         }
 
         // Shared write path for SetInputs' regular-parameter dispatch. Each Param_X case
