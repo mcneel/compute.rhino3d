@@ -702,13 +702,15 @@ namespace Hops
             using (var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, solveUrl) { Content = content })
             using (var cts = CreateTimeoutCts())
             {
+                var sw = Stopwatch.StartNew();
+                try
+                {
                 AddApiKeyHeader(request);
                 var postTask = HttpClient.SendAsync(request, cts.Token);
                 var fileNameMsg = String.Empty;
                 if (!String.IsNullOrEmpty(inputSchema.FileName))
                     fileNameMsg = $" with {inputSchema.FileName} input values";
                 HopsLog.Log.Debug($"Sending POST request to {solveUrl}{fileNameMsg}");
-                var sw = Stopwatch.StartNew();
                 var responseMessage = postTask.Result;
                 HopsLog.Log.Debug($"Received response {responseMessage.StatusCode} in {sw.ElapsedMilliseconds}ms");
                 var remoteSolvedData = responseMessage.Content;
@@ -838,6 +840,38 @@ namespace Hops
                 }
                 cacheKey = schema?.Pointer;
                 return schema;
+                }
+                catch (Exception ex)
+                {
+                    // Surface cancellation (HttpTimeout exceeded) or network failure (server
+                    // unreachable, DNS, connection refused) as a clear runtime message on the
+                    // component instead of letting AggregateException bubble up through
+                    // SolveInstance — that's been observed to crash Rhino on macOS (RH-86675).
+                    // .Result wraps the underlying failure in AggregateException; unwrap one
+                    // level so the message is clean.
+                    var inner = ex is AggregateException ae && ae.InnerException != null
+                        ? ae.InnerException
+                        : ex;
+                    string serverMessage;
+                    if (inner is OperationCanceledException)
+                    {
+                        serverMessage = $"Could not reach the compute server at {solveUrl}\r\nRequest timed out after {sw.Elapsed.TotalSeconds:0.0}s (configured timeout: {HopsAppSettings.HttpTimeout}s — raise it in the Hops settings panel if the server is just slow).";
+                    }
+                    else
+                    {
+                        // Network-level failure (HttpRequestException / SocketException — typically
+                        // connection refused, DNS, or TCP-stack timeout from the OS). The TCP-level
+                        // timeout will often fire before the configured HttpTimeout, so include
+                        // both the actual elapsed time AND the configured timeout so the user
+                        // can tell which layer gave up first.
+                        serverMessage = $"Could not reach the compute server at {solveUrl}\r\n{inner.Message}\r\nFailed after {sw.Elapsed.TotalSeconds:0.0}s (configured HTTP timeout: {HopsAppSettings.HttpTimeout}s).";
+                    }
+                    HopsLog.Log.Error(serverMessage);
+                    var badSchema = new Schema();
+                    badSchema.Errors.Add(serverMessage);
+                    parentComponent.HttpRecord.Schema = badSchema;
+                    return badSchema;
+                }
             }
         }
 
