@@ -126,8 +126,16 @@ namespace compute.geometry
             // This load is placed before Grasshopper in case GH needs to load any plugins published by the
             // new scripting tools in Rhino >= 8
             Log.Information("(2/4) Loading rhino scripting plugin");
+#if LINUX
+            // On Linux, we need to load the plugin manually from the expected path since the .rhp extension is not registered
+            var rhinoCodePluginPath = RhinoInside.Resolver.RhinoSystemDirectory + "/Plug-ins/RhinoCode/RhinoCodePlugin.rhp";
+            var rc_pluginresult = Rhino.PlugIns.PlugIn.LoadPlugIn(rhinoCodePluginPath, out Guid rhinoCodePluginId);
+            if( rc_pluginresult == Rhino.PlugIns.LoadPlugInResult.Success )
+            {
+#else
             if (Rhino.PlugIns.PlugIn.LoadPlugIn(s_rhinoCodePluginId))
             {
+#endif
                 Log.Information("Successfully loaded scripting plugin");
 
                 // eirannejad 12/3/2024 (COMPUTE-268)
