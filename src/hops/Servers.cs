@@ -92,7 +92,11 @@ namespace Hops
                 if (settingsNeedReading)
                 {
                     settingsNeedReading = false;
-                    string[] servers = Hops.HopsAppSettings.Servers;
+                    // When the user picks "Use local rhino.compute", treat the saved remote URLs
+                    // as inactive — the URL is preserved in settings for next time they switch back.
+                    string[] servers = Hops.HopsAppSettings.UseLocalServer
+                        ? new string[0]
+                        : Hops.HopsAppSettings.Servers;
                     var serverArray = computeServerQueue.ToArray();
                     computeServerQueue.Clear();
                     foreach (var server in servers)
@@ -177,13 +181,21 @@ namespace Hops
             var existingProcesses = Process.GetProcessesByName("rhino.compute");
             if( existingProcesses!=null && existingProcesses.Length>0)
             {
-                if (IsPortOpen("localhost", RhinoComputePort, new TimeSpan(0, 0, 0, 0, 100)))
+                // 1-second timeout instead of 100ms. The shorter window can flap when the
+                // existing rhino.compute is busy serving a request, leading the check to
+                // think the port isn't reachable and falling through to spawn a duplicate.
+                if (IsPortOpen("localhost", RhinoComputePort, TimeSpan.FromSeconds(1)))
                 {
                     serverQueue.Enqueue(new ComputeServer(existingProcesses[0], RhinoComputePort));
+                    // Critical: bail out so we don't fall through to spawn a *second*
+                    // rhino.compute that immediately exits because the port is taken.
+                    // Without this return, every Hops solve triggered a transient console
+                    // window each time GetComputeServerBaseUrl had to rebuild the queue.
+                    return;
                 }
             }
 
-            // No rhino.compute.exe running. Launch one
+            // No rhino.compute.exe running (or its port wasn't reachable). Launch one.
             string dir = null;
             if (GhaAssemblyInfo.TheAssemblyInfo != null)
             {
