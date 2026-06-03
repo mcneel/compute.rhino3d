@@ -367,21 +367,34 @@ namespace compute.geometry
                 return;
             }
 
-            var jsonString = await new System.IO.StreamReader(context.Request.Body).ReadToEndAsync();
+            // The POST body is expected to be a JSON array of arguments. Stream-deserialize
+            // directly into a JArray rather than materializing the body as a string first —
+            // saves ~MaxRequestSize bytes of peak memory per request (default 50 MB).
+            // Reject anything that's not a JSON array (other JSON shapes, malformed JSON, or an
+            // empty body) with a 400 — this is a client-input boundary, so a bad shape is a 400,
+            // not a 500.
+            //
+            // When the debug StopAt.BodyToString checkpoint is requested, fall back to the
+            // original body-to-string read so the timing semantics of that profiling stage are
+            // preserved exactly (used by some workflows to measure body-receive latency).
+            Newtonsoft.Json.Linq.JArray ja = null;
             if (StopAt.BodyToString == stopat)
             {
+                var jsonString = await new System.IO.StreamReader(context.Request.Body).ReadToEndAsync();
                 await context.Response.WriteAsync($"{(DateTime.Now - start).TotalSeconds}");
                 return;
             }
-
-            // The POST body is expected to be a JSON array of arguments. Deserialize to the
-            // expected shape and reject anything else (non-array JSON, malformed JSON, or an
-            // empty body) with a 400 — otherwise a null `ja` would NullReference below. This
-            // is a client-input boundary, so a bad shape is a 400, not a 500.
-            Newtonsoft.Json.Linq.JArray ja = null;
-            if (!string.IsNullOrWhiteSpace(jsonString))
+            // Async reads via JsonTextReader.ReadAsync + JArray.LoadAsync so the underlying
+            // reads on Request.Body are async — Kestrel disallows synchronous IO on the
+            // request stream by default.
+            using (var streamReader = new System.IO.StreamReader(context.Request.Body))
+            using (var jsonReader = new Newtonsoft.Json.JsonTextReader(streamReader))
             {
-                try { ja = JsonConvert.DeserializeObject(jsonString) as Newtonsoft.Json.Linq.JArray; }
+                try
+                {
+                    if (await jsonReader.ReadAsync() && jsonReader.TokenType == Newtonsoft.Json.JsonToken.StartArray)
+                        ja = await Newtonsoft.Json.Linq.JArray.LoadAsync(jsonReader);
+                }
                 catch (Newtonsoft.Json.JsonException) { ja = null; }
             }
             if (ja == null)

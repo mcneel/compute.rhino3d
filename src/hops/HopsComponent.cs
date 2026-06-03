@@ -668,8 +668,9 @@ namespace Hops
                         }
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    HopsLog.Log.Debug(ex, "Failed to load function-source menu for {SourcePath}", row.SourcePath);
                 }
             }
             else if (Directory.Exists(row.SourcePath))
@@ -703,7 +704,10 @@ namespace Hops
                     {
                         Instances.DocumentEditor.ScriptAccess_OpenDocument(ti.Name);
                     }
-                    catch (Exception) { }
+                    catch (Exception ex)
+                    {
+                        HopsLog.Log.Debug(ex, "Failed to open document {DocumentName}", ti.Name);
+                    }
                     break;
             }
             
@@ -997,8 +1001,10 @@ for value in values:
             {
                 return JsonConvert.DeserializeObject<string>(data);
             }
-            catch (Exception)
+            catch (Newtonsoft.Json.JsonException)
             {
+                // Intentional fallback: when the data isn't valid JSON-encoded string syntax,
+                // treat it as already-decoded and just unescape any backslash sequences.
                 return System.Text.RegularExpressions.Regex.Unescape(data);
             }
         }
