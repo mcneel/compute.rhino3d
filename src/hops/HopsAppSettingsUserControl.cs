@@ -298,17 +298,29 @@ namespace Hops
 
             // Labels render wider on Mac because of the larger system font, so the design
             // widths (43/126/73) clip the text to "API"/"Max concur..."/"Timeout". Grow each
-            // label to fit and shift its adjacent textbox right by the same amount.
+            // label to fit and use MiddleRight so the text right-aligns to the label's right
+            // edge — keeping a consistent 4px gap between label text and textbox left edge
+            // across all three rows, even though the labels themselves are different widths.
             label2.AutoSize = false; label2.Size = new Size(60, 22);
+            label2.TextAlign = ContentAlignment.MiddleRight;
             _apiKeyTextbox.Location = new Point(label2.Right + 4, _apiKeyTextbox.Top);
 
             label1.AutoSize = false; label1.Size = new Size(160, 22);
+            label1.TextAlign = ContentAlignment.MiddleRight;
             _maxConcurrentRequestsTextbox.Location = new Point(label1.Right + 4, _maxConcurrentRequestsTextbox.Top);
-            _maxConcurrentRequestsTextbox.Size = new Size(50, 22);
 
             label3.AutoSize = false; label3.Size = new Size(100, 22);
+            label3.TextAlign = ContentAlignment.MiddleRight;
             _httpTimeoutTextbox.Location = new Point(label3.Right + 4, _httpTimeoutTextbox.Top);
-            _httpTimeoutTextbox.Size = new Size(105, 22);
+
+            // Right-edge alignment to match Windows behavior: URL/API-key share a right edge,
+            // and Max-concurrent/Timeout share a different right edge. URL's absolute right is
+            // computed via its container offset since it lives inside the group.
+            int urlAbsRight = _gpboxComputeServer.Left + _serverUrlTextbox.Right;
+            _apiKeyTextbox.Size = new Size(urlAbsRight - _apiKeyTextbox.Left, _apiKeyTextbox.Height);
+            const int numericRightEdge = 215;
+            _maxConcurrentRequestsTextbox.Size = new Size(numericRightEdge - _maxConcurrentRequestsTextbox.Left, _maxConcurrentRequestsTextbox.Height);
+            _httpTimeoutTextbox.Size = new Size(numericRightEdge - _httpTimeoutTextbox.Left, _httpTimeoutTextbox.Height);
 
             // Force fixed sizes on the four checkboxes too — Mac shim Label AutoSize defaults
             // would otherwise re-flow them and break the designed row geometry.
@@ -320,23 +332,19 @@ namespace Hops
             // Local checkbox text — make the disabled state self-explanatory.
             _rdoUseLocal.Text = "Local rhino.compute (Windows only)";
 
-            // Status dot — even at the literal Designer 10x10 it visually reads larger on Mac
-            // than the Windows version. Shrink to 8x8 so it pairs well with the URL row.
-            _serverStatusDot.Size = new Size(8, 8);
+            // Status dot — 4x4 looks the same size on Mac as the 10x10 dot does on Windows.
+            // The shim still applies some intrinsic scaling here that AutoScaleMode=None
+            // doesn't suppress; this empirical value matches the Eto-rendered dots in the
+            // MultiServerDialog (which look correctly sized).
+            _serverStatusDot.Size = new Size(4, 4);
 
-            // The PictureBox+Paint approach used for the gear button doesn't render on the
-            // macOS shim (Paint events aren't reliably wired). Hide it and add a compact
-            // "..." text Button at the same spot that opens the same MultiServerDialog.
-            _advancedServersButton.Visible = false;
-            var advancedFallback = new Button
-            {
-                Text = "...",
-                Size = new Size(30, 22),
-                Location = new Point(263, 13)
-            };
-            advancedFallback.Click += AdvancedServersClicked;
-            toolTip1.SetToolTip(advancedFallback, "Advanced multi-server setup");
-            _gpboxComputeServer.Controls.Add(advancedFallback);
+            // Set Image directly on the PictureBox so the default rendering path shows the
+            // gear. The Paint event subscription in the constructor isn't reliably fired on
+            // the macOS shim, so the custom hover decoration never appears — but the icon
+            // does, which is the important part. Nudge Y up so it visually aligns with the
+            // Use-local checkbox row baseline.
+            _advancedServersButton.Image = HopsFunctionMgr.SettingsIcon();
+            _advancedServersButton.Top -= 3;
 
             // Grow the Compute server source group so the URL row sits inside it, then shift
             // every sibling control below the group down by the same delta. The function-
@@ -366,6 +374,11 @@ namespace Hops
             _lblCacheCount.Size = new Size(150, _btnClearMemCache.Height);
             _lblCacheCount.Location = new Point(_btnClearMemCache.Right + 6, _btnClearMemCache.Top);
             _lblCacheCount.TextAlign = ContentAlignment.MiddleLeft;
+            // Move the Manage sources button up — it renders too low in the group on Mac for
+            // reasons not yet pinned down (group internal anchoring or title-bar sizing diff).
+            // Empirical: 8px up centers it nicely. Position the label *after* the move so it
+            // tracks the button's new Y.
+            _manageFunctionSourcesButton.Top -= 8;
             _functionSourceCountLabel.AutoSize = false;
             _functionSourceCountLabel.Size = new Size(170, _manageFunctionSourcesButton.Height);
             _functionSourceCountLabel.Location = new Point(_manageFunctionSourcesButton.Right + 6, _manageFunctionSourcesButton.Top);
