@@ -58,12 +58,26 @@ namespace Hops
                 Items = { addButton, deleteButton, focusSink }
             };
 
+            // Pin rowsContainer to the top of the scroller via a TableLayout with a height-
+            // scaling spacer row below it. Without this, the macOS Scrollable defaults to
+            // bottom-aligning its content when ExpandContentHeight=false: the StackLayout
+            // collapses to the bottom of the scroller and new items pile upward (reversed
+            // visual order). With the spacer absorbing the leftover vertical space, the
+            // rows always sit at the top on both platforms.
+            var topAlignedHost = new TableLayout
+            {
+                Rows =
+                {
+                    new TableRow(rowsContainer),
+                    new TableRow { ScaleHeight = true }
+                }
+            };
             var scroller = new Scrollable
             {
                 Border = BorderType.None,
                 ExpandContentWidth = true,
-                ExpandContentHeight = false,
-                Content = rowsContainer
+                ExpandContentHeight = true,
+                Content = topAlignedHost
             };
 
             bool onWindows = Rhino.Runtime.HostUtils.RunningOnWindows;

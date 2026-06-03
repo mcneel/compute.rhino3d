@@ -58,6 +58,17 @@ namespace Hops
                 Items = { addButton, deleteButton, focusSink }
             };
 
+            // Pin rowsContainer to the top via a TableLayout with a ScaleHeight spacer below.
+            // Without this, the macOS Scrollable bottom-aligns its content when
+            // ExpandContentHeight=false and rows pile upward in reversed visual order.
+            var topAlignedHost = new TableLayout
+            {
+                Rows =
+                {
+                    new TableRow(rowsContainer),
+                    new TableRow { ScaleHeight = true }
+                }
+            };
             // BorderType.Bezel (the Scrollable default) draws a sunken dark-grey 3D edge that's
             // visibly heavier than the GroupBox border on the main settings panel. BorderType.None
             // removes the chrome entirely so the rows sit flush against the dialog padding.
@@ -65,8 +76,8 @@ namespace Hops
             {
                 Border = BorderType.None,
                 ExpandContentWidth = true,
-                ExpandContentHeight = false,
-                Content = rowsContainer
+                ExpandContentHeight = true,
+                Content = topAlignedHost
             };
 
             bool onWindows = Rhino.Runtime.HostUtils.RunningOnWindows;
