@@ -103,6 +103,10 @@ namespace compute.geometry
             definition.SetInputs(input);
             long decodeTime = stopwatch.ElapsedMilliseconds;
             stopwatch.Restart();
+            var fileNameMsg = String.Empty;
+            if (!String.IsNullOrEmpty(input.FileName))
+                fileNameMsg = $" {input.FileName}";
+            Serilog.Log.Debug($"Solving definition{fileNameMsg}...");
             var output = definition.Solve(input.DataVersion, input.DataFormat);
             output.Pointer = definition.CacheKey;
             long solveTime = stopwatch.ElapsedMilliseconds;

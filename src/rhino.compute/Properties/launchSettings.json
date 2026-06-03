@@ -2,7 +2,7 @@
   "profiles": {
     "rhino.compute": {
       "commandName": "Project",
-      "commandLineArgs": "--port 6500 --childcount 1 --spawn-on-startup"
+      "commandLineArgs": "--port 6500 --childcount 1 --create-headless-doc true --spawn-on-startup"
     },
     "IIS_Debug": {
       "commandName": "IIS",
