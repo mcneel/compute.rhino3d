@@ -85,8 +85,14 @@ namespace Hops
                 TestCurrentUrl();
             };
 
-            _rdoUseLocal.CheckedChanged += UseLocalCheckedChanged;
-            _rdoUseRemote.CheckedChanged += UseRemoteCheckedChanged;
+            // Checkboxes used as radio-button equivalents (RadioButton isn't in the macOS WinForms shim yet).
+            // AutoCheck=false + Click handler enforces exactly-one-checked: re-clicking the active box is a
+            // no-op, and clicking the other swaps both states atomically. Programmatic Checked= assignments
+            // don't fire Click, so initialization stays clean.
+            _rdoUseLocal.AutoCheck = false;
+            _rdoUseRemote.AutoCheck = false;
+            _rdoUseLocal.Click += UseLocalClicked;
+            _rdoUseRemote.Click += UseRemoteClicked;
             _serverUrlTextbox.TextChanged += ServerUrlChanged;
             _advancedServersButton.Click += AdvancedServersClicked;
             _advancedServersButton.Cursor = Cursors.Hand;
@@ -264,10 +270,8 @@ namespace Hops
             {
                 // The URL is always populated from saved Servers so toggling local/remote preserves it.
                 _serverUrlTextbox.Text = servers.Length > 0 ? servers[0] : "";
-                if (HopsAppSettings.UseLocalServer)
-                    _rdoUseLocal.Checked = true;
-                else
-                    _rdoUseRemote.Checked = true;
+                _rdoUseLocal.Checked = HopsAppSettings.UseLocalServer;
+                _rdoUseRemote.Checked = !HopsAppSettings.UseLocalServer;
             }
             finally
             {
@@ -312,18 +316,22 @@ namespace Hops
             _updateChildCountButton.Enabled = local;
         }
 
-        void UseLocalCheckedChanged(object sender, EventArgs e)
+        void UseLocalClicked(object sender, EventArgs e)
         {
-            if (!_rdoUseLocal.Checked) return;
+            if (_rdoUseLocal.Checked) return;
+            _rdoUseLocal.Checked = true;
+            _rdoUseRemote.Checked = false;
             autoTestTimer.Stop();
             HopsAppSettings.UseLocalServer = true;
             UpdateUrlControlsEnabled();
             UpdateLocalOnlyControlsEnabled();
         }
 
-        void UseRemoteCheckedChanged(object sender, EventArgs e)
+        void UseRemoteClicked(object sender, EventArgs e)
         {
-            if (!_rdoUseRemote.Checked) return;
+            if (_rdoUseRemote.Checked) return;
+            _rdoUseRemote.Checked = true;
+            _rdoUseLocal.Checked = false;
             HopsAppSettings.UseLocalServer = false;
             UpdateUrlControlsEnabled();
             UpdateLocalOnlyControlsEnabled();
