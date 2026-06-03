@@ -276,12 +276,17 @@ namespace Hops
 
         // macOS-only overrides applied right after InitializeComponent. Goal: keep the panel
         // functional and readable on the macOS WinForms shim without touching the Windows
-        // layout. Some adjustments fix actual shim bugs (PictureBox.Image=null throws,
-        // Multiline textboxes use a smaller font with no vertical centering); others
-        // compensate for shim defaults that differ from Windows (Label.AutoSize behavior,
-        // CheckBox honoring Enabled/AutoCheck, etc.).
+        // layout. Two recurring shim quirks drive most of this code: (a) AutoScaleMode=Font
+        // multiplies every absolute coordinate by ~1.3 at runtime because the shim's font
+        // metrics differ from Windows's design metrics (6F x 13F); (b) Enabled=false and
+        // AutoCheck=false aren't honored on several control types (CheckBox, NumericUpDown).
         void ApplyMacLayoutAdjustments()
         {
+            // Disable AutoScale entirely — fixes the root cause of the layout drift that pushed
+            // the URL row below the group, the cache label above the button, and inflated the
+            // status dot. Design coordinates now render at their literal values on Mac too.
+            AutoScaleMode = AutoScaleMode.None;
+
             // Single-line textboxes use NSTextField, which auto-centers text vertically and
             // uses the standard system font. Multiline=true (set by Designer to enable our
             // P/Invoke vertical-centering hack on Windows) uses NSTextView with a smaller
@@ -291,29 +296,22 @@ namespace Hops
             _maxConcurrentRequestsTextbox.Multiline = false;
             _httpTimeoutTextbox.Multiline = false;
 
-            // Force fixed sizes on labels — macOS shim Label defaults to AutoSize=true, which
-            // shrinks each label to its text width. That breaks the designed label-to-textbox
-            // alignment where labels were sized to push their right edge up against the
-            // adjacent textbox's left edge.
-            label1.AutoSize = false; label1.Size = new Size(126, 22);
-            label2.AutoSize = false; label2.Size = new Size(43, 22);
-            label3.AutoSize = false; label3.Size = new Size(73, 22);
+            // Labels render wider on Mac because of the larger system font, so the design
+            // widths (43/126/73) clip the text to "API"/"Max concur..."/"Timeout". Grow each
+            // label to fit and shift its adjacent textbox right by the same amount.
+            label2.AutoSize = false; label2.Size = new Size(60, 22);
+            _apiKeyTextbox.Location = new Point(label2.Right + 4, _apiKeyTextbox.Top);
 
-            // Labels-to-the-right-of-buttons need to vertically align with the button center.
-            // AutoSize collapses them to text height (~13px) and they end up bottom-anchored
-            // next to a 22px button. Give them the button's height and MiddleLeft text align
-            // so the label text auto-centers vertically.
-            _lblCacheCount.AutoSize = false;
-            _lblCacheCount.Size = new Size(150, 22);
-            _lblCacheCount.Location = new Point(178, 236);
-            _lblCacheCount.TextAlign = ContentAlignment.MiddleLeft;
-            _functionSourceCountLabel.AutoSize = false;
-            _functionSourceCountLabel.Size = new Size(170, 22);
-            _functionSourceCountLabel.Location = new Point(132, 19);
-            _functionSourceCountLabel.TextAlign = ContentAlignment.MiddleLeft;
+            label1.AutoSize = false; label1.Size = new Size(160, 22);
+            _maxConcurrentRequestsTextbox.Location = new Point(label1.Right + 4, _maxConcurrentRequestsTextbox.Top);
+            _maxConcurrentRequestsTextbox.Size = new Size(50, 22);
 
-            // Force fixed sizes on the four checkboxes too — same AutoSize concern, plus
-            // we want their row positions to stay where Designer placed them.
+            label3.AutoSize = false; label3.Size = new Size(100, 22);
+            _httpTimeoutTextbox.Location = new Point(label3.Right + 4, _httpTimeoutTextbox.Top);
+            _httpTimeoutTextbox.Size = new Size(105, 22);
+
+            // Force fixed sizes on the four checkboxes too — Mac shim Label AutoSize defaults
+            // would otherwise re-flow them and break the designed row geometry.
             _rdoUseLocal.AutoSize = false; _rdoUseLocal.Size = new Size(280, 22);
             _rdoUseRemote.AutoSize = false; _rdoUseRemote.Size = new Size(180, 22);
             _hideWorkerWindows.AutoSize = false; _hideWorkerWindows.Size = new Size(240, 22);
@@ -322,31 +320,72 @@ namespace Hops
             // Local checkbox text — make the disabled state self-explanatory.
             _rdoUseLocal.Text = "Local rhino.compute (Windows only)";
 
-            // Status dot — Designer set 10x10; the shim auto-scales it larger. Force-fix.
-            _serverStatusDot.Size = new Size(10, 10);
+            // Status dot — even at the literal Designer 10x10 it visually reads larger on Mac
+            // than the Windows version. Shrink to 8x8 so it pairs well with the URL row.
+            _serverStatusDot.Size = new Size(8, 8);
 
             // The PictureBox+Paint approach used for the gear button doesn't render on the
-            // macOS shim (Paint events aren't reliably wired through). Hide it and add a
-            // plain text button in its place that opens the same MultiServerDialog.
+            // macOS shim (Paint events aren't reliably wired). Hide it and add a compact
+            // "..." text Button at the same spot that opens the same MultiServerDialog.
             _advancedServersButton.Visible = false;
             var advancedFallback = new Button
             {
-                Text = "Advanced...",
-                Size = new Size(85, 22),
-                Location = new Point(207, 13)
+                Text = "...",
+                Size = new Size(30, 22),
+                Location = new Point(263, 13)
             };
             advancedFallback.Click += AdvancedServersClicked;
             toolTip1.SetToolTip(advancedFallback, "Advanced multi-server setup");
             _gpboxComputeServer.Controls.Add(advancedFallback);
 
-            // The Compute server source group's designed height (160) cuts off the URL row on
-            // macOS because the shim's GroupBox title bar consumes more vertical space than on
-            // Windows. Grow the group; the panel sibling controls below it are absolute-
-            // positioned and stay where Designer put them.
-            _gpboxComputeServer.Size = new Size(_gpboxComputeServer.Width, 175);
+            // Grow the Compute server source group so the URL row sits inside it, then shift
+            // every sibling control below the group down by the same delta. The function-
+            // sources group also needs a few extra px so the Manage button isn't clipped at
+            // its bottom edge. Finally grow the UserControl itself to make room.
+            const int computeGroupGrowth = 30;
+            const int functionGroupGrowth = 15;
+            _gpboxComputeServer.Size = new Size(_gpboxComputeServer.Width, _gpboxComputeServer.Height + computeGroupGrowth);
+            foreach (var ctrl in new Control[]
+            {
+                label2, _apiKeyTextbox,
+                label1, _maxConcurrentRequestsTextbox,
+                label3, _httpTimeoutTextbox,
+                _btnClearMemCache, _lblCacheCount,
+                _gpboxFunctionMgr,
+            })
+            {
+                ctrl.Top += computeGroupGrowth;
+            }
+            _gpboxFunctionMgr.Size = new Size(_gpboxFunctionMgr.Width, _gpboxFunctionMgr.Height + functionGroupGrowth);
+            Size = new Size(Width, Height + computeGroupGrowth + functionGroupGrowth);
 
-            // Same story for the function-sources group — Manage button overflows its bottom.
-            _gpboxFunctionMgr.Size = new Size(_gpboxFunctionMgr.Width, 60);
+            // Position the trailing labels using their adjacent button's runtime position.
+            // Setting Size.Height to match the button's height + TextAlign=MiddleLeft makes the
+            // label text auto-center vertically with the button regardless of font metrics.
+            _lblCacheCount.AutoSize = false;
+            _lblCacheCount.Size = new Size(150, _btnClearMemCache.Height);
+            _lblCacheCount.Location = new Point(_btnClearMemCache.Right + 6, _btnClearMemCache.Top);
+            _lblCacheCount.TextAlign = ContentAlignment.MiddleLeft;
+            _functionSourceCountLabel.AutoSize = false;
+            _functionSourceCountLabel.Size = new Size(170, _manageFunctionSourcesButton.Height);
+            _functionSourceCountLabel.Location = new Point(_manageFunctionSourcesButton.Right + 6, _manageFunctionSourcesButton.Top);
+            _functionSourceCountLabel.TextAlign = ContentAlignment.MiddleLeft;
+
+            // The shim ignores Enabled=false / AutoCheck=false on Remote (just like Local).
+            // Local should always be off, Remote should always be on. Snap back if user clicks.
+            _rdoUseRemote.CheckedChanged += (s, e) =>
+            {
+                if (!_rdoUseRemote.Checked) _rdoUseRemote.Checked = true;
+            };
+
+            // The shim also ignores Enabled=false on NumericUpDown — its arrows still fire.
+            // Snap the value back if it changes while disabled.
+            decimal initialChildCount = HopsAppSettings.LocalWorkerCount;
+            _childComputeCount.ValueChanged += (s, e) =>
+            {
+                if (!_childComputeCount.Enabled && _childComputeCount.Value != initialChildCount)
+                    _childComputeCount.Value = initialChildCount;
+            };
         }
 
         void RefreshFunctionSourceCount()
