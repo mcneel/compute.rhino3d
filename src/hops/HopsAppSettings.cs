@@ -341,7 +341,28 @@ namespace Hops
 
         public Control SettingsUI()
         {
-            return new HopsAppSettingsUserControl();
+            try
+            {
+                return new HopsAppSettingsUserControl();
+            }
+            catch (Exception ex)
+            {
+                // Surface the exception loudly. If Grasshopper's settings-tab enumeration
+                // silently swallowed this exception, the whole "Hops preferences" section
+                // would just disappear without any feedback — and that's exactly what we
+                // saw on macOS. Show the error via Eto so users can copy-paste it back.
+                try
+                {
+                    Eto.Forms.MessageBox.Show(
+                        "Hops preferences failed to initialize:\n\n" + ex.GetType().FullName + ": " + ex.Message + "\n\n" + ex.StackTrace,
+                        "Hops preferences error",
+                        Eto.Forms.MessageBoxType.Error);
+                }
+                catch { /* if Eto isn't available either, at least don't crash the whole settings tab */ }
+                // Best effort: also write to Rhino's command line so the message is logged.
+                try { Rhino.RhinoApp.WriteLine("Hops preferences failed to initialize: " + ex); } catch { }
+                return null;
+            }
         }
     }
 }
