@@ -96,10 +96,10 @@ namespace Hops
             _serverUrlTextbox.TextChanged += ServerUrlChanged;
             _advancedServersButton.Click += AdvancedServersClicked;
             _advancedServersButton.Cursor = Cursors.Hand;
-            // PictureBox draws BackColor + Image first, then fires Paint — which means we can't paint
-            // a rounded fill *behind* the image using the event alone. Instead, drop the auto image
-            // draw (Image=null) and render everything ourselves in Paint: rounded fill → icon → stroke.
-            _advancedServersButton.Image = null;
+            // Image is left unset (null by default) so the PictureBox doesn't auto-draw anything
+            // before our Paint handler runs — we render the rounded fill, icon, and stroke ourselves.
+            // Don't assign `Image = null` explicitly: the macOS WinForms shim's set_Image throws
+            // NullReferenceException when Image is already null.
             _advancedServersButton.BackColor = Color.Transparent;
             var settingsImage = HopsFunctionMgr.SettingsIcon();
             var hoverFill = Color.FromArgb(0xC1, 0xDC, 0xF0);
