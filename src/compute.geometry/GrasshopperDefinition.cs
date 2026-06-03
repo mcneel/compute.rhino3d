@@ -316,6 +316,14 @@ namespace compute.geometry
 
         public void SetInputs(Schema inputSchema)
         {
+            // Collect names of inputs that were actually updated vs ones whose value was already
+            // current, and log each group as a single summary line at the end. With many
+            // parameters and one changed value, per-input messages drowned out anything useful.
+            // Both wire formats (Grasshopper and the legacy DataTree<ResthopperObject>) feed
+            // into the same two lists so the log output is consistent across them.
+            var updatedInputs = new List<string>();
+            var skippedInputs = new List<string>();
+
             if(inputSchema.DataFormat == SchemaDataFormat.Grasshopper)
             {
                 foreach (var entry in inputSchema.GrasshopperValues.Values)
@@ -324,6 +332,7 @@ namespace compute.geometry
                     {
                         continue;
                     }
+                    updatedInputs.Add(entry.Key);
                     inputGroup.Param.ClearData();
                     inputGroup.Param.ExpireSolution(false); // mark param as expired but don't recompute just yet!
                     inputGroup.Param.AddVolatileDataTree(entry.Value);
@@ -340,10 +349,11 @@ namespace compute.geometry
 
                     if (inputGroup.AlreadySet(tree))
                     {
-                        LogDebug("Skipping input tree... same input");
+                        skippedInputs.Add(tree.ParamName);
                         continue;
                     }
 
+                    updatedInputs.Add(tree.ParamName);
                     inputGroup.CacheTree(tree);
 
                     IGH_ContextualParameter contextualParameter = inputGroup.Param as IGH_ContextualParameter;
@@ -411,6 +421,34 @@ namespace compute.geometry
                     };
                     if (convert != null)
                         AddTreeData(inputGroup.Param, tree, convert);
+                }
+            }
+
+            if (inputSchema.DataFormat == SchemaDataFormat.Grasshopper)
+            {
+                // The Grasshopper wire format ships a full archive of model objects on every
+                // solve, so per-input set/skip accounting isn't meaningful here — every entry
+                // we processed got applied. Emit a count-only heartbeat so the line is honest
+                // (we can't tell what the user actually changed without diffing the archive
+                // against the previous solve, which isn't worth the cost).
+                if (updatedInputs.Count > 0)
+                {
+                    string valueWord = updatedInputs.Count == 1 ? "value" : "values";
+                    LogDebug($"Applied {updatedInputs.Count} input parameter {valueWord}");
+                }
+            }
+            else
+            {
+                if (updatedInputs.Count > 0)
+                {
+                    string valueWord = updatedInputs.Count == 1 ? "value" : "values";
+                    string inputWord = updatedInputs.Count == 1 ? "input" : "inputs";
+                    LogDebug($"Setting {valueWord} for {updatedInputs.Count} {inputWord}: {string.Join(", ", updatedInputs)}");
+                }
+                if (skippedInputs.Count > 0)
+                {
+                    string inputWord = skippedInputs.Count == 1 ? "input" : "inputs";
+                    LogDebug($"Skipping {skippedInputs.Count} unchanged {inputWord}: {string.Join(", ", skippedInputs)}");
                 }
             }
         }
