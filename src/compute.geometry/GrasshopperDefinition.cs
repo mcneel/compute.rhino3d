@@ -402,9 +402,16 @@ namespace compute.geometry
             }
 
             if (updatedInputs.Count > 0)
-                LogDebug($"Setting values for {updatedInputs.Count} input{(updatedInputs.Count == 1 ? "" : "s")}: {string.Join(", ", updatedInputs)}");
+            {
+                string valueWord = updatedInputs.Count == 1 ? "value" : "values";
+                string inputWord = updatedInputs.Count == 1 ? "input" : "inputs";
+                LogDebug($"Setting {valueWord} for {updatedInputs.Count} {inputWord}: {string.Join(", ", updatedInputs)}");
+            }
             if (skippedInputs.Count > 0)
-                LogDebug($"Skipping {skippedInputs.Count} unchanged input{(skippedInputs.Count == 1 ? "" : "s")}: {string.Join(", ", skippedInputs)}");
+            {
+                string inputWord = skippedInputs.Count == 1 ? "input" : "inputs";
+                LogDebug($"Skipping {skippedInputs.Count} unchanged {inputWord}: {string.Join(", ", skippedInputs)}");
+            }
         }
 
         // Shared write path for SetInputs' regular-parameter dispatch. Each Param_X case
