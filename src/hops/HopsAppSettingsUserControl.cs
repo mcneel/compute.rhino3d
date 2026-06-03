@@ -73,6 +73,12 @@ namespace Hops
         public HopsAppSettingsUserControl()
         {
             InitializeComponent();
+            // macOS WinForms shim renders the designer layout differently — single-line vs
+            // multiline textbox styling, font-based AutoScale drift, Label AutoSize defaults,
+            // and a non-functional PictureBox+Paint for the gear button. All Mac-specific
+            // overrides live in one place; the Windows path stays untouched.
+            if (Rhino.Runtime.HostUtils.RunningOnOSX)
+                ApplyMacLayoutAdjustments();
             CenterMultilineText(_serverUrlTextbox);
             CenterMultilineText(_apiKeyTextbox);
             CenterMultilineText(_httpTimeoutTextbox);
@@ -165,7 +171,14 @@ namespace Hops
             if (Rhino.Runtime.HostUtils.RunningOnOSX)
             {
                 _rdoUseLocal.Enabled = false;
-                toolTip1.SetToolTip(_rdoUseLocal, "Local auto-spawn is not supported on macOS");
+                toolTip1.SetToolTip(_rdoUseLocal, "Local rhino.compute is not supported on macOS");
+                // Defense in depth: the macOS WinForms shim doesn't reliably honor
+                // CheckBox.Enabled=false (it still fires clicks) nor AutoCheck=false (it auto-flips
+                // Checked). Snap Local back to false if anything manages to flip it.
+                _rdoUseLocal.CheckedChanged += (s, e) =>
+                {
+                    if (_rdoUseLocal.Checked && !_rdoUseLocal.Enabled) _rdoUseLocal.Checked = false;
+                };
             }
 
             InitServerSourceFromSettings();
@@ -205,10 +218,15 @@ namespace Hops
 
             if (Rhino.Runtime.HostUtils.RunningOnOSX)
             {
-                _hideWorkerWindows.Visible = false;
-                _launchWorkerAtStart.Visible = false;
-                _childComputeCount.Visible = false;
-                _updateChildCountButton.Visible = false;
+                // Show the local-only controls grayed out so users can see what's available
+                // on Windows and where the disabled state lives, instead of an empty gap.
+                _hideWorkerWindows.Enabled = false;
+                _hideWorkerWindows.Checked = HopsAppSettings.HideWorkerWindows;
+                _launchWorkerAtStart.Enabled = false;
+                _launchWorkerAtStart.Checked = HopsAppSettings.LaunchWorkerAtStart;
+                _childComputeCount.Enabled = false;
+                _childComputeCount.Value = HopsAppSettings.LocalWorkerCount;
+                _updateChildCountButton.Enabled = false;
             }
             else if (Rhino.Runtime.HostUtils.RunningOnWindows)
             {
@@ -254,6 +272,81 @@ namespace Hops
                 _gpboxFunctionMgr.Visible = false;
                 Size = new Size(Size.Width, _btnClearMemCache.Bottom + 4);
             }
+        }
+
+        // macOS-only overrides applied right after InitializeComponent. Goal: keep the panel
+        // functional and readable on the macOS WinForms shim without touching the Windows
+        // layout. Some adjustments fix actual shim bugs (PictureBox.Image=null throws,
+        // Multiline textboxes use a smaller font with no vertical centering); others
+        // compensate for shim defaults that differ from Windows (Label.AutoSize behavior,
+        // CheckBox honoring Enabled/AutoCheck, etc.).
+        void ApplyMacLayoutAdjustments()
+        {
+            // Single-line textboxes use NSTextField, which auto-centers text vertically and
+            // uses the standard system font. Multiline=true (set by Designer to enable our
+            // P/Invoke vertical-centering hack on Windows) uses NSTextView with a smaller
+            // default font and top-anchored text on the shim — looks broken in a 22px row.
+            _serverUrlTextbox.Multiline = false;
+            _apiKeyTextbox.Multiline = false;
+            _maxConcurrentRequestsTextbox.Multiline = false;
+            _httpTimeoutTextbox.Multiline = false;
+
+            // Force fixed sizes on labels — macOS shim Label defaults to AutoSize=true, which
+            // shrinks each label to its text width. That breaks the designed label-to-textbox
+            // alignment where labels were sized to push their right edge up against the
+            // adjacent textbox's left edge.
+            label1.AutoSize = false; label1.Size = new Size(126, 22);
+            label2.AutoSize = false; label2.Size = new Size(43, 22);
+            label3.AutoSize = false; label3.Size = new Size(73, 22);
+
+            // Labels-to-the-right-of-buttons need to vertically align with the button center.
+            // AutoSize collapses them to text height (~13px) and they end up bottom-anchored
+            // next to a 22px button. Give them the button's height and MiddleLeft text align
+            // so the label text auto-centers vertically.
+            _lblCacheCount.AutoSize = false;
+            _lblCacheCount.Size = new Size(150, 22);
+            _lblCacheCount.Location = new Point(178, 236);
+            _lblCacheCount.TextAlign = ContentAlignment.MiddleLeft;
+            _functionSourceCountLabel.AutoSize = false;
+            _functionSourceCountLabel.Size = new Size(170, 22);
+            _functionSourceCountLabel.Location = new Point(132, 19);
+            _functionSourceCountLabel.TextAlign = ContentAlignment.MiddleLeft;
+
+            // Force fixed sizes on the four checkboxes too — same AutoSize concern, plus
+            // we want their row positions to stay where Designer placed them.
+            _rdoUseLocal.AutoSize = false; _rdoUseLocal.Size = new Size(280, 22);
+            _rdoUseRemote.AutoSize = false; _rdoUseRemote.Size = new Size(180, 22);
+            _hideWorkerWindows.AutoSize = false; _hideWorkerWindows.Size = new Size(240, 22);
+            _launchWorkerAtStart.AutoSize = false; _launchWorkerAtStart.Size = new Size(240, 22);
+
+            // Local checkbox text — make the disabled state self-explanatory.
+            _rdoUseLocal.Text = "Local rhino.compute (Windows only)";
+
+            // Status dot — Designer set 10x10; the shim auto-scales it larger. Force-fix.
+            _serverStatusDot.Size = new Size(10, 10);
+
+            // The PictureBox+Paint approach used for the gear button doesn't render on the
+            // macOS shim (Paint events aren't reliably wired through). Hide it and add a
+            // plain text button in its place that opens the same MultiServerDialog.
+            _advancedServersButton.Visible = false;
+            var advancedFallback = new Button
+            {
+                Text = "Advanced...",
+                Size = new Size(85, 22),
+                Location = new Point(207, 13)
+            };
+            advancedFallback.Click += AdvancedServersClicked;
+            toolTip1.SetToolTip(advancedFallback, "Advanced multi-server setup");
+            _gpboxComputeServer.Controls.Add(advancedFallback);
+
+            // The Compute server source group's designed height (160) cuts off the URL row on
+            // macOS because the shim's GroupBox title bar consumes more vertical space than on
+            // Windows. Grow the group; the panel sibling controls below it are absolute-
+            // positioned and stay where Designer put them.
+            _gpboxComputeServer.Size = new Size(_gpboxComputeServer.Width, 175);
+
+            // Same story for the function-sources group — Manage button overflows its bottom.
+            _gpboxFunctionMgr.Size = new Size(_gpboxFunctionMgr.Width, 60);
         }
 
         void RefreshFunctionSourceCount()
@@ -318,6 +411,12 @@ namespace Hops
 
         void UseLocalClicked(object sender, EventArgs e)
         {
+            // macOS shim doesn't reliably block Click on disabled CheckBoxes; bail and force-revert.
+            if (!_rdoUseLocal.Enabled)
+            {
+                if (_rdoUseLocal.Checked) _rdoUseLocal.Checked = false;
+                return;
+            }
             if (_rdoUseLocal.Checked) return;
             _rdoUseLocal.Checked = true;
             _rdoUseRemote.Checked = false;
