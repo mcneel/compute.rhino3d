@@ -34,13 +34,13 @@ namespace Hops
         {
             this.components = new System.ComponentModel.Container();
             this._gpboxComputeServer = new System.Windows.Forms.GroupBox();
-            this._rdoUseLocal = new System.Windows.Forms.RadioButton();
+            this._rdoUseLocal = new System.Windows.Forms.CheckBox();
             this._advancedServersButton = new System.Windows.Forms.PictureBox();
             this._hideWorkerWindows = new System.Windows.Forms.CheckBox();
             this._launchWorkerAtStart = new System.Windows.Forms.CheckBox();
             this._childComputeCount = new System.Windows.Forms.NumericUpDown();
             this._updateChildCountButton = new System.Windows.Forms.Button();
-            this._rdoUseRemote = new System.Windows.Forms.RadioButton();
+            this._rdoUseRemote = new System.Windows.Forms.CheckBox();
             this._labelServerUrl = new System.Windows.Forms.Label();
             this._serverUrlTextbox = new System.Windows.Forms.TextBox();
             this._serverStatusDot = new System.Windows.Forms.PictureBox();
@@ -336,8 +336,8 @@ namespace Hops
 
         #endregion
         private System.Windows.Forms.GroupBox _gpboxComputeServer;
-        private System.Windows.Forms.RadioButton _rdoUseLocal;
-        private System.Windows.Forms.RadioButton _rdoUseRemote;
+        private System.Windows.Forms.CheckBox _rdoUseLocal;
+        private System.Windows.Forms.CheckBox _rdoUseRemote;
         private System.Windows.Forms.Label _labelServerUrl;
         private System.Windows.Forms.TextBox _serverUrlTextbox;
         private System.Windows.Forms.PictureBox _serverStatusDot;
