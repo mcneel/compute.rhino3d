@@ -323,18 +323,34 @@ namespace Hops
             // out every row below the group at a consistent 5px gap. Function-sources group
             // also needs a few extra px so its button isn't clipped. Finally size the
             // UserControl based on the function group's actual bottom so nothing gets cut.
-            const int computeGroupGrowth = 30;
+            const int computeGroupGrowth = 26;
             const int functionGroupGrowth = 12;
             const int rowGap = 5;
             const int rowHeight = 22;
             _gpboxComputeServer.Size = new Size(_gpboxComputeServer.Width, _gpboxComputeServer.Height + computeGroupGrowth);
 
-            int rowTop = _gpboxComputeServer.Bottom + 3;
+            // Shift every child of the compute group up 4px to trim excess top padding inside
+            // the group (the title-bar takes more room on the Mac shim than on Windows, but the
+            // children don't need to be that far from the top).
+            foreach (var ctrl in new Control[]
+            {
+                _rdoUseLocal, _advancedServersButton, _hideWorkerWindows, _launchWorkerAtStart,
+                _childComputeCount, _updateChildCountButton, _rdoUseRemote,
+                _labelServerUrl, _serverUrlTextbox, _serverStatusDot,
+            })
+            {
+                ctrl.Top -= 4;
+            }
+
+            // +11 below the (now 4-shorter) group gives breathing room between the group
+            // bottom and the first row beneath it.
+            int rowTop = _gpboxComputeServer.Bottom + 11;
             label2.Top = rowTop; _apiKeyTextbox.Top = rowTop; rowTop += rowHeight + rowGap;
             label1.Top = rowTop; _maxConcurrentRequestsTextbox.Top = rowTop; rowTop += rowHeight + rowGap;
             label3.Top = rowTop; _httpTimeoutTextbox.Top = rowTop; rowTop += rowHeight + rowGap;
             _btnClearMemCache.Top = rowTop; rowTop += rowHeight + rowGap;
-            _gpboxFunctionMgr.Top = rowTop;
+            // Extra +4 gap above the function-sources group so it doesn't crowd the clear-cache row.
+            _gpboxFunctionMgr.Top = rowTop + 4;
             _gpboxFunctionMgr.Size = new Size(_gpboxFunctionMgr.Width, _gpboxFunctionMgr.Height + functionGroupGrowth);
 
             // Position the trailing labels using their adjacent button's runtime position.
@@ -407,7 +423,10 @@ namespace Hops
             // identical to the surrounding group. With ReadOnly we keep BackColor honored
             // and the textbox still rejects keyboard input.
             _serverUrlTextbox.ReadOnly = !remote;
-            _serverUrlTextbox.BackColor = remote ? SystemColors.Window : Color.FromArgb(0xF9, 0xF9, 0xF9);
+            // Color.White explicitly (not SystemColors.Window) — the macOS WinForms shim
+            // maps SystemColors.Window to a light grey, which made the enabled state look
+            // identical to the disabled state on Mac. White renders consistently on both.
+            _serverUrlTextbox.BackColor = remote ? Color.White : Color.FromArgb(0xF9, 0xF9, 0xF9);
             _serverUrlTextbox.ForeColor = remote ? SystemColors.WindowText : Color.FromArgb(0xA0, 0xA0, 0xA0);
             // Arrow cursor in disabled state signals "non-interactive"; clear any active
             // selection so the textbox doesn't carry highlight state into the disabled view.

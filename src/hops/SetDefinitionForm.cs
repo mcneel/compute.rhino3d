@@ -25,9 +25,13 @@ namespace Hops
                 buttons.Rows.Add(new Eto.Forms.TableRow(null, AbortButton, DefaultButton));
             // Use the shared UnderlineTextBox so the input style matches MultiServerDialog and
             // FunctionSourcesDialog (no inset 3D border on Windows; native rendering on macOS).
+            // Explicit Height matches the file-picker button's MinimumSize.Height so the two
+            // controls line up — without it the macOS NSTextField defaults to ~22px while the
+            // button stays at 24, leaving a visible 2px height mismatch in the StackLayout row.
             var textbox = new UnderlineTextBox
             {
                 Width = 250,
+                Height = 24,
                 PlaceholderText = "URL or Path"
             };
             if (!string.IsNullOrWhiteSpace(Path))
