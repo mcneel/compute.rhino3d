@@ -23,16 +23,34 @@ namespace Hops
             }
             else
                 buttons.Rows.Add(new Eto.Forms.TableRow(null, AbortButton, DefaultButton));
-            var textbox = new Eto.Forms.TextBox();
-            textbox.Size = new Eto.Drawing.Size(250, -1);
-            textbox.PlaceholderText = "URL or Path";
+            // Use the shared UnderlineTextBox so the input style matches MultiServerDialog and
+            // FunctionSourcesDialog (no inset 3D border on Windows; native rendering on macOS).
+            // Explicit Height matches the file-picker button's MinimumSize.Height so the two
+            // controls line up — without it the macOS NSTextField defaults to ~22px while the
+            // button stays at 24, leaving a visible 2px height mismatch in the StackLayout row.
+            var textbox = new UnderlineTextBox
+            {
+                Width = 250,
+                Height = 24,
+                PlaceholderText = "URL or Path"
+            };
             if (!string.IsNullOrWhiteSpace(Path))
             {
                 textbox.Text = Path;
             }
-            var filePickButton = new Rhino.UI.Controls.ImageButton();
-            filePickButton.ToolTip = "Select an existing Grasshopper definition";
-            filePickButton.Image = Rhino.Resources.Assets.Rhino.Eto.Icons.TryGet(Rhino.Resources.ResourceIds.FolderopenPng, new Eto.Drawing.Size(24, 24));
+            // Use the custom StyledButton for visual consistency with the file/folder picker
+            // buttons in MultiServerDialog and FunctionSourcesDialog (rounded corners, blue
+            // hover fill, DPI-aware hairline stroke). The Rhino.UI.Controls.ImageButton this
+            // replaced stretched its icon and used a darker grey hover background.
+            var folderIcon = Rhino.Resources.Assets.Rhino.Eto.Icons.TryGet(
+                Rhino.Resources.ResourceIds.FolderopenPng,
+                new Eto.Drawing.Size(24, 24));
+            var filePickButton = new StyledButton("")
+            {
+                MinimumSize = new Eto.Drawing.Size(28, 24),
+                Icon = folderIcon,
+                ToolTip = "Select an existing Grasshopper definition"
+            };
             filePickButton.Click += (sender, e) =>
             {
                 var dlg = new Eto.Forms.OpenFileDialog();

@@ -9,6 +9,7 @@ namespace Hops
     static class HopsAppSettings
     {
         const string HOPS_SERVERS = "Hops:Servers";
+        const string HOPS_USE_LOCAL_SERVER = "Hops:UseLocalServer";
         const string HOPS_APIKEY = "Hops:ApiKey";
         const string HOPS_HTTP_TIMEOUT = "Hops:HttpTimeout";
         const string HIDE_WORKER_WINDOWS = "Hops:HideWorkerWindows";
@@ -19,7 +20,6 @@ namespace Hops
         const string RECURSION_LIMIT = "Hops:RecursionLimit";
         const string HOPS_FUNCTION_PATHS = "Hops:FunctionPaths";
         const string HOPS_FUNCTION_NAMES = "Hops:FunctionNames";
-        const string HOPS_FUNCTION_SELECTED_STATE = "Hops:FunctionSelectedState";
         
         public static List<FunctionSourceRow> FunctionSources { get; set; } = new List<FunctionSourceRow>();
 
@@ -101,7 +101,7 @@ namespace Hops
 
         public static void InitFunctionSources()
         {
-            if (FunctionSourcePaths.Length != FunctionSourceNames.Length && FunctionSourcePaths.Length != FunctionSourceSelectedStates.Length)
+            if (FunctionSourcePaths.Length != FunctionSourceNames.Length)
                 return;
             if (FunctionSources == null)
                 FunctionSources = new List<FunctionSourceRow>();
@@ -109,11 +109,11 @@ namespace Hops
                 FunctionSources.Clear();
             for(int i = 0; i < FunctionSourcePaths.Length; i++)
             {
-                var row = new FunctionSourceRow(FunctionSourceNames[i].Trim(), FunctionSourcePaths[i].Trim());
-                FunctionSources.Add(row);
-                bool isChecked;
-                if (Boolean.TryParse(FunctionSourceSelectedStates[i], out isChecked))
-                    FunctionSources[i].RowCheckbox.Checked = isChecked;
+                string name = FunctionSourceNames[i].Trim();
+                string path = FunctionSourcePaths[i].Trim();
+                if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(path))
+                    continue;
+                FunctionSources.Add(new FunctionSourceRow(name, path));
             }
         }
 
@@ -183,36 +183,19 @@ namespace Hops
             }
         }
 
-        public static string[] FunctionSourceSelectedStates
+        public static bool UseLocalServer
         {
             get
             {
-                string selectedSetting = Grasshopper.Instances.Settings.GetValue(HOPS_FUNCTION_SELECTED_STATE, "");
-                if (string.IsNullOrWhiteSpace(selectedSetting))
-                    return new string[0];
-                var selections = selectedSetting.Split(new char[] { '\n' });
-                return selections;
+                // Mac can't auto-spawn local — always false there regardless of the saved value.
+                if (Rhino.Runtime.HostUtils.RunningOnOSX)
+                    return false;
+                return Grasshopper.Instances.Settings.GetValue(HOPS_USE_LOCAL_SERVER, true);
             }
             set
             {
-                if (value == null)
-                {
-                    Grasshopper.Instances.Settings.SetValue(HOPS_FUNCTION_SELECTED_STATE, "");
-                }
-                else
-                {
-                    var sb = new System.Text.StringBuilder();
-                    for (int i = 0; i < value.Length; i++)
-                    {
-                        string s = value[i].Trim();
-                        if (string.IsNullOrEmpty(s))
-                            continue;
-                        if (sb.Length > 0)
-                            sb.Append('\n');
-                        sb.Append(s);
-                    }
-                    Grasshopper.Instances.Settings.SetValue(HOPS_FUNCTION_SELECTED_STATE, sb.ToString());
-                }
+                Grasshopper.Instances.Settings.SetValue(HOPS_USE_LOCAL_SERVER, value);
+                Hops.Servers.SettingsChanged();
             }
         }
 
@@ -220,8 +203,7 @@ namespace Hops
         {
             get
             {
-                bool show = Grasshopper.Instances.Settings.GetValue(HIDE_WORKER_WINDOWS, true);
-                return show;
+                return Grasshopper.Instances.Settings.GetValue(HIDE_WORKER_WINDOWS, false);
             }
             set
             {
@@ -353,13 +335,34 @@ namespace Hops
     {
         public string Category => "Solver";
 
-        public string Name => "Hops - Compute server URLs";
+        public string Name => "Hops preferences";
 
         public IEnumerable<string> Keywords => new string[] { "Hops" };
 
         public Control SettingsUI()
         {
-            return new HopsAppSettingsUserControl();
+            try
+            {
+                return new HopsAppSettingsUserControl();
+            }
+            catch (Exception ex)
+            {
+                // Surface the exception loudly. If Grasshopper's settings-tab enumeration
+                // silently swallowed this exception, the whole "Hops preferences" section
+                // would just disappear without any feedback — and that's exactly what we
+                // saw on macOS. Show the error via Eto so users can copy-paste it back.
+                try
+                {
+                    Eto.Forms.MessageBox.Show(
+                        "Hops preferences failed to initialize:\n\n" + ex.GetType().FullName + ": " + ex.Message + "\n\n" + ex.StackTrace,
+                        "Hops preferences error",
+                        Eto.Forms.MessageBoxType.Error);
+                }
+                catch { /* if Eto isn't available either, at least don't crash the whole settings tab */ }
+                // Best effort: also write to Rhino's command line so the message is logged.
+                try { Rhino.RhinoApp.WriteLine("Hops preferences failed to initialize: " + ex); } catch { }
+                return null;
+            }
         }
     }
 }

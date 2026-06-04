@@ -78,7 +78,10 @@ namespace Hops
                 return;
             if (Rhino.RhinoApp.IsRunningHeadless)
                 return;
-            if (Hops.HopsAppSettings.Servers.Length > 0)
+            // Only auto-spawn when the user has chosen the local server source. The remote URL
+            // may still be stored in settings (so it persists across radio toggles), so check
+            // the explicit toggle rather than the URL list.
+            if (!Hops.HopsAppSettings.UseLocalServer)
                 return;
             if (Hops.HopsAppSettings.LaunchWorkerAtStart)
             {
