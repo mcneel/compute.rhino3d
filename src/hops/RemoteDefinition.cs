@@ -58,11 +58,35 @@ namespace Hops
         // ({"error":...,"message":"...","stackTrace":[...]}) so the component shows a clean
         // message instead of the raw JSON + stack trace. Falls back to the trimmed body for
         // non-JSON responses (e.g. a plain-text 401).
+        // Hint appended to component-error messages whenever the server returns a 500. We can't
+        // positively identify the cause from a 500 alone (could be a license issue, missing
+        // dependency, malformed request, etc.) so the hint covers the most common case —
+        // server-side Rhino licensing — without overclaiming.
+        const string ServerInternalErrorHint =
+            "This is usually a server-side issue. Check that the server is reachable and that its Rhino license is valid.";
+
         static string ExtractServerErrorMessage(string body)
         {
             if (string.IsNullOrWhiteSpace(body))
                 return null;
             string message = body.Trim();
+            // HTML response (e.g. ASP.NET's "An error occurred while starting the application"
+            // page when compute.geometry fails to initialize Rhino). The full markup is
+            // illegible inside a Grasshopper component error tooltip, so try to pull just the
+            // <title> for a one-line summary; fall back to a generic placeholder if there's
+            // no title or it's empty.
+            if (message.StartsWith("<!DOCTYPE", StringComparison.OrdinalIgnoreCase) ||
+                message.StartsWith("<html", StringComparison.OrdinalIgnoreCase))
+            {
+                var titleMatch = System.Text.RegularExpressions.Regex.Match(
+                    message,
+                    @"<title[^>]*>(.*?)</title>",
+                    System.Text.RegularExpressions.RegexOptions.IgnoreCase |
+                    System.Text.RegularExpressions.RegexOptions.Singleline);
+                if (titleMatch.Success && !string.IsNullOrWhiteSpace(titleMatch.Groups[1].Value))
+                    return titleMatch.Groups[1].Value.Trim();
+                return "Server returned an HTML error page (no JSON body).";
+            }
             try
             {
                 if (Newtonsoft.Json.Linq.JToken.Parse(body) is Newtonsoft.Json.Linq.JObject obj)
@@ -431,6 +455,8 @@ namespace Hops
                         var serverMessage = string.IsNullOrWhiteSpace(detail)
                             ? $"Could not load the remote definition from {Path}\r\nThe server responded with {(int)responseMessage.StatusCode} ({responseMessage.StatusCode})."
                             : $"Could not load the remote definition from {Path}\r\n{detail}";
+                        if (responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                            serverMessage += "\r\n" + ServerInternalErrorHint;
                         HopsLog.Log.Error(serverMessage);
                         var errSchema = new IoResponseSchema();
                         errSchema.Errors.Add(serverMessage);
@@ -761,7 +787,7 @@ namespace Hops
                         if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
                         {
                             var badSchema = new Schema();
-                            var errorMsg = "Unable to solve on compute";
+                            var errorMsg = "Unable to solve on compute.\r\n" + ServerInternalErrorHint;
                             HopsLog.Log.Error(errorMsg);
                             badSchema.Errors.Add(errorMsg);
                             badSchema.Warnings.Add(autoUploadMessage);
