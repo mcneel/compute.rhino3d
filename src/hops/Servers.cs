@@ -92,7 +92,11 @@ namespace Hops
                 if (settingsNeedReading)
                 {
                     settingsNeedReading = false;
-                    string[] servers = Hops.HopsAppSettings.Servers;
+                    // When the user picks "Use local rhino.compute", treat the saved remote URLs
+                    // as inactive — the URL is preserved in settings for next time they switch back.
+                    string[] servers = Hops.HopsAppSettings.UseLocalServer
+                        ? new string[0]
+                        : Hops.HopsAppSettings.Servers;
                     var serverArray = computeServerQueue.ToArray();
                     computeServerQueue.Clear();
                     foreach (var server in servers)
