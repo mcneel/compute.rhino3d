@@ -89,7 +89,7 @@ namespace Hops
             if (Rhino.Runtime.HostUtils.RunningOnOSX)
                 ApplyMacLayoutAdjustments();
             if (Rhino.Runtime.HostUtils.RunningOnWindows)
-                WrapUrlTextboxWithBorder();
+                ApplyWindowsLayoutAdjustments();
             CenterMultilineText(_serverUrlTextbox);
             CenterMultilineText(_apiKeyTextbox);
             CenterMultilineText(_httpTimeoutTextbox);
@@ -304,7 +304,7 @@ namespace Hops
             // on API key matches the URL textbox's visually-rendered right edge on Mac, which
             // sits a couple of pixels past the computed value.
             int urlAbsRight = _gpboxComputeServer.Left + _serverUrlTextbox.Right;
-            _apiKeyTextbox.Size = new Size(urlAbsRight - _apiKeyTextbox.Left + 3, _apiKeyTextbox.Height);
+            _apiKeyTextbox.Size = new Size(urlAbsRight - _apiKeyTextbox.Left + 5, _apiKeyTextbox.Height);
             const int numericRightEdge = 215;
             _maxConcurrentRequestsTextbox.Size = new Size(numericRightEdge - _maxConcurrentRequestsTextbox.Left, _maxConcurrentRequestsTextbox.Height);
             _httpTimeoutTextbox.Size = new Size(numericRightEdge - _httpTimeoutTextbox.Left, _httpTimeoutTextbox.Height);
@@ -370,6 +370,12 @@ namespace Hops
             _functionSourceCountLabel.TextAlign = ContentAlignment.MiddleLeft;
 
             Size = new Size(Width, _gpboxFunctionMgr.Bottom + 4);
+            // Constrain the host from shrinking the panel narrower than the gear button's
+            // anchor would let it slide over the Use Local checkbox text, or narrower than
+            // the Hide/Launch checkbox text fits inside the group. Width 280 gives ~5px of
+            // breathing room past both limits. Whether the GH prefs dialog honours this is
+            // up to the host's layout engine — worth trying first as a no-cost mitigation.
+            MinimumSize = new Size(280, _gpboxFunctionMgr.Bottom + 4);
 
             // The shim ignores Enabled=false / AutoCheck=false on Remote (just like Local).
             // Local should always be off, Remote should always be on. Snap back if user clicks.
@@ -440,30 +446,42 @@ namespace Hops
             }
         }
 
-        // Replaces the URL textbox's native border (Fixed3D/FixedSingle) with a custom 1px
-        // outline drawn by a wrapper Panel. The Panel's BackColor shows through 1px of padding
-        // on every side, producing the outline in #E9E9E9 to pair with the disabled
-        // fill color set in UpdateUrlControlsEnabled. Windows only — Mac uses native NSTextField
-        // styling and removing BorderStyle there can cause shim-specific rendering quirks.
-        void WrapUrlTextboxWithBorder()
+        // Windows-only layout tweaks applied after InitializeComponent. Keeps the URL textbox's
+        // native border (matching the other textboxes' Win11 focus-underline styling), moves
+        // the Advanced gear button inward from the group's right edge, and adds breathing room
+        // below the URL textbox + between the Compute server source group and the rows below.
+        void ApplyWindowsLayoutAdjustments()
         {
-            int originalTabIndex = _serverUrlTextbox.TabIndex;
-            var parent = _serverUrlTextbox.Parent;
-            var border = new System.Windows.Forms.Panel
+            // Pull the gear button in from the group's right edge — Designer had it 3px away
+            // which felt cramped. 5px shift puts it ~8px from the inner edge.
+            _advancedServersButton.Left -= 5;
+
+            // Grow the Compute server source group so the URL textbox has more breathing
+            // room beneath it. Then shift every sibling control below the group down by the
+            // same delta plus a 4px extra gap so the rows aren't pushed up against the group
+            // bottom border. Form size grows to accommodate the shift.
+            const int computeGroupGrowth = 4;
+            const int extraGap = 4;
+            int shift = computeGroupGrowth + extraGap;
+            _gpboxComputeServer.Size = new Size(_gpboxComputeServer.Width, _gpboxComputeServer.Height + computeGroupGrowth);
+            foreach (var ctrl in new Control[]
             {
-                Location = _serverUrlTextbox.Location,
-                Size = _serverUrlTextbox.Size,
-                Anchor = _serverUrlTextbox.Anchor,
-                BackColor = Color.FromArgb(0xE9, 0xE9, 0xE9),
-                TabStop = false,
-                TabIndex = originalTabIndex
-            };
-            parent.Controls.Add(border);
-            _serverUrlTextbox.BorderStyle = BorderStyle.None;
-            _serverUrlTextbox.Location = new Point(1, 1);
-            _serverUrlTextbox.Size = new Size(border.Width - 2, border.Height - 2);
-            _serverUrlTextbox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
-            border.Controls.Add(_serverUrlTextbox);
+                label2, _apiKeyTextbox,
+                label1, _maxConcurrentRequestsTextbox,
+                label3, _httpTimeoutTextbox,
+                _btnClearMemCache, _lblCacheCount,
+                _gpboxFunctionMgr,
+            })
+            {
+                ctrl.Top += shift;
+            }
+            // Pull the Clear cache button + its label up 4px on top of the shift above. The
+            // Designer left a ~3px gap below Timeout vs ~1px between the textbox rows above —
+            // tightening it makes the rows look evenly spaced. 4px empirically matches the
+            // textbox spacing better than the visible row metrics alone would suggest.
+            _btnClearMemCache.Top -= 4;
+            _lblCacheCount.Top -= 4;
+            Size = new Size(Width, Height + shift);
         }
 
         void UpdateLocalOnlyControlsEnabled()

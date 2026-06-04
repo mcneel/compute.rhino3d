@@ -87,10 +87,13 @@ namespace Hops
             base.OnPaint(e);
             // Paint inside a centered square inset 1px from the panel bounds. The square
             // accommodates AutoScale=Font producing non-uniform X/Y ratios on Windows (the
-            // panel ends up slightly non-square), and the 1px inset keeps the hover box's
-            // bottom/right edges from being clipped at the antialiased edge.
+            // panel ends up slightly non-square), and the symmetric 1px inset on every side
+            // keeps the hover box's edges from being clipped — `- 2` for the side plus the
+            // even centering produces (1, 1) offsets from the panel bounds. Earlier `- 1`
+            // left the top/left edges at 0 (integer-division offset of 0) which the macOS
+            // shim cropped at the top.
             var client = ClientRectangle;
-            int side = Math.Max(0, Math.Min(client.Width, client.Height) - 1);
+            int side = Math.Max(0, Math.Min(client.Width, client.Height) - 2);
             var square = new Rectangle(
                 client.X + (client.Width - side) / 2,
                 client.Y + (client.Height - side) / 2,
