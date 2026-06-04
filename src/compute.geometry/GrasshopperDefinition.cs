@@ -475,14 +475,41 @@ namespace compute.geometry
             }
         }
 
-        // Geometry contextual inputs arrive as a Rhino CommonObject JSON dictionary; rehydrate
-        // to GeometryBase then wrap as IGH_GeometricGoo. Original code did not null-check before
-        // adding to the tree, so we don't either (preserving behavior).
+        // Geometry contextual inputs (Param_Geometry / GetGeometry parameters) arrive in one of
+        // two wire formats depending on the client:
+        //   1. CommonObject dictionary-archive JSON — produced by Hops (which calls
+        //      GH_Convert.ToGeometryBase before sending) and by other clients that wrap
+        //      geometry through CommonObject.ToJSON. Rehydrate via CommonObject.FromJSON.
+        //   2. Flat property-bag JSON — produced by non-Hops clients (compute.rhino3d.py,
+        //      compute.rhino3d.js, custom callers) when serializing Rhino value-type structs
+        //      (Line, Arc, Circle) directly with JsonConvert. These don't derive from
+        //      CommonObject and won't rehydrate via FromJSON; deserialize as the raw struct
+        //      and wrap in the matching curve type so the downstream pipeline sees a
+        //      GeometryBase.
         static IGH_GeometricGoo DeserializeGeometry(ResthopperObject restobj)
         {
-            var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(restobj.Data);
-            var gb = Rhino.Runtime.CommonObject.FromJSON(dict) as GeometryBase;
-            return GH_Convert.ToGeometricGoo(gb);
+            try
+            {
+                var dict = JsonConvert.DeserializeObject<Dictionary<string, string>>(restobj.Data);
+                if (dict != null && Rhino.Runtime.CommonObject.FromJSON(dict) is GeometryBase gb)
+                    return GH_Convert.ToGeometricGoo(gb);
+            }
+            catch (JsonException) { /* not a CommonObject archive — fall through to struct path */ }
+
+            if (TryDeserializeStruct<Circle>(restobj.Data, out var circle) && circle.IsValid)
+                return GH_Convert.ToGeometricGoo(new ArcCurve(circle));
+            if (TryDeserializeStruct<Arc>(restobj.Data, out var arc) && arc.IsValid)
+                return GH_Convert.ToGeometricGoo(new ArcCurve(arc));
+            if (TryDeserializeStruct<Line>(restobj.Data, out var line) && line.IsValid)
+                return GH_Convert.ToGeometricGoo(new LineCurve(line));
+
+            return null;
+        }
+
+        static bool TryDeserializeStruct<T>(string data, out T value) where T : struct
+        {
+            try { value = JsonConvert.DeserializeObject<T>(data); return true; }
+            catch (JsonException) { value = default; return false; }
         }
 
         public Schema Solve(int rhinoVersion)
