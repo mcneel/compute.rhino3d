@@ -22,7 +22,12 @@ namespace Hops
         {
             Title = "Hops function sources";
             Resizable = true;
-            ClientSize = new Size(560, 260);
+            ClientSize = new Size(450, 260);
+            // Suppress the white flash that Eto.WinForms shows for a frame between
+            // creating the underlying Form (default Control.BackColor = White) and the
+            // first content paint. SystemColors.Control matches the dialog's normal body
+            // colour so any pre-paint frame blends in instead of flashing white.
+            BackgroundColor = Eto.Drawing.SystemColors.Control;
 
             rowsContainer = new StackLayout
             {
@@ -72,12 +77,27 @@ namespace Hops
                     new TableRow { ScaleHeight = true }
                 }
             };
+            // Custom-coloured outline via a 1px-padded Panel. The Scrollable's BackgroundColor
+            // is explicitly set to match the dialog body so the Panel's BackgroundColor only
+            // shows through the 1px padding on each side (the border) — without bleeding
+            // through the otherwise-transparent row panels inside the Scrollable.
+            //
+            // The Drawable+Paint approach was visually equivalent but caused a single-frame
+            // white flicker on modal open (Eto.WinForms Drawable repaint timing). Plain Panel
+            // with BackgroundColor doesn't trigger custom Paint and avoids the flicker.
             var scroller = new Scrollable
             {
                 Border = BorderType.None,
+                BackgroundColor = Eto.Drawing.SystemColors.Control,
                 ExpandContentWidth = true,
                 ExpandContentHeight = true,
                 Content = topAlignedHost
+            };
+            var scrollerBorder = new Panel
+            {
+                BackgroundColor = Color.FromArgb(0xDC, 0xDC, 0xDC),
+                Padding = new Padding(1),
+                Content = scroller
             };
 
             bool onWindows = Rhino.Runtime.HostUtils.RunningOnWindows;
@@ -117,7 +137,7 @@ namespace Hops
                 Rows =
                 {
                     new TableRow(toolbar),
-                    new TableRow { ScaleHeight = true, Cells = { scroller } },
+                    new TableRow { ScaleHeight = true, Cells = { scrollerBorder } },
                     buttonRow
                 }
             };
@@ -190,7 +210,7 @@ namespace Hops
             // Give Name a modest minimum width — enough for short nicknames like "Templates" —
             // and let Path soak up the rest via scaleWidth. Paths are typically much longer than
             // names, so letting them share width 50/50 wastes screen real estate.
-            nameBox = new UnderlineTextBox { Text = name, PlaceholderText = "Nickname", Width = 140 };
+            nameBox = new UnderlineTextBox { Text = name, PlaceholderText = "Nickname", Width = 110 };
             pathBox = new UnderlineTextBox { Text = path, PlaceholderText = "URL or folder path" };
 
             // Shared Rhino folder-open icon — same glyph used by SetDefinitionForm, so picker

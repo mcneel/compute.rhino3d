@@ -19,6 +19,11 @@ namespace Hops
             Title = "Hops compute servers";
             Resizable = true;
             ClientSize = new Size(380, 208);
+            // Suppress the white flash that Eto.WinForms shows for a frame between
+            // creating the underlying Form (default Control.BackColor = White) and the
+            // first content paint. SystemColors.Control matches the dialog's normal body
+            // colour so any pre-paint frame blends in instead of flashing white.
+            BackgroundColor = Eto.Drawing.SystemColors.Control;
 
             rowsContainer = new StackLayout
             {
@@ -69,15 +74,27 @@ namespace Hops
                     new TableRow { ScaleHeight = true }
                 }
             };
-            // BorderType.Bezel (the Scrollable default) draws a sunken dark-grey 3D edge that's
-            // visibly heavier than the GroupBox border on the main settings panel. BorderType.None
-            // removes the chrome entirely so the rows sit flush against the dialog padding.
+            // Custom-coloured outline via a 1px-padded Panel. The Scrollable's BackgroundColor
+            // is explicitly set to match the dialog body so the Panel's BackgroundColor only
+            // shows through the 1px padding on each side (the border) — without bleeding
+            // through the otherwise-transparent row panels inside the Scrollable.
+            //
+            // The Drawable+Paint approach was visually equivalent but caused a single-frame
+            // white flicker on modal open (Eto.WinForms Drawable repaint timing). Plain Panel
+            // with BackgroundColor doesn't trigger custom Paint and avoids the flicker.
             var scroller = new Scrollable
             {
                 Border = BorderType.None,
+                BackgroundColor = Eto.Drawing.SystemColors.Control,
                 ExpandContentWidth = true,
                 ExpandContentHeight = true,
                 Content = topAlignedHost
+            };
+            var scrollerBorder = new Panel
+            {
+                BackgroundColor = Color.FromArgb(0xDC, 0xDC, 0xDC),
+                Padding = new Padding(1),
+                Content = scroller
             };
 
             bool onWindows = Rhino.Runtime.HostUtils.RunningOnWindows;
@@ -117,7 +134,7 @@ namespace Hops
                 Rows =
                 {
                     new TableRow(toolbar),
-                    new TableRow { ScaleHeight = true, Cells = { scroller } },
+                    new TableRow { ScaleHeight = true, Cells = { scrollerBorder } },
                     buttonRow
                 }
             };
