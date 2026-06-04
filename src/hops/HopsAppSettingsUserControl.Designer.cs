@@ -35,7 +35,7 @@ namespace Hops
             this.components = new System.ComponentModel.Container();
             this._gpboxComputeServer = new System.Windows.Forms.GroupBox();
             this._rdoUseLocal = new System.Windows.Forms.CheckBox();
-            this._advancedServersButton = new System.Windows.Forms.PictureBox();
+            this._advancedServersButton = new IconPanel();
             this._hideWorkerWindows = new System.Windows.Forms.CheckBox();
             this._launchWorkerAtStart = new System.Windows.Forms.CheckBox();
             this._childComputeCount = new System.Windows.Forms.NumericUpDown();
@@ -43,7 +43,7 @@ namespace Hops
             this._rdoUseRemote = new System.Windows.Forms.CheckBox();
             this._labelServerUrl = new System.Windows.Forms.Label();
             this._serverUrlTextbox = new System.Windows.Forms.TextBox();
-            this._serverStatusDot = new System.Windows.Forms.PictureBox();
+            this._serverStatusDot = new IconPanel();
             this._btnClearMemCache = new System.Windows.Forms.Button();
             this._lblCacheCount = new System.Windows.Forms.Label();
             this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
@@ -58,8 +58,6 @@ namespace Hops
             this._httpTimeoutTextbox = new System.Windows.Forms.TextBox();
             this._gpboxComputeServer.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this._childComputeCount)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this._serverStatusDot)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this._advancedServersButton)).BeginInit();
             this._gpboxFunctionMgr.SuspendLayout();
             this.SuspendLayout();
             //
@@ -101,7 +99,6 @@ namespace Hops
             this._advancedServersButton.Location = new System.Drawing.Point(267, 13);
             this._advancedServersButton.Name = "_advancedServersButton";
             this._advancedServersButton.Size = new System.Drawing.Size(26, 26);
-            this._advancedServersButton.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this._advancedServersButton.TabIndex = 1;
             this._advancedServersButton.TabStop = false;
             //
@@ -183,7 +180,6 @@ namespace Hops
             this._serverStatusDot.Location = new System.Drawing.Point(57, 140);
             this._serverStatusDot.Name = "_serverStatusDot";
             this._serverStatusDot.Size = new System.Drawing.Size(10, 10);
-            this._serverStatusDot.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this._serverStatusDot.TabIndex = 10;
             this._serverStatusDot.TabStop = false;
             //
@@ -325,8 +321,6 @@ namespace Hops
             this._gpboxComputeServer.ResumeLayout(false);
             this._gpboxComputeServer.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this._childComputeCount)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this._serverStatusDot)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this._advancedServersButton)).EndInit();
             this._gpboxFunctionMgr.ResumeLayout(false);
             this._gpboxFunctionMgr.PerformLayout();
             this.ResumeLayout(false);
@@ -340,8 +334,8 @@ namespace Hops
         private System.Windows.Forms.CheckBox _rdoUseRemote;
         private System.Windows.Forms.Label _labelServerUrl;
         private System.Windows.Forms.TextBox _serverUrlTextbox;
-        private System.Windows.Forms.PictureBox _serverStatusDot;
-        private System.Windows.Forms.PictureBox _advancedServersButton;
+        private IconPanel _serverStatusDot;
+        private IconPanel _advancedServersButton;
         private System.Windows.Forms.CheckBox _hideWorkerWindows;
         private System.Windows.Forms.CheckBox _launchWorkerAtStart;
         private System.Windows.Forms.Button _btnClearMemCache;

@@ -17,6 +17,17 @@ namespace Hops
         CancellationTokenSource testCts;
         bool suppressUrlChange;
 
+        // Measure a label's text in its actual font and resize the label to fit, with a small
+        // padding so anti-aliased glyphs don't clip. Used on macOS where the system font is
+        // wider than the Windows design metrics and design-time label widths would clip text.
+        static void SizeLabelToText(System.Windows.Forms.Label lbl)
+        {
+            var size = TextRenderer.MeasureText(lbl.Text, lbl.Font);
+            lbl.AutoSize = false;
+            lbl.Size = new Size(size.Width + 2, 22);
+            lbl.TextAlign = ContentAlignment.MiddleLeft;
+        }
+
         // Used so we can vertically center the text inside multiline TextBoxes.
         [StructLayout(LayoutKind.Sequential)]
         struct RECT { public int Left, Top, Right, Bottom; }
@@ -26,27 +37,25 @@ namespace Hops
 
         const uint EM_SETRECT = 0xB3;
 
-        // Tooltip wrapper for the status dot — keeps the rich per-state message but always
-        // tells the user the dot is clickable for a manual re-probe.
+        // Current status-dot tooltip message. The "(click to retest)" suffix is added by
+        // StatusTooltipPopulating at hover time, not stored here. Updated by SetStatusTip.
+        string currentStatusTip = "Not tested";
+
         void SetStatusTip(string message)
         {
-            toolTip1.SetToolTip(_serverStatusDot, message + "\r\n(click to retest)");
+            currentStatusTip = message;
         }
 
-        // Builds a rounded-corner GraphicsPath for the given bounds. Insets the right/bottom edges
-        // by 1px so a 1-pixel Pen drawn along the path falls fully inside the control bounds and
-        // doesn't get clipped at the antialiased edge.
-        static GraphicsPath RoundedRect(Rectangle bounds, int radius)
+        void StatusTooltipPopulating(object sender, Grasshopper.GUI.GH_TooltipDisplayEventArgs e)
         {
-            var r = new Rectangle(bounds.X, bounds.Y, bounds.Width - 1, bounds.Height - 1);
-            int d = radius * 2;
-            var path = new GraphicsPath();
-            path.AddArc(r.X, r.Y, d, d, 180, 90);
-            path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
-            path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
-            path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
-            path.CloseFigure();
-            return path;
+            e.Title = "Server status";
+            e.Text = currentStatusTip + ". Click to retest.";
+        }
+
+        void AdvancedTooltipPopulating(object sender, Grasshopper.GUI.GH_TooltipDisplayEventArgs e)
+        {
+            e.Title = "Advanced multi-server setup";
+            e.Text = "Configure multiple rhino.compute servers";
         }
 
         // Multiline TextBox always top-anchors its text; this shim pushes the
@@ -79,6 +88,8 @@ namespace Hops
             // overrides live in one place; the Windows path stays untouched.
             if (Rhino.Runtime.HostUtils.RunningOnOSX)
                 ApplyMacLayoutAdjustments();
+            if (Rhino.Runtime.HostUtils.RunningOnWindows)
+                WrapUrlTextboxWithBorder();
             CenterMultilineText(_serverUrlTextbox);
             CenterMultilineText(_apiKeyTextbox);
             CenterMultilineText(_httpTimeoutTextbox);
@@ -100,73 +111,52 @@ namespace Hops
             _rdoUseLocal.Click += UseLocalClicked;
             _rdoUseRemote.Click += UseRemoteClicked;
             _serverUrlTextbox.TextChanged += ServerUrlChanged;
-            _advancedServersButton.Click += AdvancedServersClicked;
-            _advancedServersButton.Cursor = Cursors.Hand;
-            // Image is left unset (null by default) so the PictureBox doesn't auto-draw anything
-            // before our Paint handler runs — we render the rounded fill, icon, and stroke ourselves.
-            // Don't assign `Image = null` explicitly: the macOS WinForms shim's set_Image throws
-            // NullReferenceException when Image is already null.
-            _advancedServersButton.BackColor = Color.Transparent;
-            var settingsImage = HopsFunctionMgr.SettingsIcon();
-            var hoverFill = Color.FromArgb(0xC1, 0xDC, 0xF0);
-            var hoverStroke = Color.FromArgb(0x80, 0xAD, 0xC6);
-            const int cornerRadius = 3;
-            const int iconInset = 4;
-            bool advancedHovered = false;
-            _advancedServersButton.MouseEnter += (s, e) =>
-            {
-                advancedHovered = true;
-                _advancedServersButton.Invalidate();
-            };
-            _advancedServersButton.MouseLeave += (s, e) =>
-            {
-                advancedHovered = false;
-                _advancedServersButton.Invalidate();
-            };
-            _advancedServersButton.Paint += (s, e) =>
-            {
-                var g = e.Graphics;
-                var client = _advancedServersButton.ClientRectangle;
-                // WinForms Font-based AutoScale can produce slightly non-square ClientRectangles
-                // at HiDPI (different X/Y font metric ratios than design time). Use the smaller
-                // dimension as the square side so the icon and hover decorations render true
-                // square regardless of what AutoScale did to the control bounds.
-                int side = Math.Min(client.Width, client.Height);
-                var square = new Rectangle(
-                    client.X + (client.Width - side) / 2,
-                    client.Y + (client.Height - side) / 2,
-                    side,
-                    side);
-                if (advancedHovered)
-                {
-                    g.SmoothingMode = SmoothingMode.AntiAlias;
-                    using (var path = RoundedRect(square, cornerRadius))
-                    using (var brush = new SolidBrush(hoverFill))
-                        g.FillPath(brush, path);
-                }
-                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                // Inset the icon from the button bounds so the hover fill has visible padding
-                // around the artwork — otherwise the 96×96 source (which is itself edge-to-edge)
-                // looks crowded inside the rounded rectangle.
-                var iconRect = Rectangle.Inflate(square, -iconInset, -iconInset);
-                g.DrawImage(settingsImage, iconRect);
-                if (advancedHovered)
-                {
-                    g.SmoothingMode = SmoothingMode.AntiAlias;
-                    using (var path = RoundedRect(square, cornerRadius))
-                    using (var pen = new Pen(hoverStroke))
-                        g.DrawPath(pen, path);
-                }
-            };
-            _serverStatusDot.Image = HopsFunctionMgr.StatusNoneIcon();
-            _serverStatusDot.Cursor = Cursors.Hand;
-            _serverStatusDot.Click += (s, e) =>
+            // Advanced gear button — IconPanel handles icon rendering (DPI-aware via
+            // GH_GraphicsUtil.RenderIcon) and hover highlight. Tooltip uses Grasshopper's
+            // GH_TooltipComponent so it matches the rest of the GH UI on both platforms.
+            _advancedServersButton.Icon = HopsFunctionMgr.SettingsIcon();
+            _advancedServersButton.IconPadding = 3;
+            _advancedServersButton.Pressed += AdvancedServersClicked;
+            var advancedTooltip = new Grasshopper.GUI.GH_TooltipComponent { Target = _advancedServersButton };
+            advancedTooltip.PopulateTooltip += AdvancedTooltipPopulating;
+
+            // Status dot — no hover highlight (it's a passive indicator), but still clickable
+            // for a manual re-probe. Tooltip text is dynamic; we store it in currentStatusTip
+            // and the PopulateTooltip handler reads from there each time the tooltip opens.
+            _serverStatusDot.Icon = HopsFunctionMgr.StatusNoneIcon();
+            _serverStatusDot.HoverHighlight = false;
+            _serverStatusDot.Pressed += (s, e) =>
             {
                 autoTestTimer.Stop();
                 TestCurrentUrl();
             };
+            var statusTooltip = new Grasshopper.GUI.GH_TooltipComponent { Target = _serverStatusDot };
+            statusTooltip.PopulateTooltip += StatusTooltipPopulating;
             SetStatusTip("Not tested");
+
+            // Defense in depth: ReadOnly=true should already block typing/pasting, but if any
+            // input path slips through (drag-drop text, IME composition, etc.) block it at the
+            // key-event layer. SuppressKeyPress stops the key from reaching the textbox.
+            _serverUrlTextbox.KeyPress += (s, e) =>
+            {
+                if (_serverUrlTextbox.ReadOnly) e.Handled = true;
+            };
+            _serverUrlTextbox.KeyDown += (s, e) =>
+            {
+                if (_serverUrlTextbox.ReadOnly && e.Control && (e.KeyCode == Keys.V || e.KeyCode == Keys.X))
+                {
+                    e.SuppressKeyPress = true;
+                    e.Handled = true;
+                }
+            };
+            // Prevent selection by shifting focus away whenever the disabled textbox would
+            // gain it. BeginInvoke defers the focus shift to the next message loop iteration
+            // so it runs after WinForms has finished processing the current click event.
+            _serverUrlTextbox.Enter += (s, e) =>
+            {
+                if (_serverUrlTextbox.ReadOnly)
+                    BeginInvoke((Action)(() => _serverUrlTextbox.Parent?.Focus()));
+            };
 
             if (Rhino.Runtime.HostUtils.RunningOnOSX)
             {
@@ -263,7 +253,7 @@ namespace Hops
                 _manageFunctionSourcesButton.Click += (s, e) =>
                 {
                     var dlg = new FunctionSourcesDialog();
-                    if (dlg.ShowModal(Grasshopper.Instances.EtoDocumentEditor))
+                    if (ShowDialogCenteredOnPrefs(dlg))
                         RefreshFunctionSourceCount();
                 };
             }
@@ -296,28 +286,25 @@ namespace Hops
             _maxConcurrentRequestsTextbox.Multiline = false;
             _httpTimeoutTextbox.Multiline = false;
 
-            // Labels render wider on Mac because of the larger system font, so the design
-            // widths (43/126/73) clip the text to "API"/"Max concur..."/"Timeout". Grow each
-            // label to fit and use MiddleRight so the text right-aligns to the label's right
-            // edge — keeping a consistent 4px gap between label text and textbox left edge
-            // across all three rows, even though the labels themselves are different widths.
-            label2.AutoSize = false; label2.Size = new Size(60, 22);
-            label2.TextAlign = ContentAlignment.MiddleRight;
+            // Measure each label's text in its actual font and size the control to fit, plus
+            // 2px breathing room so the rendering doesn't clip. MiddleLeft text alignment puts
+            // text at the left edge of the label; the textbox then sits 4px past the label's
+            // right edge, producing a consistent ~6px visible gap on every row regardless of
+            // how long the label text is.
+            SizeLabelToText(label2);
+            SizeLabelToText(label1);
+            SizeLabelToText(label3);
             _apiKeyTextbox.Location = new Point(label2.Right + 4, _apiKeyTextbox.Top);
-
-            label1.AutoSize = false; label1.Size = new Size(160, 22);
-            label1.TextAlign = ContentAlignment.MiddleRight;
             _maxConcurrentRequestsTextbox.Location = new Point(label1.Right + 4, _maxConcurrentRequestsTextbox.Top);
-
-            label3.AutoSize = false; label3.Size = new Size(100, 22);
-            label3.TextAlign = ContentAlignment.MiddleRight;
             _httpTimeoutTextbox.Location = new Point(label3.Right + 4, _httpTimeoutTextbox.Top);
 
             // Right-edge alignment to match Windows behavior: URL/API-key share a right edge,
             // and Max-concurrent/Timeout share a different right edge. URL's absolute right is
-            // computed via its container offset since it lives inside the group.
+            // computed via its container offset since it lives inside the group. The +3 fudge
+            // on API key matches the URL textbox's visually-rendered right edge on Mac, which
+            // sits a couple of pixels past the computed value.
             int urlAbsRight = _gpboxComputeServer.Left + _serverUrlTextbox.Right;
-            _apiKeyTextbox.Size = new Size(urlAbsRight - _apiKeyTextbox.Left, _apiKeyTextbox.Height);
+            _apiKeyTextbox.Size = new Size(urlAbsRight - _apiKeyTextbox.Left + 3, _apiKeyTextbox.Height);
             const int numericRightEdge = 215;
             _maxConcurrentRequestsTextbox.Size = new Size(numericRightEdge - _maxConcurrentRequestsTextbox.Left, _maxConcurrentRequestsTextbox.Height);
             _httpTimeoutTextbox.Size = new Size(numericRightEdge - _httpTimeoutTextbox.Left, _httpTimeoutTextbox.Height);
@@ -332,40 +319,23 @@ namespace Hops
             // Local checkbox text — make the disabled state self-explanatory.
             _rdoUseLocal.Text = "Local rhino.compute (Windows only)";
 
-            // Status dot — 4x4 looks the same size on Mac as the 10x10 dot does on Windows.
-            // The shim still applies some intrinsic scaling here that AutoScaleMode=None
-            // doesn't suppress; this empirical value matches the Eto-rendered dots in the
-            // MultiServerDialog (which look correctly sized).
-            _serverStatusDot.Size = new Size(4, 4);
-
-            // Set Image directly on the PictureBox so the default rendering path shows the
-            // gear. The Paint event subscription in the constructor isn't reliably fired on
-            // the macOS shim, so the custom hover decoration never appears — but the icon
-            // does, which is the important part. Nudge Y up so it visually aligns with the
-            // Use-local checkbox row baseline.
-            _advancedServersButton.Image = HopsFunctionMgr.SettingsIcon();
-            _advancedServersButton.Top -= 3;
-
-            // Grow the Compute server source group so the URL row sits inside it, then shift
-            // every sibling control below the group down by the same delta. The function-
-            // sources group also needs a few extra px so the Manage button isn't clipped at
-            // its bottom edge. Finally grow the UserControl itself to make room.
+            // Grow the Compute server source group so the URL row sits inside it. Then lay
+            // out every row below the group at a consistent 5px gap. Function-sources group
+            // also needs a few extra px so its button isn't clipped. Finally size the
+            // UserControl based on the function group's actual bottom so nothing gets cut.
             const int computeGroupGrowth = 30;
-            const int functionGroupGrowth = 15;
+            const int functionGroupGrowth = 12;
+            const int rowGap = 5;
+            const int rowHeight = 22;
             _gpboxComputeServer.Size = new Size(_gpboxComputeServer.Width, _gpboxComputeServer.Height + computeGroupGrowth);
-            foreach (var ctrl in new Control[]
-            {
-                label2, _apiKeyTextbox,
-                label1, _maxConcurrentRequestsTextbox,
-                label3, _httpTimeoutTextbox,
-                _btnClearMemCache, _lblCacheCount,
-                _gpboxFunctionMgr,
-            })
-            {
-                ctrl.Top += computeGroupGrowth;
-            }
+
+            int rowTop = _gpboxComputeServer.Bottom + 3;
+            label2.Top = rowTop; _apiKeyTextbox.Top = rowTop; rowTop += rowHeight + rowGap;
+            label1.Top = rowTop; _maxConcurrentRequestsTextbox.Top = rowTop; rowTop += rowHeight + rowGap;
+            label3.Top = rowTop; _httpTimeoutTextbox.Top = rowTop; rowTop += rowHeight + rowGap;
+            _btnClearMemCache.Top = rowTop; rowTop += rowHeight + rowGap;
+            _gpboxFunctionMgr.Top = rowTop;
             _gpboxFunctionMgr.Size = new Size(_gpboxFunctionMgr.Width, _gpboxFunctionMgr.Height + functionGroupGrowth);
-            Size = new Size(Width, Height + computeGroupGrowth + functionGroupGrowth);
 
             // Position the trailing labels using their adjacent button's runtime position.
             // Setting Size.Height to match the button's height + TextAlign=MiddleLeft makes the
@@ -374,15 +344,16 @@ namespace Hops
             _lblCacheCount.Size = new Size(150, _btnClearMemCache.Height);
             _lblCacheCount.Location = new Point(_btnClearMemCache.Right + 6, _btnClearMemCache.Top);
             _lblCacheCount.TextAlign = ContentAlignment.MiddleLeft;
-            // Move the Manage sources button up — it renders too low in the group on Mac for
-            // reasons not yet pinned down (group internal anchoring or title-bar sizing diff).
-            // Empirical: 8px up centers it nicely. Position the label *after* the move so it
-            // tracks the button's new Y.
-            _manageFunctionSourcesButton.Top -= 8;
+            // The Manage sources button renders low in the group on Mac (group title-bar
+            // sizing differs from Windows). 11px up empirically centers it. Position the
+            // label after the move so it tracks the button's new Y.
+            _manageFunctionSourcesButton.Top -= 11;
             _functionSourceCountLabel.AutoSize = false;
             _functionSourceCountLabel.Size = new Size(170, _manageFunctionSourcesButton.Height);
             _functionSourceCountLabel.Location = new Point(_manageFunctionSourcesButton.Right + 6, _manageFunctionSourcesButton.Top);
             _functionSourceCountLabel.TextAlign = ContentAlignment.MiddleLeft;
+
+            Size = new Size(Width, _gpboxFunctionMgr.Bottom + 4);
 
             // The shim ignores Enabled=false / AutoCheck=false on Remote (just like Local).
             // Local should always be off, Remote should always be on. Snap back if user clicks.
@@ -422,31 +393,58 @@ namespace Hops
             {
                 suppressUrlChange = false;
             }
-            UpdateAdvancedButtonTooltip();
             UpdateUrlControlsEnabled();
             UpdateLocalOnlyControlsEnabled();
             if (_rdoUseRemote.Checked && !string.IsNullOrWhiteSpace(_serverUrlTextbox.Text))
                 TestCurrentUrl();
         }
 
-        void UpdateAdvancedButtonTooltip()
-        {
-            int extras = Math.Max(0, HopsAppSettings.Servers.Length - 1);
-            string tip = extras > 0
-                ? $"Advanced multi-server setup ({extras} additional URL{(extras == 1 ? "" : "s")})"
-                : "Advanced multi-server setup";
-            toolTip1.SetToolTip(_advancedServersButton, tip);
-        }
-
         void UpdateUrlControlsEnabled()
         {
             bool remote = _rdoUseRemote.Checked;
-            _serverUrlTextbox.Enabled = remote;
+            // ReadOnly rather than Enabled — the latter forces SystemColors.Control on the
+            // background and ignores our BackColor, leaving the disabled textbox visually
+            // identical to the surrounding group. With ReadOnly we keep BackColor honored
+            // and the textbox still rejects keyboard input.
+            _serverUrlTextbox.ReadOnly = !remote;
+            _serverUrlTextbox.BackColor = remote ? SystemColors.Window : Color.FromArgb(0xF9, 0xF9, 0xF9);
+            _serverUrlTextbox.ForeColor = remote ? SystemColors.WindowText : Color.FromArgb(0xA0, 0xA0, 0xA0);
+            // Arrow cursor in disabled state signals "non-interactive"; clear any active
+            // selection so the textbox doesn't carry highlight state into the disabled view.
+            _serverUrlTextbox.Cursor = remote ? Cursors.IBeam : Cursors.Default;
             if (!remote)
             {
-                _serverStatusDot.Image = HopsFunctionMgr.StatusNoneIcon();
+                _serverUrlTextbox.SelectionStart = 0;
+                _serverUrlTextbox.SelectionLength = 0;
+                _serverStatusDot.Icon = HopsFunctionMgr.StatusNoneIcon();
                 SetStatusTip("Not tested");
             }
+        }
+
+        // Replaces the URL textbox's native border (Fixed3D/FixedSingle) with a custom 1px
+        // outline drawn by a wrapper Panel. The Panel's BackColor shows through 1px of padding
+        // on every side, producing the outline in #E9E9E9 to pair with the disabled
+        // fill color set in UpdateUrlControlsEnabled. Windows only — Mac uses native NSTextField
+        // styling and removing BorderStyle there can cause shim-specific rendering quirks.
+        void WrapUrlTextboxWithBorder()
+        {
+            int originalTabIndex = _serverUrlTextbox.TabIndex;
+            var parent = _serverUrlTextbox.Parent;
+            var border = new System.Windows.Forms.Panel
+            {
+                Location = _serverUrlTextbox.Location,
+                Size = _serverUrlTextbox.Size,
+                Anchor = _serverUrlTextbox.Anchor,
+                BackColor = Color.FromArgb(0xE9, 0xE9, 0xE9),
+                TabStop = false,
+                TabIndex = originalTabIndex
+            };
+            parent.Controls.Add(border);
+            _serverUrlTextbox.BorderStyle = BorderStyle.None;
+            _serverUrlTextbox.Location = new Point(1, 1);
+            _serverUrlTextbox.Size = new Size(border.Width - 2, border.Height - 2);
+            _serverUrlTextbox.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
+            border.Controls.Add(_serverUrlTextbox);
         }
 
         void UpdateLocalOnlyControlsEnabled()
@@ -497,7 +495,7 @@ namespace Hops
         void ServerUrlChanged(object sender, EventArgs e)
         {
             if (suppressUrlChange) return;
-            _serverStatusDot.Image = HopsFunctionMgr.StatusNoneIcon();
+            _serverStatusDot.Icon = HopsFunctionMgr.StatusNoneIcon();
             SetStatusTip("Testing soon...");
             autoTestTimer.Stop();
             autoTestTimer.Start();
@@ -508,10 +506,9 @@ namespace Hops
             string url = _serverUrlTextbox.Text.Trim();
             // Always preserve URL changes so toggling back to Use Remote restores the right value.
             HopsAppSettings.Servers = string.IsNullOrEmpty(url) ? new string[0] : new[] { url };
-            UpdateAdvancedButtonTooltip();
             if (string.IsNullOrEmpty(url) || !_rdoUseRemote.Checked)
             {
-                _serverStatusDot.Image = HopsFunctionMgr.StatusNoneIcon();
+                _serverStatusDot.Icon = HopsFunctionMgr.StatusNoneIcon();
                 SetStatusTip(_rdoUseRemote.Checked ? "Not tested" : "Select Use remote server to test");
                 return;
             }
@@ -520,7 +517,7 @@ namespace Hops
             testCts = new CancellationTokenSource();
             var ct = testCts.Token;
 
-            _serverStatusDot.Image = HopsFunctionMgr.StatusWarningIcon();
+            _serverStatusDot.Icon = HopsFunctionMgr.StatusWarningIcon();
             SetStatusTip("Testing " + url + "...");
 
             string baseUrl = url.TrimEnd('/');
@@ -549,12 +546,12 @@ namespace Hops
                         sw.Stop();
                         if (!resp.IsSuccessStatusCode)
                         {
-                            _serverStatusDot.Image = HopsFunctionMgr.StatusErrorIcon();
+                            _serverStatusDot.Icon = HopsFunctionMgr.StatusErrorIcon();
                             string hint = (int)resp.StatusCode == 401 ? " (check API key)" : "";
                             SetStatusTip($"HTTP {(int)resp.StatusCode}{hint} from {probeUrl}");
                             return;
                         }
-                        _serverStatusDot.Image = HopsFunctionMgr.StatusOkIcon();
+                        _serverStatusDot.Icon = HopsFunctionMgr.StatusOkIcon();
                         SetStatusTip($"Valid URL ({sw.ElapsedMilliseconds}ms)");
                     }
                 }
@@ -562,12 +559,12 @@ namespace Hops
             catch (OperationCanceledException)
             {
                 if (ct.IsCancellationRequested) return;
-                _serverStatusDot.Image = HopsFunctionMgr.StatusErrorIcon();
+                _serverStatusDot.Icon = HopsFunctionMgr.StatusErrorIcon();
                 SetStatusTip($"Timed out after {sw.ElapsedMilliseconds}ms (3s probe limit)");
             }
             catch (Exception ex)
             {
-                _serverStatusDot.Image = HopsFunctionMgr.StatusErrorIcon();
+                _serverStatusDot.Icon = HopsFunctionMgr.StatusErrorIcon();
                 SetStatusTip("Unreachable: " + ex.Message);
             }
         }
@@ -592,12 +589,12 @@ namespace Hops
                         if (ct.IsCancellationRequested) return;
                         if (!resp.IsSuccessStatusCode)
                         {
-                            _serverStatusDot.Image = HopsFunctionMgr.StatusErrorIcon();
+                            _serverStatusDot.Icon = HopsFunctionMgr.StatusErrorIcon();
                             string hint = (int)resp.StatusCode == 401 ? " (check API key)" : "";
                             SetStatusTip($"HTTP {(int)resp.StatusCode}{hint} from {probeUrl}");
                             return;
                         }
-                        _serverStatusDot.Image = HopsFunctionMgr.StatusOkIcon();
+                        _serverStatusDot.Icon = HopsFunctionMgr.StatusOkIcon();
                         SetStatusTip($"Reachable ({sw.ElapsedMilliseconds}ms) — server is too old for /validate; API key not checked");
                     }
                 }
@@ -605,20 +602,33 @@ namespace Hops
             catch (OperationCanceledException)
             {
                 if (ct.IsCancellationRequested) return;
-                _serverStatusDot.Image = HopsFunctionMgr.StatusErrorIcon();
+                _serverStatusDot.Icon = HopsFunctionMgr.StatusErrorIcon();
                 SetStatusTip($"Timed out after {sw.ElapsedMilliseconds}ms (3s probe limit)");
             }
             catch (Exception ex)
             {
-                _serverStatusDot.Image = HopsFunctionMgr.StatusErrorIcon();
+                _serverStatusDot.Icon = HopsFunctionMgr.StatusErrorIcon();
                 SetStatusTip("Unreachable: " + ex.Message);
             }
+        }
+
+        // Center an Eto modal on the prefs dialog (the parent of this UserControl) and show
+        // it. Mirrors the pattern Grasshopper itself uses (GH_UnrecognizedObjectsForm):
+        // CenterFormOnWindow before ShowModal, with the latter receiving the same parent.
+        // Falls back to the GH canvas if the parent form can't be resolved (defensive).
+        bool ShowDialogCenteredOnPrefs(Eto.Forms.Dialog<bool> dlg)
+        {
+            var parentForm = this.FindForm();
+            var parentEto = parentForm != null ? Grasshopper.EtoExtensions.ToEto(parentForm) : null;
+            if (parentEto != null)
+                Grasshopper.GUI.GH_EtoUtil.CenterFormOnWindow(dlg, parentEto, true);
+            return dlg.ShowModal(parentEto ?? Grasshopper.Instances.EtoDocumentEditor);
         }
 
         void AdvancedServersClicked(object sender, EventArgs e)
         {
             var dlg = new MultiServerDialog();
-            if (dlg.ShowModal(Grasshopper.Instances.EtoDocumentEditor))
+            if (ShowDialogCenteredOnPrefs(dlg))
             {
                 InitServerSourceFromSettings();
             }
@@ -630,7 +640,7 @@ namespace Hops
             // The cached status reflects the previous key; re-probe so the indicator stays honest.
             if (_rdoUseRemote.Checked && !string.IsNullOrWhiteSpace(_serverUrlTextbox.Text))
             {
-                _serverStatusDot.Image = HopsFunctionMgr.StatusNoneIcon();
+                _serverStatusDot.Icon = HopsFunctionMgr.StatusNoneIcon();
                 SetStatusTip("Testing soon...");
                 autoTestTimer.Stop();
                 autoTestTimer.Start();
