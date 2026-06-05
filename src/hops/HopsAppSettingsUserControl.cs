@@ -114,11 +114,16 @@ namespace Hops
             // Advanced gear button — IconPanel handles icon rendering (DPI-aware via
             // GH_GraphicsUtil.RenderIcon) and hover highlight. Tooltip uses Grasshopper's
             // GH_TooltipComponent so it matches the rest of the GH UI on both platforms.
+            // NOTE: control is currently hidden by product decision; setup is kept in place
+            // so re-enabling is a single Visible=true flip. To bring it back, remove the
+            // Visible=false line below — Designer Location/Size and the MultiServerDialog
+            // wiring (AdvancedServersClicked → ShowDialogCenteredOnPrefs) remain intact.
             _advancedServersButton.Icon = HopsFunctionMgr.SettingsIcon();
             _advancedServersButton.IconPadding = 3;
             _advancedServersButton.Pressed += AdvancedServersClicked;
             var advancedTooltip = new Grasshopper.GUI.GH_TooltipComponent { Target = _advancedServersButton };
             advancedTooltip.PopulateTooltip += AdvancedTooltipPopulating;
+            _advancedServersButton.Visible = false;
 
             // Status dot — no hover highlight (it's a passive indicator), but still clickable
             // for a manual re-probe. Tooltip text is dynamic; we store it in currentStatusTip
