@@ -54,7 +54,7 @@ jobs:
     steps:
       - name: Set up QEMU
         if: matrix.architecture == 'arm64'
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         with:
          platforms: arm64
 
