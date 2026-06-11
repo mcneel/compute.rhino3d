@@ -76,6 +76,18 @@ $localUserPassword = (New-Object PSCredential $localUserName,$securePassword).Ge
 $securePassword = ConvertTo-SecureString $localUserPassword -AsPlainText -Force
 $credential = New-Object System.Management.Automation.PSCredential($localUserName, $securePassword)
 
+# Force-create the local user's Windows profile before any -Credential spawn that runs
+# managed code. Without this, the first Start-Process -Credential as RhinoComputeUser
+# fails with STATUS_DLL_INIT_FAILED (0xC0000142 / exit code -1073741502) because the
+# CLR/COM initializers loaded by Yak.exe can't bind to an uninitialized user profile.
+# This bites headless sessions (SSM Session Manager, scheduled tasks, unattended CI)
+# where the parent session can't lend desktop/profile state to the child spawn. The
+# -LoadUserProfile flag here loads the profile (creating it from the Default User
+# template on first call) before cmd.exe runs; cmd exits immediately, the profile
+# stays loaded, and the subsequent Yak invocation succeeds.
+Write-Step "Materializing $localUserName Windows profile (warmup for -Credential spawn)"
+Start-Process -FilePath "cmd.exe" -ArgumentList "/c","exit" -Credential $credential -LoadUserProfile -Wait
+
 Write-Step "Installing the Hops plugin"
 
 $yakPath = "C:\Program Files\Rhino 8\System\Yak.exe"
