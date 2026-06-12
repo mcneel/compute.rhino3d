@@ -1,3 +1,23 @@
+param(
+    # When set, skip the Hops plugin install step. Hops is a convenience for users
+    # whose workflows depend on Grasshopper-definition-as-a-service; compute.geometry's
+    # core Rhino API works fine without it. Skip is useful for headless bootstrap
+    # contexts (SSM Session Manager, CI, unattended AMI builds, scheduled tasks)
+    # where Start-Process -Credential as the freshly-created RhinoComputeUser crashes
+    # the Yak install with STATUS_DLL_INIT_FAILED (exit code -1073741502) — the
+    # CLR/COM initializers Yak loads need session/desktop state that -Credential
+    # spawn doesn't provide in non-interactive contexts. Users who need Hops in a
+    # skipped deployment can run 'yak install hops' manually after deployment.
+    [switch]$SkipHopsInstall
+)
+
+# Env-var bridge: lets callers who invoke the bootstrap via boostrap_step-1.ps1
+# (which doesn't accept params or pass them through) opt out of the Hops install
+# by setting BOOTSTRAP_SKIP_HOPS=1 before launching the orchestrator.
+if (-not $SkipHopsInstall -and $env:BOOTSTRAP_SKIP_HOPS -eq '1') {
+    $SkipHopsInstall = $true
+}
+
 $appPoolName = "RhinoComputeAppPool"
 $websiteName = "Rhino.Compute"
 $physicalPathRoot = "C:\inetpub\wwwroot\aspnet_client\system_web\4_0_30319"
@@ -76,29 +96,22 @@ $localUserPassword = (New-Object PSCredential $localUserName,$securePassword).Ge
 $securePassword = ConvertTo-SecureString $localUserPassword -AsPlainText -Force
 $credential = New-Object System.Management.Automation.PSCredential($localUserName, $securePassword)
 
-# Force-create the local user's Windows profile before any -Credential spawn that runs
-# managed code. Without this, the first Start-Process -Credential as RhinoComputeUser
-# fails with STATUS_DLL_INIT_FAILED (0xC0000142 / exit code -1073741502) because the
-# CLR/COM initializers loaded by Yak.exe can't bind to an uninitialized user profile.
-# This bites headless sessions (SSM Session Manager, scheduled tasks, unattended CI)
-# where the parent session can't lend desktop/profile state to the child spawn. The
-# -LoadUserProfile flag here loads the profile (creating it from the Default User
-# template on first call) before cmd.exe runs; cmd exits immediately, the profile
-# stays loaded, and the subsequent Yak invocation succeeds.
-Write-Step "Materializing $localUserName Windows profile (warmup for -Credential spawn)"
-Start-Process -FilePath "cmd.exe" -ArgumentList "/c","exit" -Credential $credential -LoadUserProfile -Wait
+if ($SkipHopsInstall) {
+    Write-Step "Skipping Hops plugin install (set by -SkipHopsInstall switch or BOOTSTRAP_SKIP_HOPS=1)"
+    Write-Host "  Users who need Hops can install it after deployment via 'yak install hops'"
+} else {
+    Write-Step "Installing the Hops plugin"
 
-Write-Step "Installing the Hops plugin"
+    $yakPath = "C:\Program Files\Rhino 8\System\Yak.exe"
+    $arguments = "install hops"
 
-$yakPath = "C:\Program Files\Rhino 8\System\Yak.exe"
-$arguments = "install hops"
+    # Use Start-Process with properly quoted arguments
+    $process = Start-Process -FilePath $yakPath -ArgumentList $arguments -Credential $credential -WorkingDirectory "C:\Program Files\Rhino 8\System" -PassThru -Wait
 
-# Use Start-Process with properly quoted arguments
-$process = Start-Process -FilePath $yakPath -ArgumentList $arguments -Credential $credential -WorkingDirectory "C:\Program Files\Rhino 8\System" -PassThru -Wait
-
-if ($process.ExitCode -ne 0) {
-    Write-Error "Failed to install the Hops plugin. Exit code: $($process.ExitCode)"
-    exit $process.ExitCode
+    if ($process.ExitCode -ne 0) {
+        Write-Error "Failed to install the Hops plugin. Exit code: $($process.ExitCode)"
+        exit $process.ExitCode
+    }
 }
 
 Write-Step "Creating application pool"
