@@ -45,23 +45,40 @@ namespace rhino.compute
         /// A child does not bind its port until Rhino, Grasshopper and the compute
         /// plug-ins have all finished loading — compute.geometry's Startup.Configure
         /// calls RhinoCoreStartup() synchronously, so the whole Rhino boot happens
-        /// before Kestrel listens. On a cold cloud instance (empty file cache, first
-        /// Grasshopper library scan, scripting environment init) that regularly takes
-        /// longer than the default, which makes the very first request to a freshly
-        /// booted server fail while the second one succeeds off a warm cache.
+        /// before Kestrel listens.
         ///
-        /// The 60s default is historical: it was raised to 60 in March 2021 (PR #241)
-        /// for children launched locally by Hops on a developer workstation, and has
-        /// not been revisited since. Raise it wherever a slow first call is preferable
-        /// to a failed one.
+        /// On a freshly created cloud instance that load is dominated by first-touch
+        /// reads of the Rhino + Grasshopper file set. Where the volume was created
+        /// from a snapshot, those blocks are fetched on demand, so the very first
+        /// child pays a one-time cost far above the steady-state figure.
         /// </summary>
         public static int ChildStartupTimeout { get; private set; }
 
         /// <summary>
         /// Default for <see cref="ChildStartupTimeout"/>. Public so callers can tell
         /// whether the running value was tuned or left alone.
+        ///
+        /// Measured, not guessed. On an AWS Marketplace instance (t3.xlarge, us-east-1,
+        /// Rhino 8.34.26230) the first child on a virgin EBS volume took 119.2s to open
+        /// its port; every later child on the same volume took 7-11s regardless of how
+        /// long the instance had been up. So the cost is one-time per volume, not a
+        /// warm-up curve — which means the previous 60s default did not fail
+        /// intermittently, it failed on the first request to EVERY new instance.
+        ///
+        /// 300s is ~2.5x that worst case. The headroom covers what the measurement did
+        /// not sample: smaller or burstable instance types, other regions, and
+        /// user-installed Grasshopper plug-ins, all of which add load time. The only
+        /// cost of the headroom is how long a genuinely broken child takes to report
+        /// failure.
+        ///
+        /// Note this bound is necessary but not sufficient for a fast first call: 119s
+        /// still exceeds many HTTP clients' own timeouts. Loading a child at startup
+        /// (--spawn-on-startup) is what moves that cost off the first request.
+        ///
+        /// Historical note: the previous value of 60 dates from March 2021 (PR #241),
+        /// chosen for children launched locally by Hops on a developer workstation.
         /// </summary>
-        public const int DefaultChildStartupTimeout = 60;
+        public const int DefaultChildStartupTimeout = 300;
 
         /// <summary>
         /// Non-fatal configuration problems collected during <see cref="Load"/> —
