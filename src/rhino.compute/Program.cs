@@ -76,6 +76,16 @@ namespace rhino.compute
               HelpText = "Request timeout in seconds (default: 100)")]
             public int TimeoutSeconds { get; set; } = -1;
 
+            [Option("child-startup-timeout",
+              Required = false,
+              HelpText =
+                @"Seconds to wait for a spawned compute.geometry child to open its port before giving up on it
+                (default 60). A child does not listen until Rhino, Grasshopper and the compute plug-ins have all
+                finished loading, so on a cold server this can exceed the default and make the first request fail
+                even though nothing is actually wrong. Also settable via RHINO_COMPUTE_CHILD_STARTUP_TIMEOUT,
+                which can be changed on an already-deployed server without editing web.config.")]
+            public int ChildStartupTimeoutSeconds { get; set; } = -1;
+
             [Option("load-grasshopper",
               Required = false,
               HelpText = "Load Grasshopper plugin in child processes (default: true)")]
@@ -113,6 +123,12 @@ namespace rhino.compute
 
                 if (o.TimeoutSeconds > 0)
                     Environment.SetEnvironmentVariable("RHINO_COMPUTE_TIMEOUT", o.TimeoutSeconds.ToString());
+
+                // Only set when the flag was actually passed, so an operator who set
+                // RHINO_COMPUTE_CHILD_STARTUP_TIMEOUT in the environment (the path that
+                // needs no web.config edit) is not silently overridden by the default.
+                if (o.ChildStartupTimeoutSeconds > 0)
+                    Environment.SetEnvironmentVariable("RHINO_COMPUTE_CHILD_STARTUP_TIMEOUT", o.ChildStartupTimeoutSeconds.ToString());
 
                 if (o.LoadGrasshopper.HasValue)
                     Environment.SetEnvironmentVariable("RHINO_COMPUTE_LOAD_GRASSHOPPER", o.LoadGrasshopper.Value ? "true" : "false");
@@ -171,6 +187,12 @@ namespace rhino.compute
                 .WriteTo.File(new ExpressionTemplate("RC   [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
             Log.Logger = loggerConfig.CreateLogger();
 
+            // Config.Load() runs before the logger exists, so anything it rejected
+            // (unparseable or out-of-range env vars) was buffered. Emit it now —
+            // otherwise an operator who typos a value gets silent fallback behaviour.
+            foreach (var warning in Config.Warnings)
+                Log.Warning("Configuration: {Warning}", warning);
+
             var host = Host.CreateDefaultBuilder(args)
                 .UseSerilog()
                 .ConfigureWebHostDefaults(webBuilder =>
@@ -211,9 +233,18 @@ namespace rhino.compute
             if (string.IsNullOrWhiteSpace(Config.ApiKey))
                 Log.Warning("RHINO_COMPUTE_KEY is not set; API authentication is disabled. All endpoints are open to any caller.");
 
+            // The full config dump below is Debug-level, which is off in production — but a
+            // tuned child startup timeout is exactly the sort of thing you need to see in a
+            // production log when diagnosing first-call failures. Announce it at Information
+            // when it differs from the default, and stay quiet when it does not.
+            if (Config.ChildStartupTimeout != Config.DefaultChildStartupTimeout)
+                Log.Information("Child startup timeout is {Timeout} (default is {Default})",
+                    FormatTimeout(Config.ChildStartupTimeout), FormatTimeout(Config.DefaultChildStartupTimeout));
+
             Log.Debug($"Config:");
             Log.Debug("  Max Request Size = {RequestSize}", (Config.MaxRequestSize / 1024.0 / 1024.0).ToString("F2") + " MB");
             Log.Debug("  Timeout = {Timeout}", FormatTimeout(Config.ReverseProxyRequestTimeout));
+            Log.Debug("  Child Startup Timeout = {ChildStartupTimeout}", FormatTimeout(Config.ChildStartupTimeout));
             Log.Debug("  Child Count = {ChildCount}", ComputeChildren.SpawnCount.ToString());
             Log.Debug("  Spawn Children At Startup = {SpawnChild}", ComputeChildren.SpawnOnStartup.ToString());
             Log.Debug("  Load Children Sequentially = {LoadSequentially}", ComputeChildren.LoadChildrenSequentially.ToString());

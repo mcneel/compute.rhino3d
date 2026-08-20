@@ -246,7 +246,11 @@ namespace rhino.compute
             {
                 started = TryStartChild(pathToCompute, port, out process);
                 if (!started)
-                    Log.Warning("compute.geometry on port {Port} failed to start within 60 seconds", port);
+                    Log.Warning("compute.geometry on port {Port} failed to start within {Timeout} seconds. " +
+                                "A cold server can legitimately need longer than this to load Rhino, Grasshopper " +
+                                "and the compute plug-ins; raise --child-startup-timeout or " +
+                                "RHINO_COMPUTE_CHILD_STARTUP_TIMEOUT if that is the case here.",
+                                port, Config.ChildStartupTimeout);
             }
             catch (Exception ex) when (ex is System.ComponentModel.Win32Exception ||
                                        ex is InvalidOperationException)
@@ -318,7 +322,7 @@ namespace rhino.compute
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
             }
-            return WaitForChildProcess(process, port);
+            return WaitForChildProcess(process, port, Config.ChildStartupTimeout);
         }
 
         // Wraps raw stdout/stderr lines from child processes (e.g. Grasshopper's plugin-load
@@ -383,7 +387,10 @@ namespace rhino.compute
 
         // Polls until the child process port is confirmed open, or kills the process after timeout.
         // Returns true if the port opened within the timeout, false otherwise.
-        static bool WaitForChildProcess(Process process, int port, int timeoutSeconds = 60)
+        // timeoutSeconds is deliberately required rather than defaulted: the only call site
+        // passes Config.ChildStartupTimeout, and a default here would silently reintroduce a
+        // hardcoded value for any future caller that forgot to pass one.
+        static bool WaitForChildProcess(Process process, int port, int timeoutSeconds)
         {
             var start = DateTime.Now;
             while (true)
