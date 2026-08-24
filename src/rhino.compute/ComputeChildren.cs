@@ -127,7 +127,10 @@ namespace rhino.compute
             {
                 // Bootstrap: no running children — launch one synchronously (outside the lock
                 // so we don't hold lockObject for the full startup wait) then pick it up.
-                LaunchCompute();
+                // bootstrapOnly so a concurrent caller (typically a client retrying during a
+                // slow cold load) joins this spawn via the Monitor.Wait below rather than
+                // starting a second parallel Rhino load.
+                LaunchCompute(bootstrapOnly: true);
 
                 lock (lockObject)
                 {
@@ -206,8 +209,13 @@ namespace rhino.compute
         /// other threads can continue serving requests through already-ready children), then
         /// re-locks to enqueue. Cleans up the port reservation on failure. No-op when the pool
         /// is already at or above SpawnCount.
+        /// <para>When <paramref name="bootstrapOnly"/> is true (the cold-start path in
+        /// <see cref="GetComputeServerBaseUrl"/>), spawns only when the pool AND the pending
+        /// set are completely empty, so concurrent first-request callers join the one in-flight
+        /// spawn (via the Monitor.Wait in GetComputeServerBaseUrl) instead of each starting a
+        /// parallel Rhino load that would contend for first-touch disk I/O on a cold instance.</para>
         /// </summary>
-        public static void LaunchCompute()
+        public static void LaunchCompute(bool bootstrapOnly = false)
         {
             // Resolve path before acquiring the lock to keep lock duration short.
             string pathToCompute = FindComputeExecutablePath();
@@ -221,7 +229,11 @@ namespace rhino.compute
             int port;
             lock (lockObject)
             {
-                if (computeProcesses.Count + pendingSpawnPorts.Count >= SpawnCount)
+                // Check + reserve under the one lock so there is no check-then-act race:
+                // bootstrapOnly spawns only into a completely empty pool (join semantics);
+                // the normal top-up path fills up to SpawnCount.
+                int inFlight = computeProcesses.Count + pendingSpawnPorts.Count;
+                if (inFlight >= (bootstrapOnly ? 1 : SpawnCount))
                     return;
 
                 var usedPorts = new HashSet<int>(computeProcesses.Select(t => t.Item2));
@@ -246,7 +258,11 @@ namespace rhino.compute
             {
                 started = TryStartChild(pathToCompute, port, out process);
                 if (!started)
-                    Log.Warning("compute.geometry on port {Port} failed to start within 60 seconds", port);
+                    Log.Warning("compute.geometry on port {Port} failed to start within {Timeout} seconds. " +
+                                "A cold server can legitimately need longer than this to load Rhino, Grasshopper " +
+                                "and the compute plug-ins; raise --child-startup-timeout or " +
+                                "RHINO_COMPUTE_CHILD_STARTUP_TIMEOUT if that is the case here.",
+                                port, Config.ChildStartupTimeout);
             }
             catch (Exception ex) when (ex is System.ComponentModel.Win32Exception ||
                                        ex is InvalidOperationException)
@@ -318,7 +334,7 @@ namespace rhino.compute
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
             }
-            return WaitForChildProcess(process, port);
+            return WaitForChildProcess(process, port, Config.ChildStartupTimeout);
         }
 
         // Wraps raw stdout/stderr lines from child processes (e.g. Grasshopper's plugin-load
@@ -383,7 +399,10 @@ namespace rhino.compute
 
         // Polls until the child process port is confirmed open, or kills the process after timeout.
         // Returns true if the port opened within the timeout, false otherwise.
-        static bool WaitForChildProcess(Process process, int port, int timeoutSeconds = 60)
+        // timeoutSeconds is deliberately required rather than defaulted: the only call site
+        // passes Config.ChildStartupTimeout, and a default here would silently reintroduce a
+        // hardcoded value for any future caller that forgot to pass one.
+        static bool WaitForChildProcess(Process process, int port, int timeoutSeconds)
         {
             var start = DateTime.Now;
             while (true)
