@@ -127,7 +127,10 @@ namespace rhino.compute
             {
                 // Bootstrap: no running children — launch one synchronously (outside the lock
                 // so we don't hold lockObject for the full startup wait) then pick it up.
-                LaunchCompute();
+                // bootstrapOnly so a concurrent caller (typically a client retrying during a
+                // slow cold load) joins this spawn via the Monitor.Wait below rather than
+                // starting a second parallel Rhino load.
+                LaunchCompute(bootstrapOnly: true);
 
                 lock (lockObject)
                 {
@@ -206,8 +209,13 @@ namespace rhino.compute
         /// other threads can continue serving requests through already-ready children), then
         /// re-locks to enqueue. Cleans up the port reservation on failure. No-op when the pool
         /// is already at or above SpawnCount.
+        /// <para>When <paramref name="bootstrapOnly"/> is true (the cold-start path in
+        /// <see cref="GetComputeServerBaseUrl"/>), spawns only when the pool AND the pending
+        /// set are completely empty, so concurrent first-request callers join the one in-flight
+        /// spawn (via the Monitor.Wait in GetComputeServerBaseUrl) instead of each starting a
+        /// parallel Rhino load that would contend for first-touch disk I/O on a cold instance.</para>
         /// </summary>
-        public static void LaunchCompute()
+        public static void LaunchCompute(bool bootstrapOnly = false)
         {
             // Resolve path before acquiring the lock to keep lock duration short.
             string pathToCompute = FindComputeExecutablePath();
@@ -221,7 +229,11 @@ namespace rhino.compute
             int port;
             lock (lockObject)
             {
-                if (computeProcesses.Count + pendingSpawnPorts.Count >= SpawnCount)
+                // Check + reserve under the one lock so there is no check-then-act race:
+                // bootstrapOnly spawns only into a completely empty pool (join semantics);
+                // the normal top-up path fills up to SpawnCount.
+                int inFlight = computeProcesses.Count + pendingSpawnPorts.Count;
+                if (inFlight >= (bootstrapOnly ? 1 : SpawnCount))
                     return;
 
                 var usedPorts = new HashSet<int>(computeProcesses.Select(t => t.Item2));

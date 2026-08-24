@@ -81,6 +81,26 @@ namespace rhino.compute
         public const int DefaultChildStartupTimeout = 300;
 
         /// <summary>
+        /// RHINO_COMPUTE_CHILDCOUNT: number of child compute.geometry processes to run.
+        /// Settable on a deployed server without editing web.config. Clamped to
+        /// [1, <see cref="ComputeChildren.MaxChildren"/>].
+        /// </summary>
+        public static int ChildCount { get; private set; }
+
+        /// <summary>Default for <see cref="ChildCount"/> when neither the flag nor the env var is set.</summary>
+        public const int DefaultChildCount = 4;
+
+        /// <summary>
+        /// RHINO_COMPUTE_IDLESPAN: seconds a child stays loaded between requests before it
+        /// shuts down (and stops incurring the metered software charge). Settable on a
+        /// deployed server without editing web.config. Clamped to [60, 86400].
+        /// </summary>
+        public static int IdleSpanSeconds { get; private set; }
+
+        /// <summary>Default for <see cref="IdleSpanSeconds"/> (1 hour).</summary>
+        public const int DefaultIdleSpanSeconds = 3600;
+
+        /// <summary>
         /// Non-fatal configuration problems collected during <see cref="Load"/> —
         /// unparseable values, out-of-range values, deprecated names. Load() runs
         /// before the logger exists, so these are buffered here for the caller to
@@ -111,6 +131,27 @@ namespace rhino.compute
                 ChildStartupTimeout = DefaultChildStartupTimeout;
             }
 
+            // Clamp (rather than reset) so an operator who asks for more children than the
+            // cap still gets the cap - preserving the previous --childcount cap-to-max
+            // behaviour - and a nonsensical low value floors to 1 instead of failing.
+            ChildCount = GetEnvironmentVariable(RHINO_COMPUTE_CHILDCOUNT, DefaultChildCount);
+            if (ChildCount < 1 || ChildCount > ComputeChildren.MaxChildren)
+            {
+                int clamped = Math.Clamp(ChildCount, 1, ComputeChildren.MaxChildren);
+                warnings.Add($"{RHINO_COMPUTE_CHILDCOUNT} set to '{ChildCount}'; outside the supported " +
+                             $"range 1-{ComputeChildren.MaxChildren}. Using {clamped}.");
+                ChildCount = clamped;
+            }
+
+            IdleSpanSeconds = GetEnvironmentVariable(RHINO_COMPUTE_IDLESPAN, DefaultIdleSpanSeconds);
+            if (IdleSpanSeconds < MinIdleSpanSeconds || IdleSpanSeconds > MaxIdleSpanSeconds)
+            {
+                int clamped = Math.Clamp(IdleSpanSeconds, MinIdleSpanSeconds, MaxIdleSpanSeconds);
+                warnings.Add($"{RHINO_COMPUTE_IDLESPAN} set to '{IdleSpanSeconds}'; outside the supported " +
+                             $"range {MinIdleSpanSeconds}-{MaxIdleSpanSeconds} seconds. Using {clamped}.");
+                IdleSpanSeconds = clamped;
+            }
+
 #if DEBUG
             Debug = true;
 #elif RELEASE
@@ -128,12 +169,20 @@ namespace rhino.compute
         const string RHINO_COMPUTE_LOG_RETAIN_DAYS = "RHINO_COMPUTE_LOG_RETAIN_DAYS";
         const string RHINO_COMPUTE_DEBUG = "RHINO_COMPUTE_DEBUG";
         const string RHINO_COMPUTE_CHILD_STARTUP_TIMEOUT = "RHINO_COMPUTE_CHILD_STARTUP_TIMEOUT";
+        const string RHINO_COMPUTE_CHILDCOUNT = "RHINO_COMPUTE_CHILDCOUNT";
+        const string RHINO_COMPUTE_IDLESPAN = "RHINO_COMPUTE_IDLESPAN";
 
         // Bounds for ChildStartupTimeout. The floor is well below any realistic Rhino
         // load time and exists only to reject 0/negative; the ceiling is an hour, past
         // which a stuck child should be diagnosed rather than waited on.
         const int MinChildStartupTimeout = 5;
         const int MaxChildStartupTimeout = 3600;
+
+        // Bounds for IdleSpanSeconds. Floor of 60s keeps a child alive long enough to serve
+        // a burst without thrashing cold starts; ceiling of 24h caps how long an idle child
+        // (and its metered charge) lingers after the last request.
+        const int MinIdleSpanSeconds = 60;
+        const int MaxIdleSpanSeconds = 86400;
 
         readonly static List<string> warnings = new List<string>();
 
