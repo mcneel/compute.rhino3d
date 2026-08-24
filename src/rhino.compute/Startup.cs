@@ -70,7 +70,7 @@
             {
                 builder.MapHealthChecks("/healthcheck");
                 MapValidateEndpoint(builder);
-                MapReadyEndpoint(builder);
+                MapChildrenReadyEndpoint(builder);
                 ReverseProxyModule.MapEndpoints(builder);
             });
         }
@@ -111,26 +111,31 @@
             });
         }
 
-        // Readiness probe. Returns 200 only once at least one compute.geometry child has
-        // finished loading and can solve geometry; 503 while the pool is still empty or
-        // warming. Unlike the catch-all proxy it does NOT call GetComputeServerBaseUrl, so
-        // polling /ready never spawns a child (and never starts the metered software charge).
-        // Pair with /healthcheck: healthcheck = the front end is up; ready = geometry can be
-        // solved now. (Behind ApiKeyMiddleware when a key is configured, same as /healthcheck.)
-        static void MapReadyEndpoint(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder builder)
+        // Children-ready probe. Returns 200 once at least one compute.geometry child has
+        // finished loading and can solve geometry; 503 while the pool is still empty or warming.
+        // Unlike the catch-all proxy it does NOT call GetComputeServerBaseUrl, so polling
+        // /childrenready never spawns a child (and never starts the metered software charge).
+        //
+        // Distinct from /activechildren, deliberately: /activechildren counts child PROCESSES
+        // (including ones still loading, whose port is not open yet) and its default can spawn.
+        // /childrenready reports only children READY TO SERVE, as a plain 200/503 so a health
+        // probe can key on the status code. Pair with /healthcheck: healthcheck = the front end
+        // is up; childrenready = geometry can be solved now. (Behind ApiKeyMiddleware when a key
+        // is configured, same as /healthcheck.)
+        static void MapChildrenReadyEndpoint(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder builder)
         {
-            builder.MapGet("/ready", async ctx =>
+            builder.MapGet("/childrenready", async ctx =>
             {
                 int ready = ComputeChildren.CurrentChildCount;
                 if (ready > 0)
                 {
                     ctx.Response.StatusCode = 200;
-                    await ctx.Response.WriteAsync($"Ready ({ready} child process(es) loaded)");
+                    await ctx.Response.WriteAsync($"Ready ({ready} child process(es) ready to serve)");
                 }
                 else
                 {
                     ctx.Response.StatusCode = 503;
-                    await ctx.Response.WriteAsync("Not ready (no compute.geometry child loaded yet)");
+                    await ctx.Response.WriteAsync("Not ready (no compute.geometry child ready to serve yet)");
                 }
             });
         }
