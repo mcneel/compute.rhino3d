@@ -125,27 +125,25 @@ namespace rhino.compute
             app.MapPost("/{*uri}", (HttpRequest req, HttpResponse res) => ProxyRequest(req, res, HttpMethod.Post));
         }
 
-        // GET /activechildren and GET /active-children — return the count of active compute.geometry
-        // child processes. ?initialize=true (default) spawns up to SpawnCount children if none are
-        // running, then returns the count. ?initialize=false just reports the count without spawning,
-        // useful for passive monitoring that shouldn't trigger billing.
+        // GET /activechildren and GET /active-children — report the number of compute.geometry
+        // children READY TO SERVE (port open, in the pool) as a plain integer body. Always 200:
+        // this is a query that always succeeds and "0" is a valid answer (no children ready yet),
+        // so a 503 would wrongly imply the endpoint itself failed. Callers treat > 0 as ready.
+        // Pure report, NO side effects: it never spawns a child, so polling it can never start
+        // the metered software charge. To launch children use POST /launch-children (fill to
+        // SpawnCount) or POST /launch-child (add one).
+        //
+        // NOTE: the count is the READY pool (ComputeChildren.CurrentChildCount), not the raw OS
+        // process count — a child still loading Rhino is not counted until its port is open.
         static async Task ActiveChildrenEndpoint(HttpContext context)
         {
-            bool initialize = true;
-            if (context.Request.Query.TryGetValue("initialize", out var initValue)
-                && bool.TryParse(initValue, out var parsed))
-            {
-                initialize = parsed;
-            }
-            if (initialize)
-                InitializeChildren();
-            await context.Response.WriteAsync($"{ComputeChildren.ActiveComputeCount}");
+            await context.Response.WriteAsync($"{ComputeChildren.CurrentChildCount}");
         }
 
         // POST /shutdown-children — gracefully shut down children. No params = all; ?port=N
         // = just that one. Does not respawn. After shutdown-all, the next /grasshopper request
-        // triggers an auto-spawn back to SpawnCount; to confirm count without re-spawning, poll
-        // /activechildren?initialize=false.
+        // triggers an auto-spawn back to SpawnCount; to confirm the ready count, poll
+        // /activechildren (it never spawns).
         static async Task ShutdownChildrenEndpoint(HttpRequest req, HttpResponse res)
         {
             if (!TryParsePortFilter(req, out int? portFilter, out string parseError))
