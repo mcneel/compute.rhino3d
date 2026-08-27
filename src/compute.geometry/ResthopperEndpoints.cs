@@ -176,7 +176,13 @@ namespace compute.geometry
             if (!string.IsNullOrEmpty(json))
             {
                 ctx.Response.ContentType = "application/json";
-                await ctx.Response.WriteAsync(json);
+                // Send the body with a Content-Length header so the
+                // size is known up front. Without it, the response is sent in chunks, which
+                // the Node client fails to read on a 500 error, causing the request to hang
+                // until it times out.
+                var payload = System.Text.Encoding.UTF8.GetBytes(json);
+                ctx.Response.ContentLength = payload.Length;
+                await ctx.Response.Body.WriteAsync(payload, 0, payload.Length);
             }
         }
 
