@@ -87,6 +87,15 @@ namespace compute.geometry
         /// </summary>
         public static bool LoadGrasshopper { get; private set; }
 
+        /// <summary>
+        /// RHINO_COMPUTE_ENABLE_SCRIPTING: expose the /script/* endpoints that run Python 3, Python 2
+        /// and C# source sent in the request body (defaults to false). These execute arbitrary code on
+        /// the server with no sandbox beyond the API key, which is required on every POST whenever
+        /// RHINO_COMPUTE_KEY is set (same rule as /grasshopper). Set a key and isolate the process
+        /// (dedicated user, systemd hardening or a container) when enabling this on a server.
+        /// </summary>
+        public static bool EnableScripting { get; private set; }
+
         public static string[] GetDeprecationWarnings() => warnings.ToArray();
 
         /// <summary>
@@ -109,6 +118,7 @@ namespace compute.geometry
             LogRetainDays = GetEnvironmentVariable(RHINO_COMPUTE_LOG_RETAIN_DAYS, 10, COMPUTE_LOG_RETAIN_DAYS);
             CreateHeadlessDoc = GetEnvironmentVariable<bool>(RHINO_COMPUTE_CREATE_HEADLESS_DOC, false);
             LoadGrasshopper = GetEnvironmentVariable<bool>(RHINO_COMPUTE_LOAD_GRASSHOPPER, true);
+            EnableScripting = GetEnvironmentVariable<bool>(RHINO_COMPUTE_ENABLE_SCRIPTING, false);
 
 #if DEBUG
             Debug = true;
@@ -138,6 +148,7 @@ namespace compute.geometry
         const string RHINO_COMPUTE_DEBUG = "RHINO_COMPUTE_DEBUG";
         const string RHINO_COMPUTE_CREATE_HEADLESS_DOC = "RHINO_COMPUTE_CREATE_HEADLESS_DOC";
         const string RHINO_COMPUTE_LOAD_GRASSHOPPER = "RHINO_COMPUTE_LOAD_GRASSHOPPER";
+        const string RHINO_COMPUTE_ENABLE_SCRIPTING = "RHINO_COMPUTE_ENABLE_SCRIPTING";
 
         // deprecated
         const string COMPUTE_BIND_URLS = "COMPUTE_BIND_URLS";
