@@ -80,6 +80,7 @@ namespace compute.geometry
                 MapValidateEndpoint(builder);
                 FixedEndPointsModule.MapEndpoints(builder);
                 ResthopperEndpointsModule.MapEndpoints(builder);
+                ScriptEndpointsModule.MapEndpoints(builder);
                 RhinoGetModule.MapEndpoints(builder);
                 RhinoPostModule.MapEndpoints(builder);
             });
