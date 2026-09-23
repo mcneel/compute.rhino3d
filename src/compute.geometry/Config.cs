@@ -21,7 +21,7 @@ namespace compute.geometry
         /// RHINO_COMPUTE_KEY: the API key required to make POST requests.
         /// Leave empty to disable.
         /// </summary>
-        public static string ApiKey { get; private set; }
+        public static string ApiKey { get; set; }
 
         /// <summary>
         /// RHINO_COMPUTE_TIMEOUT: time in seconds for outbound HTTP fetches performed by this
@@ -85,7 +85,7 @@ namespace compute.geometry
         /// RHINO_COMPUTE_LOAD_GRASSHOPPER: load Grasshopper plugin at startup (defaults to true).
         /// Set to false to skip Grasshopper loading for faster startup when only using geometry endpoints.
         /// </summary>
-        public static bool LoadGrasshopper { get; private set; }
+        public static bool LoadGrasshopper { get; set; }
 
         public static string[] GetDeprecationWarnings() => warnings.ToArray();
 

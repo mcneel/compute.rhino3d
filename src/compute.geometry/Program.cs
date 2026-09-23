@@ -168,14 +168,13 @@ namespace compute.geometry
                         break;
                     case "load-grasshopper":
                         {
-                            // Set environment variable so Config.Load() picks it up
-                            Environment.SetEnvironmentVariable("RHINO_COMPUTE_LOAD_GRASSHOPPER", value);
-                            Log.Information($"Grasshopper loading set to: {value}");
+                            Config.LoadGrasshopper = value == "1" || value.Equals("true", StringComparison.OrdinalIgnoreCase);
+                            Log.Information($"Grasshopper loading set to: {Config.LoadGrasshopper}");
                         }
                         break;
                     case "apikey":
                         {
-                            Environment.SetEnvironmentVariable("RHINO_COMPUTE_KEY", value);
+                            Config.ApiKey = value;
                             Log.Information("API key set from command line");
                         }
                         break;
