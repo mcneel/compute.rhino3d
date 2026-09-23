@@ -162,7 +162,8 @@ namespace compute.geometry
                 return;
             }
 
-            string body = await new StreamReader(ctx.Request.Body).ReadToEndAsync();
+            using var reader = new StreamReader(ctx.Request.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
+            string body = await reader.ReadToEndAsync();
             ScriptRequest request;
             try
             {
