@@ -532,8 +532,8 @@ namespace compute.geometry
                     EnsureLanguageStarted(specName, spec);
 
                     object context = s_runContextCtor.Invoke(new object[] { false, false });
-                    var stdout = new MemoryStream();
-                    var stderr = new MemoryStream();
+                    using var stdout = new MemoryStream();
+                    using var stderr = new MemoryStream();
                     SetProperty(context, "OutputStream", stdout);
                     SetProperty(context, "ErrorStream", stderr);
                     SetProperty(context, "AutoApplyParams", true);   // take Inputs/Outputs from this context
