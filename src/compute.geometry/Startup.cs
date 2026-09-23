@@ -235,7 +235,7 @@ namespace compute.geometry
             }
             else
             {
-                Log.Information("(3/4) Skipping grasshopper (disabled via RHINO_COMPUTE_LOAD_GRASSHOPPER)");
+                Log.Information("(3/4) Skipping grasshopper (disabled via RHINO_COMPUTE_LOAD_GRASSHOPPER or -load-grasshopper:false)");
             }
 
             Log.Information("(4/4) Loading compute plug-ins");
