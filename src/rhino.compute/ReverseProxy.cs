@@ -315,7 +315,7 @@ namespace rhino.compute
             }
             finally
             {
-                System.Threading.Interlocked.CompareExchange(ref initTask, null, task);
+                _ = System.Threading.Interlocked.CompareExchange(ref initTask, null, task);
             }
         }
 
