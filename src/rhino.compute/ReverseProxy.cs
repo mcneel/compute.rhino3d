@@ -16,8 +16,10 @@ namespace rhino.compute
         static Task initTask;
         static HttpClient client;
         private const string API_KEY_HEADER = "RhinoComputeKey";
-        public const string INGRESS_BYTES_HEADER = "Rhino-Compute-Ingress-Bytes";
-        public const string EGRESS_BYTES_HEADER = "Rhino-Compute-Egress-Bytes";
+        public static readonly string[] MeteringHeaders =
+        {
+            "Rhino-Compute-Ingress-Bytes", "Rhino-Compute-Egress-Bytes", "Rhino-Compute-Cpu-Seconds", "Rhino-Compute-Pid",
+        };
 
         static void Initialize()
         {
@@ -390,8 +392,8 @@ namespace rhino.compute
                         // as application/json rather than the ASP.NET Core default text/plain.
                         if (proxyResponse.Content.Headers.ContentType != null)
                             res.ContentType = proxyResponse.Content.Headers.ContentType.ToString();
-                        CopyResponseHeader(proxyResponse, res, INGRESS_BYTES_HEADER);
-                        CopyResponseHeader(proxyResponse, res, EGRESS_BYTES_HEADER);
+                        foreach (string header in MeteringHeaders)
+                            CopyResponseHeader(proxyResponse, res, header);
                         responseString = await proxyResponse.Content.ReadAsStringAsync();
                     }
                 }

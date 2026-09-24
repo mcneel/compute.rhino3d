@@ -26,7 +26,7 @@ namespace compute.geometry
                     builder =>
                     {
                         builder.AllowAnyOrigin().AllowAnyHeader()
-                            .WithExposedHeaders(MeteringMiddleware.INGRESS_BYTES_HEADER, MeteringMiddleware.EGRESS_BYTES_HEADER);
+                            .WithExposedHeaders(MeteringMiddleware.Headers);
                     });
             });
             services.AddHealthChecks();

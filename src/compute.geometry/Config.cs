@@ -97,8 +97,8 @@ namespace compute.geometry
         public static bool EnableScripting { get; private set; }
 
         /// <summary>
-        /// RHINO_COMPUTE_METERING_HEADERS: add Rhino-Compute-Ingress-Bytes and
-        /// Rhino-Compute-Egress-Bytes headers to every response (defaults to false).
+        /// RHINO_COMPUTE_METERING_HEADERS: add Rhino-Compute-Ingress-Bytes, -Egress-Bytes, -Cpu-Seconds
+        /// and -Pid headers to every response (defaults to false).
         /// </summary>
         public static bool MeteringHeaders { get; set; }
 

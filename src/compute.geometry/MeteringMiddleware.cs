@@ -8,22 +8,30 @@ using Microsoft.AspNetCore.Http;
 namespace compute.geometry
 {
     /// <summary>
-    /// Adds the request and response body sizes, in bytes, to every response.
+    /// Adds the request and response body sizes, in bytes, the CPU time the request used, and the id of
+    /// the serving process to every response. CPU includes processes compute.geometry starts; it is exact
+    /// only when this process handles one request at a time (as /grasshopper does).
     /// </summary>
     public class MeteringMiddleware
     {
         public const string INGRESS_BYTES_HEADER = "Rhino-Compute-Ingress-Bytes";
         public const string EGRESS_BYTES_HEADER = "Rhino-Compute-Egress-Bytes";
+        public const string CPU_SECONDS_HEADER = "Rhino-Compute-Cpu-Seconds";
+        public const string PID_HEADER = "Rhino-Compute-Pid";
+
+        public static readonly string[] Headers = { INGRESS_BYTES_HEADER, EGRESS_BYTES_HEADER, CPU_SECONDS_HEADER, PID_HEADER };
 
         private readonly RequestDelegate next;
 
         public MeteringMiddleware(RequestDelegate next)
         {
             this.next = next;
+            ProcessTreeCpu.Initialize();
         }
 
         public async Task InvokeAsync(HttpContext context)
         {
+            var cpuBefore = ProcessTreeCpu.Total();
             var originalRequestBody = context.Request.Body;
             var originalResponseBody = context.Response.Body;
             var requestBody = new CountingReadStream(originalRequestBody);
@@ -42,8 +50,11 @@ namespace compute.geometry
                 context.Response.Body = originalResponseBody;
             }
 
+            var cpu = ProcessTreeCpu.Total() - cpuBefore;
             context.Response.Headers[INGRESS_BYTES_HEADER] = requestBody.BytesRead.ToString(CultureInfo.InvariantCulture);
             context.Response.Headers[EGRESS_BYTES_HEADER] = responseBuffer.Length.ToString(CultureInfo.InvariantCulture);
+            context.Response.Headers[CPU_SECONDS_HEADER] = cpu.TotalSeconds.ToString("0.000", CultureInfo.InvariantCulture);
+            context.Response.Headers[PID_HEADER] = Environment.ProcessId.ToString(CultureInfo.InvariantCulture);
             responseBuffer.Position = 0;
             await responseBuffer.CopyToAsync(originalResponseBody, context.RequestAborted);
         }

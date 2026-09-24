@@ -134,7 +134,7 @@ All rhino-compute command-line options can be used in the systemd service:
 - `--timeout <seconds>`: Request timeout (default: 100)
 - `--max-request-size <bytes>`: Max request body size (default: 52428800)
 - `--load-grasshopper <true|false>`: Load Grasshopper plugin (default: true)
-- `--metering-headers`: Add `Rhino-Compute-Ingress-Bytes` and `Rhino-Compute-Egress-Bytes` response headers with the request and response body sizes (default: off)
+- `--metering-headers`: Add `Rhino-Compute-Ingress-Bytes` and `-Egress-Bytes` (request and response body sizes), `-Cpu-Seconds` (CPU time used by the request) and `-Pid` (serving compute.geometry process) response headers (default: off)
 
 ## Security Considerations
 

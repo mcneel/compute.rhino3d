@@ -19,7 +19,7 @@
                     builder =>
                     {
                         builder.AllowAnyOrigin().AllowAnyHeader()
-                            .WithExposedHeaders(ReverseProxyModule.INGRESS_BYTES_HEADER, ReverseProxyModule.EGRESS_BYTES_HEADER);
+                            .WithExposedHeaders(ReverseProxyModule.MeteringHeaders);
                     });
             });
             services.AddHealthChecks();
