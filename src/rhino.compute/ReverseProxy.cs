@@ -295,10 +295,21 @@ namespace rhino.compute
         static async Task AwaitInitTask()
         {
             var task = initTask;
-            if (task != null)
+            if (task == null)
+                return;
+            try
             {
                 await task;
-                initTask = null;
+            }
+            catch (Exception ex)
+            {
+                // A failed or cancelled startup must not fail every later request; this request
+                // goes on to start a child itself.
+                Log.Warning("Starting compute.geometry children failed: {Message}", ex.Message);
+            }
+            finally
+            {
+                System.Threading.Interlocked.CompareExchange(ref initTask, null, task);
             }
         }
 
