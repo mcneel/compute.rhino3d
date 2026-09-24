@@ -119,7 +119,17 @@ namespace compute.geometry
                 RhinoCore.Dispose();
 
             Log.CloseAndFlush();
+
+            // Skip native DLL teardown, where RhinoCore calls into managed code after .NET has shut down (RH-98958).
+            if (OperatingSystem.IsWindows())
+                TerminateProcess(GetCurrentProcess(), 0);
         }
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+        static extern IntPtr GetCurrentProcess();
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+        static extern bool TerminateProcess(IntPtr hProcess, uint exitCode);
 
         static void ParseCommandLineArgs(string[] args)
         {
