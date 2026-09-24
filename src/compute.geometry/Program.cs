@@ -168,6 +168,12 @@ namespace compute.geometry
                             Log.Information($"Grasshopper loading set to: {Config.LoadGrasshopper}");
                         }
                         break;
+                    case "metering-headers":
+                        {
+                            Config.MeteringHeaders = value == "1" || value.Equals("true", StringComparison.OrdinalIgnoreCase);
+                            Log.Information($"Metering headers set to: {Config.MeteringHeaders}");
+                        }
+                        break;
                     case "apikey":
                         {
                             Config.ApiKey = value;

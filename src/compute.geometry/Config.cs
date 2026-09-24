@@ -96,6 +96,12 @@ namespace compute.geometry
         /// </summary>
         public static bool EnableScripting { get; private set; }
 
+        /// <summary>
+        /// RHINO_COMPUTE_METERING_HEADERS: add Rhino-Compute-Ingress-Bytes and
+        /// Rhino-Compute-Egress-Bytes headers to every response (defaults to false).
+        /// </summary>
+        public static bool MeteringHeaders { get; set; }
+
         public static string[] GetDeprecationWarnings() => warnings.ToArray();
 
         /// <summary>
@@ -119,6 +125,7 @@ namespace compute.geometry
             CreateHeadlessDoc = GetEnvironmentVariable<bool>(RHINO_COMPUTE_CREATE_HEADLESS_DOC, false);
             LoadGrasshopper = GetEnvironmentVariable<bool>(RHINO_COMPUTE_LOAD_GRASSHOPPER, true);
             EnableScripting = GetEnvironmentVariable<bool>(RHINO_COMPUTE_ENABLE_SCRIPTING, false);
+            MeteringHeaders = GetEnvironmentVariable<bool>(RHINO_COMPUTE_METERING_HEADERS, false);
 
 #if DEBUG
             Debug = true;
@@ -149,6 +156,7 @@ namespace compute.geometry
         const string RHINO_COMPUTE_CREATE_HEADLESS_DOC = "RHINO_COMPUTE_CREATE_HEADLESS_DOC";
         const string RHINO_COMPUTE_LOAD_GRASSHOPPER = "RHINO_COMPUTE_LOAD_GRASSHOPPER";
         const string RHINO_COMPUTE_ENABLE_SCRIPTING = "RHINO_COMPUTE_ENABLE_SCRIPTING";
+        const string RHINO_COMPUTE_METERING_HEADERS = "RHINO_COMPUTE_METERING_HEADERS";
 
         // deprecated
         const string COMPUTE_BIND_URLS = "COMPUTE_BIND_URLS";

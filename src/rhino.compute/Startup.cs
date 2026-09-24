@@ -18,7 +18,8 @@
                 options.AddDefaultPolicy(
                     builder =>
                     {
-                        builder.AllowAnyOrigin().AllowAnyHeader();
+                        builder.AllowAnyOrigin().AllowAnyHeader()
+                            .WithExposedHeaders(ReverseProxyModule.INGRESS_BYTES_HEADER, ReverseProxyModule.EGRESS_BYTES_HEADER);
                     });
             });
             services.AddHealthChecks();

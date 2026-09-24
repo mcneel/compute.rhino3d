@@ -71,6 +71,12 @@ requests while the child processes are launching.")]
               HelpText = "Maximum request body size in bytes (default: 52428800 = 50MB)")]
             public long MaxRequestSize { get; set; } = -1;
 
+            [Option("metering-headers",
+              Required = false,
+              Default = false,
+              HelpText = "Add Rhino-Compute-Ingress-Bytes and Rhino-Compute-Egress-Bytes headers to every response, giving the request and response body sizes in bytes. Off by default.")]
+            public bool MeteringHeaders { get; set; }
+
             [Option("port",
               Required = false,
               HelpText = "Port number to run rhino.compute on")]
@@ -157,6 +163,9 @@ requests while the child processes are launching.")]
                 if (o.BlockPrivateUrls)
                     Environment.SetEnvironmentVariable("RHINO_COMPUTE_BLOCK_PRIVATE_URLS", "true");
 
+                if (o.MeteringHeaders)
+                    Environment.SetEnvironmentVariable("RHINO_COMPUTE_METERING_HEADERS", "true");
+
                 // Set runtime options. ChildCount is capped at ComputeChildren.MaxChildren
                 // (same cap that protects the /launch?children=N endpoint) so the Config
                 // block below prints the actual-effective value and downstream code never
@@ -242,6 +251,8 @@ requests while the child processes are launching.")]
             Log.Debug("  Create Headless Document = {CreateHeadlessDoc}", createHeadlessDoc.ToString());
             bool blockPrivateUrls = Boolean.TryParse(Environment.GetEnvironmentVariable("RHINO_COMPUTE_BLOCK_PRIVATE_URLS"), out var blockPrivate) && blockPrivate;
             Log.Debug("  Block Private URLs = {BlockPrivateUrls}", blockPrivateUrls.ToString());
+            bool meteringHeaders = Boolean.TryParse(Environment.GetEnvironmentVariable("RHINO_COMPUTE_METERING_HEADERS"), out var metering) && metering;
+            Log.Debug("  Metering Headers = {MeteringHeaders}", meteringHeaders.ToString());
             Log.Debug("  Log Path = {LogPath}", Config.LogPath);
 
             var logger = host.Services.GetRequiredService<ILogger<ReverseProxyModule>>();

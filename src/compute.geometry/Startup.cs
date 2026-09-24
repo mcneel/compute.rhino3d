@@ -25,7 +25,8 @@ namespace compute.geometry
                 options.AddDefaultPolicy(
                     builder =>
                     {
-                        builder.AllowAnyOrigin().AllowAnyHeader();
+                        builder.AllowAnyOrigin().AllowAnyHeader()
+                            .WithExposedHeaders(MeteringMiddleware.INGRESS_BYTES_HEADER, MeteringMiddleware.EGRESS_BYTES_HEADER);
                     });
             });
             services.AddHealthChecks();
@@ -34,6 +35,9 @@ namespace compute.geometry
         public void Configure(IApplicationBuilder app)
         {
             RhinoCoreStartup();
+
+            if (Config.MeteringHeaders)
+                app.UseMiddleware<MeteringMiddleware>();
 
             // Global exception handler. Sits at the very top of the pipeline so it catches
             // anything thrown by downstream middleware or endpoint handlers. Logs the

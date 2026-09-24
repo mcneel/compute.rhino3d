@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -15,6 +16,9 @@ namespace rhino.compute
         static Task initTask;
         static HttpClient client;
         private const string API_KEY_HEADER = "RhinoComputeKey";
+        public const string INGRESS_BYTES_HEADER = "Rhino-Compute-Ingress-Bytes";
+        public const string EGRESS_BYTES_HEADER = "Rhino-Compute-Egress-Bytes";
+
         static void Initialize()
         {
             // Use an atomic compare-and-swap so that concurrent first requests cannot
@@ -338,6 +342,12 @@ namespace rhino.compute
             throw new System.NotSupportedException("Only GET and POST are currently supported for reverse proxy");
         }
 
+        static void CopyResponseHeader(HttpResponseMessage from, HttpResponse to, string name)
+        {
+            if (from.Headers.TryGetValues(name, out var values))
+                to.Headers[name] = values.ToArray();
+        }
+
         // GET and POST routes both delegate to the shared handler; the /grasshopper route
         // is intentionally mapped to ReverseProxyPost as it requires no special handling.
         private static async Task ReverseProxyGet(HttpRequest req, HttpResponse res)
@@ -369,6 +379,8 @@ namespace rhino.compute
                         // as application/json rather than the ASP.NET Core default text/plain.
                         if (proxyResponse.Content.Headers.ContentType != null)
                             res.ContentType = proxyResponse.Content.Headers.ContentType.ToString();
+                        CopyResponseHeader(proxyResponse, res, INGRESS_BYTES_HEADER);
+                        CopyResponseHeader(proxyResponse, res, EGRESS_BYTES_HEADER);
                         responseString = await proxyResponse.Content.ReadAsStringAsync();
                     }
                 }
