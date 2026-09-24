@@ -420,7 +420,7 @@ namespace rhino.compute
                     return false;
                 }
 
-                Thread.Sleep(1000);
+                Thread.Sleep(100);
             }
         }
 
