@@ -92,35 +92,93 @@ namespace rhino.compute
         }
 
         /// <summary>
-        /// Get base url for a compute server. This function may return a
-        /// different string each time it is called as it attempts to provide
-        /// basic round robin scheduling when multiple compute servers are
-        /// found to be available.
+        /// Get base url for a compute server, starting one if none are running.
+        /// See <see cref="TakeChild"/> for which child is chosen.
         /// </summary>
-        /// <returns></returns>
-        public static (string, int) GetComputeServerBaseUrl()
+        public static (string, int) GetComputeServerBaseUrl() => SelectChild(reserve: false);
+
+        /// <summary>
+        /// Choose a child for a request. The request counts against that child until the
+        /// returned lease is disposed, so concurrent requests go to other children.
+        /// </summary>
+        public static ChildLease AcquireChild()
         {
-            // Simple round robin scheduler using a queue of compute.geometry processes
+            var (url, port) = SelectChild(reserve: true);
+            return new ChildLease(url, port);
+        }
+
+        public sealed class ChildLease : IDisposable
+        {
+            bool released;
+
+            public ChildLease(string baseUrl, int port)
+            {
+                BaseUrl = baseUrl;
+                Port = port;
+            }
+
+            public string BaseUrl { get; }
+            public int Port { get; }
+
+            public void Dispose()
+            {
+                if (released)
+                    return;
+                released = true;
+                ReleaseChild(Port);
+            }
+        }
+
+        static void ReleaseChild(int port)
+        {
+            lock (lockObject)
+            {
+                if (!activeRequests.TryGetValue(port, out int count))
+                    return;
+                if (count <= 1)
+                    activeRequests.Remove(port);
+                else
+                    activeRequests[port] = count - 1;
+            }
+        }
+
+        // Called under lockObject. Takes the first idle child in queue order (the child that last
+        // succeeded is at the front), else the one with the fewest requests in progress, and moves
+        // it to the back so a child that fails drops behind the others.
+        static int TakeChild(bool reserve)
+        {
+            Tuple<Process, int> chosen = null;
+            int fewest = int.MaxValue;
+            foreach (var child in computeProcesses)
+            {
+                activeRequests.TryGetValue(child.Item2, out int count);
+                if (count < fewest)
+                {
+                    chosen = child;
+                    fewest = count;
+                    if (count == 0)
+                        break;
+                }
+            }
+            if (chosen == null)
+                return 0;
+
+            computeProcesses = new Queue<Tuple<Process, int>>(computeProcesses.Where(child => child != chosen).Append(chosen));
+            if (reserve)
+                activeRequests[chosen.Item2] = fewest + 1;
+            return chosen.Item2;
+        }
+
+        static (string, int) SelectChild(bool reserve)
+        {
             int activePort = 0;
 
             lock (lockObject)
             {
-                if (computeProcesses.Count > 0)
-                {
-                    Tuple<Process, int> current = computeProcesses.Dequeue();
-                    if (!current.Item1.HasExited)
-                    {
-                        computeProcesses.Enqueue(current);
-                        activePort = current.Item2;
-                    }
-                }
-
-                if (activePort == 0)
-                {
-                    // Prune any dead processes before the bootstrap launch below
-                    var aliveProcesses = computeProcesses.Where(tuple => !tuple.Item1.HasExited).ToList();
-                    computeProcesses = new Queue<Tuple<Process, int>>(aliveProcesses);
-                }
+                // Prune any dead processes; the bootstrap launch below starts one if none are left
+                if (computeProcesses.Any(tuple => tuple.Item1.HasExited))
+                    computeProcesses = new Queue<Tuple<Process, int>>(computeProcesses.Where(tuple => !tuple.Item1.HasExited));
+                activePort = TakeChild(reserve);
             }
 
             if (activePort == 0)
@@ -140,12 +198,7 @@ namespace rhino.compute
                     while (computeProcesses.Count == 0 && pendingSpawnPorts.Count > 0)
                         Monitor.Wait(lockObject, millisecondsTimeout: 1000);
 
-                    if (computeProcesses.Count > 0)
-                    {
-                        Tuple<Process, int> current = computeProcesses.Dequeue();
-                        computeProcesses.Enqueue(current);
-                        activePort = current.Item2;
-                    }
+                    activePort = TakeChild(reserve);
                 }
             }
 
@@ -754,6 +807,8 @@ namespace rhino.compute
 
         static object lockObject = new object();
         static Queue<Tuple<Process, int>> computeProcesses = new Queue<Tuple<Process, int>>();
+        // Requests in progress per child port. Protected by lockObject.
+        static readonly Dictionary<int, int> activeRequests = new Dictionary<int, int>();
         // Ports for which a child process has been started but has not yet been confirmed
         // ready and added to computeProcesses. Protected by lockObject.
         static readonly HashSet<int> pendingSpawnPorts = new HashSet<int>();
