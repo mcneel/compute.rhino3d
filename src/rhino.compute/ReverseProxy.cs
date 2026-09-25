@@ -16,6 +16,8 @@ namespace rhino.compute
         static Task initTask;
         static HttpClient client;
         private const string API_KEY_HEADER = "RhinoComputeKey";
+        private const string CLIENT_HEADER = "Rhino-Compute-Client";
+        static readonly string[] forwardedRequestHeaders = { API_KEY_HEADER, CLIENT_HEADER };
         public static readonly string[] MeteringHeaders =
         {
             "Rhino-Compute-Ingress-Bytes", "Rhino-Compute-Egress-Bytes", "Rhino-Compute-Cpu-Seconds", "Rhino-Compute-Pid",
@@ -328,10 +330,8 @@ namespace rhino.compute
 
             if (method == HttpMethod.Post)
             {
-                // include RhinoComputeKey header in request to compute child process
                 using var req = new HttpRequestMessage(HttpMethod.Post, proxyUrl);
-                if (initialRequest.Headers.TryGetValue(API_KEY_HEADER, out var keyHeader))
-                    req.Headers.Add(API_KEY_HEADER, keyHeader.ToString());
+                CopyRequestHeaders(initialRequest, req);
 
                 // Stream the request body directly to the child process rather than
                 // buffering it as a string, avoiding a full in-memory copy of the payload.
@@ -349,10 +349,21 @@ namespace rhino.compute
 
             if (method == HttpMethod.Get)
             {
-                return await client.GetAsync(proxyUrl);
+                using var req = new HttpRequestMessage(HttpMethod.Get, proxyUrl);
+                CopyRequestHeaders(initialRequest, req);
+                return await client.SendAsync(req);
             }
 
             throw new System.NotSupportedException("Only GET and POST are currently supported for reverse proxy");
+        }
+
+        static void CopyRequestHeaders(HttpRequest from, HttpRequestMessage to)
+        {
+            foreach (string name in forwardedRequestHeaders)
+            {
+                if (from.Headers.TryGetValue(name, out var value))
+                    to.Headers.TryAddWithoutValidation(name, value.ToString());
+            }
         }
 
         static void CopyResponseHeader(HttpResponseMessage from, HttpResponse to, string name)

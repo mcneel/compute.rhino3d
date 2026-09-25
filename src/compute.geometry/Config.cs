@@ -102,6 +102,12 @@ namespace compute.geometry
         /// </summary>
         public static bool MeteringHeaders { get; set; }
 
+        /// <summary>
+        /// RHINO_COMPUTE_USAGE_LOG_PATH: directory for per-request usage records, one JSON line per request
+        /// and one file per process. Off unless set.
+        /// </summary>
+        public static string UsageLogPath { get; private set; }
+
         public static string[] GetDeprecationWarnings() => warnings.ToArray();
 
         /// <summary>
@@ -126,6 +132,7 @@ namespace compute.geometry
             LoadGrasshopper = GetEnvironmentVariable<bool>(RHINO_COMPUTE_LOAD_GRASSHOPPER, true);
             EnableScripting = GetEnvironmentVariable<bool>(RHINO_COMPUTE_ENABLE_SCRIPTING, false);
             MeteringHeaders = GetEnvironmentVariable<bool>(RHINO_COMPUTE_METERING_HEADERS, false);
+            UsageLogPath = GetEnvironmentVariable<string>(RHINO_COMPUTE_USAGE_LOG_PATH, null);
 
 #if DEBUG
             Debug = true;
@@ -157,6 +164,7 @@ namespace compute.geometry
         const string RHINO_COMPUTE_LOAD_GRASSHOPPER = "RHINO_COMPUTE_LOAD_GRASSHOPPER";
         const string RHINO_COMPUTE_ENABLE_SCRIPTING = "RHINO_COMPUTE_ENABLE_SCRIPTING";
         const string RHINO_COMPUTE_METERING_HEADERS = "RHINO_COMPUTE_METERING_HEADERS";
+        const string RHINO_COMPUTE_USAGE_LOG_PATH = "RHINO_COMPUTE_USAGE_LOG_PATH";
 
         // deprecated
         const string COMPUTE_BIND_URLS = "COMPUTE_BIND_URLS";

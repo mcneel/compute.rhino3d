@@ -36,7 +36,7 @@ namespace compute.geometry
         {
             RhinoCoreStartup();
 
-            if (Config.MeteringHeaders)
+            if (Config.MeteringHeaders || UsageLog.Enabled)
                 app.UseMiddleware<MeteringMiddleware>();
 
             // Global exception handler. Sits at the very top of the pipeline so it catches
