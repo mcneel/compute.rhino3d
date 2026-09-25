@@ -391,12 +391,12 @@ namespace rhino.compute
             {
                 using (new ConcurrentRequestTracker())
                 {
-                    var (baseurl, port) = ComputeChildren.GetComputeServerBaseUrl();
-                    using (var proxyResponse = await SendProxyRequest(req, method, baseurl))
+                    using (var child = ComputeChildren.AcquireChild())
+                    using (var proxyResponse = await SendProxyRequest(req, method, child.BaseUrl))
                     {
                         ComputeChildren.UpdateLastCall();
                         if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
-                            ComputeChildren.MoveToFrontOfQueue(port);
+                            ComputeChildren.MoveToFrontOfQueue(child.Port);
 
                         res.StatusCode = (int)proxyResponse.StatusCode;
                         // Forward the upstream Content-Type so JSON responses arrive at the caller
@@ -408,6 +408,7 @@ namespace rhino.compute
                         responseString = await proxyResponse.Content.ReadAsStringAsync();
                     }
                 }
+                // The child is free once its response is read; a slow client shouldn't hold it.
                 await res.WriteAsync(responseString);
             }
             catch (Exception ex) when (ex is Microsoft.AspNetCore.Connections.ConnectionResetException ||
