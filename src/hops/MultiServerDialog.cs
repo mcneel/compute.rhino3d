@@ -298,7 +298,7 @@ namespace Hops
                 // Match RemoteDefinition's auth so /validate's API-key branch can succeed.
                 using (var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, probeUrl))
                 {
-                    string apiKey = HopsAppSettings.APIKey;
+                    string apiKey = HopsAppSettings.RequestAPIKey;
                     if (!string.IsNullOrEmpty(apiKey))
                         request.Headers.Add("RhinoComputeKey", apiKey);
                     using (var resp = await TestClient.SendAsync(request, ct).ConfigureAwait(true))
@@ -342,7 +342,7 @@ namespace Hops
             {
                 using (var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, probeUrl))
                 {
-                    string apiKey = HopsAppSettings.APIKey;
+                    string apiKey = HopsAppSettings.RequestAPIKey;
                     if (!string.IsNullOrEmpty(apiKey))
                         request.Headers.Add("RhinoComputeKey", apiKey);
                     using (var resp = await TestClient.SendAsync(request, ct).ConfigureAwait(true))

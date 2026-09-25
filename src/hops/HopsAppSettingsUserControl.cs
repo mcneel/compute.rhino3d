@@ -572,7 +572,7 @@ namespace Hops
                 // Match RemoteDefinition's auth: send the RhinoComputeKey header when an API key is set.
                 using (var request = new HttpRequestMessage(HttpMethod.Get, probeUrl))
                 {
-                    string apiKey = HopsAppSettings.APIKey;
+                    string apiKey = HopsAppSettings.RequestAPIKey;
                     if (!string.IsNullOrEmpty(apiKey))
                         request.Headers.Add("RhinoComputeKey", apiKey);
                     using (var resp = await testClient.SendAsync(request, ct).ConfigureAwait(true))
@@ -622,7 +622,7 @@ namespace Hops
             {
                 using (var request = new HttpRequestMessage(HttpMethod.Get, probeUrl))
                 {
-                    string apiKey = HopsAppSettings.APIKey;
+                    string apiKey = HopsAppSettings.RequestAPIKey;
                     if (!string.IsNullOrEmpty(apiKey))
                         request.Headers.Add("RhinoComputeKey", apiKey);
                     using (var resp = await testClient.SendAsync(request, ct).ConfigureAwait(true))
