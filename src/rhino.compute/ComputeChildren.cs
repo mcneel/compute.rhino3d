@@ -468,6 +468,9 @@ namespace rhino.compute
                 args += $" -rhinosysdir:\"{RhinoSysDir}\"";
             if (ParentPort > 0 && ChildIdleSpan.TotalSeconds > 1.0)
                 args += $" -parentport:{ParentPort} -idlespan:{(int)ChildIdleSpan.TotalSeconds}";
+            // How compute.geometry, and definitions solved in it, reach this server.
+            if (ParentPort > 0)
+                startInfo.EnvironmentVariables["RHINO_COMPUTE_PARENT_URL"] = $"http://localhost:{ParentPort}";
             startInfo.Arguments = args;
             return startInfo;
         }
