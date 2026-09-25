@@ -74,7 +74,7 @@ requests while the child processes are launching.")]
             [Option("metering-headers",
               Required = false,
               Default = false,
-              HelpText = "Add metering headers to every response: Rhino-Compute-Ingress-Bytes and -Egress-Bytes (request and response body sizes), -Cpu-Seconds (CPU time the request used, including processes it started) and -Pid (the compute.geometry process that served it). Off by default.")]
+              HelpText = "Add metering headers to every response: Rhino-Compute-Ingress-Bytes and -Egress-Bytes (request and response body sizes), -Cpu-Seconds (on billable requests: CPU time the request used, including processes it started) and -Pid (the compute.geometry process that served it). Off by default.")]
             public bool MeteringHeaders { get; set; }
 
             [Option("port",

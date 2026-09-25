@@ -45,6 +45,14 @@ namespace compute.geometry
             return Environment.CpuUsage.TotalTime;
         }
 
+        // This process plus the processes it started that are still running; Windows only.
+        public static int? ActiveProcesses()
+        {
+            if (job != IntPtr.Zero && QueryInformationJobObject(job, JOB_OBJECT_BASIC_ACCOUNTING_INFORMATION, out var info, Marshal.SizeOf<JobAccounting>(), IntPtr.Zero))
+                return (int)info.ActiveProcesses;
+            return null;
+        }
+
         // /proc/self/stat fields after "(comm)": utime, stime, cutime and cstime are at 11..14.
         static TimeSpan LinuxTotal()
         {

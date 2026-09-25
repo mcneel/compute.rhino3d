@@ -6,14 +6,63 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace compute.geometry
 {
+    // Endpoint metadata marking client work that is billed; every other request is overhead.
+    public sealed class BillableEndpoint
+    {
+        public static readonly BillableEndpoint Instance = new BillableEndpoint();
+    }
+
+    public static class BillableEndpointExtensions
+    {
+        public static TBuilder Billable<TBuilder>(this TBuilder builder) where TBuilder : IEndpointConventionBuilder =>
+            builder.WithMetadata(BillableEndpoint.Instance);
+    }
+
+    // Runs after the API key check, so rejected requests are never billed. Billable requests are received in
+    // full before they count as running, so a slow upload doesn't take a share of other requests' CPU.
+    public class BillableMiddleware
+    {
+        const int REQUEST_MEMORY_BUFFER = 4 * 1024 * 1024;
+
+        private readonly RequestDelegate next;
+
+        public BillableMiddleware(RequestDelegate next)
+        {
+            this.next = next;
+        }
+
+        public async Task InvokeAsync(HttpContext context)
+        {
+            if (context.GetEndpoint()?.Metadata.GetMetadata<BillableEndpoint>() == null)
+            {
+                await next(context);
+                return;
+            }
+            try
+            {
+                context.Request.EnableBuffering(REQUEST_MEMORY_BUFFER);
+                await context.Request.Body.DrainAsync(context.RequestAborted);
+                context.Request.Body.Position = 0;
+                using (CpuLedger.EnterBillable())
+                    await next(context);
+            }
+            catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+            {
+            }
+        }
+    }
+
     /// <summary>
-    /// Measures each request's body sizes, CPU time (including processes compute.geometry starts) and wall
-    /// time, and attributes it to a client. Reports it in response headers and/or the usage log. CPU is exact
-    /// only when this process handles one request at a time (as /grasshopper does).
+    /// Measures each request's body sizes, CPU time (including processes compute.geometry starts, divided
+    /// between requests by <see cref="CpuLedger"/>) and wall time, and attributes billable requests to a
+    /// client. Reports it in response headers and/or the usage log.
     /// </summary>
     public class MeteringMiddleware
     {
@@ -33,6 +82,8 @@ namespace compute.geometry
         {
             this.next = next;
             ProcessTreeCpu.Initialize();
+            CpuLedger.Start();
+            UsageLog.Start();
             defaultClient = string.IsNullOrEmpty(Config.ApiKey) ? "default" : "key:" + KeyFingerprint(Config.ApiKey);
         }
 
@@ -49,11 +100,23 @@ namespace compute.geometry
         static string KeyFingerprint(string key) =>
             Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key)), 0, 4).ToLowerInvariant();
 
+        // How non-billable requests are grouped in the usage log's overhead records.
+        static string OverheadLabel(HttpContext context)
+        {
+            if (context.Response.StatusCode == StatusCodes.Status401Unauthorized)
+                return "rejected";
+            if (HttpMethods.IsOptions(context.Request.Method))
+                return "preflight";
+            if (context.GetEndpoint() is RouteEndpoint endpoint)
+                return $"{context.Request.Method} /{endpoint.RoutePattern.RawText?.TrimStart('/')}";
+            return "not found";
+        }
+
         public async Task InvokeAsync(HttpContext context)
         {
             var startUtc = DateTime.UtcNow;
             long startTimestamp = Stopwatch.GetTimestamp();
-            var cpuBefore = ProcessTreeCpu.Total();
+            var cpu = CpuLedger.Begin();
             var originalRequestBody = context.Request.Body;
             var originalResponseBody = context.Response.Body;
             var requestBody = new CountingReadStream(originalRequestBody);
@@ -70,21 +133,21 @@ namespace compute.geometry
             {
                 context.Request.Body = originalRequestBody;
                 context.Response.Body = originalResponseBody;
+                CpuLedger.End(cpu, cpu.Billable ? null : OverheadLabel(context));
             }
 
-            var cpu = ProcessTreeCpu.Total() - cpuBefore;
             if (Config.MeteringHeaders)
             {
                 context.Response.Headers[INGRESS_BYTES_HEADER] = requestBody.BytesRead.ToString(CultureInfo.InvariantCulture);
                 context.Response.Headers[EGRESS_BYTES_HEADER] = responseBuffer.Length.ToString(CultureInfo.InvariantCulture);
-                context.Response.Headers[CPU_SECONDS_HEADER] = cpu.TotalSeconds.ToString("0.000", CultureInfo.InvariantCulture);
+                if (cpu.Billable)
+                    context.Response.Headers[CPU_SECONDS_HEADER] = cpu.CpuSeconds.ToString("0.000", CultureInfo.InvariantCulture);
                 context.Response.Headers[PID_HEADER] = Environment.ProcessId.ToString(CultureInfo.InvariantCulture);
             }
-            // Health checks are infrastructure traffic, not client usage.
-            if (UsageLog.Enabled && !context.Request.Path.Equals("/healthcheck", StringComparison.OrdinalIgnoreCase))
+            if (cpu.Billable && UsageLog.Enabled)
             {
-                UsageLog.Write(startUtc, ClientId(context), context.Request.Method, context.Request.Path.Value, context.Response.StatusCode,
-                    requestBody.BytesRead, responseBuffer.Length, cpu.TotalSeconds, Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds);
+                UsageLog.WriteRequest(startUtc, ClientId(context), context.Request.Method, context.Request.Path.Value, context.Response.StatusCode,
+                    requestBody.BytesRead, responseBuffer.Length, cpu, Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds);
             }
             responseBuffer.Position = 0;
             await responseBuffer.CopyToAsync(originalResponseBody, context.RequestAborted);

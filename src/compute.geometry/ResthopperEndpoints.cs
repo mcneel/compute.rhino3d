@@ -22,9 +22,9 @@ namespace compute.geometry
     {
         public static void MapEndpoints(IEndpointRouteBuilder app)
         {
-            app.MapPost("/grasshopper", Grasshopper);
-            app.MapPost("/io", PostIoNames);
-            app.MapGet("/io", GetIoNames);
+            app.MapPost("/grasshopper", Grasshopper).Billable();
+            app.MapPost("/io", PostIoNames).Billable();
+            app.MapGet("/io", GetIoNames).Billable();
         }
 
         static void SetDefaultTolerances(double absoluteTolerance, double angleToleranceDegrees)
@@ -168,7 +168,7 @@ namespace compute.geometry
                 // We can narrow down this lock over time. As it stands, launching many
                 // compute instances on one computer is going to be a better solution anyway
                 // to deal with solving many times simultaniously.
-                lock (ghSolveLock)
+                using (CpuLedger.Lock(ghSolveLock))
                 {
                     json = GrasshopperSolveHelper(input, body, stopwatch, ctx);
                 }

@@ -114,6 +114,7 @@ namespace compute.geometry
 
             Shutdown.StartTimer(host);
             host.Run();
+            UsageLog.Stop();
 
             if (RhinoCore != null)
                 RhinoCore.Dispose();
@@ -314,7 +315,7 @@ namespace compute.geometry
         {
             foreach (var endpoint in GeometryEndPoint.AllEndPoints)
             {
-                app.MapPost(endpoint.PathURL, endpoint.Post);
+                app.MapPost(endpoint.PathURL, endpoint.Post).Billable();
             }
         }
     }

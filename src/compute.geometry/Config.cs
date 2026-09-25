@@ -97,14 +97,14 @@ namespace compute.geometry
         public static bool EnableScripting { get; private set; }
 
         /// <summary>
-        /// RHINO_COMPUTE_METERING_HEADERS: add Rhino-Compute-Ingress-Bytes, -Egress-Bytes, -Cpu-Seconds
-        /// and -Pid headers to every response (defaults to false).
+        /// RHINO_COMPUTE_METERING_HEADERS: add Rhino-Compute-Ingress-Bytes, -Egress-Bytes and -Pid headers
+        /// to every response, and -Cpu-Seconds to billable ones (defaults to false).
         /// </summary>
         public static bool MeteringHeaders { get; set; }
 
         /// <summary>
-        /// RHINO_COMPUTE_USAGE_LOG_PATH: directory for per-request usage records, one JSON line per request
-        /// and one file per process. Off unless set.
+        /// RHINO_COMPUTE_USAGE_LOG_PATH: directory for usage records, one JSON line per billable request plus
+        /// startup, overhead and shutdown records, and one file per process. Off unless set.
         /// </summary>
         public static string UsageLogPath { get; private set; }
 
