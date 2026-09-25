@@ -175,6 +175,8 @@ namespace compute.geometry
                     case "apikey":
                         {
                             Config.ApiKey = value;
+                            // Hops components in definitions being solved send this key with their requests.
+                            Environment.SetEnvironmentVariable("RHINO_COMPUTE_KEY", value);
                             Log.Information("API key set from command line");
                         }
                         break;

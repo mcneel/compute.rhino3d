@@ -99,6 +99,18 @@ namespace Hops
             }
         }
 
+        // On a compute server RHINO_COMPUTE_KEY holds the server's key, so nested Hops calls need no settings.
+        public static string RequestAPIKey
+        {
+            get
+            {
+                string apiKey = APIKey;
+                if (!string.IsNullOrEmpty(apiKey))
+                    return apiKey;
+                return Environment.GetEnvironmentVariable("RHINO_COMPUTE_KEY") ?? String.Empty;
+            }
+        }
+
         public static void InitFunctionSources()
         {
             if (FunctionSourcePaths.Length != FunctionSourceNames.Length)
