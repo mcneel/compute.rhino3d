@@ -197,6 +197,9 @@ requests while the child processes are launching.")]
                 Environment.Exit(1);
             });
 
+            // The options above set environment variables (--apikey, --timeout, --max-request-size), so load again.
+            Config.Load();
+
             var host = Host.CreateDefaultBuilder(args)
                 .UseSerilog()
                 .ConfigureWebHostDefaults(webBuilder =>
