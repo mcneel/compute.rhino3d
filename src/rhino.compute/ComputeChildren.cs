@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
+using compute.geometry;
 using Serilog;
 
 namespace rhino.compute
@@ -98,44 +99,87 @@ namespace rhino.compute
         /// Choose a child for a request. The request counts against that child until the
         /// returned lease is disposed, so concurrent requests go to other children.
         /// </summary>
-        public static ChildLease AcquireChild()
+        public static ChildLease AcquireChild(string client, string path)
         {
             var (url, port) = SelectChild(reserve: true);
-            return new ChildLease(url, port);
+            var lease = new ChildLease(url, port, client, path);
+            lock (lockObject)
+                activeLeases.Add(lease);
+            return lease;
         }
 
         public sealed class ChildLease : IDisposable
         {
             bool released;
 
-            public ChildLease(string baseUrl, int port)
+            public ChildLease(string baseUrl, int port, string client, string path)
             {
                 BaseUrl = baseUrl;
                 Port = port;
+                Client = client;
+                Path = path;
             }
 
             public string BaseUrl { get; }
             public int Port { get; }
+            public string Client { get; }
+            public string Path { get; }
 
             public void Dispose()
             {
                 if (released)
                     return;
                 released = true;
-                ReleaseChild(Port);
+                ReleaseChild(this);
             }
         }
 
-        static void ReleaseChild(int port)
+        static void ReleaseChild(ChildLease lease)
         {
             lock (lockObject)
             {
-                if (!activeRequests.TryGetValue(port, out int count))
+                activeLeases.Remove(lease);
+                if (!activeRequests.TryGetValue(lease.Port, out int count))
                     return;
                 if (count <= 1)
-                    activeRequests.Remove(port);
+                    activeRequests.Remove(lease.Port);
                 else
-                    activeRequests[port] = count - 1;
+                    activeRequests[lease.Port] = count - 1;
+            }
+        }
+
+        /// <summary>
+        /// A connection opened by a child, or by a process it started, carries nested calls made while that
+        /// child serves another request. Returns that child's port, or 0 for any other connection.
+        /// </summary>
+        public static int NestedCallPort(System.Net.IPAddress remoteAddress, int remotePort, int localPort)
+        {
+            if (!LocalConnections.FromThisMachine(remoteAddress))
+                return 0;
+            Dictionary<int, int> childPorts;
+            lock (lockObject)
+                childPorts = computeProcesses.ToDictionary(child => child.Item1.Id, child => child.Item2);
+            if (childPorts.Count == 0)
+                return 0;
+            return LocalConnections.OpenedBy(remotePort, localPort, childPorts.Keys, orStartedBy: true) is int pid ? childPorts[pid] : 0;
+        }
+
+        /// <summary>
+        /// The client of the request the child on this port is serving, which its nested calls belong to;
+        /// null when it isn't serving one.
+        /// </summary>
+        public static string ClientServedBy(int port)
+        {
+            lock (lockObject)
+            {
+                // Nested calls come from solves, so prefer the child's oldest one.
+                ChildLease serving = null;
+                foreach (var lease in activeLeases)
+                {
+                    if (lease.Port == port && (serving == null || (lease.Path == "/grasshopper" && serving.Path != "/grasshopper")))
+                        serving = lease;
+                }
+                return serving?.Client;
             }
         }
 
@@ -782,8 +826,9 @@ namespace rhino.compute
 
         static object lockObject = new object();
         static Queue<Tuple<Process, int>> computeProcesses = new Queue<Tuple<Process, int>>();
-        // Requests in progress per child port. Protected by lockObject.
+        // Requests in progress per child port, and the requests themselves, oldest first. Protected by lockObject.
         static readonly Dictionary<int, int> activeRequests = new Dictionary<int, int>();
+        static readonly List<ChildLease> activeLeases = new List<ChildLease>();
         // Ports for which a child process has been started but has not yet been confirmed
         // ready and added to computeProcesses. Protected by lockObject.
         static readonly HashSet<int> pendingSpawnPorts = new HashSet<int>();

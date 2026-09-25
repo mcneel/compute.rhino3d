@@ -33,4 +33,10 @@
     <PackageReference Include="Serilog.Expressions" Version="3.4.1" />
     <PackageReference Include="Serilog.Sinks.Console" Version="4.1.0" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\compute.geometry\LocalConnections.cs">
+      <Link>LocalConnections.cs</Link>
+    </Compile>
+  </ItemGroup>
 </Project>

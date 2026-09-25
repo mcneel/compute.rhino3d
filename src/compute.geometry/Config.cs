@@ -133,6 +133,9 @@ namespace compute.geometry
             EnableScripting = GetEnvironmentVariable<bool>(RHINO_COMPUTE_ENABLE_SCRIPTING, false);
             MeteringHeaders = GetEnvironmentVariable<bool>(RHINO_COMPUTE_METERING_HEADERS, false);
             UsageLogPath = GetEnvironmentVariable<string>(RHINO_COMPUTE_USAGE_LOG_PATH, null);
+            // Processes started from here must not meter themselves: their CPU is already counted in this one.
+            Environment.SetEnvironmentVariable(RHINO_COMPUTE_METERING_HEADERS, null);
+            Environment.SetEnvironmentVariable(RHINO_COMPUTE_USAGE_LOG_PATH, null);
 
 #if DEBUG
             Debug = true;

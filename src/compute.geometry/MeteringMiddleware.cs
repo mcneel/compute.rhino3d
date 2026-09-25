@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -50,12 +51,74 @@ namespace compute.geometry
                 context.Request.EnableBuffering(REQUEST_MEMORY_BUFFER);
                 await context.Request.Body.DrainAsync(context.RequestAborted);
                 context.Request.Body.Position = 0;
-                using (CpuLedger.EnterBillable())
+                using (CpuLedger.EnterBillable(RequestClients.For(context)))
                     await next(context);
             }
             catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
             {
             }
+        }
+    }
+
+    // Who a billable request is for. A nested call, opened by this process or one it started while serving a
+    // request, is for that request's client. Otherwise Rhino-Compute-Client names the client: trusted from a
+    // gateway when compute.geometry runs on its own, and only from rhino.compute when it is one of its children.
+    // Without it, the API key's fingerprint (never the key), else "default".
+    static class RequestClients
+    {
+        public const string CLIENT_HEADER = "Rhino-Compute-Client";
+        const int MAX_CLIENT_LENGTH = 128;
+
+        static readonly int[] self = { Environment.ProcessId };
+        static readonly Lazy<string> defaultClient = new Lazy<string>(() =>
+            string.IsNullOrEmpty(Config.ApiKey) ? "default" : "key:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Config.ApiKey)), 0, 4).ToLowerInvariant());
+
+        enum Origin { Parent, Self, Other }
+
+        static readonly object ORIGIN = new object();
+
+        public static string For(HttpContext context)
+        {
+            bool child = Shutdown.ParentProcesses?.Count > 0;
+            switch (OriginOf(context))
+            {
+                case Origin.Parent:
+                    return FromHeader(context);
+                case Origin.Self:
+                    return CpuLedger.OldestBillableClient() ?? defaultClient.Value;
+                default:
+                    return child ? defaultClient.Value : FromHeader(context);
+            }
+        }
+
+        // Which process opened a connection can't change, so it's looked up once per connection.
+        static Origin OriginOf(HttpContext context)
+        {
+            var items = context.Features.Get<Microsoft.AspNetCore.Connections.Features.IConnectionItemsFeature>()?.Items;
+            if (items != null && items.TryGetValue(ORIGIN, out object cached))
+                return (Origin)cached;
+
+            var origin = Origin.Other;
+            var connection = context.Connection;
+            if (LocalConnections.FromThisMachine(connection.RemoteIpAddress))
+            {
+                int[] parents = Shutdown.ParentProcesses?.Keys.ToArray() ?? Array.Empty<int>();
+                if (parents.Length > 0 && LocalConnections.OpenedBy(connection.RemotePort, connection.LocalPort, parents, orStartedBy: false) != null)
+                    origin = Origin.Parent;
+                else if (LocalConnections.OpenedBy(connection.RemotePort, connection.LocalPort, self, orStartedBy: true) != null)
+                    origin = Origin.Self;
+            }
+            if (items != null)
+                items[ORIGIN] = origin;
+            return origin;
+        }
+
+        static string FromHeader(HttpContext context)
+        {
+            string client = context.Request.Headers[CLIENT_HEADER].ToString().Trim();
+            if (client.Length == 0)
+                return defaultClient.Value;
+            return client.Length > MAX_CLIENT_LENGTH ? client.Substring(0, MAX_CLIENT_LENGTH) : client;
         }
     }
 
@@ -70,13 +133,10 @@ namespace compute.geometry
         public const string EGRESS_BYTES_HEADER = "Rhino-Compute-Egress-Bytes";
         public const string CPU_SECONDS_HEADER = "Rhino-Compute-Cpu-Seconds";
         public const string PID_HEADER = "Rhino-Compute-Pid";
-        public const string CLIENT_HEADER = "Rhino-Compute-Client";
-        const int MAX_CLIENT_LENGTH = 128;
 
         public static readonly string[] Headers = { INGRESS_BYTES_HEADER, EGRESS_BYTES_HEADER, CPU_SECONDS_HEADER, PID_HEADER };
 
         private readonly RequestDelegate next;
-        private readonly string defaultClient;
 
         public MeteringMiddleware(RequestDelegate next)
         {
@@ -84,21 +144,7 @@ namespace compute.geometry
             ProcessTreeCpu.Initialize();
             CpuLedger.Start();
             UsageLog.Start();
-            defaultClient = string.IsNullOrEmpty(Config.ApiKey) ? "default" : "key:" + KeyFingerprint(Config.ApiKey);
         }
-
-        // The client a gateway named in Rhino-Compute-Client, else the API key's fingerprint, else "default".
-        string ClientId(HttpContext context)
-        {
-            string client = context.Request.Headers[CLIENT_HEADER].ToString().Trim();
-            if (client.Length == 0)
-                return defaultClient;
-            return client.Length > MAX_CLIENT_LENGTH ? client.Substring(0, MAX_CLIENT_LENGTH) : client;
-        }
-
-        // Never record the key itself.
-        static string KeyFingerprint(string key) =>
-            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key)), 0, 4).ToLowerInvariant();
 
         // How non-billable requests are grouped in the usage log's overhead records.
         static string OverheadLabel(HttpContext context)
@@ -146,7 +192,7 @@ namespace compute.geometry
             }
             if (cpu.Billable && UsageLog.Enabled)
             {
-                UsageLog.WriteRequest(startUtc, ClientId(context), context.Request.Method, context.Request.Path.Value, context.Response.StatusCode,
+                UsageLog.WriteRequest(startUtc, cpu.Client, context.Request.Method, context.Request.Path.Value, context.Response.StatusCode,
                     requestBody.BytesRead, responseBuffer.Length, cpu, Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds);
             }
             responseBuffer.Position = 0;

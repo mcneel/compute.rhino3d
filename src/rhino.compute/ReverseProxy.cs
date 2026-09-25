@@ -17,7 +17,6 @@ namespace rhino.compute
         static HttpClient client;
         private const string API_KEY_HEADER = "RhinoComputeKey";
         private const string CLIENT_HEADER = "Rhino-Compute-Client";
-        static readonly string[] forwardedRequestHeaders = { API_KEY_HEADER, CLIENT_HEADER };
         public static readonly string[] MeteringHeaders =
         {
             "Rhino-Compute-Ingress-Bytes", "Rhino-Compute-Egress-Bytes", "Rhino-Compute-Cpu-Seconds", "Rhino-Compute-Pid",
@@ -321,7 +320,7 @@ namespace rhino.compute
             }
         }
 
-        static async Task<HttpResponseMessage> SendProxyRequest(HttpRequest initialRequest, HttpMethod method, string baseurl)
+        static async Task<HttpResponseMessage> SendProxyRequest(HttpRequest initialRequest, HttpMethod method, string baseurl, string clientId)
         {
             string proxyUrl = $"{baseurl}{initialRequest.Path}{initialRequest.QueryString}";
 
@@ -331,7 +330,7 @@ namespace rhino.compute
             if (method == HttpMethod.Post)
             {
                 using var req = new HttpRequestMessage(HttpMethod.Post, proxyUrl);
-                CopyRequestHeaders(initialRequest, req);
+                CopyRequestHeaders(initialRequest, req, clientId);
 
                 // Stream the request body directly to the child process rather than
                 // buffering it as a string, avoiding a full in-memory copy of the payload.
@@ -350,21 +349,40 @@ namespace rhino.compute
             if (method == HttpMethod.Get)
             {
                 using var req = new HttpRequestMessage(HttpMethod.Get, proxyUrl);
-                CopyRequestHeaders(initialRequest, req);
+                CopyRequestHeaders(initialRequest, req, clientId);
                 return await client.SendAsync(req);
             }
 
             throw new System.NotSupportedException("Only GET and POST are currently supported for reverse proxy");
         }
 
-        static void CopyRequestHeaders(HttpRequest from, HttpRequestMessage to)
+        static void CopyRequestHeaders(HttpRequest from, HttpRequestMessage to, string clientId)
         {
-            foreach (string name in forwardedRequestHeaders)
-            {
-                if (from.Headers.TryGetValue(name, out var value))
-                    to.Headers.TryAddWithoutValidation(name, value.ToString());
-            }
+            if (from.Headers.TryGetValue(API_KEY_HEADER, out var key))
+                to.Headers.TryAddWithoutValidation(API_KEY_HEADER, key.ToString());
+            if (!string.IsNullOrEmpty(clientId))
+                to.Headers.TryAddWithoutValidation(CLIENT_HEADER, clientId);
         }
+
+        // Nested calls belong to the client their child is serving, whatever header they carry. Which child
+        // opened a connection can't change, so it's looked up once per connection.
+        static string ClientId(HttpRequest req)
+        {
+            var connection = req.HttpContext.Connection;
+            var items = req.HttpContext.Features.Get<Microsoft.AspNetCore.Connections.Features.IConnectionItemsFeature>()?.Items;
+            int port;
+            if (items != null && items.TryGetValue(NESTED_CALL_PORT, out object cached))
+                port = (int)cached;
+            else
+            {
+                port = ComputeChildren.NestedCallPort(connection.RemoteIpAddress, connection.RemotePort, connection.LocalPort);
+                if (items != null)
+                    items[NESTED_CALL_PORT] = port;
+            }
+            return port > 0 ? ComputeChildren.ClientServedBy(port) : req.Headers[CLIENT_HEADER].ToString();
+        }
+
+        static readonly object NESTED_CALL_PORT = new object();
 
         static void CopyResponseHeader(HttpResponseMessage from, HttpResponse to, string name)
         {
@@ -391,8 +409,9 @@ namespace rhino.compute
             {
                 using (new ConcurrentRequestTracker())
                 {
-                    using (var child = ComputeChildren.AcquireChild())
-                    using (var proxyResponse = await SendProxyRequest(req, method, child.BaseUrl))
+                    string clientId = ClientId(req);
+                    using (var child = ComputeChildren.AcquireChild(clientId, req.Path))
+                    using (var proxyResponse = await SendProxyRequest(req, method, child.BaseUrl, clientId))
                     {
                         ComputeChildren.UpdateLastCall();
                         if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
