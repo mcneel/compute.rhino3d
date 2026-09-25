@@ -107,6 +107,9 @@ namespace compute.geometry
                     if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Port > 0)
                     {
                         DynamicPortEnricher.SetPort(uri.Port);
+                        // Running on its own, this process is the server its definitions call back into.
+                        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RHINO_COMPUTE_PARENT_URL")))
+                            Environment.SetEnvironmentVariable("RHINO_COMPUTE_PARENT_URL", $"{uri.Scheme}://localhost:{uri.Port}");
                         break;
                     }
                 }
@@ -188,6 +191,8 @@ namespace compute.geometry
                     case "apikey":
                         {
                             Config.ApiKey = value;
+                            // Hops components in definitions being solved send this key with their requests.
+                            Environment.SetEnvironmentVariable("RHINO_COMPUTE_KEY", value);
                             Log.Information("API key set from command line");
                         }
                         break;

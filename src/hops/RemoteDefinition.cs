@@ -439,7 +439,7 @@ namespace Hops
                     if (responseMessage.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                     {
                         var serverMessage = string.IsNullOrWhiteSpace(stringResult)
-                            ? "Server returned 401 Unauthorized — verify the RHINO_COMPUTE_KEY environment variable on the Hops client matches the server's configured key."
+                            ? "Server returned 401 Unauthorized — verify the API key in the Hops settings (or, when that is empty, the RHINO_COMPUTE_KEY environment variable) matches the server's configured key."
                             : $"Server returned 401 Unauthorized: {stringResult.Trim()}";
                         HopsLog.Log.Error(serverMessage);
                         var errSchema = new IoResponseSchema();
@@ -689,8 +689,9 @@ namespace Hops
         // key is configured. Headers must go on the request, not the shared HttpClient.
         static void AddApiKeyHeader(System.Net.Http.HttpRequestMessage request)
         {
-            if (!string.IsNullOrEmpty(HopsAppSettings.APIKey))
-                request.Headers.Add(API_KEY_NAME, HopsAppSettings.APIKey);
+            string apiKey = HopsAppSettings.RequestAPIKey;
+            if (!string.IsNullOrEmpty(apiKey))
+                request.Headers.Add(API_KEY_NAME, apiKey);
         }
 
         static Schema SafeSchemaDeserialize(string data)
@@ -849,7 +850,7 @@ namespace Hops
                     // Use the server's response body when available — it explains whether the
                     // header was missing or the key was wrong. Fall back to a generic message.
                     var serverMessage = string.IsNullOrWhiteSpace(stringResult)
-                        ? "Server returned 401 Unauthorized — verify the RHINO_COMPUTE_KEY environment variable on the Hops client matches the server's configured key."
+                        ? "Server returned 401 Unauthorized — verify the API key in the Hops settings (or, when that is empty, the RHINO_COMPUTE_KEY environment variable) matches the server's configured key."
                         : $"Server returned 401 Unauthorized: {stringResult.Trim()}";
                     HopsLog.Log.Error(serverMessage);
                     badSchema.Errors.Add(serverMessage);
