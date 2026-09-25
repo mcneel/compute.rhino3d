@@ -342,18 +342,22 @@ namespace rhino.compute
             await AwaitInitTask();
             using (var tracker = new ConcurrentRequestTracker())
             {
-                var (baseurl, port) = ComputeChildren.GetComputeServerBaseUrl();
-                using var proxyResponse = await SendProxyRequest(req, method, baseurl);
-                ComputeChildren.UpdateLastCall();
-                if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
-                    ComputeChildren.MoveToFrontOfQueue(port);
+                string responseString;
+                using (var child = ComputeChildren.AcquireChild())
+                using (var proxyResponse = await SendProxyRequest(req, method, child.BaseUrl))
+                {
+                    ComputeChildren.UpdateLastCall();
+                    if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
+                        ComputeChildren.MoveToFrontOfQueue(child.Port);
 
-                res.StatusCode = (int)proxyResponse.StatusCode;
-                // Forward the upstream Content-Type so JSON responses arrive at the caller as
-                // application/json rather than the ASP.NET Core default text/plain.
-                if (proxyResponse.Content.Headers.ContentType != null)
-                    res.ContentType = proxyResponse.Content.Headers.ContentType.ToString();
-                var responseString = await proxyResponse.Content.ReadAsStringAsync();
+                    res.StatusCode = (int)proxyResponse.StatusCode;
+                    // Forward the upstream Content-Type so JSON responses arrive at the caller as
+                    // application/json rather than the ASP.NET Core default text/plain.
+                    if (proxyResponse.Content.Headers.ContentType != null)
+                        res.ContentType = proxyResponse.Content.Headers.ContentType.ToString();
+                    responseString = await proxyResponse.Content.ReadAsStringAsync();
+                }
+                // The child is free once its response is read; a slow client shouldn't hold it.
                 await res.WriteAsync(responseString);
             }
         }
