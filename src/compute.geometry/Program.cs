@@ -107,6 +107,9 @@ namespace compute.geometry
                     if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Port > 0)
                     {
                         DynamicPortEnricher.SetPort(uri.Port);
+                        // Running on its own, this process is the server its definitions call back into.
+                        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RHINO_COMPUTE_PARENT_URL")))
+                            Environment.SetEnvironmentVariable("RHINO_COMPUTE_PARENT_URL", $"{uri.Scheme}://localhost:{uri.Port}");
                         break;
                     }
                 }
