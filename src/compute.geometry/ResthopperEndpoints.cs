@@ -182,7 +182,7 @@ namespace compute.geometry
 
         static async Task GetIoNames(HttpContext ctx)
         {
-            await GetIoNamesHelper(ctx, true);
+            await GetIoNamesHelper(ctx, false);
         }
         static async Task PostIoNames(HttpContext ctx)
         {
@@ -233,7 +233,14 @@ namespace compute.geometry
             }
             else
             {
-                string url = ctx.Request.Query["Pointer"][0].ToString();
+                var pointer = ctx.Request.Query["Pointer"];
+                string url = pointer.Count > 0 ? pointer[0] : null;
+                if (string.IsNullOrWhiteSpace(url))
+                {
+                    ctx.Response.StatusCode = 400;
+                    await ctx.Response.WriteAsync("GET /io needs a Pointer query parameter.");
+                    return;
+                }
                 definition = GrasshopperDefinition.FromUrl(url, true);
             }
             if (definition == null)
