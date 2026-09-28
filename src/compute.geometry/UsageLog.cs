@@ -14,7 +14,7 @@ namespace compute.geometry
     // Fields are only ever added (bumping VERSION), never renamed, so readers can handle every version.
     static class UsageLog
     {
-        const int VERSION = 2;
+        const int VERSION = 3;
         static readonly TimeSpan OVERHEAD_INTERVAL = TimeSpan.FromMinutes(1);
 
         static readonly object writeLock = new object();
@@ -42,7 +42,7 @@ namespace compute.geometry
                     time = startUtc,
                     pid = Environment.ProcessId,
                     wallSeconds = Math.Round((DateTime.UtcNow - startUtc).TotalSeconds, 3),
-                    cpuSeconds = Math.Round(Environment.CpuUsage.TotalTime.TotalSeconds, 3),
+                    cpuSeconds = Math.Round(CpuLedger.StartCpuSeconds, 3),
                 });
             }
             lock (overheadLock)
@@ -88,7 +88,7 @@ namespace compute.geometry
                     overheadTimer.Dispose();
                     overheadTimer = null;
                 }
-                var (idleCpuSeconds, requests) = CpuLedger.TakeOverhead();
+                var (idleCpuSeconds, requests, totalCpuSeconds) = CpuLedger.TakeOverhead();
                 Append(new
                 {
                     v = VERSION,
@@ -99,6 +99,7 @@ namespace compute.geometry
                     idleCpuSeconds = Math.Round(idleCpuSeconds, 3),
                     requests = requests.ToDictionary(r => r.Key, r => new { count = r.Value.Count, cpuSeconds = Math.Round(r.Value.CpuSeconds, 3) }),
                     processes = ProcessTreeCpu.ActiveProcesses(),
+                    totalCpuSeconds = Math.Round(totalCpuSeconds, 3),
                 });
                 periodStartUtc = DateTime.UtcNow;
                 periodStartTimestamp = Stopwatch.GetTimestamp();

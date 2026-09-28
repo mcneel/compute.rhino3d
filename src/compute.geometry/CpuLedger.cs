@@ -41,10 +41,16 @@ namespace compute.geometry
         static double idleCpuSeconds;
         static Dictionary<string, OverheadTotal> overhead = new Dictionary<string, OverheadTotal>();
 
+        // CPU used before the ledger started, so every later total is this plus what the ledger divides.
+        public static double StartCpuSeconds { get; private set; }
+
         public static void Start()
         {
             lock (ledgerLock)
+            {
                 lastCpu = ProcessTreeCpu.Total();
+                StartCpuSeconds = lastCpu.TotalSeconds;
+            }
         }
 
         public static Entry Begin()
@@ -65,10 +71,10 @@ namespace compute.geometry
             {
                 Advance();
                 inFlight.Remove(entry);
-                if (entry.Billable)
-                    return;
-                if (!overhead.TryGetValue(overheadLabel, out var total))
-                    overhead[overheadLabel] = total = new OverheadTotal();
+                // A billable request's CPU before it became billable (routing, the key check, receiving its body) is overhead.
+                string label = entry.Billable ? "receiving billable requests" : overheadLabel;
+                if (!overhead.TryGetValue(label, out var total))
+                    overhead[label] = total = new OverheadTotal();
                 total.Count++;
                 total.CpuSeconds += entry.OverheadCpuSeconds;
             }
@@ -158,13 +164,14 @@ namespace compute.geometry
             public void Dispose() => Monitor.Exit(lockObject);
         }
 
-        // Idle CPU and non-billable requests by label since the last call.
-        public static (double IdleCpuSeconds, Dictionary<string, OverheadTotal> Requests) TakeOverhead()
+        // Idle CPU and non-billable requests by label since the last call, and the process's CPU so far
+        // (including processes it started) at the same moment.
+        public static (double IdleCpuSeconds, Dictionary<string, OverheadTotal> Requests, double TotalCpuSeconds) TakeOverhead()
         {
             lock (ledgerLock)
             {
                 Advance();
-                var result = (idleCpuSeconds, overhead);
+                var result = (idleCpuSeconds, overhead, lastCpu.TotalSeconds);
                 idleCpuSeconds = 0;
                 overhead = new Dictionary<string, OverheadTotal>();
                 return result;
