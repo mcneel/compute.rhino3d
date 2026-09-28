@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -9,15 +10,19 @@ using Serilog;
 
 namespace compute.geometry
 {
-    // JSON lines appended to a file of this process's own so processes never share a file: one per billable
-    // request, a startup record, an overhead record every minute and a final one at shutdown.
+    // Usage records as JSON lines: one per billable request, a startup record, an overhead record every minute and
+    // a final one at shutdown. They go to compute.meter.agent when it's running, otherwise (or when it can't take
+    // them) to a file of this process's own, so processes never share a file. Each record has a sequence number,
+    // so the agent stores a record once whichever way it arrives.
     // Fields are only ever added (bumping VERSION), never renamed, so readers can handle every version.
     static class UsageLog
     {
-        const int VERSION = 3;
+        public const int VERSION = 4;
         static readonly TimeSpan OVERHEAD_INTERVAL = TimeSpan.FromMinutes(1);
+        static readonly TimeSpan SHUTDOWN_FLUSH_TIMEOUT = TimeSpan.FromSeconds(2);
 
-        static readonly object writeLock = new object();
+        static readonly object appendLock = new object();
+        static long nextSeq;
         static StreamWriter writer;
         static bool failed;
 
@@ -26,42 +31,72 @@ namespace compute.geometry
         static DateTime periodStartUtc;
         static long periodStartTimestamp;
 
-        public static bool Enabled => !string.IsNullOrEmpty(Config.UsageLogPath);
+        // Identifies this process's records, with its pid, in file names and to the agent.
+        public static string ProcessStart => Program.StartTime.ToUniversalTime().ToString("yyyyMMddTHHmmss", CultureInfo.InvariantCulture);
 
+        public static bool Recording { get; private set; }
+
+        // Also restarts recording after Pause, with a new startup record that covers all CPU used so far.
         public static void Start()
         {
-            if (!Enabled)
-                return;
-            using (var process = Process.GetCurrentProcess())
-            {
-                var startUtc = process.StartTime.ToUniversalTime();
-                Append(new
-                {
-                    v = VERSION,
-                    kind = "startup",
-                    time = startUtc,
-                    pid = Environment.ProcessId,
-                    wallSeconds = Math.Round((DateTime.UtcNow - startUtc).TotalSeconds, 3),
-                    cpuSeconds = Math.Round(CpuLedger.StartCpuSeconds, 3),
-                });
-            }
             lock (overheadLock)
             {
+                if (Recording)
+                    return;
+                Recording = true;
+                double cpuBefore = CpuLedger.BeginLog();
+                using (var process = Process.GetCurrentProcess())
+                {
+                    var startUtc = process.StartTime.ToUniversalTime();
+                    Append(seq => new
+                    {
+                        v = VERSION,
+                        kind = "startup",
+                        seq,
+                        time = startUtc,
+                        pid = Environment.ProcessId,
+                        wallSeconds = Math.Round((DateTime.UtcNow - startUtc).TotalSeconds, 3),
+                        cpuSeconds = Math.Round(cpuBefore, 3),
+                    });
+                }
                 periodStartUtc = DateTime.UtcNow;
                 periodStartTimestamp = Stopwatch.GetTimestamp();
                 overheadTimer = new Timer(_ => WriteOverhead("overhead"), null, OVERHEAD_INTERVAL, OVERHEAD_INTERVAL);
             }
         }
 
-        public static void Stop() => WriteOverhead("shutdown");
+        // Stops recording because metering is off on this machine. Records from before, which the agent hasn't
+        // stored yet, go to the fallback file.
+        public static void Pause()
+        {
+            lock (overheadLock)
+            {
+                if (!Recording)
+                    return;
+                Recording = false;
+                overheadTimer.Dispose();
+                overheadTimer = null;
+            }
+            foreach (string line in AgentLink.Flush(TimeSpan.Zero))
+                WriteToFile(line);
+            Log.Warning("Usage records: compute.meter.agent says metering is off; not recording usage");
+        }
+
+        public static void Stop()
+        {
+            WriteOverhead("shutdown");
+            foreach (string line in AgentLink.Flush(SHUTDOWN_FLUSH_TIMEOUT))
+                WriteToFile(line);
+        }
 
         public static void WriteRequest(DateTime startUtc, string client, string method, string path, int status,
             long ingressBytes, long egressBytes, CpuLedger.Entry cpu, double wallSeconds)
         {
-            Append(new
+            Append(seq => new
             {
                 v = VERSION,
                 kind = "request",
+                seq,
                 time = startUtc,
                 client,
                 pid = Environment.ProcessId,
@@ -89,10 +124,11 @@ namespace compute.geometry
                     overheadTimer = null;
                 }
                 var (idleCpuSeconds, requests, totalCpuSeconds) = CpuLedger.TakeOverhead();
-                Append(new
+                Append(seq => new
                 {
                     v = VERSION,
                     kind,
+                    seq,
                     time = periodStartUtc,
                     pid = Environment.ProcessId,
                     wallSeconds = Math.Round(Stopwatch.GetElapsedTime(periodStartTimestamp).TotalSeconds, 3),
@@ -106,31 +142,46 @@ namespace compute.geometry
             }
         }
 
-        static void Append(object record)
+        // Numbered and queued under one lock, so records reach the agent in sequence order.
+        static void Append(Func<long, object> build)
         {
-            string line = JsonSerializer.Serialize(record);
-            lock (writeLock)
+            lock (appendLock)
             {
-                if (failed)
+                if (!Recording)
+                    return;
+                long seq = ++nextSeq;
+                string line = JsonSerializer.Serialize(build(seq));
+                if (AgentLink.Attached && AgentLink.Send(seq, line))
+                    return;
+                WriteToFile(line);
+            }
+        }
+
+        static void WriteToFile(string line)
+        {
+            string directory = Config.UsageLogPath ?? AgentLink.FallbackPath;
+            lock (appendLock)
+            {
+                if (failed || string.IsNullOrEmpty(directory))
                     return;
                 try
                 {
-                    writer ??= Open();
+                    writer ??= Open(directory);
                     writer.WriteLine(line);
                     writer.Flush();
                 }
                 catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
                 {
                     failed = true;
-                    Log.Error(ex, "Usage log: writing to {Path} failed; no further usage records will be written", Config.UsageLogPath);
+                    Log.Error(ex, "Usage log: writing to {Path} failed; no further usage records will be written to it", directory);
                 }
             }
         }
 
-        static StreamWriter Open()
+        static StreamWriter Open(string directory)
         {
-            Directory.CreateDirectory(Config.UsageLogPath);
-            string file = Path.Combine(Config.UsageLogPath, $"usage-{Environment.ProcessId}-{Program.StartTime.ToUniversalTime():yyyyMMddTHHmmss}.jsonl");
+            Directory.CreateDirectory(directory);
+            string file = Path.Combine(directory, $"usage-{Environment.ProcessId}-{ProcessStart}.jsonl");
             var stream = new FileStream(file, FileMode.Append, FileAccess.Write, FileShare.Read);
             Log.Information("Usage log: writing usage records to {File}", file);
             return new StreamWriter(stream, new UTF8Encoding(false));

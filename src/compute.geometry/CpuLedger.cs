@@ -41,15 +41,34 @@ namespace compute.geometry
         static double idleCpuSeconds;
         static Dictionary<string, OverheadTotal> overhead = new Dictionary<string, OverheadTotal>();
 
-        // CPU used before the ledger started, so every later total is this plus what the ledger divides.
-        public static double StartCpuSeconds { get; private set; }
+        // Metering is dormant until something starts it: the metering headers, a usage log path, or finding the agent.
+        public static bool Started { get; private set; }
+
+        // True for a request that arrived while metering was on.
+        public static bool IsMetered => current.Value != null;
 
         public static void Start()
         {
             lock (ledgerLock)
             {
+                if (Started)
+                    return;
+                ProcessTreeCpu.Initialize();
                 lastCpu = ProcessTreeCpu.Total();
-                StartCpuSeconds = lastCpu.TotalSeconds;
+                Started = true;
+            }
+        }
+
+        // The CPU used so far, for a usage log starting now: idle and overhead from before it are part of that
+        // total, so they're cleared, and every later total is this plus what the ledger divides from here on.
+        public static double BeginLog()
+        {
+            lock (ledgerLock)
+            {
+                Advance();
+                idleCpuSeconds = 0;
+                overhead = new Dictionary<string, OverheadTotal>();
+                return lastCpu.TotalSeconds;
             }
         }
 

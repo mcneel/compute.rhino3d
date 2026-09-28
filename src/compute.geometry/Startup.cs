@@ -36,9 +36,8 @@ namespace compute.geometry
         {
             RhinoCoreStartup();
 
-            bool metering = Config.MeteringHeaders || UsageLog.Enabled;
-            if (metering)
-                app.UseMiddleware<MeteringMiddleware>();
+            // Always in the pipeline, doing nothing until metering starts (possibly later, when the agent appears).
+            app.UseMiddleware<MeteringMiddleware>();
 
             // Global exception handler. Sits at the very top of the pipeline so it catches
             // anything thrown by downstream middleware or endpoint handlers. Logs the
@@ -79,8 +78,7 @@ namespace compute.geometry
             app.UseCors();
             if (!string.IsNullOrEmpty(Config.ApiKey))
                 app.UseMiddleware<ApiKeyMiddleware>();
-            if (metering)
-                app.UseMiddleware<BillableMiddleware>();
+            app.UseMiddleware<BillableMiddleware>();
             app.UseEndpoints(builder =>
             {
                 builder.MapHealthChecks("/healthcheck");

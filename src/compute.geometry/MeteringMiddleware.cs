@@ -41,7 +41,7 @@ namespace compute.geometry
 
         public async Task InvokeAsync(HttpContext context)
         {
-            if (context.GetEndpoint()?.Metadata.GetMetadata<BillableEndpoint>() == null)
+            if (!CpuLedger.IsMetered || context.GetEndpoint()?.Metadata.GetMetadata<BillableEndpoint>() == null)
             {
                 await next(context);
                 return;
@@ -141,9 +141,11 @@ namespace compute.geometry
         public MeteringMiddleware(RequestDelegate next)
         {
             this.next = next;
-            ProcessTreeCpu.Initialize();
-            CpuLedger.Start();
-            UsageLog.Start();
+            if (Config.MeteringHeaders || !string.IsNullOrEmpty(Config.UsageLogPath))
+                CpuLedger.Start();
+            if (!string.IsNullOrEmpty(Config.UsageLogPath))
+                UsageLog.Start();
+            AgentLink.Start();
         }
 
         // How non-billable requests are grouped in the usage log's overhead records.
@@ -160,6 +162,11 @@ namespace compute.geometry
 
         public async Task InvokeAsync(HttpContext context)
         {
+            if (!CpuLedger.Started)
+            {
+                await next(context);
+                return;
+            }
             var startUtc = DateTime.UtcNow;
             long startTimestamp = Stopwatch.GetTimestamp();
             var cpu = CpuLedger.Begin();
@@ -190,7 +197,7 @@ namespace compute.geometry
                     context.Response.Headers[CPU_SECONDS_HEADER] = cpu.CpuSeconds.ToString("0.000", CultureInfo.InvariantCulture);
                 context.Response.Headers[PID_HEADER] = Environment.ProcessId.ToString(CultureInfo.InvariantCulture);
             }
-            if (cpu.Billable && UsageLog.Enabled)
+            if (cpu.Billable && UsageLog.Recording)
             {
                 UsageLog.WriteRequest(startUtc, cpu.Client, context.Request.Method, context.Request.Path.Value, context.Response.StatusCode,
                     requestBody.BytesRead, responseBuffer.Length, cpu, Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds);
