@@ -122,6 +122,36 @@ namespace compute.geometry
         }
     }
 
+    // The definition a billable request used, set by its endpoint for its usage record. Cached is whether a
+    // solve came from the solve cache (null for requests that don't solve).
+    static class RequestDefinitions
+    {
+        public sealed record Use(string Id, string Name, bool? Cached);
+
+        const int MAX_NAME_LENGTH = 128;
+        static readonly object KEY = new object();
+
+        public static void Set(HttpContext context, GrasshopperDefinition definition, string fileName, bool? cached)
+        {
+            if (CpuLedger.IsMetered && definition?.Id != null)
+                context.Items[KEY] = new Use(definition.Id, CleanName(fileName) ?? CleanName(definition.Name), cached);
+        }
+
+        public static Use Get(HttpContext context) => context.Items.TryGetValue(KEY, out object use) ? use as Use : null;
+
+        // Clients may send a path; only its last part is kept.
+        static string CleanName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return null;
+            name = new string(name.Where(c => !char.IsControl(c)).ToArray()).Trim();
+            name = name.Substring(name.LastIndexOfAny(new[] { '/', '\\' }) + 1);
+            if (name.Length == 0)
+                return null;
+            return name.Length > MAX_NAME_LENGTH ? name.Substring(0, MAX_NAME_LENGTH) : name;
+        }
+    }
+
     /// <summary>
     /// Measures each request's body sizes, CPU time (including processes compute.geometry starts, divided
     /// between requests by <see cref="CpuLedger"/>) and wall time, and attributes billable requests to a
@@ -133,8 +163,10 @@ namespace compute.geometry
         public const string EGRESS_BYTES_HEADER = "Rhino-Compute-Egress-Bytes";
         public const string CPU_SECONDS_HEADER = "Rhino-Compute-Cpu-Seconds";
         public const string PID_HEADER = "Rhino-Compute-Pid";
+        public const string REQUEST_ID_HEADER = "Rhino-Compute-Request-Id";
+        const int MAX_REQUEST_ID_LENGTH = 128;
 
-        public static readonly string[] Headers = { INGRESS_BYTES_HEADER, EGRESS_BYTES_HEADER, CPU_SECONDS_HEADER, PID_HEADER };
+        public static readonly string[] Headers = { INGRESS_BYTES_HEADER, EGRESS_BYTES_HEADER, CPU_SECONDS_HEADER, PID_HEADER, REQUEST_ID_HEADER };
 
         private readonly RequestDelegate next;
 
@@ -158,6 +190,15 @@ namespace compute.geometry
             if (context.GetEndpoint() is RouteEndpoint endpoint)
                 return $"{context.Request.Method} /{endpoint.RoutePattern.RawText?.TrimStart('/')}";
             return "not found";
+        }
+
+        // The caller's own ID when it sends one, so its records match its logs; otherwise a new one.
+        static string RequestId(HttpContext context)
+        {
+            string id = context.Request.Headers[REQUEST_ID_HEADER].ToString().Trim();
+            if (id.Length > 0 && id.Length <= MAX_REQUEST_ID_LENGTH && id.All(c => c >= ' ' && c <= '~'))
+                return id;
+            return Guid.NewGuid().ToString("N");
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -189,18 +230,23 @@ namespace compute.geometry
                 CpuLedger.End(cpu, cpu.Billable ? null : OverheadLabel(context));
             }
 
+            string requestId = cpu.Billable ? RequestId(context) : null;
             if (Config.MeteringHeaders)
             {
                 context.Response.Headers[INGRESS_BYTES_HEADER] = requestBody.BytesRead.ToString(CultureInfo.InvariantCulture);
                 context.Response.Headers[EGRESS_BYTES_HEADER] = responseBuffer.Length.ToString(CultureInfo.InvariantCulture);
                 if (cpu.Billable)
+                {
                     context.Response.Headers[CPU_SECONDS_HEADER] = cpu.CpuSeconds.ToString("0.000", CultureInfo.InvariantCulture);
+                    context.Response.Headers[REQUEST_ID_HEADER] = requestId;
+                }
                 context.Response.Headers[PID_HEADER] = Environment.ProcessId.ToString(CultureInfo.InvariantCulture);
             }
             if (cpu.Billable && UsageLog.Recording)
             {
-                UsageLog.WriteRequest(startUtc, cpu.Client, context.Request.Method, context.Request.Path.Value, context.Response.StatusCode,
-                    requestBody.BytesRead, responseBuffer.Length, cpu, Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds);
+                UsageLog.WriteRequest(startUtc, requestId, cpu.Client, context.Request.Method, context.Request.Path.Value,
+                    context.Response.StatusCode, RequestDefinitions.Get(context), requestBody.BytesRead, responseBuffer.Length, cpu,
+                    Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds);
             }
             responseBuffer.Position = 0;
             await responseBuffer.CopyToAsync(originalResponseBody, context.RequestAborted);

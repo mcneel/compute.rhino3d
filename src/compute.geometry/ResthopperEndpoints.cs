@@ -81,6 +81,7 @@ namespace compute.geometry
                 Serilog.Log.Warning(msg);
                 throw new Exception(msg);
             }
+            RequestDefinitions.Set(ctx, definition, input.FileName, cached: false);
             SetDefaultTolerances(input.AbsoluteTolerance, input.AngleTolerance);
             SetDefaultUnits(input.ModelUnits);
 
@@ -143,9 +144,10 @@ namespace compute.geometry
             if (input.CacheSolve)
             {
                 // look in the cache to see if this has already been solved
-                string cachedReturnJson = DataCache.GetCachedSolveResults(body);
+                string cachedReturnJson = DataCache.GetCachedSolveResults(body, out var cachedDefinition);
                 if (!string.IsNullOrWhiteSpace(cachedReturnJson))
                 {
+                    RequestDefinitions.Set(ctx, cachedDefinition, input.FileName, cached: true);
                     ctx.Response.ContentType = "application/json";
                     await ctx.Response.WriteAsync(cachedReturnJson);
                     return;
@@ -243,7 +245,8 @@ namespace compute.geometry
                 Serilog.Log.Warning(msg);
                 throw new Exception(msg);
             }
-                
+            RequestDefinitions.Set(ctx, definition, fileName, cached: null);
+
             var responseSchema = definition.GetInputsAndOutputs();
 
             var inputSuffix = String.Empty;

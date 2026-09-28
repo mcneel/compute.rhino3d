@@ -170,8 +170,9 @@ namespace compute.geometry
             }
         }
 
-        public static string GetCachedSolveResults(string key)
+        public static string GetCachedSolveResults(string key, out GrasshopperDefinition definition)
         {
+            definition = null;
             if (string.IsNullOrWhiteSpace(key))
                 return null;
             var cache = resultsCache.Get(key) as CachedResults;
@@ -187,6 +188,7 @@ namespace compute.geometry
                 }
             }
 
+            definition = cache.Definition;
             return cache.Json;
         }
 

@@ -88,12 +88,14 @@ namespace compute.geometry
             }
             else
             {
-                var archive = ArchiveFromUrl(url);
+                var archive = ArchiveFromUrl(url, out byte[] contents);
                 if (archive == null)
                     return null;
 
                 rc = Construct(archive);
                 rc.CacheKey = url;
+                rc.Id = contents == null ? null : DataCache.CreateCacheKey(Convert.ToBase64String(contents));
+                rc.Name = NameFromUrl(url);
                 rc.IsLocalFileDefinition = !UrlGuard.IsWebUrl(url) && File.Exists(url);
             }
             if (cache)
@@ -114,6 +116,7 @@ namespace compute.geometry
             if (rc!=null)
             {
                 rc.CacheKey = DataCache.CreateCacheKey(data);
+                rc.Id = rc.CacheKey;
                 if (cache)
                 {
                     DataCache.SetCachedDefinition(rc.CacheKey, rc, data);
@@ -144,6 +147,8 @@ namespace compute.geometry
 
             GrasshopperDefinition rc = new GrasshopperDefinition(definition, null);
             rc.singularComponent = component;
+            rc.Id = "component:" + componentId.ToString("D");
+            rc.Name = component.Name;
             foreach(var input in component.Params.Input)
             {
                 rc.input[input.NickName] = new InputGroup(input);
@@ -301,6 +306,9 @@ namespace compute.geometry
         public bool IsLocalFileDefinition { get; set; } // default: false
         public uint FileRuntimeCacheSerialNumber { get; private set; }
         public string CacheKey { get; set; }
+        // For usage records: the same key for a file whether it's uploaded or loaded from a URL, and never a path.
+        public string Id { get; private set; }
+        public string Name { get; private set; }
         string iconString;
         GH_Component singularComponent;
         Dictionary<string, InputGroup> input = new Dictionary<string, InputGroup>();
@@ -792,8 +800,9 @@ namespace compute.geometry
             };
         }
 
-        public static GH_Archive ArchiveFromUrl(string url)
+        public static GH_Archive ArchiveFromUrl(string url, out byte[] contents)
         {
+            contents = null;
             if (string.IsNullOrWhiteSpace(url))
                 return null;
 
@@ -804,6 +813,11 @@ namespace compute.geometry
                 if (archive.ReadFromFile(url))
                 {
                     RegisterFileWatcher(url);
+                    try
+                    {
+                        contents = File.ReadAllBytes(url);
+                    }
+                    catch (IOException) { }
                     return archive;
                 }
                 return null;
@@ -826,6 +840,7 @@ namespace compute.geometry
                 {
                     throw ex.InnerException;
                 }
+                contents = byteArray;
 
                 try
                 {
@@ -841,6 +856,14 @@ namespace compute.geometry
                     return xmlArchive;
             }
             return null;
+        }
+
+        // The file name only: a URL's query can hold access tokens and a path can hold a user name.
+        static string NameFromUrl(string url)
+        {
+            if (UrlGuard.IsWebUrl(url) && Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
+                url = Uri.UnescapeDataString(uri.AbsolutePath);
+            return url.Substring(url.LastIndexOfAny(new[] { '/', '\\' }) + 1);
         }
 
         public static GH_Archive ArchiveFromBase64String(string blob)

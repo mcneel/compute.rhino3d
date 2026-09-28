@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using Serilog;
 
@@ -17,9 +18,11 @@ namespace compute.geometry
     // Fields are only ever added (bumping VERSION), never renamed, so readers can handle every version.
     static class UsageLog
     {
-        public const int VERSION = 4;
+        public const int VERSION = 5;
         static readonly TimeSpan OVERHEAD_INTERVAL = TimeSpan.FromMinutes(1);
         static readonly TimeSpan SHUTDOWN_FLUSH_TIMEOUT = TimeSpan.FromSeconds(2);
+        // A field that doesn't apply, such as a script request's definition, is left out.
+        static readonly JsonSerializerOptions JSON_OPTIONS = new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
 
         static readonly object appendLock = new object();
         static long nextSeq;
@@ -89,8 +92,8 @@ namespace compute.geometry
                 WriteToFile(line);
         }
 
-        public static void WriteRequest(DateTime startUtc, string client, string method, string path, int status,
-            long ingressBytes, long egressBytes, CpuLedger.Entry cpu, double wallSeconds)
+        public static void WriteRequest(DateTime startUtc, string requestId, string client, string method, string path, int status,
+            RequestDefinitions.Use definition, long ingressBytes, long egressBytes, CpuLedger.Entry cpu, double wallSeconds)
         {
             Append(seq => new
             {
@@ -98,11 +101,15 @@ namespace compute.geometry
                 kind = "request",
                 seq,
                 time = startUtc,
+                requestId,
                 client,
                 pid = Environment.ProcessId,
                 method,
                 path,
                 status,
+                definition = definition?.Id,
+                definitionName = definition?.Name,
+                cached = definition?.Cached,
                 ingressBytes,
                 egressBytes,
                 cpuSeconds = Math.Round(cpu.CpuSeconds, 3),
@@ -150,7 +157,7 @@ namespace compute.geometry
                 if (!Recording)
                     return;
                 long seq = ++nextSeq;
-                string line = JsonSerializer.Serialize(build(seq));
+                string line = JsonSerializer.Serialize(build(seq), JSON_OPTIONS);
                 if (AgentLink.Attached && AgentLink.Send(seq, line))
                     return;
                 WriteToFile(line);

@@ -17,9 +17,10 @@ namespace rhino.compute
         static HttpClient client;
         private const string API_KEY_HEADER = "RhinoComputeKey";
         private const string CLIENT_HEADER = "Rhino-Compute-Client";
+        private const string REQUEST_ID_HEADER = "Rhino-Compute-Request-Id";
         public static readonly string[] MeteringHeaders =
         {
-            "Rhino-Compute-Ingress-Bytes", "Rhino-Compute-Egress-Bytes", "Rhino-Compute-Cpu-Seconds", "Rhino-Compute-Pid",
+            "Rhino-Compute-Ingress-Bytes", "Rhino-Compute-Egress-Bytes", "Rhino-Compute-Cpu-Seconds", "Rhino-Compute-Pid", REQUEST_ID_HEADER,
         };
 
         static void Initialize()
@@ -362,6 +363,8 @@ namespace rhino.compute
                 to.Headers.TryAddWithoutValidation(API_KEY_HEADER, key.ToString());
             if (!string.IsNullOrEmpty(clientId))
                 to.Headers.TryAddWithoutValidation(CLIENT_HEADER, clientId);
+            if (from.Headers.TryGetValue(REQUEST_ID_HEADER, out var requestId))
+                to.Headers.TryAddWithoutValidation(REQUEST_ID_HEADER, requestId.ToString());
         }
 
         // Nested calls belong to the client their child is serving, whatever header they carry. Which child
