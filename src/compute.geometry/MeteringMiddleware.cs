@@ -154,20 +154,22 @@ namespace compute.geometry
         }
     }
 
-    // What went wrong with a billable request, for its usage record: why it failed, or the first warning from a solve
-    // that didn't, and how many errors and warnings Grasshopper reported. Messages can hold paths and input values, so
-    // they're kept to one short line.
+    // What went wrong with a billable request, for its usage record: why it failed, and a solve's Grasshopper errors
+    // and warnings, the first MAX_MESSAGES of each with how many there were. Messages can hold paths and input values,
+    // so each is kept to one short line.
     static class RequestOutcome
     {
-        public sealed record Result(string Error, string Warning, int? SolveErrors, int? SolveWarnings);
+        public sealed record Result(string Error, string[] Errors, string[] Warnings, int? SolveErrors, int? SolveWarnings);
 
         const int MAX_MESSAGE_LENGTH = 300;
+        const int MAX_MESSAGES = 20;
         const int MAX_BODY_READ = 64 * 1024;
         static readonly object KEY = new object();
 
         sealed class Notes
         {
-            public string Error, Warning;
+            public string Error;
+            public string[] Errors, Warnings;
             public int? SolveErrors, SolveWarnings;
         }
 
@@ -191,10 +193,16 @@ namespace compute.geometry
             var notes = For(context);
             notes.SolveErrors = errors?.Count > 0 ? errors.Count : null;
             notes.SolveWarnings = warnings?.Count > 0 ? warnings.Count : null;
-            if (errors?.Count > 0)
-                notes.Error ??= Clean(errors[0]);
-            if (warnings?.Count > 0)
-                notes.Warning ??= Clean(warnings[0]);
+            notes.Errors = First(errors);
+            notes.Warnings = First(warnings);
+            if (notes.Errors != null)
+                notes.Error ??= notes.Errors[0];
+        }
+
+        static string[] First(IList<string> messages)
+        {
+            var kept = messages?.Select(Clean).Where(m => m != null).Take(MAX_MESSAGES).ToArray();
+            return kept?.Length > 0 ? kept : null;
         }
 
         // A failed request says why in what was noted while it ran, else in its response: a JSON message, errors or
@@ -206,7 +214,7 @@ namespace compute.geometry
             string error = failed ? notes?.Error ?? FromBody(body, context.Response.ContentType) : null;
             if (notes == null && error == null)
                 return null;
-            return new Result(error, failed ? null : notes?.Warning, notes?.SolveErrors, notes?.SolveWarnings);
+            return new Result(error, notes?.Errors, notes?.Warnings, notes?.SolveErrors, notes?.SolveWarnings);
         }
 
         static string FromBody(MemoryStream body, string contentType)
