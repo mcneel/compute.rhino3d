@@ -187,6 +187,7 @@ namespace compute.geometry
         private static GrasshopperDefinition Construct(GH_Archive archive)
         {
             string icon = null;
+            string savedName = null;
             var chunk = archive.GetRootNode.FindChunk("Definition");
             if (chunk!=null)
             {
@@ -198,6 +199,10 @@ namespace compute.geometry
                     {
                         icon = s;
                     }
+                    // The file name it was saved as, which names a definition sent without one, such as one internalized in Hops.
+                    string name = String.Empty;
+                    if (chunk.TryGetString("Name", ref name) && !String.IsNullOrWhiteSpace(name))
+                        savedName = name;
                 }
             }
 
@@ -216,6 +221,7 @@ namespace compute.geometry
             }
 
             GrasshopperDefinition rc = new GrasshopperDefinition(definition, icon);
+            rc.Name = savedName;
             foreach( var obj in definition.Objects)
             {
                 IGH_ContextualParameter contextualParam = obj as IGH_ContextualParameter;
