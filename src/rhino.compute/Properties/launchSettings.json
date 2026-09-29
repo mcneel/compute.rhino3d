@@ -6,7 +6,7 @@
     },
     "rhino.compute (scripting, metering headers)": {
       "commandName": "Project",
-      "commandLineArgs": "--port 6500 --childcount 2 --create-headless-doc true --spawn-on-startup --metering-headers",
+      "commandLineArgs": "--port 6500 --childcount 4 --create-headless-doc true --spawn-on-startup --metering-headers",
       "environmentVariables": {
         "RHINO_COMPUTE_ENABLE_SCRIPTING": "true"
       }
