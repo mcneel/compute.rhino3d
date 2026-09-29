@@ -109,7 +109,7 @@ namespace compute.geometry
                 fileNameMsg = $" {input.FileName}";
             Serilog.Log.Debug($"Solving definition{fileNameMsg}...");
             var output = definition.Solve(input.DataVersion, input.DataFormat);
-            RequestOutcome.Solved(ctx, output.Errors, output.Warnings);
+            RequestOutcome.Reported(ctx, output.Errors, output.Warnings);
             output.Pointer = definition.CacheKey;
             long solveTime = stopwatch.ElapsedMilliseconds;
             stopwatch.Restart();
@@ -280,6 +280,7 @@ namespace compute.geometry
             {
                 responseSchema.Errors.Add(error);
             }
+            RequestOutcome.Reported(ctx, responseSchema.Errors, responseSchema.Warnings);
             string jsonResponse = JsonConvert.SerializeObject(responseSchema);
 
             Logging.Warnings.Clear();

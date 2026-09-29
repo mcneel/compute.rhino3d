@@ -154,12 +154,12 @@ namespace compute.geometry
         }
     }
 
-    // What went wrong with a billable request, for its usage record: why it failed, and a solve's Grasshopper errors
-    // and warnings, the first MAX_MESSAGES of each with how many there were. Messages can hold paths and input values,
+    // What went wrong with a billable request, for its usage record: why it failed, and the Grasshopper errors and
+    // warnings of a solve or of a definition /io loaded, the first MAX_MESSAGES of each with how many there were. Messages can hold paths and input values,
     // so each is kept to one short line.
     static class RequestOutcome
     {
-        public sealed record Result(string Error, string[] Errors, string[] Warnings, int? SolveErrors, int? SolveWarnings);
+        public sealed record Result(string Error, string[] Errors, string[] Warnings, int? ErrorCount, int? WarningCount);
 
         const int MAX_MESSAGE_LENGTH = 300;
         const int MAX_MESSAGES = 20;
@@ -170,7 +170,7 @@ namespace compute.geometry
         {
             public string Error;
             public string[] Errors, Warnings;
-            public int? SolveErrors, SolveWarnings;
+            public int? ErrorCount, WarningCount;
         }
 
         static Notes For(HttpContext context)
@@ -186,13 +186,13 @@ namespace compute.geometry
                 For(context).Error ??= Clean(message);
         }
 
-        public static void Solved(HttpContext context, IList<string> errors, IList<string> warnings)
+        public static void Reported(HttpContext context, IList<string> errors, IList<string> warnings)
         {
             if (!CpuLedger.IsMetered)
                 return;
             var notes = For(context);
-            notes.SolveErrors = errors?.Count > 0 ? errors.Count : null;
-            notes.SolveWarnings = warnings?.Count > 0 ? warnings.Count : null;
+            notes.ErrorCount = errors?.Count > 0 ? errors.Count : null;
+            notes.WarningCount = warnings?.Count > 0 ? warnings.Count : null;
             notes.Errors = First(errors);
             notes.Warnings = First(warnings);
             if (notes.Errors != null)
@@ -214,7 +214,7 @@ namespace compute.geometry
             string error = failed ? notes?.Error ?? FromBody(body, context.Response.ContentType) : null;
             if (notes == null && error == null)
                 return null;
-            return new Result(error, notes?.Errors, notes?.Warnings, notes?.SolveErrors, notes?.SolveWarnings);
+            return new Result(error, notes?.Errors, notes?.Warnings, notes?.ErrorCount, notes?.WarningCount);
         }
 
         static string FromBody(MemoryStream body, string contentType)
