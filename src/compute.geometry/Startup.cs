@@ -59,6 +59,8 @@ namespace compute.geometry
 
                 Log.Error(ex, "Unhandled exception during {Method} {Path}: {Category}",
                     ctx.Request.Method, ctx.Request.Path, category ?? "Unknown");
+                // The usage record keeps the real message, which callers see only in debug builds.
+                RequestOutcome.Failed(ctx, message);
 
                 ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
                 ctx.Response.ContentType = "application/json";

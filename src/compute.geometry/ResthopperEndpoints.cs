@@ -109,6 +109,7 @@ namespace compute.geometry
                 fileNameMsg = $" {input.FileName}";
             Serilog.Log.Debug($"Solving definition{fileNameMsg}...");
             var output = definition.Solve(input.DataVersion, input.DataFormat);
+            RequestOutcome.Solved(ctx, output.Errors, output.Warnings);
             output.Pointer = definition.CacheKey;
             long solveTime = stopwatch.ElapsedMilliseconds;
             stopwatch.Restart();

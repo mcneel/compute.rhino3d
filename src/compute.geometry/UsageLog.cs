@@ -18,7 +18,7 @@ namespace compute.geometry
     // Fields are only ever added (bumping VERSION), never renamed, so readers can handle every version.
     static class UsageLog
     {
-        public const int VERSION = 6;
+        public const int VERSION = 7;
         static readonly TimeSpan OVERHEAD_INTERVAL = TimeSpan.FromMinutes(1);
         static readonly TimeSpan SHUTDOWN_FLUSH_TIMEOUT = TimeSpan.FromSeconds(2);
         // A field that doesn't apply, such as a script request's definition, is left out.
@@ -93,7 +93,7 @@ namespace compute.geometry
         }
 
         public static void WriteRequest(DateTime startUtc, string requestId, string client, string method, string path, int status,
-            RequestDefinitions.Use definition, long ingressBytes, long egressBytes, CpuLedger.Entry cpu, double wallSeconds)
+            RequestDefinitions.Use definition, RequestOutcome.Result outcome, long ingressBytes, long egressBytes, CpuLedger.Entry cpu, double wallSeconds)
         {
             Append(seq => new
             {
@@ -110,6 +110,10 @@ namespace compute.geometry
                 definition = definition?.Id,
                 definitionName = definition?.Name,
                 cached = definition?.Cached,
+                error = outcome?.Error,
+                warning = outcome?.Warning,
+                solveErrors = outcome?.SolveErrors,
+                solveWarnings = outcome?.SolveWarnings,
                 ingressBytes,
                 egressBytes,
                 cpuSeconds = Math.Round(cpu.CpuSeconds, 3),

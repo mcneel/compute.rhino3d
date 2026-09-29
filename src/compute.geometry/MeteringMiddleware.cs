@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
@@ -152,6 +154,103 @@ namespace compute.geometry
         }
     }
 
+    // What went wrong with a billable request, for its usage record: why it failed, or the first warning from a solve
+    // that didn't, and how many errors and warnings Grasshopper reported. Messages can hold paths and input values, so
+    // they're kept to one short line.
+    static class RequestOutcome
+    {
+        public sealed record Result(string Error, string Warning, int? SolveErrors, int? SolveWarnings);
+
+        const int MAX_MESSAGE_LENGTH = 300;
+        const int MAX_BODY_READ = 64 * 1024;
+        static readonly object KEY = new object();
+
+        sealed class Notes
+        {
+            public string Error, Warning;
+            public int? SolveErrors, SolveWarnings;
+        }
+
+        static Notes For(HttpContext context)
+        {
+            if (!context.Items.TryGetValue(KEY, out object notes))
+                context.Items[KEY] = notes = new Notes();
+            return (Notes)notes;
+        }
+
+        public static void Failed(HttpContext context, string message)
+        {
+            if (CpuLedger.IsMetered)
+                For(context).Error ??= Clean(message);
+        }
+
+        public static void Solved(HttpContext context, IList<string> errors, IList<string> warnings)
+        {
+            if (!CpuLedger.IsMetered)
+                return;
+            var notes = For(context);
+            notes.SolveErrors = errors?.Count > 0 ? errors.Count : null;
+            notes.SolveWarnings = warnings?.Count > 0 ? warnings.Count : null;
+            if (errors?.Count > 0)
+                notes.Error ??= Clean(errors[0]);
+            if (warnings?.Count > 0)
+                notes.Warning ??= Clean(warnings[0]);
+        }
+
+        // A failed request says why in what was noted while it ran, else in its response: a JSON message, errors or
+        // error, or the first line of text.
+        public static Result Get(HttpContext context, MemoryStream body)
+        {
+            var notes = context.Items.TryGetValue(KEY, out object value) ? value as Notes : null;
+            bool failed = context.Response.StatusCode >= 400;
+            string error = failed ? notes?.Error ?? FromBody(body, context.Response.ContentType) : null;
+            if (notes == null && error == null)
+                return null;
+            return new Result(error, failed ? null : notes?.Warning, notes?.SolveErrors, notes?.SolveWarnings);
+        }
+
+        static string FromBody(MemoryStream body, string contentType)
+        {
+            if (body.Length == 0)
+                return null;
+            string text = Encoding.UTF8.GetString(body.GetBuffer(), 0, (int)Math.Min(body.Length, MAX_BODY_READ));
+            if (contentType?.Contains("json", StringComparison.OrdinalIgnoreCase) == true || text.TrimStart().StartsWith('{'))
+            {
+                try
+                {
+                    using var json = JsonDocument.Parse(text);
+                    if (json.RootElement.ValueKind != JsonValueKind.Object)
+                        return null;
+                    foreach (string name in new[] { "message", "detail", "errors", "error", "title" })
+                    {
+                        if (!json.RootElement.TryGetProperty(name, out var property))
+                            continue;
+                        if (property.ValueKind == JsonValueKind.String && Clean(property.GetString()) is string message)
+                            return message;
+                        if (property.ValueKind == JsonValueKind.Array && property.GetArrayLength() > 0 && property[0].ValueKind == JsonValueKind.String)
+                            return Clean(property[0].GetString());
+                    }
+                    return null;
+                }
+                catch (JsonException)
+                {
+                }
+            }
+            return Clean(text.Split('\n').FirstOrDefault(line => line.Trim().Length > 0));
+        }
+
+        static string Clean(string message)
+        {
+            if (string.IsNullOrWhiteSpace(message))
+                return null;
+            string line = string.Join(" ", message.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(l => l.Trim()));
+            line = new string(line.Where(c => !char.IsControl(c)).ToArray()).Trim();
+            if (line.Length == 0)
+                return null;
+            return line.Length > MAX_MESSAGE_LENGTH ? line.Substring(0, MAX_MESSAGE_LENGTH - 1) + "…" : line;
+        }
+    }
+
     /// <summary>
     /// Measures each request's body sizes, CPU time (including processes compute.geometry starts, divided
     /// between requests by <see cref="CpuLedger"/>) and wall time, and attributes billable requests to a
@@ -245,7 +344,8 @@ namespace compute.geometry
             if (cpu.Billable && UsageLog.Recording)
             {
                 UsageLog.WriteRequest(startUtc, requestId, cpu.Client, context.Request.Method, context.Request.Path.Value,
-                    context.Response.StatusCode, RequestDefinitions.Get(context), requestBody.BytesRead, responseBuffer.Length, cpu,
+                    context.Response.StatusCode, RequestDefinitions.Get(context), RequestOutcome.Get(context, responseBuffer), requestBody.BytesRead,
+                    responseBuffer.Length, cpu,
                     Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds);
             }
             responseBuffer.Position = 0;
