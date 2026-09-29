@@ -269,7 +269,7 @@ requests while the child processes are launching.")]
             lifetime.ApplicationStopping.Register(() =>
             {
                 Log.Information("rhino.compute shutting down; signaling compute.geometry children");
-                try { ComputeChildren.ShutdownChildren(); }
+                try { ComputeChildren.ShutdownChildren("parent-stopping"); }
                 catch (Exception ex) { Log.Warning("Error during child shutdown: {Message}", ex.Message); }
             });
 

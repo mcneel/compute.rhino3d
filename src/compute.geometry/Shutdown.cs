@@ -12,6 +12,12 @@ namespace compute.geometry
         static int parentPort = -1;
         static int idleSpan = -1;
         static DateTime startTime;
+        static string reason;
+
+        // Why this process is stopping, for its shutdown record: the first cause to arrive, or null if none did.
+        public static string Reason => reason;
+
+        public static void SetReason(string value) => System.Threading.Interlocked.CompareExchange(ref reason, value, null);
 
         public static void RegisterParentProcess(int processId)
         {
@@ -73,6 +79,8 @@ namespace compute.geometry
                     if (!process.HasExited)
                         shutdown = false;
                 }
+                if (shutdown)
+                    SetReason("parent-exited");
             }
 
             if (!shutdown && parentPort > 0 && idleSpan > 0)
@@ -104,6 +112,7 @@ namespace compute.geometry
                             {
                                 Serilog.Log.Debug("Idle span limit reached");
                                 shutdown = true;
+                                SetReason("idle");
                             }
                         }
                         else

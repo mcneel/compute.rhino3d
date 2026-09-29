@@ -26,6 +26,9 @@ namespace compute.geometry
             app.MapPost("shutdown", ShutdownChild);
         }
 
+        // What rhino.compute says when it asks a child to stop; anything else is recorded as shutdown-requested.
+        static readonly HashSet<string> SHUTDOWN_REASONS = new HashSet<string> { "parent-stopping", "shutdown-children", "recycle-children" };
+
         // POST /shutdown — graceful self-shutdown for this compute.geometry child. Auth-gated
         // by ApiKeyMiddleware (POST). Used by rhino.compute when its ApplicationStopping
         // lifecycle hook fires (clean parent exit), and by the /shutdown-children +
@@ -38,6 +41,8 @@ namespace compute.geometry
         static Task ShutdownChild(HttpContext ctx)
         {
             Serilog.Log.Information("Received /shutdown request from {RemoteIp}", ctx.Connection.RemoteIpAddress);
+            string reason = ctx.Request.Query["reason"].ToString();
+            Shutdown.SetReason(SHUTDOWN_REASONS.Contains(reason) ? reason : "shutdown-requested");
             var lifetime = ctx.RequestServices.GetService<IHostApplicationLifetime>();
             ctx.Response.StatusCode = 202;
             _ = Task.Run(async () =>

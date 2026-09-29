@@ -8,6 +8,7 @@ using Serilog;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using System.IO;
+using System.Runtime.InteropServices;
 
 
 namespace compute.geometry
@@ -115,9 +116,13 @@ namespace compute.geometry
                 }
             });
 
+            // The host stops gracefully on these; note which one it was.
+            using var interrupt = PosixSignalRegistration.Create(PosixSignal.SIGINT, _ => Shutdown.SetReason("interrupt"));
+            using var quit = PosixSignalRegistration.Create(PosixSignal.SIGQUIT, _ => Shutdown.SetReason("interrupt"));
+            using var terminate = PosixSignalRegistration.Create(PosixSignal.SIGTERM, _ => Shutdown.SetReason("terminate"));
             Shutdown.StartTimer(host);
             host.Run();
-            UsageLog.Stop();
+            UsageLog.Stop(Shutdown.Reason);
 
             if (RhinoCore != null)
                 RhinoCore.Dispose();

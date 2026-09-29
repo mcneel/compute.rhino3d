@@ -18,7 +18,7 @@ namespace compute.geometry
     // Fields are only ever added (bumping VERSION), never renamed, so readers can handle every version.
     static class UsageLog
     {
-        public const int VERSION = 5;
+        public const int VERSION = 6;
         static readonly TimeSpan OVERHEAD_INTERVAL = TimeSpan.FromMinutes(1);
         static readonly TimeSpan SHUTDOWN_FLUSH_TIMEOUT = TimeSpan.FromSeconds(2);
         // A field that doesn't apply, such as a script request's definition, is left out.
@@ -85,9 +85,9 @@ namespace compute.geometry
             Log.Warning("Usage records: compute.meter.agent says metering is off; not recording usage");
         }
 
-        public static void Stop()
+        public static void Stop(string reason)
         {
-            WriteOverhead("shutdown");
+            WriteOverhead("shutdown", reason);
             foreach (string line in AgentLink.Flush(SHUTDOWN_FLUSH_TIMEOUT))
                 WriteToFile(line);
         }
@@ -119,7 +119,7 @@ namespace compute.geometry
             });
         }
 
-        static void WriteOverhead(string kind)
+        static void WriteOverhead(string kind, string reason = null)
         {
             lock (overheadLock)
             {
@@ -143,6 +143,7 @@ namespace compute.geometry
                     requests = requests.ToDictionary(r => r.Key, r => new { count = r.Value.Count, cpuSeconds = Math.Round(r.Value.CpuSeconds, 3) }),
                     processes = ProcessTreeCpu.ActiveProcesses(),
                     totalCpuSeconds = Math.Round(totalCpuSeconds, 3),
+                    reason,
                 });
                 periodStartUtc = DateTime.UtcNow;
                 periodStartTimestamp = Stopwatch.GetTimestamp();

@@ -565,6 +565,8 @@ namespace rhino.compute
         /// the latter). Hard-crash scenarios bypass this entirely — children fall back to the
         /// existing 5-second HasExited poll in their own Shutdown.TimerTask.</para>
         /// </summary>
+        /// <param name="reason">Why, passed to each child for its usage log: parent-stopping,
+        /// shutdown-children or recycle-children.</param>
         /// <param name="portFilter">When non-null, only the child on this port is shut down
         /// (others are left running). When null, all children are shut down.</param>
         /// <param name="respawn">When true, spawn one fresh replacement per shut-down child,
@@ -572,6 +574,7 @@ namespace rhino.compute
         /// children are handling traffic. Respects SpawnCount.</param>
         /// <returns>Ports that were shut down, and ports of any newly-spawned replacements.</returns>
         public static (int[] shutdown, int[] spawned) ShutdownChildren(
+            string reason,
             int? portFilter = null,
             bool respawn = false,
             int gracefulTimeoutSeconds = 3)
@@ -637,7 +640,7 @@ namespace rhino.compute
                 if (tuple.Item1.HasExited) continue;
                 try
                 {
-                    var response = client.PostAsync($"http://localhost:{tuple.Item2}/shutdown", null).GetAwaiter().GetResult();
+                    var response = client.PostAsync($"http://localhost:{tuple.Item2}/shutdown?reason={reason}", null).GetAwaiter().GetResult();
                     Log.Debug("Shutdown request to compute.geometry on port {Port} returned {Status}", tuple.Item2, (int)response.StatusCode);
                 }
                 catch (Exception)

@@ -169,7 +169,7 @@ namespace rhino.compute
                 await res.WriteAsJsonAsync(new { error = parseError });
                 return;
             }
-            var (shutdown, _) = ComputeChildren.ShutdownChildren(portFilter, respawn: false);
+            var (shutdown, _) = ComputeChildren.ShutdownChildren("shutdown-children", portFilter, respawn: false);
             await res.WriteAsJsonAsync(new
             {
                 shutdown,
@@ -188,7 +188,7 @@ namespace rhino.compute
                 await res.WriteAsJsonAsync(new { error = parseError });
                 return;
             }
-            var (shutdown, spawned) = ComputeChildren.ShutdownChildren(portFilter, respawn: true);
+            var (shutdown, spawned) = ComputeChildren.ShutdownChildren("recycle-children", portFilter, respawn: true);
             await res.WriteAsJsonAsync(new
             {
                 shutdown,
