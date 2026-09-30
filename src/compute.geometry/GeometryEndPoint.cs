@@ -778,21 +778,24 @@ namespace compute.geometry
 
     public class GeometryResolver : DefaultContractResolver
     {
-        static int rhinoVersion = 0;
-        static JsonSerializerSettings settings;
+        // One per Rhino version, each built completely before other requests can see it.
+        static readonly System.Collections.Concurrent.ConcurrentDictionary<int, JsonSerializerSettings> settingsByVersion =
+            new System.Collections.Concurrent.ConcurrentDictionary<int, JsonSerializerSettings>();
+
         public static JsonSerializerSettings Settings(int rhinoVersion)
         {
-            if (settings == null || rhinoVersion != GeometryResolver.rhinoVersion)
-            {
-                settings = new JsonSerializerSettings { ContractResolver = new GeometryResolver() };
-                GeometryResolver.rhinoVersion = rhinoVersion;
-                // return V7 ON_Objects for now
-                var options = new Rhino.FileIO.SerializationOptions();
-                options.RhinoVersion = rhinoVersion;
-                options.WriteUserData = true;
-                settings.Context = new System.Runtime.Serialization.StreamingContext(System.Runtime.Serialization.StreamingContextStates.All, options);
-                settings.Converters.Add(new ArchivableDictionaryResolver());
-            }
+            return settingsByVersion.GetOrAdd(rhinoVersion, CreateSettings);
+        }
+
+        static JsonSerializerSettings CreateSettings(int rhinoVersion)
+        {
+            var settings = new JsonSerializerSettings { ContractResolver = new GeometryResolver() };
+            // return V7 ON_Objects for now
+            var options = new Rhino.FileIO.SerializationOptions();
+            options.RhinoVersion = rhinoVersion;
+            options.WriteUserData = true;
+            settings.Context = new System.Runtime.Serialization.StreamingContext(System.Runtime.Serialization.StreamingContextStates.All, options);
+            settings.Converters.Add(new ArchivableDictionaryResolver());
             return settings;
         }
 
