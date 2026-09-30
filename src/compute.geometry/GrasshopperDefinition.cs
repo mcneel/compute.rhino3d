@@ -89,11 +89,12 @@ namespace compute.geometry
             }
             else
             {
-                var archive = ArchiveFromUrl(url);
+                var archive = ArchiveFromUrl(url, out byte[] contents);
                 if (archive == null)
                     return null;
 
                 rc = Construct(archive);
+                rc.sourceBytes = contents;
                 rc.CacheKey = url;
                 rc.IsLocalFileDefinition = !UrlGuard.IsWebUrl(url) && File.Exists(url);
             }
@@ -107,13 +108,14 @@ namespace compute.geometry
 
         public static GrasshopperDefinition FromBase64String(string data, bool cache)
         {
-            var archive = ArchiveFromBase64String(data);
+            var archive = ArchiveFromBase64String(data, out byte[] contents);
             if (archive == null)
                 return null;
 
             var rc = Construct(archive);
             if (rc!=null)
             {
+                rc.sourceBytes = contents;
                 rc.CacheKey = DataCache.CreateCacheKey(data);
                 if (cache)
                 {
@@ -220,7 +222,6 @@ namespace compute.geometry
             }
 
             GrasshopperDefinition rc = new GrasshopperDefinition(definition, icon);
-            rc.sourceArchive = archive;
             foreach( var obj in definition.Objects)
             {
                 IGH_ContextualParameter contextualParam = obj as IGH_ContextualParameter;
@@ -312,7 +313,17 @@ namespace compute.geometry
         {
             if (Interlocked.CompareExchange(ref checkedOut, 1, 0) == 0)
                 return this;
-            GrasshopperDefinition copy = sourceArchive != null ? Construct(sourceArchive) : Construct(sourceComponentId);
+            GrasshopperDefinition copy = null;
+            if (sourceBytes != null)
+            {
+                var archive = ArchiveFromBytes(sourceBytes);
+                if (archive != null)
+                    copy = Construct(archive);
+            }
+            else if (sourceComponentId != Guid.Empty)
+            {
+                copy = Construct(sourceComponentId);
+            }
             if (copy == null)
                 throw new Exception("Unable to load another copy of the grasshopper definition");
             copy.CacheKey = CacheKey;
@@ -333,7 +344,8 @@ namespace compute.geometry
             Definition.Dispose();
         }
 
-        GH_Archive sourceArchive;
+        // The file's bytes rather than the parsed archive, which takes several times the memory.
+        byte[] sourceBytes;
         Guid sourceComponentId;
         int checkedOut;
         bool isCopy;
@@ -777,8 +789,9 @@ namespace compute.geometry
             };
         }
 
-        public static GH_Archive ArchiveFromUrl(string url)
+        public static GH_Archive ArchiveFromUrl(string url, out byte[] contents)
         {
+            contents = null;
             if (string.IsNullOrWhiteSpace(url))
                 return null;
 
@@ -789,6 +802,11 @@ namespace compute.geometry
                 if (archive.ReadFromFile(url))
                 {
                     RegisterFileWatcher(url);
+                    try
+                    {
+                        contents = File.ReadAllBytes(url);
+                    }
+                    catch (IOException) { }
                     return archive;
                 }
                 return null;
@@ -811,6 +829,7 @@ namespace compute.geometry
                 {
                     throw ex.InnerException;
                 }
+                contents = byteArray;
 
                 try
                 {
@@ -828,12 +847,18 @@ namespace compute.geometry
             return null;
         }
 
-        public static GH_Archive ArchiveFromBase64String(string blob)
+        public static GH_Archive ArchiveFromBase64String(string blob, out byte[] contents)
         {
+            contents = null;
             if (string.IsNullOrWhiteSpace(blob))
                 return null;
 
-            byte[] byteArray = Convert.FromBase64String(blob);
+            contents = Convert.FromBase64String(blob);
+            return ArchiveFromBytes(contents);
+        }
+
+        static GH_Archive ArchiveFromBytes(byte[] byteArray)
+        {
             try
             {
                 var byteArchive = new GH_Archive();
