@@ -105,6 +105,14 @@ namespace compute.geometry
             return null;
         }
 
+        // Only a definition this process has already loaded; unlike GetCachedDefinition, never reads the cache directory.
+        public static GrasshopperDefinition GetLoadedDefinition(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                return null;
+            return (definitionCache.Get(key) as CachedDefinition)?.Definition;
+        }
+
         public static GrasshopperDefinition GetCachedDefinition(string key)
         {
             if (string.IsNullOrWhiteSpace(key))

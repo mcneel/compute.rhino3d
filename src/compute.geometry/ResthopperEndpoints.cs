@@ -305,15 +305,12 @@ namespace compute.geometry
             {
                 responseSchema.Errors.Add(error);
             }
-            foreach (var error in Logging.Errors)
+            foreach (var error in Logging.TakeErrors())
             {
                 responseSchema.Errors.Add(error);
             }
             RequestOutcome.Reported(ctx, responseSchema.Errors, responseSchema.Warnings);
             string jsonResponse = JsonConvert.SerializeObject(responseSchema);
-
-            Logging.Warnings.Clear();
-            Logging.Errors.Clear();
 
             ctx.Response.ContentType = "application/json";
             await ctx.Response.WriteAsync(jsonResponse);
