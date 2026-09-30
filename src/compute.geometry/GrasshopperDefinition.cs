@@ -108,6 +108,18 @@ namespace compute.geometry
 
         public static GrasshopperDefinition FromBase64String(string data, bool cache)
         {
+            string cacheKey = string.IsNullOrWhiteSpace(data) ? null : DataCache.CreateCacheKey(data);
+            if (cache)
+            {
+                // Clients that send the definition with every request would otherwise build, and leak, one per request.
+                var loaded = DataCache.GetLoadedDefinition(cacheKey);
+                if (loaded != null)
+                {
+                    LogDebug("Using cached definition");
+                    return loaded;
+                }
+            }
+
             var archive = ArchiveFromBase64String(data, out byte[] contents);
             if (archive == null)
                 return null;
@@ -116,7 +128,7 @@ namespace compute.geometry
             if (rc!=null)
             {
                 rc.sourceBytes = contents;
-                rc.CacheKey = DataCache.CreateCacheKey(data);
+                rc.CacheKey = cacheKey;
                 if (cache)
                 {
                     DataCache.SetCachedDefinition(rc.CacheKey, rc, data);
