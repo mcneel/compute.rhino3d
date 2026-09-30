@@ -108,6 +108,18 @@ namespace compute.geometry
 
         public static GrasshopperDefinition FromBase64String(string data, bool cache)
         {
+            string cacheKey = string.IsNullOrWhiteSpace(data) ? null : DataCache.CreateCacheKey(data);
+            if (cache)
+            {
+                // Clients that send the definition with every request would otherwise build, and leak, one per request.
+                var loaded = DataCache.GetLoadedDefinition(cacheKey);
+                if (loaded != null)
+                {
+                    LogDebug("Using cached definition");
+                    return loaded;
+                }
+            }
+
             var archive = ArchiveFromBase64String(data, out byte[] contents);
             if (archive == null)
                 return null;
@@ -116,7 +128,7 @@ namespace compute.geometry
             if (rc!=null)
             {
                 rc.sourceBytes = contents;
-                rc.CacheKey = DataCache.CreateCacheKey(data);
+                rc.CacheKey = cacheKey;
                 if (cache)
                 {
                     DataCache.SetCachedDefinition(rc.CacheKey, rc, data);
@@ -161,6 +173,7 @@ namespace compute.geometry
             foreach(var output in component.Params.Output)
             {
                 rc.output[output.NickName] = output;
+                rc.outputTypeNames[output.NickName] = output.TypeName;
             }
             return rc;
         }
@@ -186,7 +199,10 @@ namespace compute.geometry
                 LogError(msg);
             }  
             else
+            {
                 rc.output[name] = param;
+                rc.outputTypeNames[name] = param.TypeName;
+            }
         }
 
         private static GrasshopperDefinition Construct(GH_Archive archive)
@@ -360,6 +376,8 @@ namespace compute.geometry
         GH_Component singularComponent;
         Dictionary<string, InputGroup> input = new Dictionary<string, InputGroup>();
         Dictionary<string, IGH_Param> output = new Dictionary<string, IGH_Param>();
+        // Read at load: TypeName enumerates a parameter's data, which another request's solve may be changing.
+        Dictionary<string, string> outputTypeNames = new Dictionary<string, string>();
         public List<string> ErrorMessages = new List<string>();
 
         public GH_Path GetPath(string p)
@@ -803,7 +821,7 @@ namespace compute.geometry
                 var inputSchema = new InputParamSchema
                 {
                     Name = i.Key,
-                    ParamType = ParamTypeName(i.Value.Param),
+                    ParamType = i.Value.TypeName,
                     Description = i.Value.GetDescription(),
                     AtLeast = i.Value.GetAtLeast(),
                     AtMost = i.Value.GetAtMost(),
@@ -829,7 +847,7 @@ namespace compute.geometry
                 outputs.Add(new IoParamSchema
                 {
                     Name = o.Key,
-                    ParamType = o.Value.TypeName
+                    ParamType = outputTypeNames[o.Key]
                 });
             }
 
@@ -966,9 +984,11 @@ namespace compute.geometry
                 param.ClearData();
                 param.CollectData();
                 defaultValue = SerializeDataTree(param.VolatileData, param.Name);
+                TypeName = ParamTypeName(param);
             }
 
             public IGH_Param Param { get; }
+            public string TypeName { get; }
 
             public string GetDescription()
             {
@@ -1025,7 +1045,7 @@ namespace compute.geometry
                 if (p is IGH_ContextualParameter)
                 {
                     var par = p as IGH_ContextualParameter;
-                    var pTypeName = ParamTypeName(p);
+                    var pTypeName = TypeName;
                     var pType = par.GetType();
                     var props = pType.GetProperties(BindingFlags.NonPublic | BindingFlags.Instance);
                     var info = props.FirstOrDefault(x => x.Name == "Minimum");
@@ -1064,7 +1084,7 @@ namespace compute.geometry
                 {
                     var par = p as IGH_ContextualParameter;
                     var pType = par.GetType();
-                    var pTypeName = ParamTypeName(p);
+                    var pTypeName = TypeName;
                     var props = pType.GetProperties(BindingFlags.NonPublic | BindingFlags.Instance);
                     var info = props.FirstOrDefault(x => x.Name == "Maximum");
                     if(info != null)
