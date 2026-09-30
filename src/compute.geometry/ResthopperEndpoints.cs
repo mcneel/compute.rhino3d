@@ -61,6 +61,21 @@ namespace compute.geometry
 
         static object ghSolveLock = new object();
 
+        // Rhino can't create or close documents on two threads at once, and nested Hops calls solve alongside other
+        // solves. The active document is the whole process's, so each solve closes only its own and hands it back.
+        static readonly object headlessDocLock = new object();
+
+        static void CloseHeadlessDoc(RhinoDoc doc, RhinoDoc previous)
+        {
+            lock (headlessDocLock)
+            {
+                if (RhinoDoc.ActiveDoc?.RuntimeSerialNumber == doc.RuntimeSerialNumber && previous != null
+                    && RhinoDoc.FromRuntimeSerialNumber(previous.RuntimeSerialNumber) != null)
+                    RhinoDoc.ActiveDoc = previous;
+                doc.Dispose();
+            }
+        }
+
         static string GrasshopperSolveHelper(Schema input, string body, System.Diagnostics.Stopwatch stopwatch, HttpContext ctx)
         {
             string httpType = ctx.Request.IsHttps ? "HTTPS" : "HTTP";
@@ -84,52 +99,66 @@ namespace compute.geometry
             SetDefaultTolerances(input.AbsoluteTolerance, input.AngleTolerance);
             SetDefaultUnits(input.ModelUnits);
 
-            // Instantiate headless doc
-            if (Config.CreateHeadlessDoc)
+            // The shared instance is what the solve cache keeps; the solve may run on a copy of it.
+            var shared = definition;
+            definition = shared.CheckOut();
+            RhinoDoc headlessDoc = null, previousDoc = null;
+            try
             {
-                Serilog.Log.Debug("Creating headless Rhino document");
-                RhinoDoc.ActiveDoc = RhinoDoc.CreateHeadless(null);
-                RhinoDoc.ActiveDoc.ModelAbsoluteTolerance = input.AbsoluteTolerance;
-                RhinoDoc.ActiveDoc.ModelAngleToleranceDegrees = input.AngleTolerance;
-                if (Enum.TryParse(input.ModelUnits, out UnitSystem units))
+                // Instantiate headless doc
+                if (Config.CreateHeadlessDoc)
                 {
-                    RhinoDoc.ActiveDoc.ModelUnitSystem = units;
+                    Serilog.Log.Debug("Creating headless Rhino document");
+                    lock (headlessDocLock)
+                    {
+                        previousDoc = RhinoDoc.ActiveDoc;
+                        headlessDoc = RhinoDoc.CreateHeadless(null);
+                        RhinoDoc.ActiveDoc = headlessDoc;
+                    }
+                    headlessDoc.ModelAbsoluteTolerance = input.AbsoluteTolerance;
+                    headlessDoc.ModelAngleToleranceDegrees = input.AngleTolerance;
+                    if (Enum.TryParse(input.ModelUnits, out UnitSystem units))
+                    {
+                        headlessDoc.ModelUnitSystem = units;
+                    }
+                    Serilog.Log.Debug($"Setting absolute tolerance: ({input.AbsoluteTolerance}), angle tolerance: ({input.AngleTolerance}), and units ({input.ModelUnits})");
                 }
-                Serilog.Log.Debug($"Setting absolute tolerance: ({input.AbsoluteTolerance}), angle tolerance: ({input.AngleTolerance}), and units ({input.ModelUnits})");
-            }
-            int recursionLevel = input.RecursionLevel + 1;
-            definition.Definition.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(recursionLevel));
+                int recursionLevel = input.RecursionLevel + 1;
+                definition.Definition.DefineConstant("ComputeRecursionLevel", new Grasshopper.Kernel.Expressions.GH_Variant(recursionLevel));
 
-            definition.SetInputs(input);
-            long decodeTime = stopwatch.ElapsedMilliseconds;
-            stopwatch.Restart();
-            var fileNameMsg = String.Empty;
-            if (!String.IsNullOrEmpty(input.FileName))
-                fileNameMsg = $" {input.FileName}";
-            Serilog.Log.Debug($"Solving definition{fileNameMsg}...");
-            var output = definition.Solve(input.DataVersion, input.DataFormat);
-            output.Pointer = definition.CacheKey;
-            long solveTime = stopwatch.ElapsedMilliseconds;
-            stopwatch.Restart();
-            string returnJson = JsonConvert.SerializeObject(output, GeometryResolver.Settings(input.DataVersion));
-            long encodeTime = stopwatch.ElapsedMilliseconds;
-            ctx.Response.Headers.Append("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
-            if (definition.HasErrors)
-                ctx.Response.StatusCode = 500; // internal server error
-            else
+                definition.SetInputs(input);
+                long decodeTime = stopwatch.ElapsedMilliseconds;
+                stopwatch.Restart();
+                var fileNameMsg = String.Empty;
+                if (!String.IsNullOrEmpty(input.FileName))
+                    fileNameMsg = $" {input.FileName}";
+                Serilog.Log.Debug($"Solving definition{fileNameMsg}...");
+                var output = definition.Solve(input.DataVersion, input.DataFormat);
+                output.Pointer = definition.CacheKey;
+                long solveTime = stopwatch.ElapsedMilliseconds;
+                stopwatch.Restart();
+                string returnJson = JsonConvert.SerializeObject(output, GeometryResolver.Settings(input.DataVersion));
+                long encodeTime = stopwatch.ElapsedMilliseconds;
+                ctx.Response.Headers.Append("Server-Timing", $"decode;dur={decodeTime}, solve;dur={solveTime}, encode;dur={encodeTime}");
+                if (definition.HasErrors)
+                    ctx.Response.StatusCode = 500; // internal server error
+                else
+                {
+                    if (input.CacheSolve)
+                    {
+                        Serilog.Log.Debug("Caching solve results");
+                        DataCache.SetCachedSolveResults(body, returnJson, shared);
+                    }
+                }
+
+                return returnJson;
+            }
+            finally
             {
-                if (input.CacheSolve)
-                {
-                    Serilog.Log.Debug("Caching solve results");
-                    DataCache.SetCachedSolveResults(body, returnJson, definition);
-                }
+                if (headlessDoc != null)
+                    CloseHeadlessDoc(headlessDoc, previousDoc);
+                definition.CheckIn();
             }
-
-            // Dispose headless doc
-            if (RhinoDoc.ActiveDoc is object)
-                RhinoDoc.ActiveDoc.Dispose();
-
-            return returnJson;
         }
 
         static async Task Grasshopper(HttpContext ctx)
