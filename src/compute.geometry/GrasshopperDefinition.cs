@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
 using System.Net;
 using System.Collections.Generic;
 
@@ -123,6 +124,11 @@ namespace compute.geometry
             return rc;
         }
 
+        // Grasshopper's document server isn't safe from two threads, and nested Hops calls load definitions alongside
+        // other solves. Only its calls are locked: reading a definition can make Hops fetch its remote definition, and
+        // that request may need this lock in the same or another process.
+        static readonly object documentServerLock = new object();
+
         private static GrasshopperDefinition Construct(Guid componentId)
         {
             var component = Grasshopper.Instances.ComponentServer.EmitObject(componentId) as GH_Component;
@@ -135,7 +141,8 @@ namespace compute.geometry
             try
             {
                 // raise DocumentServer.DocumentAdded event (used by some plug-ins)
-                Grasshopper.Instances.DocumentServer.AddDocument(definition);
+                lock (documentServerLock)
+                    Grasshopper.Instances.DocumentServer.AddDocument(definition);
             }
             catch (Exception e)
             {
@@ -143,6 +150,7 @@ namespace compute.geometry
             }
 
             GrasshopperDefinition rc = new GrasshopperDefinition(definition, null);
+            rc.sourceComponentId = componentId;
             rc.singularComponent = component;
             foreach(var input in component.Params.Input)
             {
@@ -203,7 +211,8 @@ namespace compute.geometry
             try
             {
                 // raise DocumentServer.DocumentAdded event (used by some plug-ins)
-                Grasshopper.Instances.DocumentServer.AddDocument(definition);
+                lock (documentServerLock)
+                    Grasshopper.Instances.DocumentServer.AddDocument(definition);
             }
             catch (Exception e)
             {
@@ -211,6 +220,7 @@ namespace compute.geometry
             }
 
             GrasshopperDefinition rc = new GrasshopperDefinition(definition, icon);
+            rc.sourceArchive = archive;
             foreach( var obj in definition.Objects)
             {
                 IGH_ContextualParameter contextualParam = obj as IGH_ContextualParameter;
@@ -294,6 +304,39 @@ namespace compute.geometry
             iconString = icon;
             FileRuntimeCacheSerialNumber = watchedFileRuntimeSerialNumber;
         }
+
+        // A cached definition is shared by every request for it, but a solve sets its inputs and reads its outputs, so
+        // two solves at once (nested Hops calls solve alongside other solves) would overwrite each other's. The first
+        // solve takes this instance; any other solves a copy built from the same source, released afterwards.
+        public GrasshopperDefinition CheckOut()
+        {
+            if (Interlocked.CompareExchange(ref checkedOut, 1, 0) == 0)
+                return this;
+            GrasshopperDefinition copy = sourceArchive != null ? Construct(sourceArchive) : Construct(sourceComponentId);
+            if (copy == null)
+                throw new Exception("Unable to load another copy of the grasshopper definition");
+            copy.CacheKey = CacheKey;
+            copy.IsLocalFileDefinition = IsLocalFileDefinition;
+            copy.isCopy = true;
+            return copy;
+        }
+
+        public void CheckIn()
+        {
+            if (!isCopy)
+            {
+                Interlocked.Exchange(ref checkedOut, 0);
+                return;
+            }
+            lock (documentServerLock)
+                Grasshopper.Instances.DocumentServer.RemoveDocument(Definition);
+            Definition.Dispose();
+        }
+
+        GH_Archive sourceArchive;
+        Guid sourceComponentId;
+        int checkedOut;
+        bool isCopy;
 
         public GH_Document Definition { get; }
         public bool InDataCache { get; set; }
