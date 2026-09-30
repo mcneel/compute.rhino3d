@@ -88,10 +88,28 @@ namespace compute.geometry
             enabled = true;
         }
 
+        // Requests on other threads add to and take from the lists at the same time.
+        static readonly object listsLock = new object();
+
+        // The errors logged since the last call, which clears both lists.
+        internal static List<string> TakeErrors()
+        {
+            lock (listsLock)
+            {
+                var errors = Errors == null ? new List<string>() : new List<string>(Errors);
+                Errors?.Clear();
+                Warnings?.Clear();
+                return errors;
+            }
+        }
+
         internal static void LogExceptionData(System.Exception ex)
         {
-            if (Errors != null)
-                Errors.Add(ex.Message);
+            lock (listsLock)
+            {
+                if (Errors != null)
+                    Errors.Add(ex.Message);
+            }
             //if (!Config.Debug)
             //    return;
             if (ex?.Data != null)
