@@ -243,6 +243,47 @@ namespace compute.geometry
             if (loadComputePlugins != null)
                 loadComputePlugins.Invoke(null, null);
 
+            if (Config.LoadGrasshopper)
+                WarmGrasshopperTypeCache();
+        }
+
+        // Grasshopper's GH_TypeCache fills its tables without a lock, and nested requests read Grasshopper data on
+        // several threads at once. Looking up every type here, before any request, leaves the tables only read.
+        static void WarmGrasshopperTypeCache()
+        {
+            try
+            {
+                var cache = typeof(Grasshopper.Kernel.Data.GH_Path).Assembly.GetType("Grasshopper.Kernel.Data.GH_TypeCache");
+                var findGooType = cache?.GetMethod("FindGooType", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                if (findGooType == null)
+                    return;
+                var gooType = typeof(Grasshopper.Kernel.Types.IGH_Goo);
+                int count = 0;
+                foreach (var library in Grasshopper.Instances.ComponentServer.Libraries)
+                {
+                    Type[] types;
+                    try
+                    {
+                        types = library.Assembly.GetExportedTypes();
+                    }
+                    catch (Exception)
+                    {
+                        continue;
+                    }
+                    foreach (var type in types)
+                    {
+                        if (type.IsAbstract || type.IsInterface || !gooType.IsAssignableFrom(type))
+                            continue;
+                        findGooType.Invoke(null, new object[] { type.FullName });
+                        count++;
+                    }
+                }
+                Log.Debug("Warmed Grasshopper's type cache with {Count} types", count);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Unable to warm Grasshopper's type cache");
+            }
         }
 
     }
