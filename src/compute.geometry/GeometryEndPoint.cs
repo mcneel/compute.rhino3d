@@ -507,14 +507,13 @@ namespace compute.geometry
                         object invokeObj = null;
                         object[] invokeParameters = new object[methodParameters.Length];
                         int currentJa = 0;
-                        if (!method.IsStatic)
-                        {
-                            invokeObj = ToObjectHelper(ja[currentJa++], classType, null);
-                        }
-
                         int outParamCount = 0;
                         try
                         {
+                            if (!method.IsStatic)
+                            {
+                                invokeObj = ToObjectHelper(ja[currentJa++], classType, null);
+                            }
                             for (int i = 0; i < methodParameters.Length; i++)
                             {
                                 if (!methodParameters[i].IsOut)
@@ -576,10 +575,12 @@ namespace compute.geometry
                                     outParamCount++;
                             }
                         }
-                        catch (Exception)
+                        catch (Exception ex)
                         {
                             if (methodIndex < (methods.Count() - 1))
                                 continue;
+                            if (BadRequestException.IsBadValue(ex))
+                                throw new BadRequestException($"The arguments don't fit {method.Name}: {ex.Message}", ex);
                             throw;
                         }
                         bool isConst = false;
