@@ -154,7 +154,9 @@ namespace compute.geometry
                 Definition = definition,
                 WatchedFileRuntimeSerialNumber = GrasshopperDefinition.WatchedFileRuntimeSerialNumber
             };
-            definitionCache.Set(key, cachedef, CachePolicy);
+            // Setting the cached instance again would retire it.
+            if (!ReferenceEquals((definitionCache.Get(key) as CachedDefinition)?.Definition, definition))
+                definitionCache.Set(key, cachedef, DefinitionPolicy);
 
             if (!string.IsNullOrWhiteSpace(data))
             {
@@ -269,6 +271,12 @@ namespace compute.geometry
             }
             return null;
         }
+
+        // A definition replaced, removed after its file changed, or evicted is released, as nothing else would dispose it.
+        private static System.Runtime.Caching.CacheItemPolicy DefinitionPolicy => new System.Runtime.Caching.CacheItemPolicy
+        {
+            RemovedCallback = args => (args.CacheItem.Value as CachedDefinition)?.Definition?.Retire()
+        };
 
         private static System.Runtime.Caching.CacheItemPolicy CachePolicy
         {
