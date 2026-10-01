@@ -27,6 +27,18 @@ namespace compute.geometry
             app.MapGet("/io", GetIoNames);
         }
 
+        static GrasshopperDefinition FromAlgo(string algo)
+        {
+            try
+            {
+                return GrasshopperDefinition.FromBase64String(algo, true);
+            }
+            catch (FormatException ex)
+            {
+                throw new BadRequestException($"The algo isn't valid base64: {ex.Message}", ex);
+            }
+        }
+
         static void SetDefaultTolerances(double absoluteTolerance, double angleToleranceDegrees)
         {
             if (absoluteTolerance <= 0 || angleToleranceDegrees <= 0)
@@ -88,14 +100,10 @@ namespace compute.geometry
             GrasshopperDefinition definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
             if (definition == null && !string.IsNullOrWhiteSpace(input.Algo))
             {
-                definition = GrasshopperDefinition.FromBase64String(input.Algo, true);
+                definition = FromAlgo(input.Algo);
             }
             if (definition == null)
-            {
-                var msg = "Unable to load grasshopper definition";
-                Serilog.Log.Warning(msg);
-                throw new Exception(msg);
-            }
+                throw new BadRequestException("Unable to load grasshopper definition");
             SetDefaultTolerances(input.AbsoluteTolerance, input.AngleTolerance);
             SetDefaultUnits(input.ModelUnits);
 
@@ -167,7 +175,17 @@ namespace compute.geometry
             var body = await new System.IO.StreamReader(ctx.Request.Body).ReadToEndAsync();
             if (body.StartsWith("[") && body.EndsWith("]"))
                 body = body.Substring(1, body.Length - 2);
-            Schema input = JsonConvert.DeserializeObject<Schema>(body);
+            Schema input;
+            try
+            {
+                input = JsonConvert.DeserializeObject<Schema>(body);
+            }
+            catch (JsonException ex)
+            {
+                throw new BadRequestException($"Malformed JSON received: {ex.Message}", ex);
+            }
+            if (input == null)
+                throw new BadRequestException("The request has no body.");
            
             if (input.CacheSolve)
             {
@@ -237,10 +255,17 @@ namespace compute.geometry
                 using (var streamReader = new System.IO.StreamReader(ctx.Request.Body))
                 using (var jsonReader = new Newtonsoft.Json.JsonTextReader(streamReader))
                 {
-                    var token = await Newtonsoft.Json.Linq.JToken.ReadFromAsync(jsonReader);
-                    if (token is Newtonsoft.Json.Linq.JArray ja && ja.Count > 0)
-                        token = ja[0];
-                    input = token.ToObject<Schema>();
+                    try
+                    {
+                        var token = await Newtonsoft.Json.Linq.JToken.ReadFromAsync(jsonReader);
+                        if (token is Newtonsoft.Json.Linq.JArray ja && ja.Count > 0)
+                            token = ja[0];
+                        input = token.ToObject<Schema>();
+                    }
+                    catch (JsonException ex)
+                    {
+                        throw new BadRequestException($"Malformed JSON received: {ex.Message}", ex);
+                    }
                 }
 
                 string httpType = ctx.Request.IsHttps ? "HTTPS" : "HTTP";
@@ -258,7 +283,7 @@ namespace compute.geometry
                 definition = GrasshopperDefinition.FromUrl(input.Pointer, true);
                 if (definition == null)
                 {
-                    definition = GrasshopperDefinition.FromBase64String(input.Algo, true);
+                    definition = FromAlgo(input.Algo);
                 }
             }
             else
@@ -274,11 +299,7 @@ namespace compute.geometry
                 definition = GrasshopperDefinition.FromUrl(url, true);
             }
             if (definition == null)
-            {
-                var msg = "Unable to load grasshopper definition";
-                Serilog.Log.Warning(msg);
-                throw new Exception(msg);
-            }
+                throw new BadRequestException("Unable to load grasshopper definition");
                 
             var responseSchema = definition.GetInputsAndOutputs();
 
