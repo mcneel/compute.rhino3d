@@ -427,73 +427,16 @@ namespace compute.geometry
                     }
 
                     updatedInputs.Add(tree.ParamName);
-                    inputGroup.CacheTree(tree);
-
-                    IGH_ContextualParameter contextualParameter = inputGroup.Param as IGH_ContextualParameter;
-                    if (contextualParameter != null)
+                    try
                     {
-                        if (contextualParameter.AtLeast == 0)
-                            (contextualParameter as IGH_Param).Optional = true;
-
-                        switch (ParamTypeName(inputGroup.Param))
-                        {
-                            case "Boolean":
-                                BuildAndAssignContextualTree(contextualParameter, tree, r => new GH_Boolean(JsonConvert.DeserializeObject<bool>(r.Data)));
-                                break;
-                            case "Number":
-                                BuildAndAssignContextualTree(contextualParameter, tree, r => new GH_Number(JsonConvert.DeserializeObject<double>(r.Data)));
-                                break;
-                            case "Integer":
-                                BuildAndAssignContextualTree(contextualParameter, tree, r => new GH_Integer(JsonConvert.DeserializeObject<int>(r.Data)));
-                                break;
-                            case "Point":
-                                BuildAndAssignContextualTree(contextualParameter, tree, r => new GH_Point(JsonConvert.DeserializeObject<Point3d>(r.Data)));
-                                break;
-                            case "Plane":
-                                BuildAndAssignContextualTree(contextualParameter, tree, r => new GH_Plane(JsonConvert.DeserializeObject<Plane>(r.Data)));
-                                break;
-                            case "Line":
-                                BuildAndAssignContextualTree(contextualParameter, tree, r => new GH_Line(JsonConvert.DeserializeObject<Line>(r.Data)));
-                                break;
-                            case "Text":
-                                BuildAndAssignContextualTree(contextualParameter, tree, DeserializeText);
-                                break;
-                            case "Geometry":
-                                BuildAndAssignContextualTree(contextualParameter, tree, DeserializeGeometry);
-                                break;
-                        }
-                        continue;
+                        SetValues(inputGroup, tree);
                     }
-
-                    inputGroup.Param.VolatileData.Clear();
-                    inputGroup.Param.ExpireSolution(false); // mark param as expired but don't recompute just yet!
-
-                    // Note: Param_String reads restobj.Data raw, while GH_Panel goes through
-                    // JsonConvert.DeserializeObject<string>. This asymmetry is preserved from the
-                    // original cascade — fixing it would change wire-format behavior for one of them.
-                    Func<ResthopperObject, IGH_Goo> convert = inputGroup.Param switch
+                    catch (Exception ex) when (BadRequestException.IsBadValue(ex))
                     {
-                        Param_Point _      => r => new GH_Point(JsonConvert.DeserializeObject<Point3d>(r.Data)),
-                        Param_Vector _     => r => new GH_Vector(JsonConvert.DeserializeObject<Vector3d>(r.Data)),
-                        Param_Integer _    => r => new GH_Integer(JsonConvert.DeserializeObject<int>(r.Data)),
-                        Param_Number _     => r => new GH_Number(JsonConvert.DeserializeObject<double>(r.Data)),
-                        Param_String _     => r => new GH_String(r.Data),
-                        Param_Line _       => r => new GH_Line(JsonConvert.DeserializeObject<Line>(r.Data)),
-                        Param_Curve _      => DeserializeCurve,
-                        Param_Circle _     => r => new GH_Circle(JsonConvert.DeserializeObject<Circle>(r.Data)),
-                        Param_Plane _      => r => new GH_Plane(JsonConvert.DeserializeObject<Plane>(r.Data)),
-                        Param_Rectangle _  => r => new GH_Rectangle(JsonConvert.DeserializeObject<Rectangle3d>(r.Data)),
-                        Param_Box _        => r => new GH_Box(JsonConvert.DeserializeObject<Box>(r.Data)),
-                        Param_Surface _    => r => new GH_Surface(JsonConvert.DeserializeObject<Surface>(r.Data)),
-                        Param_Brep _       => r => new GH_Brep(JsonConvert.DeserializeObject<Brep>(r.Data)),
-                        Param_Mesh _       => r => new GH_Mesh(JsonConvert.DeserializeObject<Mesh>(r.Data)),
-                        GH_NumberSlider _  => r => new GH_Number(JsonConvert.DeserializeObject<double>(r.Data)),
-                        Param_Boolean _ or GH_BooleanToggle _ => r => new GH_Boolean(JsonConvert.DeserializeObject<bool>(r.Data)),
-                        GH_Panel _         => r => new GH_String(JsonConvert.DeserializeObject<string>(r.Data)),
-                        _                  => null
-                    };
-                    if (convert != null)
-                        AddTreeData(inputGroup.Param, tree, convert);
+                        throw new BadRequestException($"Couldn't read the value of input '{tree.ParamName}': {ex.Message}", ex);
+                    }
+                    // Only once its values were used, so a request that failed isn't later skipped as already set.
+                    inputGroup.CacheTree(tree);
                 }
             }
 
@@ -524,6 +467,75 @@ namespace compute.geometry
                     LogDebug($"Skipping {skippedInputs.Count} unchanged {inputWord}: {string.Join(", ", skippedInputs)}");
                 }
             }
+        }
+
+        void SetValues(InputGroup inputGroup, Resthopper.IO.DataTree<ResthopperObject> tree)
+        {
+            IGH_ContextualParameter contextualParameter = inputGroup.Param as IGH_ContextualParameter;
+            if (contextualParameter != null)
+            {
+                if (contextualParameter.AtLeast == 0)
+                    (contextualParameter as IGH_Param).Optional = true;
+
+                switch (ParamTypeName(inputGroup.Param))
+                {
+                    case "Boolean":
+                        BuildAndAssignContextualTree(contextualParameter, tree, r => new GH_Boolean(JsonConvert.DeserializeObject<bool>(r.Data)));
+                        break;
+                    case "Number":
+                        BuildAndAssignContextualTree(contextualParameter, tree, r => new GH_Number(JsonConvert.DeserializeObject<double>(r.Data)));
+                        break;
+                    case "Integer":
+                        BuildAndAssignContextualTree(contextualParameter, tree, r => new GH_Integer(JsonConvert.DeserializeObject<int>(r.Data)));
+                        break;
+                    case "Point":
+                        BuildAndAssignContextualTree(contextualParameter, tree, r => new GH_Point(JsonConvert.DeserializeObject<Point3d>(r.Data)));
+                        break;
+                    case "Plane":
+                        BuildAndAssignContextualTree(contextualParameter, tree, r => new GH_Plane(JsonConvert.DeserializeObject<Plane>(r.Data)));
+                        break;
+                    case "Line":
+                        BuildAndAssignContextualTree(contextualParameter, tree, r => new GH_Line(JsonConvert.DeserializeObject<Line>(r.Data)));
+                        break;
+                    case "Text":
+                        BuildAndAssignContextualTree(contextualParameter, tree, DeserializeText);
+                        break;
+                    case "Geometry":
+                        BuildAndAssignContextualTree(contextualParameter, tree, DeserializeGeometry);
+                        break;
+                }
+                return;
+            }
+
+            inputGroup.Param.VolatileData.Clear();
+            inputGroup.Param.ExpireSolution(false); // mark param as expired but don't recompute just yet!
+
+            // Note: Param_String reads restobj.Data raw, while GH_Panel goes through
+            // JsonConvert.DeserializeObject<string>. This asymmetry is preserved from the
+            // original cascade — fixing it would change wire-format behavior for one of them.
+            Func<ResthopperObject, IGH_Goo> convert = inputGroup.Param switch
+            {
+                Param_Point _      => r => new GH_Point(JsonConvert.DeserializeObject<Point3d>(r.Data)),
+                Param_Vector _     => r => new GH_Vector(JsonConvert.DeserializeObject<Vector3d>(r.Data)),
+                Param_Integer _    => r => new GH_Integer(JsonConvert.DeserializeObject<int>(r.Data)),
+                Param_Number _     => r => new GH_Number(JsonConvert.DeserializeObject<double>(r.Data)),
+                Param_String _     => r => new GH_String(r.Data),
+                Param_Line _       => r => new GH_Line(JsonConvert.DeserializeObject<Line>(r.Data)),
+                Param_Curve _      => DeserializeCurve,
+                Param_Circle _     => r => new GH_Circle(JsonConvert.DeserializeObject<Circle>(r.Data)),
+                Param_Plane _      => r => new GH_Plane(JsonConvert.DeserializeObject<Plane>(r.Data)),
+                Param_Rectangle _  => r => new GH_Rectangle(JsonConvert.DeserializeObject<Rectangle3d>(r.Data)),
+                Param_Box _        => r => new GH_Box(JsonConvert.DeserializeObject<Box>(r.Data)),
+                Param_Surface _    => r => new GH_Surface(JsonConvert.DeserializeObject<Surface>(r.Data)),
+                Param_Brep _       => r => new GH_Brep(JsonConvert.DeserializeObject<Brep>(r.Data)),
+                Param_Mesh _       => r => new GH_Mesh(JsonConvert.DeserializeObject<Mesh>(r.Data)),
+                GH_NumberSlider _  => r => new GH_Number(JsonConvert.DeserializeObject<double>(r.Data)),
+                Param_Boolean _ or GH_BooleanToggle _ => r => new GH_Boolean(JsonConvert.DeserializeObject<bool>(r.Data)),
+                GH_Panel _         => r => new GH_String(JsonConvert.DeserializeObject<string>(r.Data)),
+                _                  => null
+            };
+            if (convert != null)
+                AddTreeData(inputGroup.Param, tree, convert);
         }
 
         // Shared write path for SetInputs' regular-parameter dispatch. Each Param_X case
@@ -916,8 +928,7 @@ namespace compute.geometry
                 catch (Exception) { }
 
                 var grasshopperXml = StripBom(System.Text.Encoding.UTF8.GetString(byteArray));
-                var xmlArchive = new GH_Archive();
-                if (xmlArchive.Deserialize_Xml(grasshopperXml))
+                if (ArchiveFromXml(grasshopperXml) is GH_Archive xmlArchive)
                     return xmlArchive;
             }
             return null;
@@ -944,11 +955,21 @@ namespace compute.geometry
             catch (Exception) { }
 
             var grasshopperXml = StripBom(System.Text.Encoding.UTF8.GetString(byteArray));
-            var xmlArchive = new GH_Archive();
-            if (xmlArchive.Deserialize_Xml(grasshopperXml))
-                return xmlArchive;
+            return ArchiveFromXml(grasshopperXml);
+        }
 
-            return null;
+        // Content that isn't a definition in either format is null, like a binary archive that won't read.
+        static GH_Archive ArchiveFromXml(string xml)
+        {
+            var archive = new GH_Archive();
+            try
+            {
+                return archive.Deserialize_Xml(xml) ? archive : null;
+            }
+            catch (System.Xml.XmlException)
+            {
+                return null;
+            }
         }
 
         // strip bom from string -- [239, 187, 191] in byte array == (char)65279
