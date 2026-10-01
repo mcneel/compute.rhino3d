@@ -23,8 +23,10 @@ namespace compute.geometry
 {
     class GrasshopperDefinition
     {
-        static Dictionary<string, FileSystemWatcher> filewatchers;
-        static HashSet<string> watchedFiles = new HashSet<string>();
+        static readonly Dictionary<string, FileSystemWatcher> filewatchers = new Dictionary<string, FileSystemWatcher>();
+        static readonly HashSet<string> watchedFiles = new HashSet<string>();
+        // Requests register files concurrently, and each watcher reads the set from its own thread.
+        static readonly object watcherLock = new object();
         static uint watchedFileRuntimeSerialNumber = 1;
         public static uint WatchedFileRuntimeSerialNumber
         {
@@ -32,40 +34,41 @@ namespace compute.geometry
         }
         static void RegisterFileWatcher(string path)
         {
-            if (filewatchers == null)
-            {
-                filewatchers = new Dictionary<string, FileSystemWatcher>();
-            }
             if (!File.Exists(path))
                 return;
 
             path = Path.GetFullPath(path);
-            if (watchedFiles.Contains(path.ToLowerInvariant()))
-                return;
+            lock (watcherLock)
+            {
+                if (!watchedFiles.Add(path.ToLowerInvariant()))
+                    return;
 
-            watchedFiles.Add(path.ToLowerInvariant());
-            string directory = Path.GetDirectoryName(path);
-            if (filewatchers.ContainsKey(directory) || !Directory.Exists(directory))
-                return;
+                string directory = Path.GetDirectoryName(path);
+                if (filewatchers.ContainsKey(directory) || !Directory.Exists(directory))
+                    return;
 
-            var fsw = new FileSystemWatcher(directory);
-            fsw.NotifyFilter = NotifyFilters.Attributes |
-                NotifyFilters.CreationTime |
-                NotifyFilters.FileName |
-                NotifyFilters.LastAccess |
-                NotifyFilters.LastWrite |
-                NotifyFilters.Size |
-                NotifyFilters.Security;
-            fsw.Changed += Fsw_Changed;
-            fsw.EnableRaisingEvents = true;
-            filewatchers[directory] = fsw;
+                var fsw = new FileSystemWatcher(directory);
+                fsw.NotifyFilter = NotifyFilters.Attributes |
+                    NotifyFilters.CreationTime |
+                    NotifyFilters.FileName |
+                    NotifyFilters.LastAccess |
+                    NotifyFilters.LastWrite |
+                    NotifyFilters.Size |
+                    NotifyFilters.Security;
+                fsw.Changed += Fsw_Changed;
+                fsw.EnableRaisingEvents = true;
+                filewatchers[directory] = fsw;
+            }
         }
 
         private static void Fsw_Changed(object sender, FileSystemEventArgs e)
         {
             string path = e.FullPath.ToLowerInvariant();
-            if (watchedFiles.Contains(path))
-                watchedFileRuntimeSerialNumber++;
+            lock (watcherLock)
+            {
+                if (watchedFiles.Contains(path))
+                    watchedFileRuntimeSerialNumber++;
+            }
         }
 
         public static void LogDebug(string message) { Log.Debug(message); }
@@ -366,8 +369,23 @@ namespace compute.geometry
             if (!isCopy)
             {
                 Interlocked.Exchange(ref checkedOut, 0);
+                if (retired && Interlocked.CompareExchange(ref checkedOut, 2, 0) == 0)
+                    Release();
                 return;
             }
+            Release();
+        }
+
+        // The definition cache dropped this instance: released now, or by the solve using it when it checks it in.
+        public void Retire()
+        {
+            retired = true;
+            if (Interlocked.CompareExchange(ref checkedOut, 2, 0) == 0)
+                Release();
+        }
+
+        void Release()
+        {
             lock (documentServerLock)
                 Grasshopper.Instances.DocumentServer.RemoveDocument(Definition);
             Definition.Dispose();
@@ -376,7 +394,9 @@ namespace compute.geometry
         // The file's bytes rather than the parsed archive, which takes several times the memory.
         byte[] sourceBytes;
         Guid sourceComponentId;
+        // 0 free, 1 a solve is using it, 2 released.
         int checkedOut;
+        volatile bool retired;
         bool isCopy;
 
         public GH_Document Definition { get; }
