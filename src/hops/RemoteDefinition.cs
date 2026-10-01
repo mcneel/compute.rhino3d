@@ -560,8 +560,9 @@ namespace Hops
                 if (!String.IsNullOrEmpty(responseSchema.FileName))
                     fileNameMsg = $" in {responseSchema.FileName}";
                 HopsLog.Log.Debug($"Compute.Geometry found {responseSchema.InputNames?.Count} input{inputSuffix} and {responseSchema.OutputNames?.Count} output{outputSuffix}{fileNameMsg}");
-                inputParams = new Dictionary<string, Tuple<InputParamSchema, IGH_Param>>();
-                outputParams = new Dictionary<string, IGH_Param>();
+                // Assigned only once complete, so a failure part way leaves no partial set for later solves to send.
+                var inputs = new Dictionary<string, Tuple<InputParamSchema, IGH_Param>>();
+                var outputs = new Dictionary<string, IGH_Param>();
                 // Defensive: a well-formed /io success response always populates these, but
                 // guard against null so a partial/unexpected body can't NullReference here.
                 foreach (var input in responseSchema.Inputs ?? Enumerable.Empty<InputParamSchema>())
@@ -572,7 +573,7 @@ namespace Hops
                         var chunks = inputParamName.Split(new char[] { ':' });
                         inputParamName = chunks[chunks.Length - 1];
                     }
-                    inputParams[inputParamName] = Tuple.Create(input, ParamFromIoResponseSchema(input));
+                    inputs[inputParamName] = Tuple.Create(input, ParamFromIoResponseSchema(input));
                 }
                 foreach (var output in responseSchema.Outputs ?? Enumerable.Empty<IoParamSchema>())
                 {
@@ -582,8 +583,10 @@ namespace Hops
                         var chunks = outputParamName.Split(new char[] { ':' });
                         outputParamName = chunks[chunks.Length - 1];
                     }
-                    outputParams[outputParamName] = ParamFromIoResponseSchema(output);
+                    outputs[outputParamName] = ParamFromIoResponseSchema(output);
                 }
+                inputParams = inputs;
+                outputParams = outputs;
                 parentComponent.HttpRecord.IoResponseSchema = responseSchema;
             }
         }
@@ -1148,43 +1151,45 @@ namespace Hops
         {
             if (parameters == null)
             {
-                parameters = new List<IGH_Param>();
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Arc());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Boolean());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Box());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Brep());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Circle());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Colour());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Complex());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Culture());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Curve());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Field());
+                // Published only once complete: Hops components in one process can look types up at the same time.
+                var list = new List<IGH_Param>();
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Arc());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Boolean());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Box());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Brep());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Circle());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Colour());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Complex());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Culture());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Curve());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Field());
                 //FilePath has the same ParamType as String
-                //parameters.Add(new Grasshopper.Kernel.Parameters.Param_FilePath());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_GenericObject());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Geometry());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Group());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Guid());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Integer());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Interval());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Interval2D());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_LatLonLocation());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Line());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Matrix());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Mesh());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_MeshFace());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_MeshParameters());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Number());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Plane());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Point());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Rectangle());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_String());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_StructurePath());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_SubD());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Surface());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Time());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Transform());
-                parameters.Add(new Grasshopper.Kernel.Parameters.Param_Vector());
+                //list.Add(new Grasshopper.Kernel.Parameters.Param_FilePath());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_GenericObject());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Geometry());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Group());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Guid());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Integer());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Interval());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Interval2D());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_LatLonLocation());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Line());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Matrix());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Mesh());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_MeshFace());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_MeshParameters());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Number());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Plane());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Point());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Rectangle());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_String());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_StructurePath());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_SubD());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Surface());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Time());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Transform());
+                list.Add(new Grasshopper.Kernel.Parameters.Param_Vector());
+                parameters = list;
             }
             foreach(var p in parameters)
             {
