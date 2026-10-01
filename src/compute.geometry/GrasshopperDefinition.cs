@@ -353,8 +353,23 @@ namespace compute.geometry
             if (!isCopy)
             {
                 Interlocked.Exchange(ref checkedOut, 0);
+                if (retired && Interlocked.CompareExchange(ref checkedOut, 2, 0) == 0)
+                    Release();
                 return;
             }
+            Release();
+        }
+
+        // The definition cache dropped this instance: released now, or by the solve using it when it checks it in.
+        public void Retire()
+        {
+            retired = true;
+            if (Interlocked.CompareExchange(ref checkedOut, 2, 0) == 0)
+                Release();
+        }
+
+        void Release()
+        {
             lock (documentServerLock)
                 Grasshopper.Instances.DocumentServer.RemoveDocument(Definition);
             Definition.Dispose();
@@ -363,7 +378,9 @@ namespace compute.geometry
         // The file's bytes rather than the parsed archive, which takes several times the memory.
         byte[] sourceBytes;
         Guid sourceComponentId;
+        // 0 free, 1 a solve is using it, 2 released.
         int checkedOut;
+        volatile bool retired;
         bool isCopy;
 
         public GH_Document Definition { get; }
