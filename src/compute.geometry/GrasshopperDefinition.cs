@@ -23,8 +23,10 @@ namespace compute.geometry
 {
     class GrasshopperDefinition
     {
-        static Dictionary<string, FileSystemWatcher> filewatchers;
-        static HashSet<string> watchedFiles = new HashSet<string>();
+        static readonly Dictionary<string, FileSystemWatcher> filewatchers = new Dictionary<string, FileSystemWatcher>();
+        static readonly HashSet<string> watchedFiles = new HashSet<string>();
+        // Requests register files concurrently, and each watcher reads the set from its own thread.
+        static readonly object watcherLock = new object();
         static uint watchedFileRuntimeSerialNumber = 1;
         public static uint WatchedFileRuntimeSerialNumber
         {
@@ -32,40 +34,41 @@ namespace compute.geometry
         }
         static void RegisterFileWatcher(string path)
         {
-            if (filewatchers == null)
-            {
-                filewatchers = new Dictionary<string, FileSystemWatcher>();
-            }
             if (!File.Exists(path))
                 return;
 
             path = Path.GetFullPath(path);
-            if (watchedFiles.Contains(path.ToLowerInvariant()))
-                return;
+            lock (watcherLock)
+            {
+                if (!watchedFiles.Add(path.ToLowerInvariant()))
+                    return;
 
-            watchedFiles.Add(path.ToLowerInvariant());
-            string directory = Path.GetDirectoryName(path);
-            if (filewatchers.ContainsKey(directory) || !Directory.Exists(directory))
-                return;
+                string directory = Path.GetDirectoryName(path);
+                if (filewatchers.ContainsKey(directory) || !Directory.Exists(directory))
+                    return;
 
-            var fsw = new FileSystemWatcher(directory);
-            fsw.NotifyFilter = NotifyFilters.Attributes |
-                NotifyFilters.CreationTime |
-                NotifyFilters.FileName |
-                NotifyFilters.LastAccess |
-                NotifyFilters.LastWrite |
-                NotifyFilters.Size |
-                NotifyFilters.Security;
-            fsw.Changed += Fsw_Changed;
-            fsw.EnableRaisingEvents = true;
-            filewatchers[directory] = fsw;
+                var fsw = new FileSystemWatcher(directory);
+                fsw.NotifyFilter = NotifyFilters.Attributes |
+                    NotifyFilters.CreationTime |
+                    NotifyFilters.FileName |
+                    NotifyFilters.LastAccess |
+                    NotifyFilters.LastWrite |
+                    NotifyFilters.Size |
+                    NotifyFilters.Security;
+                fsw.Changed += Fsw_Changed;
+                fsw.EnableRaisingEvents = true;
+                filewatchers[directory] = fsw;
+            }
         }
 
         private static void Fsw_Changed(object sender, FileSystemEventArgs e)
         {
             string path = e.FullPath.ToLowerInvariant();
-            if (watchedFiles.Contains(path))
-                watchedFileRuntimeSerialNumber++;
+            lock (watcherLock)
+            {
+                if (watchedFiles.Contains(path))
+                    watchedFileRuntimeSerialNumber++;
+            }
         }
 
         public static void LogDebug(string message) { Log.Debug(message); }
