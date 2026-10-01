@@ -42,6 +42,15 @@ namespace compute.geometry
             app.UseExceptionHandler(errApp => errApp.Run(async ctx =>
             {
                 var ex = ctx.Features.Get<IExceptionHandlerFeature>()?.Error;
+                if (ex is BadRequestException badRequest)
+                {
+                    // About the caller's own request, so it keeps its message in every build.
+                    Log.Warning("Bad request {Method} {Path}: {Message}", ctx.Request.Method, ctx.Request.Path, badRequest.Message);
+                    ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    ctx.Response.ContentType = "application/json";
+                    await ctx.Response.WriteAsync(JsonConvert.SerializeObject(new { error = "Bad Request", message = badRequest.Message }));
+                    return;
+                }
 
                 string category = ex == null ? null
                     : ex.GetType().Name.Contains("Json") ? "Malformed JSON received"
