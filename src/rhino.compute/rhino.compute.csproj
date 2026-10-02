@@ -38,5 +38,8 @@
     <Compile Include="..\compute.geometry\LocalConnections.cs">
       <Link>LocalConnections.cs</Link>
     </Compile>
+    <Compile Include="..\compute.geometry\MeterAgentPipe.cs">
+      <Link>MeterAgentPipe.cs</Link>
+    </Compile>
   </ItemGroup>
 </Project>

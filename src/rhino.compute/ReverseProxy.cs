@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using compute.geometry;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -368,9 +369,11 @@ namespace rhino.compute
         }
 
         // Nested calls belong to the client their child is serving, whatever header they carry. Which child
-        // opened a connection can't change, so it's looked up once per connection.
+        // opened a connection can't change, so it's looked up once per connection, and only while metering can be on.
         static string ClientId(HttpRequest req)
         {
+            if (!MeteringPossible())
+                return req.Headers[CLIENT_HEADER].ToString();
             var connection = req.HttpContext.Connection;
             var items = req.HttpContext.Features.Get<Microsoft.AspNetCore.Connections.Features.IConnectionItemsFeature>()?.Items;
             int port;
@@ -386,6 +389,24 @@ namespace rhino.compute
         }
 
         static readonly object NESTED_CALL_PORT = new object();
+
+        // Children meter only with metering headers, a usage log, or compute.meter.agent running; the agent is looked for
+        // at most every few seconds, as the children do.
+        static bool MeteringPossible()
+        {
+            long now = Environment.TickCount64;
+            if (meteringCheckedAt != 0 && now - meteringCheckedAt < METERING_CHECK_MS)
+                return meteringPossible;
+            meteringPossible = bool.TryParse(Environment.GetEnvironmentVariable("RHINO_COMPUTE_METERING_HEADERS"), out bool headers) && headers
+                || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RHINO_COMPUTE_USAGE_LOG_PATH"))
+                || MeterAgentPipe.Listening();
+            meteringCheckedAt = now;
+            return meteringPossible;
+        }
+
+        const long METERING_CHECK_MS = 5000;
+        static long meteringCheckedAt;
+        static volatile bool meteringPossible;
 
         static void CopyResponseHeader(HttpResponseMessage from, HttpResponse to, string name)
         {

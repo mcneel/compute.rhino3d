@@ -99,7 +99,6 @@ namespace compute.geometry
                 rc = Construct(archive);
                 rc.sourceBytes = contents;
                 rc.CacheKey = url;
-                rc.Id = contents == null ? null : DataCache.CreateCacheKey(Convert.ToBase64String(contents));
                 rc.Name = NameFromUrl(url);
                 rc.IsLocalFileDefinition = !UrlGuard.IsWebUrl(url) && File.Exists(url);
             }
@@ -134,7 +133,7 @@ namespace compute.geometry
             {
                 rc.sourceBytes = contents;
                 rc.CacheKey = cacheKey;
-                rc.Id = rc.CacheKey;
+                rc.id = rc.CacheKey;
                 if (cache)
                 {
                     DataCache.SetCachedDefinition(rc.CacheKey, rc, data);
@@ -172,7 +171,7 @@ namespace compute.geometry
             GrasshopperDefinition rc = new GrasshopperDefinition(definition, null);
             rc.sourceComponentId = componentId;
             rc.singularComponent = component;
-            rc.Id = "component:" + componentId.ToString("D");
+            rc.id = "component:" + componentId.ToString("D");
             rc.Name = component.Name;
             foreach(var input in component.Params.Input)
             {
@@ -357,7 +356,7 @@ namespace compute.geometry
             if (copy == null)
                 throw new Exception("Unable to load another copy of the grasshopper definition");
             copy.CacheKey = CacheKey;
-            copy.Id = Id;
+            copy.copiedFrom = this;
             copy.Name = Name;
             copy.IsLocalFileDefinition = IsLocalFileDefinition;
             copy.isCopy = true;
@@ -405,8 +404,11 @@ namespace compute.geometry
         public bool IsLocalFileDefinition { get; set; } // default: false
         public uint FileRuntimeCacheSerialNumber { get; private set; }
         public string CacheKey { get; set; }
-        // For usage records: the same key for a file whether it's uploaded or loaded from a URL, and never a path.
-        public string Id { get; private set; }
+        // For usage records: the same key for a file whether it's uploaded or loaded from a URL, and never a path. A file's
+        // key is worked out when a record first needs it, so loading one costs nothing extra while metering is off.
+        public string Id => id ??= copiedFrom?.Id ?? (sourceBytes == null ? null : DataCache.CreateCacheKey(Convert.ToBase64String(sourceBytes)));
+        string id;
+        GrasshopperDefinition copiedFrom;
         public string Name { get; private set; }
         string iconString;
         GH_Component singularComponent;

@@ -21,8 +21,6 @@ namespace compute.geometry
     // a process that started before it.
     static class AgentLink
     {
-        const string PIPE_NAME = "compute.meter.agent";
-        const string SOCKET_PATH = "/run/rhino-compute/meter.sock";
         const string AGENT_PROCESS_NAME = "compute.meter.agent";
         const int MAX_WAITING = 10000;
         static readonly TimeSpan LOOK_INTERVAL = TimeSpan.FromSeconds(5);
@@ -88,7 +86,7 @@ namespace compute.geometry
             {
                 try
                 {
-                    if (AgentExists() && Connect() is (Stream stream, StreamReader reader))
+                    if (MeterAgentPipe.Listening() && Connect() is (Stream stream, StreamReader reader))
                         Serve(stream, reader);
                 }
                 catch (Exception ex) when (ex is IOException || ex is TimeoutException || ex is UnauthorizedAccessException ||
@@ -100,14 +98,6 @@ namespace compute.geometry
             }
         }
 
-        // Checks without connecting: opening a pipe's path would take one of the agent's connections.
-        static bool AgentExists()
-        {
-            if (OperatingSystem.IsWindows())
-                return WaitNamedPipe($@"\\.\pipe\{PIPE_NAME}", 1) || Marshal.GetLastWin32Error() == ERROR_SEM_TIMEOUT;
-            return OperatingSystem.IsLinux() && File.Exists(SOCKET_PATH);
-        }
-
         static (Stream, StreamReader)? Connect()
         {
             Stream stream;
@@ -115,7 +105,7 @@ namespace compute.geometry
             if (OperatingSystem.IsWindows())
             {
                 // Asynchronous (overlapped), so reading acknowledgements doesn't block writing records on the same handle.
-                var pipe = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.InOut, PipeOptions.Asynchronous);
+                var pipe = new NamedPipeClientStream(".", MeterAgentPipe.PIPE_NAME, PipeDirection.InOut, PipeOptions.Asynchronous);
                 pipe.Connect(1000);
                 serverPid = GetNamedPipeServerProcessId(pipe.SafePipeHandle, out uint pid) ? (int)pid : 0;
                 stream = pipe;
@@ -123,7 +113,7 @@ namespace compute.geometry
             else
             {
                 var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-                socket.Connect(new UnixDomainSocketEndPoint(SOCKET_PATH));
+                socket.Connect(new UnixDomainSocketEndPoint(MeterAgentPipe.SOCKET_PATH));
                 // SO_PEERCRED fills struct ucred { pid, uid, gid }.
                 var credentials = new byte[12];
                 socket.GetRawSocketOption(1, 17, credentials);
@@ -135,7 +125,7 @@ namespace compute.geometry
             if (!IsAgent(serverPid))
             {
                 if (serverPid != impostorPid)
-                    Log.Warning("Usage records: {Name} is served by process {Pid}, which isn't compute.meter.agent; not sending to it", PIPE_NAME, serverPid);
+                    Log.Warning("Usage records: {Name} is served by process {Pid}, which isn't compute.meter.agent; not sending to it", MeterAgentPipe.PIPE_NAME, serverPid);
                 impostorPid = serverPid;
                 stream.Dispose();
                 return null;
@@ -263,11 +253,6 @@ namespace compute.geometry
             stream.Write(bytes, 0, bytes.Length);
             stream.Flush();
         }
-
-        const int ERROR_SEM_TIMEOUT = 121;
-
-        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        static extern bool WaitNamedPipe(string name, uint timeout);
 
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern bool GetNamedPipeServerProcessId(SafePipeHandle pipe, out uint serverProcessId);
