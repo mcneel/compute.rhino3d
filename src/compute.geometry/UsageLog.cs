@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -18,16 +19,22 @@ namespace compute.geometry
     // Fields are only ever added (bumping VERSION), never renamed, so readers can handle every version.
     static class UsageLog
     {
-        public const int VERSION = 7;
+        public const int VERSION = 8;
         static readonly TimeSpan OVERHEAD_INTERVAL = TimeSpan.FromMinutes(1);
         static readonly TimeSpan SHUTDOWN_FLUSH_TIMEOUT = TimeSpan.FromSeconds(2);
+        static readonly TimeSpan RETRY_INTERVAL = TimeSpan.FromSeconds(30);
+        // Records kept while the file can't be written, about 40 MB; past that the oldest are dropped.
+        const int MAX_UNWRITTEN = 100_000;
         // A field that doesn't apply, such as a script request's definition, is left out.
         static readonly JsonSerializerOptions JSON_OPTIONS = new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
 
         static readonly object appendLock = new object();
         static long nextSeq;
         static StreamWriter writer;
-        static bool failed;
+        static readonly Queue<string> unwritten = new Queue<string>();
+        static bool failing;
+        static DateTime retryUtc;
+        static long dropped;
 
         static readonly object overheadLock = new object();
         static Timer overheadTimer;
@@ -60,6 +67,9 @@ namespace compute.geometry
                         pid = Environment.ProcessId,
                         wallSeconds = Math.Round((DateTime.UtcNow - startUtc).TotalSeconds, 3),
                         cpuSeconds = Math.Round(cpuBefore, 3),
+                        // For core-hour comparisons when the records are read on another machine.
+                        machine = Environment.MachineName,
+                        logicalProcessors = Environment.ProcessorCount,
                     });
                 }
                 periodStartUtc = DateTime.UtcNow;
@@ -90,6 +100,11 @@ namespace compute.geometry
             WriteOverhead("shutdown", reason);
             foreach (string line in AgentLink.Flush(SHUTDOWN_FLUSH_TIMEOUT))
                 WriteToFile(line);
+            lock (appendLock)
+            {
+                if (unwritten.Count > 0 && !TryWrite(Config.UsageLogPath ?? AgentLink.FallbackPath, force: true))
+                    Log.Error("Usage log: {Count} usage records couldn't be written before shutdown and are lost", unwritten.Count + dropped);
+            }
         }
 
         public static void WriteRequest(DateTime startUtc, string requestId, string client, string method, string path, int status,
@@ -170,24 +185,70 @@ namespace compute.geometry
             }
         }
 
+        // A record the file can't take, on a full disk or a folder out of reach, is kept and written with a later one,
+        // trying again every RETRY_INTERVAL, so a month of records doesn't stop at the first failure.
         static void WriteToFile(string line)
         {
             string directory = Config.UsageLogPath ?? AgentLink.FallbackPath;
             lock (appendLock)
             {
-                if (failed || string.IsNullOrEmpty(directory))
+                if (string.IsNullOrEmpty(directory))
                     return;
+                unwritten.Enqueue(line);
+                if (unwritten.Count > MAX_UNWRITTEN)
+                {
+                    unwritten.Dequeue();
+                    dropped++;
+                }
+                TryWrite(directory, force: false);
+            }
+        }
+
+        // Under appendLock. Records written twice, when a failure comes after some reached the file, are stored once,
+        // since the agent keys them by sequence number.
+        static bool TryWrite(string directory, bool force)
+        {
+            if (string.IsNullOrEmpty(directory) || (failing && !force && DateTime.UtcNow < retryUtc))
+                return false;
+            try
+            {
+                if (writer == null)
+                {
+                    writer = Open(directory);
+                    // Ends a line an earlier failure may have cut off, so the next record starts a line of its own.
+                    if (failing)
+                        writer.WriteLine();
+                }
+                foreach (string line in unwritten)
+                    writer.WriteLine(line);
+                writer.Flush();
+                unwritten.Clear();
+                if (failing)
+                {
+                    if (dropped > 0)
+                        Log.Warning("Usage log: writing to {Path} again; {Dropped} usage records were dropped while it couldn't", directory, dropped);
+                    else
+                        Log.Information("Usage log: writing to {Path} again; no usage records were lost", directory);
+                    failing = false;
+                    dropped = 0;
+                }
+                return true;
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
                 try
                 {
-                    writer ??= Open(directory);
-                    writer.WriteLine(line);
-                    writer.Flush();
+                    writer?.Dispose();
                 }
-                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
                 {
-                    failed = true;
-                    Log.Error(ex, "Usage log: writing to {Path} failed; no further usage records will be written to it", directory);
                 }
+                writer = null;
+                retryUtc = DateTime.UtcNow + RETRY_INTERVAL;
+                if (!failing)
+                    Log.Error(ex, "Usage log: writing to {Path} failed; keeping usage records and trying again every {Seconds} s", directory, RETRY_INTERVAL.TotalSeconds);
+                failing = true;
+                return false;
             }
         }
 
