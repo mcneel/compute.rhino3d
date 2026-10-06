@@ -71,10 +71,17 @@ function Get-ComputeProcesses {
 
 # Children exit once they notice IIS has stopped; any still running after a minute are stopped.
 function Wait-ComputeExit {
-    $deadline = (Get-Date).AddSeconds(60)
+    $started = Get-Date
+    $deadline = $started.AddSeconds(60)
+    $computeCount = @(Get-ComputeProcesses).Count
+    $workerCount = @(Get-Process -Name "w3wp" -ErrorAction SilentlyContinue).Count
+    Write-Host "Waiting for $computeCount rhino.compute/compute.geometry and $workerCount w3wp processes to exit"
     while ((Get-Date) -lt $deadline) {
         $busy = @(Get-ComputeProcesses).Count + @(Get-Process -Name "w3wp" -ErrorAction SilentlyContinue).Count
-        if ($busy -eq 0) { return $true }
+        if ($busy -eq 0) {
+            Write-Host ("All exited after {0:N0} s" -f ((Get-Date) - $started).TotalSeconds)
+            return $true
+        }
         Start-Sleep -Seconds 1
     }
     $remaining = @(Get-ComputeProcesses)
@@ -98,9 +105,13 @@ function Invoke-Installer {
 }
 
 function Start-Compute {
+    param ([string[]] $services = @())
     Write-Step "Starting the IIS Service"
     try {
         Invoke-Cmd "net start w3svc" | Out-Null
+        foreach ($service in $services) {
+            if ($service -ne "W3SVC") { Invoke-Cmd "net start $service" | Out-Null }
+        }
         Start-IISSite -Name $websiteName
     }
     catch {
@@ -136,6 +147,7 @@ Write-Host @"
     $package = $null
     $upToDate = $false
     $iisStopped = $false
+    $dependentServices = @()
     $installStarted = $false
     $installerCode = $null
     $installer = $null
@@ -164,6 +176,8 @@ Write-Host @"
             }
 
             Write-Step "Stopping the IIS services"
+            # Stopping WAS stops every service that depends on it; the ones running now are started again.
+            $dependentServices = @((Get-Service -Name "WAS" -ErrorAction SilentlyContinue).DependentServices | Where-Object { $_.Status -eq "Running" } | ForEach-Object { $_.Name })
             Invoke-Cmd "net stop was /y" | Out-Null
             $iisStopped = $true
             if (-not (Wait-ComputeExit)) { throw "compute.geometry or rhino.compute is still running." }
@@ -180,7 +194,7 @@ Write-Host @"
         Write-Host "ERROR: $failure" -ForegroundColor Red
     }
     finally {
-        if ($iisStopped) { Start-Compute | Out-Null }
+        if ($iisStopped) { Start-Compute -services $dependentServices | Out-Null }
         if ($installer -and (Test-Path $installer)) { Remove-Item $installer -Force -ErrorAction SilentlyContinue }
 
         $installedAfter = Get-InstalledRhinoVersion
