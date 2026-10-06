@@ -9,6 +9,7 @@ $computeGeometryExe = "$computeGeometryPath\compute.geometry.exe"
 $appPoolName = "RhinoComputeAppPool"
 $websiteName = "Rhino.Compute"
 $backupDir = "$physicalPathRoot\rhino.compute-backup"
+$olderBackupDir = "$physicalPathRoot\rhino.compute-backup-older"
 $stagingDir = "$physicalPathRoot\rhino.compute-staging"
 $installFolders = @("C:\Rhino-Compute-Installation", "C:\Rhino_Compute_Installation", "C:\Rhino Compute Installation")
 $logFileName = "update_compute_log.txt"
@@ -59,10 +60,17 @@ function Get-ComputeProcesses {
 
 # Children exit once they notice IIS has stopped; any still running after a minute are stopped.
 function Wait-ComputeExit {
-    $deadline = (Get-Date).AddSeconds(60)
+    $started = Get-Date
+    $deadline = $started.AddSeconds(60)
+    $computeCount = @(Get-ComputeProcesses).Count
+    $workerCount = @(Get-Process -Name "w3wp" -ErrorAction SilentlyContinue).Count
+    Write-Host "Waiting for $computeCount rhino.compute/compute.geometry and $workerCount w3wp processes to exit"
     while ((Get-Date) -lt $deadline) {
         $busy = @(Get-ComputeProcesses).Count + @(Get-Process -Name "w3wp" -ErrorAction SilentlyContinue).Count
-        if ($busy -eq 0) { return $true }
+        if ($busy -eq 0) {
+            Write-Host ("All exited after {0:N0} s" -f ((Get-Date) - $started).TotalSeconds)
+            return $true
+        }
         Start-Sleep -Seconds 1
     }
     $remaining = @(Get-ComputeProcesses)
@@ -111,10 +119,28 @@ function Restore-Backup {
     return 2
 }
 
+# A failed update puts back the backup it set aside, so it costs no backup.
+function Restore-OlderBackup {
+    try {
+        if ((Test-Path $backupDir) -and -not (Get-ChildItem $backupDir -Force | Select-Object -First 1)) {
+            Remove-Item -Force $backupDir
+        }
+        Move-Folder $olderBackupDir $backupDir
+        Write-Host "Put the previous backup back in $backupDir"
+    }
+    catch {
+        Write-Host "The previous backup is still in ${olderBackupDir}: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+}
+
 function Start-Compute {
+    param ([string[]] $services = @())
     Write-Step "Starting the IIS Service"
     try {
         Invoke-Cmd "net start w3svc" | Out-Null
+        foreach ($service in $services) {
+            if ($service -ne "W3SVC") { Invoke-Cmd "net start $service" | Out-Null }
+        }
         Start-IISSite -Name $websiteName
     }
     catch {
@@ -150,6 +176,8 @@ Write-Host @"
 
     $exitCode = 1
     $iisStopped = $false
+    $dependentServices = @()
+    $olderBackupSetAside = $false
     $moved = @{}
     $artifact = $null
     try {
@@ -176,13 +204,26 @@ Write-Host @"
         }
 
         Write-Step "Create backup"
+        # A run stopped part way can leave both backups; keep the newer one that still holds a version.
+        if (Test-Path $olderBackupDir) {
+            if ((Test-Path $backupDir) -and (Get-ChildItem $backupDir -Force | Select-Object -First 1)) {
+                Remove-Item -Recurse -Force $olderBackupDir
+            }
+            else {
+                if (Test-Path $backupDir) { Remove-Item -Recurse -Force $backupDir }
+                Move-Folder $olderBackupDir $backupDir
+            }
+        }
         if (Test-Path $backupDir) {
-            Write-Host "Deleting '$backupDir'"
-            Remove-Item -Recurse -Force $backupDir
+            Write-Host "Setting the previous backup aside in $olderBackupDir until the update succeeds"
+            Move-Folder $backupDir $olderBackupDir
+            $olderBackupSetAside = $true
         }
         New-Item -ItemType Directory -Path $backupDir | Out-Null
 
         Write-Step "Stopping the IIS services"
+        # Stopping WAS stops every service that depends on it; the ones running now are started again.
+        $dependentServices = @((Get-Service -Name "WAS" -ErrorAction SilentlyContinue).DependentServices | Where-Object { $_.Status -eq "Running" } | ForEach-Object { $_.Name })
         Invoke-Cmd "net stop was /y" | Out-Null
         $iisStopped = $true
         if (-not (Wait-ComputeExit)) { throw "compute.geometry or rhino.compute is still running." }
@@ -215,13 +256,15 @@ Write-Host @"
             Write-Host "Warning: the product version does not name commit $($artifact.workflow_run.head_sha)." -ForegroundColor Yellow
         }
         $exitCode = 0
+        if ($olderBackupSetAside) { Remove-Item -Recurse -Force $olderBackupDir -ErrorAction SilentlyContinue }
     }
     catch {
         Write-Host "ERROR: $($_.Exception.Message)" -ForegroundColor Red
         if ($moved.Count -gt 0) { $exitCode = Restore-Backup $moved }
+        if ($olderBackupSetAside -and $exitCode -ne 2) { Restore-OlderBackup }
     }
     finally {
-        if ($iisStopped) { Start-Compute | Out-Null }
+        if ($iisStopped) { Start-Compute -services $dependentServices | Out-Null }
         if (Test-Path $stagingDir) { Remove-Item -Recurse -Force $stagingDir -ErrorAction SilentlyContinue }
 
         Write-Host
