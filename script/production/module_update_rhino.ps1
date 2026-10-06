@@ -11,8 +11,9 @@ $physicalPathRoot = "C:\inetpub\wwwroot\aspnet_client\system_web\4_0_30319"
 $websiteName = "Rhino.Compute"
 $installFolders = @("C:\Rhino-Compute-Installation", "C:\Rhino_Compute_Installation", "C:\Rhino Compute Installation")
 $logFileName = "update_rhino_log.txt"
-$rhinoRegistryKey = "HKLM:\SOFTWARE\McNeel\Rhinoceros\8.0\Install"
-$rhinoDownloadUrl = "https://www.rhino3d.com/www-api/download/direct/?slug=rhino-for-windows/8/latest/?email=" + [uri]::EscapeDataString($EmailAddress)
+$rhinoRegistryKey = "HKLM:\SOFTWARE\McNeel\Rhinoceros\9.0\Install"
+# The release link answers once Rhino 9 is released; until then the beta's does.
+$rhinoDownloadSlugs = @("rhino-for-windows/9/latest", "rhino-for-windows/9/beta")
 $installerTimeoutSeconds = 1200
 
 #Region funcs
@@ -43,16 +44,30 @@ function Get-InstalledRhinoVersion {
     return [Version]$key.Version
 }
 
-# The download link redirects to the installer, whose file name ends in its version: rhino_en-us_8.24.25281.15001.exe.
+# The first download link that answers redirects to the installer, whose file name ends in its version: rhino_9.0.26272.12303.exe.
 function Resolve-RhinoInstaller {
-    if ($PSVersionTable.PSVersion.Major -gt 5) {
-        $response = Invoke-WebRequest -Method Get -MaximumRedirection 0 -Uri $rhinoDownloadUrl -ErrorAction Ignore -SkipHttpErrorCheck
-    } else {
-        $response = Invoke-WebRequest -Method Get -MaximumRedirection 0 -Uri $rhinoDownloadUrl -ErrorAction Ignore -UseBasicParsing
-    }
     $location = $null
-    if ($response) { $location = @($response.Headers.Location)[0] }
-    if (-not $location) { throw "The Rhino download link didn't lead to an installer." }
+    foreach ($slug in $rhinoDownloadSlugs) {
+        $url = "https://www.rhino3d.com/www-api/download/direct/?slug=$slug/?email=" + [uri]::EscapeDataString($EmailAddress)
+        $response = $null
+        # -ErrorAction Ignore lets a redirect through, but a link that isn't live yet (404) still throws.
+        try {
+            if ($PSVersionTable.PSVersion.Major -gt 5) {
+                $response = Invoke-WebRequest -Method Get -MaximumRedirection 0 -Uri $url -ErrorAction Ignore -SkipHttpErrorCheck
+            } else {
+                $response = Invoke-WebRequest -Method Get -MaximumRedirection 0 -Uri $url -ErrorAction Ignore -UseBasicParsing
+            }
+        }
+        catch {
+            Write-Host "No installer at ${slug}: $($_.Exception.Message)"
+        }
+        if ($response) { $location = @($response.Headers.Location)[0] }
+        if ($location) {
+            Write-Host "Download link: $slug"
+            break
+        }
+    }
+    if (-not $location) { throw "None of the Rhino download links ($($rhinoDownloadSlugs -join ', ')) led to an installer." }
     $fileName = [System.IO.Path]::GetFileName(([uri]$location).AbsolutePath)
     $version = $null
     if (-not [Version]::TryParse([System.IO.Path]::GetFileNameWithoutExtension($fileName).Split('_')[-1], [ref]$version)) {
@@ -154,7 +169,7 @@ Write-Host @"
     $failure = $null
     try {
         $installedBefore = Get-InstalledRhinoVersion
-        if (-not $installedBefore) { throw "Rhino 8 isn't installed. Please run the bootstrap script first!" }
+        if (-not $installedBefore) { throw "Rhino 9 isn't installed. Please run the bootstrap script first!" }
 
         Write-Step "Checking for update"
         $package = Resolve-RhinoInstaller
@@ -183,7 +198,7 @@ Write-Host @"
             if (-not (Wait-ComputeExit)) { throw "compute.geometry or rhino.compute is still running." }
 
             Write-Step "Installing Rhino $($package.Version)"
-            # Automated install (https://wiki.mcneel.com/rhino/installingrhino/8)
+            # Automated install, with the same switches as Rhino 8's (https://wiki.mcneel.com/rhino/installingrhino/8)
             $installStarted = $true
             $installerCode = Invoke-Installer $installer
             Write-Host "Installer exit code: $installerCode"
