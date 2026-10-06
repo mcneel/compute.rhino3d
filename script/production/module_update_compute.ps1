@@ -1,6 +1,11 @@
 # Download/Install compute
 #Requires -RunAsAdministrator
 
+param (
+    # Reinstall even when the latest build is already installed.
+    [switch] $Force = $false
+)
+
 $physicalPathRoot = "C:\inetpub\wwwroot\aspnet_client\system_web\4_0_30319"
 $rhinoComputePath = "$physicalPathRoot\rhino.compute"
 $computeGeometryPath = "$physicalPathRoot\compute.geometry"
@@ -178,6 +183,7 @@ Write-Host @"
     $iisStopped = $false
     $dependentServices = @()
     $olderBackupSetAside = $false
+    $upToDate = $false
     $moved = @{}
     $artifact = $null
     try {
@@ -201,6 +207,16 @@ Write-Host @"
         foreach ($file in @("rhino.compute\rhino.compute.exe", "compute.geometry\compute.geometry.exe", "rhino.compute\rhino.compute.dll", "compute.geometry\compute.geometry.dll")) {
             if (-not (Test-Path "$stagingDir\$file")) { throw "The download has no $file." }
             $stagedHashes[$file] = (Get-FileHash "$stagingDir\$file").Hash
+        }
+
+        # Compared by content, so a server with one folder on an older build still updates.
+        $installedMatches = $true
+        foreach ($file in $stagedHashes.Keys) {
+            if (-not (Test-Path "$physicalPathRoot\$file") -or (Get-FileHash "$physicalPathRoot\$file").Hash -ne $stagedHashes[$file]) { $installedMatches = $false }
+        }
+        if ($installedMatches -and -not $Force) {
+            $upToDate = $true
+            return 0
         }
 
         Write-Step "Create backup"
@@ -256,7 +272,11 @@ Write-Host @"
             Write-Host "Warning: the product version does not name commit $($artifact.workflow_run.head_sha)." -ForegroundColor Yellow
         }
         $exitCode = 0
-        if ($olderBackupSetAside) { Remove-Item -Recurse -Force $olderBackupDir -ErrorAction SilentlyContinue }
+        if ($olderBackupSetAside) {
+            Remove-Item -Recurse -Force $olderBackupDir -ErrorAction SilentlyContinue
+            if (Test-Path $olderBackupDir) { Write-Host "Could not delete $olderBackupDir; the next update will." -ForegroundColor Yellow }
+            else { Write-Host "Deleted the older backup, $olderBackupDir" }
+        }
     }
     catch {
         Write-Host "ERROR: $($_.Exception.Message)" -ForegroundColor Red
@@ -268,7 +288,10 @@ Write-Host @"
         if (Test-Path $stagingDir) { Remove-Item -Recurse -Force $stagingDir -ErrorAction SilentlyContinue }
 
         Write-Host
-        if ($exitCode -eq 0) {
+        if ($upToDate) {
+            Write-Host "rhino.compute and compute.geometry are already $matchingBranch build $($artifact.workflow_run.head_sha.Substring(0, 7)); nothing was changed. Run the script with -Force to reinstall it." -ForegroundColor Green
+        }
+        elseif ($exitCode -eq 0) {
             Write-Host "Update finished: rhino.compute and compute.geometry are $matchingBranch build $($artifact.workflow_run.head_sha.Substring(0, 7)) (artifact $($artifact.id))." -ForegroundColor Green
         }
         elseif ($exitCode -eq 2) {
