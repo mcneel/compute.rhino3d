@@ -327,17 +327,16 @@ namespace rhino.compute
                 if (initialRequest.Headers.TryGetValue(API_KEY_HEADER, out var keyHeader))
                     req.Headers.Add(API_KEY_HEADER, keyHeader.ToString());
 
-                // Stream the request body directly to the child process rather than
-                // buffering it as a string, avoiding a full in-memory copy of the payload.
-                var streamContent = new StreamContent(initialRequest.BodyReader.AsStream(leaveOpen: false));
+                // Read in full first, so the timeout covers the child's work and not the client's upload.
+                var body = new System.IO.MemoryStream((int)Math.Clamp(initialRequest.ContentLength ?? 0, 0, int.MaxValue));
+                await initialRequest.Body.CopyToAsync(body, initialRequest.HttpContext.RequestAborted);
+                var content = new ByteArrayContent(body.GetBuffer(), 0, (int)body.Length);
                 if (!string.IsNullOrWhiteSpace(initialRequest.ContentType) &&
                     System.Net.Http.Headers.MediaTypeHeaderValue.TryParse(initialRequest.ContentType, out var parsedContentType))
-                    streamContent.Headers.ContentType = parsedContentType;
+                    content.Headers.ContentType = parsedContentType;
                 else
-                    streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
-                req.Content = streamContent;
-                // SendAsync fully consumes the request body before returning, so disposing
-                // req (and its owned StreamContent) here is safe.
+                    content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+                req.Content = content;
                 return await client.SendAsync(req);
             }
 
