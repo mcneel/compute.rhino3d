@@ -219,6 +219,18 @@ Write-Host @"
             return 0
         }
 
+        # The download carries the default web.config; the server's own settings (child count, timeouts) stay.
+        $liveConfig = "$rhinoComputePath\web.config"
+        $stagedConfig = "$stagingDir\rhino.compute\web.config"
+        if (Test-Path $liveConfig) {
+            Write-Step "Keeping this server's web.config"
+            if ((Test-Path $stagedConfig) -and (Get-FileHash $liveConfig).Hash -ne (Get-FileHash $stagedConfig).Hash) {
+                Write-Host "It differs from the new build's default web.config, which is:"
+                Get-Content $stagedConfig | ForEach-Object { Write-Host "    $_" }
+            }
+            Copy-Item $liveConfig $stagedConfig -Force
+        }
+
         Write-Step "Create backup"
         # A run stopped part way can leave both backups; keep the newer one that still holds a version.
         if (Test-Path $olderBackupDir) {
