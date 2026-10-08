@@ -69,11 +69,17 @@ namespace rhino.compute
         /// figure out if they should exit.
         /// </summary>
         /// <returns>
-        /// -1 if a child process has never been called; otherwise
-        /// span in seconds since the last call to a child process
+        /// -1 if a child process has never been called; 0 while a request is in
+        /// progress; otherwise span in seconds since the last call to a child process
         /// </returns>
         public static int IdleSpan()
         {
+            // A request that outlasts the idle span must not make the children shut down under it.
+            lock (lockObject)
+            {
+                if (activeRequests.Count > 0)
+                    return 0;
+            }
             if (lastCall == DateTime.MinValue)
                 return -1;
             var span = DateTime.Now - lastCall;
