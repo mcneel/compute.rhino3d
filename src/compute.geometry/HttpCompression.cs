@@ -11,9 +11,9 @@ using Microsoft.Net.Http.Headers;
 namespace Compute.Http
 {
     /// <summary>
-    /// Opt-in HTTP compression, shared by rhino.compute and compute.geometry: gzip request
-    /// bodies are accepted, and answers of at least <see cref="CompressionMiddleware.MinimumBytes"/>
-    /// are gzipped for clients that send Accept-Encoding: gzip.
+    /// HTTP compression shared by rhino.compute and compute.geometry, on unless
+    /// RHINO_COMPUTE_COMPRESSION=false: gzip request bodies are accepted, and answers of at least
+    /// <see cref="CompressionMiddleware.MinimumBytes"/> are gzipped for clients that send Accept-Encoding: gzip.
     /// </summary>
     public static class HttpCompression
     {

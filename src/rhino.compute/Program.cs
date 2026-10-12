@@ -248,8 +248,10 @@ namespace rhino.compute
                 Log.Information("Child startup timeout is {Timeout} (default is {Default})",
                     FormatTimeout(Config.ChildStartupTimeout), FormatTimeout(Config.DefaultChildStartupTimeout));
             if (Config.Compression)
-                Log.Information("Compression is on: gzip request bodies are accepted, and answers of {Minimum} bytes or more are gzipped for clients that ask",
+                Log.Information("Compression is on: gzip request bodies are accepted, and answers of {Minimum} bytes or more are gzipped for clients that ask (RHINO_COMPUTE_COMPRESSION=false turns it off)",
                     Compute.Http.CompressionMiddleware.MinimumBytes);
+            else
+                Log.Information("Compression is off (RHINO_COMPUTE_COMPRESSION)");
 
             Log.Debug($"Config:");
             Log.Debug("  Max Request Size = {RequestSize}", (Config.MaxRequestSize / 1024.0 / 1024.0).ToString("F2") + " MB");

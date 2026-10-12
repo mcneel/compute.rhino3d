@@ -89,7 +89,7 @@ namespace compute.geometry
 
         /// <summary>
         /// RHINO_COMPUTE_COMPRESSION: accept gzip request bodies and gzip answers for clients
-        /// that ask (Accept-Encoding: gzip). Off by default so existing clients see no change.
+        /// that ask (Accept-Encoding: gzip). On by default; false turns it off.
         /// </summary>
         public static bool Compression { get; private set; }
 
@@ -115,7 +115,7 @@ namespace compute.geometry
             LogRetainDays = GetEnvironmentVariable(RHINO_COMPUTE_LOG_RETAIN_DAYS, 10, COMPUTE_LOG_RETAIN_DAYS);
             CreateHeadlessDoc = GetEnvironmentVariable<bool>(RHINO_COMPUTE_CREATE_HEADLESS_DOC, false);
             LoadGrasshopper = GetEnvironmentVariable<bool>(RHINO_COMPUTE_LOAD_GRASSHOPPER, true);
-            Compression = GetEnvironmentVariable<bool>(RHINO_COMPUTE_COMPRESSION, false);
+            Compression = GetEnvironmentVariable<bool>(RHINO_COMPUTE_COMPRESSION, true);
 
 #if DEBUG
             Debug = true;
