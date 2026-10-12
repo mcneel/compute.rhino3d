@@ -691,9 +691,14 @@ namespace Hops
         static string ServerKey(string url)
             => Uri.TryCreate(url, UriKind.Absolute, out Uri uri) ? uri.GetLeftPart(UriPartial.Authority) : url;
 
+        // Compressing for a server on this machine costs time and saves nothing.
+        static bool IsLocalServer(string url)
+            => Uri.TryCreate(url, UriKind.Absolute, out Uri uri)
+                && (uri.IsLoopback || uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase));
+
         static void NoteUploadSupport(string url, System.Net.Http.HttpResponseMessage response)
         {
-            if (!compressionEnabled || string.IsNullOrEmpty(url))
+            if (!compressionEnabled || string.IsNullOrEmpty(url) || IsLocalServer(url))
                 return;
             bool acceptsGzip = response.Headers.TryGetValues("Accept-Encoding", out var values)
                 && values.Any(v => v.IndexOf("gzip", StringComparison.OrdinalIgnoreCase) >= 0);
