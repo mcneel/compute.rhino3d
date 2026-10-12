@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- rhino.compute and compute.geometry now compress large answers and accept compressed uploads (COMPUTE-400). Answers of 1 KB or more are gzipped for clients that send `Accept-Encoding: gzip`; smaller answers, and clients that don't ask, get uncompressed answers as before. Request bodies sent with `Content-Encoding: gzip` are unpacked, and the request size limit applies to the unpacked body. The servers advertise this with an `Accept-Encoding: gzip` response header (RFC 7694), so clients know when they may compress uploads. Compression is on by default; set the `RHINO_COMPUTE_COMPRESSION` environment variable to `false` (or `0`) to turn it off, for example for a client that asks for gzip but can't unpack it. On IIS, add `<environmentVariable name="RHINO_COMPUTE_COMPRESSION" value="false" />` inside `<aspNetCore><environmentVariables>` in `web.config`. compute.geometry children inherit the setting from rhino.compute, the hop between them stays uncompressed, and rhino.compute logs at startup whether compression is on. On a customer's batch of 41 requests, the data sent and received fell from 489 MB to 81 MB, and the batch finished 3-4x faster over 10-25 Mbit/s links.
+- Hops now asks for compressed answers, and gzips `/io` and solve request bodies of 1 KB or more for servers that advertise support (COMPUTE-400). Uploads to a server on the same machine (`localhost`, `127.x.x.x`, `::1`), including Hops' own local rhino.compute and nested Hops calls, stay uncompressed, since there is nothing to save. Set the `HOPS_COMPRESSION` environment variable to `false` to turn both off. The HTTP records shown by "Export last request/response" stay plain JSON.
+
+### Changed
+
+- Browsers, JavaScript `fetch` and Python `requests`, including the compute-rhino3d JavaScript and Python clients, already ask for gzip, so they now receive gzipped answers from updated servers and unpack them automatically (COMPUTE-400). Clients that don't ask, such as the .NET client, older Hops versions and curl without `--compressed`, get the same answers as before. A client that asks for gzip but doesn't unpack it needs `RHINO_COMPUTE_COMPRESSION=false` on the server.
+
 ## [0.17.1] - 2026-08-24
 
 ### Added
