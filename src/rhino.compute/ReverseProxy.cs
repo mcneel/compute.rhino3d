@@ -318,9 +318,10 @@ namespace rhino.compute
                 if (initialRequest.Headers.TryGetValue(API_KEY_HEADER, out var keyHeader))
                     req.Headers.Add(API_KEY_HEADER, keyHeader.ToString());
 
-                using (var sw = new System.IO.StreamReader(initialRequest.BodyReader.AsStream()))
+                // With compression on, Body is the decompressing stream, so read it (async) rather than BodyReader.
+                using (var sw = new System.IO.StreamReader(initialRequest.Body))
                 {
-                    string body = sw.ReadToEnd();
+                    string body = await sw.ReadToEndAsync();
                     using (var stringContent = new StringContent(body, System.Text.Encoding.UTF8, "application/json"))
                     {
                         req.Content = stringContent;

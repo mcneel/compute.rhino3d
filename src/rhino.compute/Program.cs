@@ -247,6 +247,9 @@ namespace rhino.compute
             if (Config.ChildStartupTimeout != Config.DefaultChildStartupTimeout)
                 Log.Information("Child startup timeout is {Timeout} (default is {Default})",
                     FormatTimeout(Config.ChildStartupTimeout), FormatTimeout(Config.DefaultChildStartupTimeout));
+            if (Config.Compression)
+                Log.Information("Compression is on: gzip request bodies are accepted, and answers of {Minimum} bytes or more are gzipped for clients that ask",
+                    Compute.Http.CompressionMiddleware.MinimumBytes);
 
             Log.Debug($"Config:");
             Log.Debug("  Max Request Size = {RequestSize}", (Config.MaxRequestSize / 1024.0 / 1024.0).ToString("F2") + " MB");
@@ -263,6 +266,7 @@ namespace rhino.compute
             Log.Debug("  Create Headless Document = {CreateHeadlessDoc}", createHeadlessDoc.ToString());
             bool blockPrivateUrls = Boolean.TryParse(Environment.GetEnvironmentVariable("RHINO_COMPUTE_BLOCK_PRIVATE_URLS"), out var blockPrivate) && blockPrivate;
             Log.Debug("  Block Private URLs = {BlockPrivateUrls}", blockPrivateUrls.ToString());
+            Log.Debug("  Compression = {Compression}", Config.Compression.ToString());
             Log.Debug("  Log Path = {LogPath}", Config.LogPath);
 
             var logger = host.Services.GetRequiredService<ILogger<ReverseProxyModule>>();

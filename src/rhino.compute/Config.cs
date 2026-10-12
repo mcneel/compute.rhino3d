@@ -101,6 +101,13 @@ namespace rhino.compute
         public const int DefaultIdleSpanSeconds = 3600;
 
         /// <summary>
+        /// RHINO_COMPUTE_COMPRESSION: accept gzip request bodies and gzip answers for clients
+        /// that ask (Accept-Encoding: gzip). Off by default so existing clients see no change.
+        /// Children inherit the variable, so standalone and child compute.geometry agree.
+        /// </summary>
+        public static bool Compression { get; private set; }
+
+        /// <summary>
         /// Non-fatal configuration problems collected during <see cref="Load"/> —
         /// unparseable values, out-of-range values, deprecated names. Load() runs
         /// before the logger exists, so these are buffered here for the caller to
@@ -152,6 +159,8 @@ namespace rhino.compute
                 IdleSpanSeconds = clamped;
             }
 
+            Compression = GetEnvironmentVariable(RHINO_COMPUTE_COMPRESSION, false);
+
 #if DEBUG
             Debug = true;
 #elif RELEASE
@@ -171,6 +180,7 @@ namespace rhino.compute
         const string RHINO_COMPUTE_CHILD_STARTUP_TIMEOUT = "RHINO_COMPUTE_CHILD_STARTUP_TIMEOUT";
         const string RHINO_COMPUTE_CHILDCOUNT = "RHINO_COMPUTE_CHILDCOUNT";
         const string RHINO_COMPUTE_IDLESPAN = "RHINO_COMPUTE_IDLESPAN";
+        const string RHINO_COMPUTE_COMPRESSION = "RHINO_COMPUTE_COMPRESSION";
 
         // Bounds for ChildStartupTimeout. The floor is well below any realistic Rhino
         // load time and exists only to reject 0/negative; the ceiling is an hour, past

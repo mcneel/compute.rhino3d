@@ -87,6 +87,12 @@ namespace compute.geometry
         /// </summary>
         public static bool LoadGrasshopper { get; set; }
 
+        /// <summary>
+        /// RHINO_COMPUTE_COMPRESSION: accept gzip request bodies and gzip answers for clients
+        /// that ask (Accept-Encoding: gzip). Off by default so existing clients see no change.
+        /// </summary>
+        public static bool Compression { get; private set; }
+
         public static string[] GetDeprecationWarnings() => warnings.ToArray();
 
         /// <summary>
@@ -109,6 +115,7 @@ namespace compute.geometry
             LogRetainDays = GetEnvironmentVariable(RHINO_COMPUTE_LOG_RETAIN_DAYS, 10, COMPUTE_LOG_RETAIN_DAYS);
             CreateHeadlessDoc = GetEnvironmentVariable<bool>(RHINO_COMPUTE_CREATE_HEADLESS_DOC, false);
             LoadGrasshopper = GetEnvironmentVariable<bool>(RHINO_COMPUTE_LOAD_GRASSHOPPER, true);
+            Compression = GetEnvironmentVariable<bool>(RHINO_COMPUTE_COMPRESSION, false);
 
 #if DEBUG
             Debug = true;
@@ -138,6 +145,7 @@ namespace compute.geometry
         const string RHINO_COMPUTE_DEBUG = "RHINO_COMPUTE_DEBUG";
         const string RHINO_COMPUTE_CREATE_HEADLESS_DOC = "RHINO_COMPUTE_CREATE_HEADLESS_DOC";
         const string RHINO_COMPUTE_LOAD_GRASSHOPPER = "RHINO_COMPUTE_LOAD_GRASSHOPPER";
+        const string RHINO_COMPUTE_COMPRESSION = "RHINO_COMPUTE_COMPRESSION";
 
         // deprecated
         const string COMPUTE_BIND_URLS = "COMPUTE_BIND_URLS";
