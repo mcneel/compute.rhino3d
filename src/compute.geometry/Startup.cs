@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using Compute.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
@@ -29,6 +30,8 @@ namespace compute.geometry
                     });
             });
             services.AddHealthChecks();
+            if (Config.Compression)
+                services.AddHttpCompression();
         }
 
         public void Configure(IApplicationBuilder app)
@@ -79,6 +82,8 @@ namespace compute.geometry
                 await ctx.Response.WriteAsync(JsonConvert.SerializeObject(body));
             }));
 
+            if (Config.Compression)
+                app.UseHttpCompression();
             app.UseRouting();
             app.UseCors();
             if (!string.IsNullOrEmpty(Config.ApiKey))
