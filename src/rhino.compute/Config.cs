@@ -40,8 +40,8 @@ namespace rhino.compute
 
         /// <summary>
         /// RHINO_COMPUTE_COMPRESSION: accept gzip request bodies and gzip answers for clients
-        /// that ask (Accept-Encoding: gzip). Off by default so existing clients see no change.
-        /// Children inherit the variable, so standalone and child compute.geometry agree.
+        /// that ask (Accept-Encoding: gzip). On by default; false turns it off for clients that
+        /// can't handle it. Children inherit the variable, so standalone and child compute.geometry agree.
         /// </summary>
         public static bool Compression { get; private set; }
 
@@ -56,7 +56,7 @@ namespace rhino.compute
             LogPath = GetEnvironmentVariable(RHINO_COMPUTE_LOG_PATH, Path.Combine(Path.GetTempPath(), "Compute", "Logs"));
             LogRetainDays = GetEnvironmentVariable(RHINO_COMPUTE_LOG_RETAIN_DAYS, 10);
 
-            Compression = GetEnvironmentVariable(RHINO_COMPUTE_COMPRESSION, false);
+            Compression = GetEnvironmentVariable(RHINO_COMPUTE_COMPRESSION, true);
 
 #if DEBUG
             Debug = true;
