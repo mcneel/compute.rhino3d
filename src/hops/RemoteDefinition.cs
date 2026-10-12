@@ -344,12 +344,14 @@ namespace Hops
             System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage> responseTask;
             // Per-request disposables that need to outlive the if/else so the response can be
             // awaited safely. Disposed in a single sweep at the end of the method.
-            System.Net.Http.StringContent contentToDispose = null;
+            System.Net.Http.HttpContent contentToDispose = null;
             System.Net.Http.HttpRequestMessage requestToDispose = null;
             System.Threading.CancellationTokenSource ctsToDispose = null;
+            string requestUrl;
             if (performPost)
             {
                 string postUrl = Servers.GetDescriptionPostUrl();
+                requestUrl = postUrl;
                 var schema = new Schema();
                 schema.DataVersion = 8;
                 if (pathType != PathType.InternalizedDefinition)
@@ -397,7 +399,7 @@ namespace Hops
                 schema.FileName = filename;
                 string inputJson = JsonConvert.SerializeObject(schema);
                 parentComponent.HttpRecord.IoRequest = BuildRequestEnvelope(postUrl, "POST", inputJson);
-                var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
+                var content = CreateJsonContent(postUrl, inputJson);
                 var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, postUrl) { Content = content };
                 AddApiKeyHeader(request);
                 var cts = CreateTimeoutCts();
@@ -413,6 +415,7 @@ namespace Hops
             }
             else
             {
+                requestUrl = address;
                 parentComponent.HttpRecord.IoRequest = BuildRequestEnvelope(address, "GET");
                 var cts = CreateTimeoutCts();
                 responseTask = HttpClient.GetAsync(address, cts.Token);
@@ -425,6 +428,7 @@ namespace Hops
                 {
                     var responseMessage = responseTask.Result;
                     HopsLog.Log.Debug($"Received response {responseMessage.StatusCode} in {sw.ElapsedMilliseconds}ms");
+                    NoteUploadSupport(requestUrl, responseMessage);
                     var remoteSolvedData = responseMessage.Content;
                     var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
                     parentComponent.HttpRecord.IoResponse = stringResult;
@@ -655,17 +659,68 @@ namespace Hops
             {
                 if (httpClient == null)
                 {
+                    // Asking for gzip is harmless: a server with compression off answers uncompressed.
+                    var handler = new System.Net.Http.HttpClientHandler();
+                    if (compressionEnabled)
+                        handler.AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate;
+
                     // One shared HttpClient for all requests (avoids per-request socket allocation).
                     // Timeout is intentionally infinite — per-request CancellationTokenSource
                     // controls actual deadlines so HopsAppSettings.HttpTimeout values larger than
                     // 100s aren't capped by HttpClient's default.
-                    httpClient = new System.Net.Http.HttpClient
+                    httpClient = new System.Net.Http.HttpClient(handler)
                     {
                         Timeout = System.Threading.Timeout.InfiniteTimeSpan
                     };
                 }
                 return httpClient;
             }
+        }
+
+        // HOPS_COMPRESSION=false (or 0) stops Hops asking for compressed answers and compressing uploads.
+        const string HOPS_COMPRESSION = "HOPS_COMPRESSION";
+        const int MIN_COMPRESSED_UPLOAD_BYTES = 1024;
+        static readonly bool compressionEnabled = !(Environment.GetEnvironmentVariable(HOPS_COMPRESSION) is string compressionSetting
+            && (compressionSetting.Trim() == "0" || compressionSetting.Trim().Equals("false", StringComparison.OrdinalIgnoreCase)));
+
+        // Servers (scheme://host:port) whose answers carried Accept-Encoding: gzip (RFC 7694),
+        // i.e. that accept gzip request bodies. Older servers would reject a compressed upload.
+        static readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> gzipUploadServers =
+            new System.Collections.Concurrent.ConcurrentDictionary<string, bool>();
+
+        static string ServerKey(string url)
+            => Uri.TryCreate(url, UriKind.Absolute, out Uri uri) ? uri.GetLeftPart(UriPartial.Authority) : url;
+
+        static void NoteUploadSupport(string url, System.Net.Http.HttpResponseMessage response)
+        {
+            if (!compressionEnabled || string.IsNullOrEmpty(url))
+                return;
+            bool acceptsGzip = response.Headers.TryGetValues("Accept-Encoding", out var values)
+                && values.Any(v => v.IndexOf("gzip", StringComparison.OrdinalIgnoreCase) >= 0);
+            if (acceptsGzip)
+                gzipUploadServers[ServerKey(url)] = true;
+            else
+                gzipUploadServers.TryRemove(ServerKey(url), out _);
+        }
+
+        // The JSON body for a POST, gzipped when the server has said it accepts gzip uploads.
+        static System.Net.Http.HttpContent CreateJsonContent(string url, string json)
+        {
+            if (compressionEnabled && json.Length >= MIN_COMPRESSED_UPLOAD_BYTES && gzipUploadServers.ContainsKey(ServerKey(url)))
+            {
+                byte[] bytes = Encoding.UTF8.GetBytes(json);
+                using (var packed = new MemoryStream())
+                {
+                    using (var gzip = new System.IO.Compression.GZipStream(packed, System.IO.Compression.CompressionLevel.Optimal, leaveOpen: true))
+                        gzip.Write(bytes, 0, bytes.Length);
+                    var content = new System.Net.Http.ByteArrayContent(packed.ToArray());
+                    content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json") { CharSet = "utf-8" };
+                    content.Headers.ContentEncoding.Add("gzip");
+                    HopsLog.Log.Debug($"Compressed the request body for {url}: {packed.Length} of {bytes.Length} bytes");
+                    return content;
+                }
+            }
+            return new System.Net.Http.StringContent(json, Encoding.UTF8, "application/json");
         }
 
         // Per-request timeout via CancellationTokenSource. Uses HopsAppSettings.HttpTimeout
@@ -728,7 +783,7 @@ namespace Hops
             }
             string requestContent = BuildRequestEnvelope(solveUrl, "POST", inputJson);
             parentComponent.HttpRecord.SolveRequest = requestContent;
-            using (var content = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json"))
+            using (var content = CreateJsonContent(solveUrl, inputJson))
             using (var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, solveUrl) { Content = content })
             using (var cts = CreateTimeoutCts())
             {
@@ -743,6 +798,7 @@ namespace Hops
                 HopsLog.Log.Debug($"Sending POST request to {solveUrl}{fileNameMsg}");
                 var responseMessage = postTask.Result;
                 HopsLog.Log.Debug($"Received response {responseMessage.StatusCode} in {sw.ElapsedMilliseconds}ms");
+                NoteUploadSupport(solveUrl, responseMessage);
                 var remoteSolvedData = responseMessage.Content;
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
                 parentComponent.HttpRecord.SolveResponse = stringResult;
@@ -772,7 +828,7 @@ namespace Hops
                         inputJson = JsonConvert.SerializeObject(inputSchema);
                         requestContent = BuildRequestEnvelope(solveUrl, "POST", inputJson);
                         parentComponent.HttpRecord.SolveRequest = requestContent;
-                        using var content2 = new System.Net.Http.StringContent(inputJson, Encoding.UTF8, "application/json");
+                        using var content2 = CreateJsonContent(solveUrl, inputJson);
                         using var request2 = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, solveUrl) { Content = content2 };
                         using var cts2 = CreateTimeoutCts();
                         AddApiKeyHeader(request2);
@@ -784,6 +840,7 @@ namespace Hops
                         var sw2 = Stopwatch.StartNew();
                         responseMessage = postTask.Result;
                         HopsLog.Log.Debug($"Received response {responseMessage.StatusCode} in {sw2.ElapsedMilliseconds}ms");
+                        NoteUploadSupport(solveUrl, responseMessage);
                         remoteSolvedData = responseMessage.Content;
                         stringResult = remoteSolvedData.ReadAsStringAsync().Result;
                         parentComponent.HttpRecord.SolveResponse = stringResult;
