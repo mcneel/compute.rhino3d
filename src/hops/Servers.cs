@@ -171,7 +171,7 @@ namespace Hops
             string baseUrl = GetComputeServerBaseUrl();
             int thisProc = Process.GetCurrentProcess().Id;
             string address = $"{baseUrl}/launch?children={childCount}&parent={thisProc}";
-            RemoteDefinition.HttpClient.GetAsync(address);
+            RemoteDefinition.HttpClientFor(address).GetAsync(address);
         }
 
         const int RhinoComputePort = 6500;

@@ -2,6 +2,7 @@
 {
     using System;
     using System.Linq;
+    using Compute.Http;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Diagnostics;
     using Microsoft.AspNetCore.Http;
@@ -22,6 +23,8 @@
                     });
             });
             services.AddHealthChecks();
+            if (Config.Compression)
+                services.AddHttpCompression();
         }
 
         public void Configure(IApplicationBuilder app)
@@ -61,6 +64,8 @@
                 await ctx.Response.WriteAsync(JsonSerializer.Serialize(body));
             }));
 
+            if (Config.Compression)
+                app.UseHttpCompression();
             app.UseSerilogRequestLogging();
             app.UseRouting();
             app.UseCors();
