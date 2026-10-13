@@ -39,6 +39,13 @@ namespace rhino.compute
         public static bool Debug { get; private set; }
 
         /// <summary>
+        /// RHINO_COMPUTE_COMPRESSION: accept gzip request bodies and gzip answers for clients
+        /// that ask (Accept-Encoding: gzip). On by default; false turns it off for clients that
+        /// can't handle it. Children inherit the variable, so standalone and child compute.geometry agree.
+        /// </summary>
+        public static bool Compression { get; private set; }
+
+        /// <summary>
         /// Loads config from environment variables (or uses defaults).
         /// </summary>
         public static void Load()
@@ -48,6 +55,8 @@ namespace rhino.compute
             MaxRequestSize = GetEnvironmentVariable<long>(RHINO_COMPUTE_MAX_REQUEST_SIZE, 52428800);
             LogPath = GetEnvironmentVariable(RHINO_COMPUTE_LOG_PATH, Path.Combine(Path.GetTempPath(), "Compute", "Logs"));
             LogRetainDays = GetEnvironmentVariable(RHINO_COMPUTE_LOG_RETAIN_DAYS, 10);
+
+            Compression = GetEnvironmentVariable(RHINO_COMPUTE_COMPRESSION, true);
 
 #if DEBUG
             Debug = true;
@@ -65,6 +74,7 @@ namespace rhino.compute
         const string RHINO_COMPUTE_LOG_PATH = "RHINO_COMPUTE_LOG_PATH";
         const string RHINO_COMPUTE_LOG_RETAIN_DAYS = "RHINO_COMPUTE_LOG_RETAIN_DAYS";
         const string RHINO_COMPUTE_DEBUG = "RHINO_COMPUTE_DEBUG";
+        const string RHINO_COMPUTE_COMPRESSION = "RHINO_COMPUTE_COMPRESSION";
 
         readonly static List<string> warnings = new List<string>();
 
