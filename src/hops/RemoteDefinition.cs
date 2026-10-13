@@ -254,7 +254,7 @@ namespace Hops
                 {
                     using (var cts = CreateTimeoutCts())
                     {
-                        var response = HttpClient.GetAsync(path, cts.Token).Result;
+                        var response = HttpClientFor(path).GetAsync(path, cts.Token).Result;
                         string mediaType = response.Content.Headers.ContentType.MediaType.ToLowerInvariant();
                         if (mediaType.Contains("json"))
                             rc = PathType.Server;
@@ -407,7 +407,7 @@ namespace Hops
                 if (!String.IsNullOrEmpty(filename))
                     fileNameMsg = $" with {filename}";
                 HopsLog.Log.Debug($"Sending POST request to {postUrl}{fileNameMsg}");
-                responseTask = HttpClient.SendAsync(request, cts.Token);
+                responseTask = HttpClientFor(postUrl).SendAsync(request, cts.Token);
                 parentComponent.HttpRecord.Schema = schema;
                 contentToDispose = content;
                 requestToDispose = request;
@@ -418,7 +418,7 @@ namespace Hops
                 requestUrl = address;
                 parentComponent.HttpRecord.IoRequest = BuildRequestEnvelope(address, "GET");
                 var cts = CreateTimeoutCts();
-                responseTask = HttpClient.GetAsync(address, cts.Token);
+                responseTask = HttpClientFor(address).GetAsync(address, cts.Token);
                 ctsToDispose = cts;
             }
             if (responseTask != null)
@@ -657,24 +657,38 @@ namespace Hops
         {
             get
             {
+                // Asking for gzip is harmless: a server with compression off answers uncompressed.
                 if (httpClient == null)
-                {
-                    // Asking for gzip is harmless: a server with compression off answers uncompressed.
-                    var handler = new System.Net.Http.HttpClientHandler();
-                    if (compressionEnabled)
-                        handler.AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate;
-
-                    // One shared HttpClient for all requests (avoids per-request socket allocation).
-                    // Timeout is intentionally infinite — per-request CancellationTokenSource
-                    // controls actual deadlines so HopsAppSettings.HttpTimeout values larger than
-                    // 100s aren't capped by HttpClient's default.
-                    httpClient = new System.Net.Http.HttpClient(handler)
-                    {
-                        Timeout = System.Threading.Timeout.InfiniteTimeSpan
-                    };
-                }
+                    httpClient = CreateHttpClient(compressionEnabled);
                 return httpClient;
             }
+        }
+
+        // A server on this machine gets plain requests and answers, as it did before compression.
+        static System.Net.Http.HttpClient localHttpClient = null;
+        internal static System.Net.Http.HttpClient HttpClientFor(string url)
+        {
+            if (!IsLocalServer(url))
+                return HttpClient;
+            if (localHttpClient == null)
+                localHttpClient = CreateHttpClient(false);
+            return localHttpClient;
+        }
+
+        static System.Net.Http.HttpClient CreateHttpClient(bool decompress)
+        {
+            var handler = new System.Net.Http.HttpClientHandler();
+            if (decompress)
+                handler.AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate;
+
+            // Shared across requests (avoids per-request socket allocation).
+            // Timeout is intentionally infinite — per-request CancellationTokenSource
+            // controls actual deadlines so HopsAppSettings.HttpTimeout values larger than
+            // 100s aren't capped by HttpClient's default.
+            return new System.Net.Http.HttpClient(handler)
+            {
+                Timeout = System.Threading.Timeout.InfiniteTimeSpan
+            };
         }
 
         // HOPS_COMPRESSION=false (or 0) stops Hops asking for compressed answers and compressing uploads.
@@ -796,7 +810,7 @@ namespace Hops
                 try
                 {
                 AddApiKeyHeader(request);
-                var postTask = HttpClient.SendAsync(request, cts.Token);
+                var postTask = HttpClientFor(solveUrl).SendAsync(request, cts.Token);
                 var fileNameMsg = String.Empty;
                 if (!String.IsNullOrEmpty(inputSchema.FileName))
                     fileNameMsg = $" with {inputSchema.FileName} input values";
@@ -837,7 +851,7 @@ namespace Hops
                         using var request2 = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, solveUrl) { Content = content2 };
                         using var cts2 = CreateTimeoutCts();
                         AddApiKeyHeader(request2);
-                        postTask = HttpClient.SendAsync(request2, cts2.Token);
+                        postTask = HttpClientFor(solveUrl).SendAsync(request2, cts2.Token);
                         var fileNameMsg2 = String.Empty;
                         if (!String.IsNullOrEmpty(inputSchema.FileName))
                             fileNameMsg2 = $" with {inputSchema.FileName} input values";

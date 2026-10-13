@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - rhino.compute and compute.geometry now gzip answers of 1 KB or more for clients that ask for it (`Accept-Encoding: gzip`), and accept gzipped uploads (`Content-Encoding: gzip`). On one customer's batch of 41 requests, the data sent and received fell from 489 MB to 81 MB.
-- Hops now asks for compressed answers and compresses its uploads to servers that accept them. Uploads to a server on the same machine stay uncompressed. Set the `HOPS_COMPRESSION` environment variable to `false` to turn this off.
+- Hops now asks for compressed answers and compresses its uploads to servers that accept them. Requests to a server on the same machine, including nested Hops calls, stay uncompressed both ways. Set the `HOPS_COMPRESSION` environment variable to `false` to turn this off.
 - New `--child-startup-timeout` flag and `RHINO_COMPUTE_CHILD_STARTUP_TIMEOUT` environment variable (5-3600 seconds) set how long rhino.compute waits for a child compute.geometry to start.
 - New `RHINO_COMPUTE_CHILDCOUNT` and `RHINO_COMPUTE_IDLESPAN` environment variables do the same as `--childcount` and `--idlespan`, so a deployed server can be configured without editing `web.config`.
 
