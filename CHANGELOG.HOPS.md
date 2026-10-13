@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `/activechildren` and `/active-children` now count only children that are ready to serve, and no longer start children. The `?initialize` parameter added in 0.17.0 has been removed; use `POST /launch-children` or `POST /launch-child` to start children.
 - rhino.compute now sends each request to an idle child, or to the least busy one when all are busy. It used to take turns, so a request could wait behind a long solve while other children sat idle.
 - rhino.compute notices that a starting child is ready within 100 ms instead of up to a second, so cold starts are quicker.
-- Hops components inside a definition that Rhino.Compute is solving now send their requests back to that server, with its API key, instead of starting a separate local rhino.compute. A server or API key set in the server's Hops settings still takes precedence.
+- Hops components inside a definition that Rhino.Compute is solving now send their requests back to that server, with the server's API key, instead of starting a separate local rhino.compute. A server set in the server's Hops settings still takes precedence.
 - Requests with a mistake in them now get a 400 with a message saying what's wrong, instead of a 500. This covers malformed JSON, an input of the wrong type, an `algo` that isn't a valid definition, a pointer that doesn't load, and geometry endpoint arguments that don't match.
 - Requests that send their definition inline (`algo`) now reuse the definition already loaded from the same `algo` instead of building it again each time.
 - `module_update_compute.ps1`, which updates Rhino.Compute on a VM, is now all or nothing:

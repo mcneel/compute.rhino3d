@@ -755,6 +755,10 @@ namespace Hops
         static void AddApiKeyHeader(System.Net.Http.HttpRequestMessage request)
         {
             string apiKey = HopsAppSettings.RequestAPIKey;
+            // A nested call back into the server Hops runs on needs that server's key, whatever Hops' settings say.
+            string serverKey = Environment.GetEnvironmentVariable("RHINO_COMPUTE_KEY");
+            if (!string.IsNullOrEmpty(serverKey) && Servers.IsParentServer(request.RequestUri))
+                apiKey = serverKey;
             if (!string.IsNullOrEmpty(apiKey))
                 request.Headers.Add(API_KEY_NAME, apiKey);
         }
