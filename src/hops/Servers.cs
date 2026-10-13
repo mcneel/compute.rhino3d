@@ -164,6 +164,11 @@ namespace Hops
             return string.IsNullOrWhiteSpace(url) ? null : url.TrimEnd('/');
         }
 
+        internal static bool IsParentServer(Uri uri)
+            => uri != null
+                && Uri.TryCreate(ParentServerUrl(), UriKind.Absolute, out Uri parent)
+                && Uri.Compare(uri, parent, UriComponents.SchemeAndServer, UriFormat.SafeUnescaped, StringComparison.OrdinalIgnoreCase) == 0;
+
         public static void LaunchChildComputeGeometry(int childCount)
         {
             if (childCount < 1)
