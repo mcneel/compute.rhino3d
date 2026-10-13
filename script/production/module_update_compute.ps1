@@ -26,7 +26,7 @@ $components = @("rhino.compute", "compute.geometry")
 # Nested Hops calls are made by the Hops installed for the user compute runs as, not by the client's Hops.
 $computeUserName = "RhinoComputeUser"
 $hopsVersionsUrl = "https://yak.rhino3d.com/versions/hops"
-$hopsPackagesFolder = "8.0"
+$hopsPackagesFolder = "9.0"
 $rhinoRegistryKey = "HKLM:\SOFTWARE\McNeel\Rhinoceros\$hopsPackagesFolder\Install"
 $hopsBackupName = "hops-backup"
 
