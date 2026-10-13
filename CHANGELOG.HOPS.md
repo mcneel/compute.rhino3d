@@ -4,30 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Added
-
-- rhino.compute and compute.geometry now compress large answers and accept compressed uploads (COMPUTE-400). Answers of 1 KB or more are gzipped for clients that send `Accept-Encoding: gzip`; smaller answers, and clients that don't ask, get uncompressed answers as before. Request bodies sent with `Content-Encoding: gzip` are unpacked, and the request size limit applies to the unpacked body. The servers advertise this with an `Accept-Encoding: gzip` response header (RFC 7694), so clients know when they may compress uploads. Compression is on by default; set the `RHINO_COMPUTE_COMPRESSION` environment variable to `false` (or `0`) to turn it off, for example for a client that asks for gzip but can't unpack it. On IIS, add `<environmentVariable name="RHINO_COMPUTE_COMPRESSION" value="false" />` inside `<aspNetCore><environmentVariables>` in `web.config`. compute.geometry children inherit the setting from rhino.compute, the hop between them stays uncompressed, and rhino.compute logs at startup whether compression is on. On a customer's batch of 41 requests, the data sent and received fell from 489 MB to 81 MB, and the batch finished 3-4x faster over 10-25 Mbit/s links.
-- Hops now asks for compressed answers, and gzips `/io` and solve request bodies of 1 KB or more for servers that advertise support (COMPUTE-400). Uploads to a server on the same machine (`localhost`, `127.x.x.x`, `::1`), including Hops' own local rhino.compute and nested Hops calls, stay uncompressed, since there is nothing to save. Set the `HOPS_COMPRESSION` environment variable to `false` to turn both off. The HTTP records shown by "Export last request/response" stay plain JSON.
-
-### Changed
-
-- Browsers, JavaScript `fetch` and Python `requests`, including the compute-rhino3d JavaScript and Python clients, already ask for gzip, so they now receive gzipped answers from updated servers and unpack them automatically (COMPUTE-400). Clients that don't ask, such as the .NET client, older Hops versions and curl without `--compressed`, get the same answers as before. A client that asks for gzip but doesn't unpack it needs `RHINO_COMPUTE_COMPRESSION=false` on the server.
-
 ## [0.17.1] - 2026-08-24
 
 ### Added
 
-- Added a configurable child-process startup timeout on rhino.compute: a new `--child-startup-timeout` CLI flag and a matching `RHINO_COMPUTE_CHILD_STARTUP_TIMEOUT` environment variable (clamped to 5-3600 seconds), so the value can be changed on an already-deployed server without editing `web.config`. A child compute.geometry process does not open its port until Rhino, Grasshopper and the compute plug-ins have all finished loading; on a freshly created cloud instance that first load is dominated by on-demand reads of the Rhino + Grasshopper file set from a snapshot-backed volume and can take well over a minute. (The previous fixed 60-second cap is now raised - see Changed.)
-- Added a `RHINO_COMPUTE_CHILDCOUNT` environment variable, equivalent to the existing `--childcount` flag, so the child pool size can be set on an already-deployed server without editing `web.config`. As with the flag, the value is clamped to the `MaxChildren = 64` ceiling.
-- Added a `RHINO_COMPUTE_IDLESPAN` environment variable, equivalent to the existing `--idlespan` flag (clamped to 60-86400 seconds), so the child idle-shutdown period can be set on an already-deployed server without editing `web.config`.
+- rhino.compute and compute.geometry now gzip answers of 1 KB or more for clients that ask for it (`Accept-Encoding: gzip`), and accept gzipped uploads (`Content-Encoding: gzip`). On one customer's batch of 41 requests, the data sent and received fell from 489 MB to 81 MB.
+- Hops now asks for compressed answers and compresses its uploads to servers that accept them. Uploads to a server on the same machine stay uncompressed. Set the `HOPS_COMPRESSION` environment variable to `false` to turn this off.
+- New `--child-startup-timeout` flag and `RHINO_COMPUTE_CHILD_STARTUP_TIMEOUT` environment variable (5-3600 seconds) set how long rhino.compute waits for a child compute.geometry to start.
+- New `RHINO_COMPUTE_CHILDCOUNT` and `RHINO_COMPUTE_IDLESPAN` environment variables do the same as `--childcount` and `--idlespan`, so a deployed server can be configured without editing `web.config`.
 
 ### Changed
 
-- Raised the default child-process startup timeout on rhino.compute from 60 to 300 seconds. The previous value dated from 2021 and was chosen for child processes launched locally by Hops on a developer workstation; on a fresh cloud instance the first child's cold load routinely exceeds 60 seconds, so the first request to every newly provisioned server would fail until a retry warmed the OS file cache. 300 seconds is roughly 2.5x the measured worst-case cold load, with headroom for smaller/burstable instance types and user-installed Grasshopper plug-ins. Override with `--child-startup-timeout` / `RHINO_COMPUTE_CHILD_STARTUP_TIMEOUT`.
-- On a cold-start bootstrap, concurrent first requests that arrive while the first child compute.geometry is still loading now wait for that single in-flight spawn instead of each starting another child. Previously a client that timed out and retried during the (slow) first load could trigger several parallel Rhino + Grasshopper loads that contended for the same first-touch disk reads and slowed each other down. The pool still fills to `--childcount` afterward via the normal background top-up.
-- The `/activechildren` and `/active-children` endpoints now report the number of child compute.geometry processes that are **ready to serve** (their port is open and they are in the pool) rather than the raw count of child OS processes, which previously included children still loading. The endpoints also no longer spawn children: the `?initialize` query parameter (added in 0.17.0) has been removed, and each is now a pure, side-effect-free report that always returns HTTP 200 with the integer count (a count of `0` is a valid answer, not a failure). To launch children, use `POST /launch-children` (fill the pool to the configured `--childcount`) or `POST /launch-child` (add one). This supersedes the `?initialize` behavior described under 0.17.0.
+- Compression is on by default. To turn it off, for example for a client that asks for gzip but can't unpack it, set the `RHINO_COMPUTE_COMPRESSION` environment variable to `false`. On IIS, add `<environmentVariable name="RHINO_COMPUTE_COMPRESSION" value="false" />` to `web.config`.
+- Browsers, JavaScript `fetch` and Python `requests`, including the compute-rhino3d JavaScript and Python clients, already ask for gzip, so they now receive compressed answers and unpack them automatically. Clients that don't ask, such as the .NET client and older Hops versions, are unaffected.
+- The default child startup timeout is now 300 seconds instead of 60, because a child's first load on a new cloud server often takes more than a minute.
+- Requests that arrive while the first child is still starting now wait for it, instead of each starting another child.
+- `/activechildren` and `/active-children` now count only children that are ready to serve, and no longer start children. The `?initialize` parameter added in 0.17.0 has been removed; use `POST /launch-children` or `POST /launch-child` to start children.
 
 ## [0.17.0] - 2026-06-05
 
