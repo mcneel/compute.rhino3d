@@ -4,18 +4,7 @@
 $appDirectory = "C:\inetpub\wwwroot\aspnet_client\system_web\4_0_30319"
 
 #Region funcs
-function Write-Step { 
-    Write-Host
-    Write-Host "===> "$args[0] -ForegroundColor Green
-    Write-Host
-}
-function Download {
-    param (
-        [Parameter(Mandatory=$true)][string] $url,
-        [Parameter(Mandatory=$true)][string] $output
-    )
-    (New-Object System.Net.WebClient).DownloadFile($url, $output)
-}
+. "$PSScriptRoot\common.ps1"
 #EndRegion funcs
 
 # A second run keeps the build already installed; module_update_compute.ps1 updates it.

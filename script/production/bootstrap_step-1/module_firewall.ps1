@@ -2,11 +2,7 @@
 #Requires -RunAsAdministrator
 
 #Region funcs
-function Write-Step {
-    Write-Host
-    Write-Host "===> "$args[0] -ForegroundColor Green
-    Write-Host
-}
+. "$PSScriptRoot\common.ps1"
 #EndRegion funcs
 
 # Setup URL reservations with firewall
