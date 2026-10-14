@@ -7,17 +7,14 @@
 param (
     [string] $EmailAddress,
     [string] $ApiKey,
-    [string] $RhinoToken
+    [string] $RhinoToken,
+    [switch] $SkipHopsInstall
 )
 # * Make sure Powershell Execution Policy is bypassed to run these scripts:
 Set-ExecutionPolicy Bypass -Scope Process -Force
 
 #Region funcs
-function Write-Step {
-  Write-Host
-  Write-Host "===> "$args[0] -ForegroundColor Green
-  Write-Host
-}
+. "$PSScriptRoot\common.ps1"
 function Read-Required {
   param ([Parameter(Mandatory=$true)][string] $prompt)
   do { $value = (Read-Host $prompt).Trim() } while (-not $value)
@@ -88,7 +85,9 @@ $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 $modules = @("module_rhino.ps1", "module_firewall.ps1", "module_iis_install.ps1", "module_compute.ps1", "module_hostingbundle.ps1", "module_iis_configure.ps1")
 $moduleArguments = @{
-    "module_rhino.ps1" = @{ EmailAddress = $EmailAddress; ApiKey = $ApiKey; RhinoToken = $RhinoToken }
+    "module_rhino.ps1" = @{ EmailAddress = $EmailAddress; ApiKey = $ApiKey; RhinoToken = $RhinoToken; TempPath = $tmpFullPath }
+    "module_hostingbundle.ps1" = @{ TempPath = $tmpFullPath }
+    "module_iis_configure.ps1" = @{ TempPath = $tmpFullPath; CredentialFile = $credentialFile; SkipHopsInstall = $SkipHopsInstall }
 }
 $currentModule = $null
 $failure = $null

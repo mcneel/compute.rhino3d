@@ -1,13 +1,16 @@
 param(
+    [Parameter(Mandatory=$true)][string] $TempPath,
+    # Where the RhinoComputeUser credentials are saved, readable only by Administrators.
+    [Parameter(Mandatory=$true)][string] $CredentialFile,
     # When set, skip the Hops plugin install step. Hops is a convenience for users
     # whose workflows depend on Grasshopper-definition-as-a-service; compute.geometry's
     # core Rhino API works fine without it.
     [switch]$SkipHopsInstall
 )
 
-# Env-var bridge: lets callers who invoke the bootstrap via boostrap_step-1.ps1
-# (which doesn't accept params or pass them through) opt out of the Hops install
-# by setting BOOTSTRAP_SKIP_HOPS=1 before launching the orchestrator.
+# Env-var bridge: lets callers that can set an environment variable but not pass
+# -SkipHopsInstall to boostrap_step-1.ps1 opt out of the Hops install by setting
+# BOOTSTRAP_SKIP_HOPS=1 before launching the orchestrator.
 if (-not $SkipHopsInstall -and $env:BOOTSTRAP_SKIP_HOPS -eq '1') {
     $SkipHopsInstall = $true
 }
@@ -27,11 +30,7 @@ Import-Module WebAdministration
 #Requires -RunAsAdministrator
 
 #Region funcs
-function Write-Step { 
-    Write-Host
-    Write-Host "===> "$args[0] -ForegroundColor Green
-    Write-Host
-}
+. "$PSScriptRoot\common.ps1"
 function CreateAppPool {
     Param([string] $appPoolName)
      if(Test-Path ("IIS:\AppPools\$appPoolName")) {
@@ -40,16 +39,7 @@ function CreateAppPool {
      }
      $appPool = New-WebAppPool -Name $appPoolName
 }
-function SetEnvVar {
-    param (
-        [Parameter(Mandatory=$true)][string] $name,
-        [Parameter(Mandatory=$true)][string] $value,
-        [switch] $secret = $false
-    )
-    $print = if ($secret) {"***"} else {$value}
-    Write-Host "Setting environment variable: $name=$print"
-    [System.Environment]::SetEnvironmentVariable($name, $value, "Machine")
-}
+
 function New-RandomPassword {
     param(
         [Parameter()]
@@ -71,13 +61,7 @@ function New-RandomPassword {
         $password
     }
 }
-function Download {
-    param (
-        [Parameter(Mandatory=$true)][string] $url,
-        [Parameter(Mandatory=$true)][string] $output
-    )
-    (New-Object System.Net.WebClient).DownloadFile($url, $output)
-}
+
 # Creates the user's Windows profile without signing in as them (which fails in headless sessions), so files can
 # go into it before IIS first loads it. Returns the profile's folder.
 function New-UserProfile {
@@ -138,7 +122,7 @@ function Install-Hops {
     if (Test-Path $target) { Remove-Item -Recurse -Force $target }
     New-Item -ItemType Directory -Path $target | Out-Null
     # Expand-Archive only takes .zip files; a .yak is a zip.
-    $zip = Join-Path $tmpFullPath "Hops-$($latest.Name).zip"
+    $zip = Join-Path $TempPath "Hops-$($latest.Name).zip"
     Download $latest.Url $zip
     Expand-Archive $zip -DestinationPath $target
     Remove-Item $zip -Force
@@ -174,11 +158,11 @@ if (-not (Get-LocalGroupMember -Group "Remote Desktop Users" -Member $localUserN
 $localUserPassword = (New-Object PSCredential $localUserName,$securePassword).GetNetworkCredential().Password
 
 # The main script shows these after its transcript stops; restricted before the password is written.
-Write-Step "Saving the $localUserName credentials to $credentialFile (Administrators only)"
-New-Item -ItemType File -Path $credentialFile -Force | Out-Null
-icacls $credentialFile /inheritance:r /grant:r "*S-1-5-32-544:(F)" "*S-1-5-18:(F)" | Out-Null
-if ($LASTEXITCODE -ne 0) { throw "Couldn't restrict $credentialFile to Administrators (icacls exit code $LASTEXITCODE)." }
-Set-Content -Path $credentialFile -Value @("User Name: $localUserName", "Password: $localUserPassword")
+Write-Step "Saving the $localUserName credentials to $CredentialFile (Administrators only)"
+New-Item -ItemType File -Path $CredentialFile -Force | Out-Null
+icacls $CredentialFile /inheritance:r /grant:r "*S-1-5-32-544:(F)" "*S-1-5-18:(F)" | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "Couldn't restrict $CredentialFile to Administrators (icacls exit code $LASTEXITCODE)." }
+Set-Content -Path $CredentialFile -Value @("User Name: $localUserName", "Password: $localUserPassword")
 
 if ($SkipHopsInstall) {
     Write-Step "Skipping Hops plugin install (set by -SkipHopsInstall switch or BOOTSTRAP_SKIP_HOPS=1)"

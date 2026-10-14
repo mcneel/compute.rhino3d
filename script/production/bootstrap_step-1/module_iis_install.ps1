@@ -31,11 +31,7 @@ $required_IIS_features = @(
 )
 
 #Region funcs
-function Write-Step {
-    Write-Host
-    Write-Host "===> "$args[0] -ForegroundColor Green
-    Write-Host
-}
+. "$PSScriptRoot\common.ps1"
 function Install-IISPrerequisites {
     #Check to see if IIS components are installed
     Write-Host "Determining if all necessary IIS components have been installed" -ForegroundColor Green
