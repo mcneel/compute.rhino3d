@@ -15,16 +15,30 @@ function Get-InstalledRhinoVersion {
     if (-not $key) { return $null }
     return [Version]$key.Version
 }
-# The download link redirects to the installer, whose file name ends in its version: rhino_en-us_8.24.25281.15001.exe.
+# The first download link that answers redirects to the installer, whose file name ends in its version: rhino_9.0.26272.12303.exe.
 function Resolve-RhinoInstaller {
-    if ($PSVersionTable.PSVersion.Major -gt 5) {
-        $response = Invoke-WebRequest -Method Get -MaximumRedirection 0 -Uri $rhinoDownloadUrl -ErrorAction Ignore -SkipHttpErrorCheck
-    } else {
-        $response = Invoke-WebRequest -Method Get -MaximumRedirection 0 -Uri $rhinoDownloadUrl -ErrorAction Ignore -UseBasicParsing
-    }
     $location = $null
-    if ($response) { $location = @($response.Headers.Location)[0] }
-    if (-not $location) { throw "The Rhino download link didn't lead to an installer." }
+    foreach ($slug in $rhinoDownloadSlugs) {
+        $url = "https://www.rhino3d.com/www-api/download/direct/?slug=$slug/?email=" + [uri]::EscapeDataString($EmailAddress)
+        $response = $null
+        # -ErrorAction Ignore lets a redirect through, but a link that isn't live yet (404) still throws.
+        try {
+            if ($PSVersionTable.PSVersion.Major -gt 5) {
+                $response = Invoke-WebRequest -Method Get -MaximumRedirection 0 -Uri $url -ErrorAction Ignore -SkipHttpErrorCheck
+            } else {
+                $response = Invoke-WebRequest -Method Get -MaximumRedirection 0 -Uri $url -ErrorAction Ignore -UseBasicParsing
+            }
+        }
+        catch {
+            Write-Host "No installer at ${slug}: $($_.Exception.Message)"
+        }
+        if ($response) { $location = @($response.Headers.Location)[0] }
+        if ($location) {
+            Write-Host "Download link: $slug"
+            break
+        }
+    }
+    if (-not $location) { throw "None of the Rhino download links ($($rhinoDownloadSlugs -join ', ')) led to an installer." }
     $fileName = [System.IO.Path]::GetFileName(([uri]$location).AbsolutePath)
     $version = $null
     if (-not [Version]::TryParse([System.IO.Path]::GetFileNameWithoutExtension($fileName).Split('_')[-1], [ref]$version)) {
@@ -41,7 +55,8 @@ SetEnvVar 'RHINO_COMPUTE_URLS' 'http://+:80'
 
 # Download and install Rhino
 Write-Step 'Download latest Rhino 9'
-$rhinoDownloadUrl = "https://www.rhino3d.com/www-api/download/direct/?slug=rhino-for-windows/9/wip/?email=" + [uri]::EscapeDataString($EmailAddress)
+# The release link answers once Rhino 9 is released; until then the beta's does.
+$rhinoDownloadSlugs = @("rhino-for-windows/9/latest", "rhino-for-windows/9/beta")
 $package = Resolve-RhinoInstaller
 $installedVersion = Get-InstalledRhinoVersion
 # A second run (after fixing whatever stopped the first) doesn't install the same Rhino again.
