@@ -96,6 +96,13 @@ $localUserPassword = (New-Object PSCredential $localUserName,$securePassword).Ge
 $securePassword = ConvertTo-SecureString $localUserPassword -AsPlainText -Force
 $credential = New-Object System.Management.Automation.PSCredential($localUserName, $securePassword)
 
+# The main script shows these after its transcript stops; restricted before the password is written.
+Write-Step "Saving the $localUserName credentials to $credentialFile (Administrators only)"
+New-Item -ItemType File -Path $credentialFile -Force | Out-Null
+icacls $credentialFile /inheritance:r /grant:r "*S-1-5-32-544:(F)" "*S-1-5-18:(F)" | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "Couldn't restrict $credentialFile to Administrators (icacls exit code $LASTEXITCODE)." }
+Set-Content -Path $credentialFile -Value @("User Name: $localUserName", "Password: $localUserPassword")
+
 if ($SkipHopsInstall) {
     Write-Step "Skipping Hops plugin install (set by -SkipHopsInstall switch or BOOTSTRAP_SKIP_HOPS=1)"
     Write-Host "  Users who need Hops can install it after deployment via 'yak install hops'"
@@ -168,15 +175,3 @@ SetEnvVar 'RHINO_COMPUTE_LOG_PATH' "$rhinoComputePath\logs"
 
 Write-Step "Starting rhino.compute site" 
 Start-IISSite -Name $websiteName
-
-Write-Host "Congratulations! All components have now been installed."
-Write-Host
-Write-Host "To install third party plugins follow these steps"
-Write-Host "  1) Log into your VM using these credentials (write these down)"
-Write-Host "     User Name: $localUserName"
-Write-Host "     Password: $localUserPassword"
-Write-Host "  2) Install plugins using the Rhino package manager or"
-Write-Host "  3) Copy/paste plugin files to C:\Users\$localUserName\AppData\Roaming\Grasshopper\Libraries"
-Write-Host "  4) Restart the VM"
-Write-Host
-Write-Host "Please save the User Name and Password above for your records!"
