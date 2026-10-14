@@ -79,7 +79,7 @@ function Install-ProcessWithTimeout {
 Write-Step 'Set environment variables'
 SetEnvVar 'RHINO_TOKEN' $RhinoToken -secret
 if ($PSBoundParameters.ContainsKey('ApiKey')) {
-    SetEnvVar 'RHINO_COMPUTE_KEY' $ApiKey
+    SetEnvVar 'RHINO_COMPUTE_KEY' $ApiKey -secret
 }
 SetEnvVar 'RHINO_COMPUTE_URLS' 'http://+:80'
 
