@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Serilog;
+using Serilog.Events;
 
 namespace compute.geometry
 {
@@ -141,7 +142,7 @@ namespace compute.geometry
         {
             Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
 
-            if (Config.Debug)
+            if (Config.Debug || Config.LogLevel <= LogEventLevel.Debug)
                 Rhino.RhinoApp.SendWriteToConsole = true;
             
             Environment.SetEnvironmentVariable("RHINO_TOKEN", null, EnvironmentVariableTarget.Process);
