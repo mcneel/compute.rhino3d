@@ -35,7 +35,7 @@ namespace Hops
             var date = System.DateTime.Now;
             var path = System.IO.Path.Combine(Config.LogPath, $"log-hops-inside-{System.Diagnostics.Process.GetCurrentProcess().ProcessName}-{date:yyyyMMdd}.txt");
             var limit = Config.LogRetainDays;
-            var level = Config.Debug ? LogEventLevel.Debug : LogEventLevel.Information;
+            var level = Config.LogLevel;
 
             var loggerConfig = new LoggerConfiguration()
             .MinimumLevel.Is(level)
@@ -43,6 +43,8 @@ namespace Hops
             Log = loggerConfig.CreateLogger();
 
             Log.Information($"Hops logging started at {DateTime.Now.ToLocalTime()}");
+            foreach (var warning in Config.Warnings)
+                Log.Warning("Configuration: {Warning}", warning);
 
             return GH_LoadingInstruction.Proceed;
         }
