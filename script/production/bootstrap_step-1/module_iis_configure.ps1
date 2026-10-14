@@ -206,6 +206,10 @@ Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "managedRuntimeVersion" -Val
 Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "processModel.loadUserProfile" -Value "True"
 Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "processModel.setProfileEnvironment" -Value "True"
 Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "processModel" -value @{userName = $localUserName; password = $localUserPassword; identitytype = 3}
+# rhino.compute restarts its children when idle; IIS's default restart every 29 hours would stop solves in progress,
+# and an overlapping restart would run a second rhino.compute, with its own children, until the first one exits.
+Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "recycling.periodicRestart.time" -Value ([TimeSpan]::Zero)
+Set-ItemProperty "IIS:\AppPools\$appPoolName" -Name "recycling.disallowOverlappingRotation" -Value $true
 
 $node = Select-XML -Path "$rhinoComputePath\web.config" -XPath "//aspNetCore" | Select -ExpandProperty Node
 $arguments = $node.arguments
