@@ -46,3 +46,4 @@ Write-Output "$hbInstallerFilename successfully installed"
 Write-Step 'Restarting IIS services'
 net stop was /y
 net start w3svc
+if ($LASTEXITCODE -ne 0) { throw "IIS didn't start again after the hosting bundle install (net start w3svc exit code $LASTEXITCODE)." }

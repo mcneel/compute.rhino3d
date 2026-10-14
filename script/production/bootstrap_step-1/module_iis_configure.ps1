@@ -1,3 +1,5 @@
+#Requires -RunAsAdministrator
+
 param(
     [Parameter(Mandatory=$true)][string] $TempPath,
     # Where the RhinoComputeUser credentials are saved, readable only by Administrators.
@@ -27,7 +29,6 @@ $rhinoRegistryKey = "HKLM:\SOFTWARE\McNeel\Rhinoceros\9.0\Install"
 Import-Module WebAdministration
 
 # Setup IIS to work with rhino.compute
-#Requires -RunAsAdministrator
 
 #Region funcs
 . "$PSScriptRoot\common.ps1"
@@ -151,8 +152,10 @@ if (Get-LocalUser -Name $localUserName -ErrorAction SilentlyContinue) {
 }
 
 Write-Step "Adding user to RDP user group"
-if (-not (Get-LocalGroupMember -Group "Remote Desktop Users" -Member $localUserName -ErrorAction SilentlyContinue)) {
-    Add-LocalGroupMember -Group "Remote Desktop Users" -Member $localUserName
+# By SID: the group's name is translated on non-English Windows.
+$remoteDesktopUsers = "S-1-5-32-555"
+if (-not (Get-LocalGroupMember -SID $remoteDesktopUsers -Member $localUserName -ErrorAction SilentlyContinue)) {
+    Add-LocalGroupMember -SID $remoteDesktopUsers -Member $localUserName
 }
 
 $localUserPassword = (New-Object PSCredential $localUserName,$securePassword).GetNetworkCredential().Password
@@ -235,8 +238,11 @@ If((Test-Path $rhinoComputePath))
 }
 
 Write-Step "Granting application pool permissions on compute directories" 
-cmd /c icacls $rhinoComputePath /grant ("IIS AppPool\$appPoolName" + ':(OI)(CI)F') /t /c /q 
-cmd /c icacls $computeGeometryPath /grant ("IIS AppPool\$appPoolName"+ ':(OI)(CI)F') /t /c /q 
+# Modify covers writing logs; the app pool has no need to change permissions or take ownership.
+foreach ($path in $rhinoComputePath, $computeGeometryPath) {
+    icacls $path /grant ("IIS AppPool\$appPoolName" + ':(OI)(CI)M') /t /c /q | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Couldn't grant $appPoolName access to $path (icacls exit code $LASTEXITCODE)." }
+}
 
 Write-Step "Setting environment variable for log paths"
 SetEnvVar 'RHINO_COMPUTE_LOG_PATH' "$rhinoComputePath\logs"
