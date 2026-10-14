@@ -113,7 +113,7 @@ requests while the child processes are launching.")]
 
             var path = System.IO.Path.Combine(Config.LogPath, "log-rhino-compute-.txt");
             var limit = Config.LogRetainDays;
-            var level = Config.Debug ? LogEventLevel.Debug : LogEventLevel.Information;
+            var level = Config.LogLevel;
 
             var loggerConfig = new LoggerConfiguration()
             .MinimumLevel.Is(level)
@@ -130,6 +130,10 @@ requests while the child processes are launching.")]
                 theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Literate)
             .WriteTo.File(new ExpressionTemplate("RC   [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
             Log.Logger = loggerConfig.CreateLogger();
+
+            // Config.Load() runs before the logger exists, so anything it rejected was buffered; log it now.
+            foreach (var warning in Config.Warnings)
+                Log.Warning("Configuration: {Warning}", warning);
 
             int port = -1;
             Parser.Default.ParseArguments<Options>(args).WithParsed(o =>
@@ -252,6 +256,7 @@ requests while the child processes are launching.")]
             bool blockPrivateUrls = Boolean.TryParse(Environment.GetEnvironmentVariable("RHINO_COMPUTE_BLOCK_PRIVATE_URLS"), out var blockPrivate) && blockPrivate;
             Log.Debug("  Block Private URLs = {BlockPrivateUrls}", blockPrivateUrls.ToString());
             Log.Debug("  Compression = {Compression}", Config.Compression.ToString());
+            Log.Debug("  Log Level = {LogLevel}", Config.LogLevel);
             Log.Debug("  Log Path = {LogPath}", Config.LogPath);
 
             var logger = host.Services.GetRequiredService<ILogger<ReverseProxyModule>>();

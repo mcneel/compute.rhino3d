@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using Serilog.Events;
 
 namespace rhino.compute
 {
@@ -39,6 +40,18 @@ namespace rhino.compute
         public static bool Debug { get; private set; }
 
         /// <summary>
+        /// RHINO_COMPUTE_LOG_LEVEL: the lowest level the logs record (Verbose, Debug, Information,
+        /// Warning, Error or Fatal). Unlike RHINO_COMPUTE_DEBUG, it doesn't change what callers get
+        /// back. Defaults to Debug when RHINO_COMPUTE_DEBUG is on, otherwise Information.
+        /// </summary>
+        public static LogEventLevel LogLevel { get; private set; }
+
+        /// <summary>
+        /// Configuration problems found by <see cref="Load"/>, for logging once the logger exists.
+        /// </summary>
+        public static IReadOnlyList<string> Warnings => warnings;
+
+        /// <summary>
         /// RHINO_COMPUTE_COMPRESSION: accept gzip request bodies and gzip answers for clients
         /// that ask (Accept-Encoding: gzip). On by default; false turns it off for clients that
         /// can't handle it. Children inherit the variable, so standalone and child compute.geometry agree.
@@ -64,6 +77,7 @@ namespace rhino.compute
             Debug = false;
 #endif
             Debug = GetEnvironmentVariable(RHINO_COMPUTE_DEBUG, Debug);
+            LogLevel = GetLogLevel(RHINO_COMPUTE_LOG_LEVEL, Debug ? LogEventLevel.Debug : LogEventLevel.Information);
         }
 
         #region private
@@ -74,9 +88,21 @@ namespace rhino.compute
         const string RHINO_COMPUTE_LOG_PATH = "RHINO_COMPUTE_LOG_PATH";
         const string RHINO_COMPUTE_LOG_RETAIN_DAYS = "RHINO_COMPUTE_LOG_RETAIN_DAYS";
         const string RHINO_COMPUTE_DEBUG = "RHINO_COMPUTE_DEBUG";
+        const string RHINO_COMPUTE_LOG_LEVEL = "RHINO_COMPUTE_LOG_LEVEL";
         const string RHINO_COMPUTE_COMPRESSION = "RHINO_COMPUTE_COMPRESSION";
 
         readonly static List<string> warnings = new List<string>();
+
+        static LogEventLevel GetLogLevel(string name, LogEventLevel defaultValue)
+        {
+            string value = Environment.GetEnvironmentVariable(name);
+            if (string.IsNullOrWhiteSpace(value))
+                return defaultValue;
+            if (Enum.TryParse(value.Trim(), true, out LogEventLevel level) && Enum.IsDefined(typeof(LogEventLevel), level))
+                return level;
+            warnings.Add($"{name} set to '{value}'; use Verbose, Debug, Information, Warning, Error or Fatal. Using {defaultValue}.");
+            return defaultValue;
+        }
 
         static T GetEnvironmentVariable<T>(string name, T defaultValue, string deprecatedName = null)
         {
