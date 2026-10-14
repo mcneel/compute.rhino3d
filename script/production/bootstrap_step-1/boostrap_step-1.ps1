@@ -84,6 +84,8 @@ Write-Step "Transcript started at: $startTime"
 
 # Any error stops the bootstrap (the modules inherit this), so it never carries on past a failed step.
 $ErrorActionPreference = "Stop"
+# Windows PowerShell's progress bar slows Invoke-WebRequest and Expand-Archive down many times over.
+$ProgressPreference = "SilentlyContinue"
 $modules = @("module_rhino.ps1", "module_firewall.ps1", "module_iis_install.ps1", "module_compute.ps1", "module_hostingbundle.ps1", "module_iis_configure.ps1")
 $moduleArguments = @{
     "module_rhino.ps1" = @{ EmailAddress = $EmailAddress; ApiKey = $ApiKey; RhinoToken = $RhinoToken }
