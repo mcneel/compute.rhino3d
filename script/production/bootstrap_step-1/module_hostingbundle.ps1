@@ -58,18 +58,44 @@ function Install-ProcessWithTimeout {
     Write-Error "Installer failed after $MaxRetries attempts."
     return $false
 }
+# The newest hosting bundle of a .NET version, from Microsoft's release list, so new servers get its security fixes.
+function Find-HostingBundle {
+    param ([Parameter(Mandatory=$true)][string] $channel)
+    $releases = Invoke-RestMethod -Uri "https://builds.dotnet.microsoft.com/dotnet/release-metadata/$channel/releases.json"
+    $release = $releases.releases | Where-Object { $_.'release-version' -eq $releases.'latest-release' } | Select-Object -First 1
+    $file = $release.'aspnetcore-runtime'.files | Where-Object { $_.name -eq 'dotnet-hosting-win.exe' } | Select-Object -First 1
+    if (-not $file) { throw "The .NET $channel release list has no hosting bundle." }
+    return [pscustomobject]@{ Version = $release.'aspnetcore-runtime'.version; Url = $file.url; Hash = $file.hash }
+}
 #EndRegion funcs
 
-# Download and install .NET Hosting Bundle
-Write-Step 'Download ASP.NET Core 10.0 Hosting Bundle'
+# compute.geometry, like Rhino 9, runs on .NET 10, and needs all of its runtimes from one .NET version.
+$dotnetChannel = "10.0"
 
-$hbInstallerURL = "https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/10.0.8/dotnet-hosting-10.0.8-win.exe"
-$hbInstallerFilename = "dotnet-hosting-10.0.8-win.exe"
+# Download and install .NET Hosting Bundle
+Write-Step "Download ASP.NET Core $dotnetChannel Hosting Bundle"
+
+try {
+    $bundle = Find-HostingBundle $dotnetChannel
+}
+catch {
+    Write-Host "Couldn't find the ASP.NET Core $dotnetChannel Hosting Bundle: $($_.Exception.Message)" -ForegroundColor Red
+    return
+}
+$hbInstallerURL = $bundle.Url
+$hbInstallerFilename = "dotnet-hosting-$($bundle.Version)-win.exe"
 $hbInstallerFilepath = Join-Path -Path $tmpFullPath -ChildPath $hbInstallerFilename
 
+Write-Host $hbInstallerURL
 Download $hbInstallerURL $hbInstallerFilepath
 
-Write-Step 'Installing ASP.NET Core 10.0 Hosting Bundle'
+if ((Get-FileHash -Path $hbInstallerFilepath -Algorithm SHA512).Hash -ne $bundle.Hash) {
+    Write-Host "The downloaded $hbInstallerFilename doesn't match Microsoft's checksum; not installing it." -ForegroundColor Red
+    Remove-Item $hbInstallerFilepath -Force -ErrorAction SilentlyContinue
+    return
+}
+
+Write-Step "Installing ASP.NET Core $($bundle.Version) Hosting Bundle"
 
 $success = Install-ProcessWithTimeout -ExePath $hbInstallerFilepath -Arguments @('/repair','/quiet','/norestart') -TimeoutSeconds 600 -MaxRetries 2
 
