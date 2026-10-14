@@ -109,8 +109,7 @@ if ($SkipHopsInstall) {
     $process = Start-Process -FilePath $yakPath -ArgumentList $arguments -Credential $credential -WorkingDirectory "C:\Program Files\Rhino 8\System" -PassThru -Wait
 
     if ($process.ExitCode -ne 0) {
-        Write-Error "Failed to install the Hops plugin. Exit code: $($process.ExitCode)"
-        exit $process.ExitCode
+        throw "Failed to install the Hops plugin. Exit code: $($process.ExitCode)"
     }
 }
 

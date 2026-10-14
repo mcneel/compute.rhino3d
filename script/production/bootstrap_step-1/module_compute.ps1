@@ -36,8 +36,7 @@ foreach ($artifact in $response.artifacts) {
 }
 
 if ($artifactID -lt 0){
-    Write-Host "Unable to find the latest $matchingBranch build artifact." -ForegroundColor Red
-    exit 1
+    throw "Unable to find the latest $matchingBranch build artifact."
 }
 
 $downloadurl = "$nightlyPrefix/$actionurl/$artifactID.zip"

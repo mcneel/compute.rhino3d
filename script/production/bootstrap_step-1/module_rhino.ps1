@@ -72,7 +72,6 @@ function Install-ProcessWithTimeout {
         }
     }
 
-    Write-Error "Installer failed after $MaxRetries attempts."
     return $false
 }
 #EndRegion funcs
@@ -98,9 +97,8 @@ Write-Step 'Installing Rhino'
 # Automated install (https://wiki.mcneel.com/rhino/installingrhino/8)
 $success = Install-ProcessWithTimeout -ExePath $setupFullPath -Arguments @('-passive','-norestart') -TimeoutSeconds 600 -MaxRetries 2
 
-if ($success) {
-    $installedVersion = [Version] (Get-ItemProperty -Path HKLM:\SOFTWARE\McNeel\Rhinoceros\8.0\Install -name "version").Version
-    Write-Host "Successfully installed Rhino $installedVersion"
-} else {
-    Write-Host "Rhino installation failed after retries."
+if (-not $success) {
+    throw "Rhino didn't install; the installer's exit codes are above."
 }
+$installedVersion = [Version] (Get-ItemProperty -Path HKLM:\SOFTWARE\McNeel\Rhinoceros\8.0\Install -name "version").Version
+Write-Host "Successfully installed Rhino $installedVersion"
