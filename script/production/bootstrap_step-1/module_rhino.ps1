@@ -5,101 +5,82 @@ param (
     [Parameter(Mandatory=$true)][string] $EmailAddress,
     [Parameter(Mandatory=$true)][string] $ApiKey,
     [Parameter(Mandatory=$true)][string] $RhinoToken,
-    [switch] $install = $false
+    [Parameter(Mandatory=$true)][string] $TempPath
 )
 
 #Region funcs
-function Write-Step { 
-    Write-Host
-    Write-Host "===> "$args[0] -ForegroundColor Green
-    Write-Host
+. "$PSScriptRoot\common.ps1"
+function Get-InstalledRhinoVersion {
+    $key = Get-ItemProperty -Path "HKLM:\SOFTWARE\McNeel\Rhinoceros\9.0\Install" -Name "Version" -ErrorAction SilentlyContinue
+    if (-not $key) { return $null }
+    return [Version]$key.Version
 }
-function Download {
-    param (
-        [Parameter(Mandatory=$true)][string] $url,
-        [Parameter(Mandatory=$true)][string] $output
-    )
-    (New-Object System.Net.WebClient).DownloadFile($url, $output)
-}
-function SetEnvVar {
-    param (
-        [Parameter(Mandatory=$true)][string] $name,
-        [Parameter(Mandatory=$true)][string] $value,
-        [switch] $secret = $false
-    )
-    $print = if ($secret) {"***"} else {$value}
-    Write-Host "Setting environment variable: $name=$print"
-    [System.Environment]::SetEnvironmentVariable($name, $value, "Machine")
-}
-function Install-ProcessWithTimeout {
-    param (
-        [string]$ExePath,
-        [string[]]$Arguments,
-        [System.Management.Automation.PSCredential]$Credential = $null,
-        [int]$TimeoutSeconds = 600,   # default 10 min timeout
-        [int]$MaxRetries = 2
-    )
-
-    for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
-        Write-Host "Starting attempt {$attempt}: $ExePath $Arguments"
-
-        $params = @{
-            FilePath = $ExePath
-            ArgumentList = $Arguments
-            WorkingDirectory = (Split-Path $ExePath)
-            PassThru = $true
-        }
-        if ($Credential) { $params.Credential = $Credential }
-
-        $process = Start-Process @params
-
-        if ($process.WaitForExit($TimeoutSeconds * 1000)) {
-            # Process ended, check exit code
-            if ($process.ExitCode -eq 0) {
-                Write-Host "Installer finished successfully on attempt $attempt"
-                return $true
+# The first download link that answers redirects to the installer, whose file name ends in its version: rhino_9.0.26272.12303.exe.
+function Resolve-RhinoInstaller {
+    $location = $null
+    foreach ($slug in $rhinoDownloadSlugs) {
+        $url = "https://www.rhino3d.com/www-api/download/direct/?slug=$slug/?email=" + [uri]::EscapeDataString($EmailAddress)
+        $response = $null
+        # -ErrorAction Ignore lets a redirect through, but a link that isn't live yet (404) still throws.
+        try {
+            if ($PSVersionTable.PSVersion.Major -gt 5) {
+                $response = Invoke-WebRequest -Method Get -MaximumRedirection 0 -Uri $url -ErrorAction Ignore -SkipHttpErrorCheck
             } else {
-                Write-Warning "Installer exited with code $($process.ExitCode) on attempt $attempt"
+                $response = Invoke-WebRequest -Method Get -MaximumRedirection 0 -Uri $url -ErrorAction Ignore -UseBasicParsing
             }
-        } else {
-            Write-Warning "Installer timed out after $TimeoutSeconds seconds on attempt $attempt"
-            try { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue } catch {}
         }
-
-        if ($attempt -lt $MaxRetries) {
-            Write-Host "Retrying..."
-            Start-Sleep -Seconds 5
+        catch {
+            Write-Host "No installer at ${slug}: $($_.Exception.Message)"
+        }
+        if ($response) { $location = @($response.Headers.Location)[0] }
+        if ($location) {
+            Write-Host "Download link: $slug"
+            break
         }
     }
-
-    Write-Error "Installer failed after $MaxRetries attempts."
-    return $false
+    if (-not $location) { throw "None of the Rhino download links ($($rhinoDownloadSlugs -join ', ')) led to an installer." }
+    $fileName = [System.IO.Path]::GetFileName(([uri]$location).AbsolutePath)
+    $version = $null
+    if (-not [Version]::TryParse([System.IO.Path]::GetFileNameWithoutExtension($fileName).Split('_')[-1], [ref]$version)) {
+        throw "Couldn't read a version from the installer's name, $fileName."
+    }
+    return [pscustomobject]@{ Url = $location; FileName = $fileName; Version = $version }
 }
 #EndRegion funcs
 
 Write-Step 'Set environment variables'
 SetEnvVar 'RHINO_TOKEN' $RhinoToken -secret
-if ($PSBoundParameters.ContainsKey('ApiKey')) {
-    SetEnvVar 'RHINO_COMPUTE_KEY' $ApiKey
-}
+SetEnvVar 'RHINO_COMPUTE_KEY' $ApiKey -secret
 SetEnvVar 'RHINO_COMPUTE_URLS' 'http://+:80'
 
 # Download and install Rhino
 Write-Step 'Download latest Rhino 9'
-$rhinoDownloadUrl = "https://www.rhino3d.com/www-api/download/direct/?slug=rhino-for-windows/9/wip/?email=$EmailAddress" 
-$rhinoSetup = "rhino_setup.exe"
-$setupFullPath = Join-Path -Path $tmpFullPath -ChildPath $rhinoSetup
-Download $rhinoDownloadUrl $setupFullPath
+# The release link answers once Rhino 9 is released; until then the beta's does.
+$rhinoDownloadSlugs = @("rhino-for-windows/9/latest", "rhino-for-windows/9/beta")
+$package = Resolve-RhinoInstaller
+$installedVersion = Get-InstalledRhinoVersion
+# A second run (after fixing whatever stopped the first) doesn't install the same Rhino again.
+if ($installedVersion -and $installedVersion -ge $package.Version) {
+    Write-Host "Rhino $installedVersion is already installed; the latest is $($package.Version)."
+    return
+}
+$setupFullPath = Join-Path -Path $TempPath -ChildPath $package.FileName
+Download $package.Url $setupFullPath
 
-New-NetFirewallRule -DisplayName "Rhino 9 Installer" -Direction Inbound -Program $setupFullPath -Action Allow
+# Only run an installer McNeel signed.
+$signature = Get-AuthenticodeSignature -FilePath $setupFullPath
+if ($signature.Status -ne "Valid" -or $signature.SignerCertificate.Subject -notmatch 'O="?ROBERT MCNEEL & ASSOCIATES') {
+    Remove-Item $setupFullPath -Force -ErrorAction SilentlyContinue
+    $signer = if ($signature.SignerCertificate) { $signature.SignerCertificate.GetNameInfo("SimpleName", $false) } else { "nobody" }
+    throw "The downloaded $($package.FileName) isn't signed by Robert McNeel & Associates (signature $($signature.Status), signed by $signer); not running it."
+}
 
 Write-Step 'Installing Rhino'
 # Automated install (https://wiki.mcneel.com/rhino/installingrhino/9)
-$success = Install-ProcessWithTimeout -ExePath $setupFullPath -Arguments @('-passive','-norestart') -TimeoutSeconds 600 -MaxRetries 2
+$success = Install-ProcessWithTimeout -ExePath $setupFullPath -Arguments @('-passive','-norestart') -TimeoutSeconds 1200 -MaxRetries 2
 
-if ($success) {
-    $installedVersion = [Version] (get-itemproperty -Path HKLM:\SOFTWARE\McNeel\Rhinoceros\9.0\Install -name "version").Version
-    Write-Host "Successfully installed Rhino $installedVersion"
-} else {
-    Write-Host "Rhino installation failed after retries."
+if (-not $success) {
+    throw "Rhino didn't install; the installer's exit codes are above."
 }
+$installedVersion = Get-InstalledRhinoVersion
+Write-Host "Successfully installed Rhino $installedVersion"
