@@ -118,14 +118,22 @@ function Find-LatestHops {
     }
     return $latest
 }
+# The version the package manager installed (named in manifest.txt), or $null when Hops isn't installed.
+function Get-InstalledHops {
+    param ([Parameter(Mandatory=$true)][string] $packagePath)
+    $manifest = "$packagePath\manifest.txt"
+    if (-not (Test-Path $manifest)) { return $null }
+    $name = ([System.IO.File]::ReadAllText($manifest)).Trim()
+    if (-not $name -or -not (Test-Path "$packagePath\$name\Hops.gha")) { return $null }
+    return $name
+}
 # Unpacks the newest Hops the installed Rhino can load into the user's packages folder, as the package manager
 # would, rather than running Yak.exe as the user. Returns the version installed.
 function Install-Hops {
-    param ([Parameter(Mandatory=$true)][string] $profilePath)
+    param ([Parameter(Mandatory=$true)][string] $packagePath)
     $rhinoVersion = [System.Version](Get-ItemProperty -Path $rhinoRegistryKey -Name "Version").Version
     $latest = Find-LatestHops $rhinoVersion
     if (-not $latest) { throw "The package server has no Hops release for Rhino $rhinoVersion." }
-    $packagePath = "$profilePath\AppData\Roaming\McNeel\Rhinoceros\packages\8.0\Hops"
     $target = "$packagePath\$($latest.Name)"
     if (Test-Path $target) { Remove-Item -Recurse -Force $target }
     New-Item -ItemType Directory -Path $target | Out-Null
@@ -150,10 +158,18 @@ $localUserAccount = @{
    PasswordNeverExpires = $true
    Verbose = $true
 }
-New-LocalUser @localUserAccount
+if (Get-LocalUser -Name $localUserName -ErrorAction SilentlyContinue) {
+    # A second run: the app pool and the credentials file get the new password below.
+    Write-Host "$localUserName already exists; giving it a new password"
+    Set-LocalUser -Name $localUserName -Password $securePassword
+} else {
+    New-LocalUser @localUserAccount
+}
 
 Write-Step "Adding user to RDP user group"
-Add-LocalGroupMember -Group "Remote Desktop Users" -Member $localUserName
+if (-not (Get-LocalGroupMember -Group "Remote Desktop Users" -Member $localUserName -ErrorAction SilentlyContinue)) {
+    Add-LocalGroupMember -Group "Remote Desktop Users" -Member $localUserName
+}
 
 $localUserPassword = (New-Object PSCredential $localUserName,$securePassword).GetNetworkCredential().Password
 
@@ -171,9 +187,13 @@ if ($SkipHopsInstall) {
     Write-Step "Installing the Hops plugin for $localUserName"
     # Hops is optional, so a failure here doesn't stop the rest of the server being set up.
     try {
-        $profilePath = New-UserProfile $localUserName
-        $hopsVersion = Install-Hops $profilePath
-        Write-Host "Installed Hops $hopsVersion in $profilePath"
+        $packagePath = "$(New-UserProfile $localUserName)\AppData\Roaming\McNeel\Rhinoceros\packages\8.0\Hops"
+        $installedHops = Get-InstalledHops $packagePath
+        if ($installedHops) {
+            Write-Host "Hops $installedHops is already installed in $packagePath"
+        } else {
+            Write-Host "Installed Hops $(Install-Hops $packagePath) in $packagePath"
+        }
     }
     catch {
         Write-Warning "Hops wasn't installed: $($_.Exception.Message) Install it from the Package Manager, signed in as $localUserName."
