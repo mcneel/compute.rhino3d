@@ -1,13 +1,7 @@
 param(
     # When set, skip the Hops plugin install step. Hops is a convenience for users
     # whose workflows depend on Grasshopper-definition-as-a-service; compute.geometry's
-    # core Rhino API works fine without it. Skip is useful for headless bootstrap
-    # contexts (SSM Session Manager, CI, unattended AMI builds, scheduled tasks)
-    # where Start-Process -Credential as the freshly-created RhinoComputeUser crashes
-    # the Yak install with STATUS_DLL_INIT_FAILED (exit code -1073741502) — the
-    # CLR/COM initializers Yak loads need session/desktop state that -Credential
-    # spawn doesn't provide in non-interactive contexts. Users who need Hops in a
-    # skipped deployment can run 'yak install hops' manually after deployment.
+    # core Rhino API works fine without it.
     [switch]$SkipHopsInstall
 )
 
@@ -24,6 +18,8 @@ $physicalPathRoot = "C:\inetpub\wwwroot\aspnet_client\system_web\4_0_30319"
 $rhinoComputePath = "$physicalPathRoot\rhino.compute"
 $computeGeometryPath = "$physicalPathRoot\compute.geometry"
 $localUserName = "RhinoComputeUser"
+$hopsVersionsUrl = "https://yak.rhino3d.com/versions/hops"
+$rhinoRegistryKey = "HKLM:\SOFTWARE\McNeel\Rhinoceros\8.0\Install"
 
 Import-Module WebAdministration
 
@@ -75,6 +71,73 @@ function New-RandomPassword {
         $password
     }
 }
+function Download {
+    param (
+        [Parameter(Mandatory=$true)][string] $url,
+        [Parameter(Mandatory=$true)][string] $output
+    )
+    (New-Object System.Net.WebClient).DownloadFile($url, $output)
+}
+# Creates the user's Windows profile without signing in as them (which fails in headless sessions), so files can
+# go into it before IIS first loads it. Returns the profile's folder.
+function New-UserProfile {
+    param ([Parameter(Mandatory=$true)][string] $userName)
+    $sid = (Get-LocalUser -Name $userName).SID.Value
+    $existing = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\$sid" -ErrorAction SilentlyContinue
+    if ($existing) { return $existing.ProfileImagePath }
+    if (-not ('UserEnv.NativeMethods' -as [type])) {
+        Add-Type -Namespace UserEnv -Name NativeMethods -MemberDefinition '[DllImport("userenv.dll", CharSet = CharSet.Unicode)] public static extern int CreateProfile(string pszUserSid, string pszUserName, System.Text.StringBuilder pszProfilePath, uint cchProfilePath);'
+    }
+    $path = New-Object System.Text.StringBuilder 260
+    $result = [UserEnv.NativeMethods]::CreateProfile($sid, $userName, $path, 260)
+    if ($result -ne 0) { throw ("Couldn't create the {0} profile (0x{1:X8})." -f $userName, $result) }
+    return $path.ToString()
+}
+# Packages name the oldest Rhino they load in: rh8_0 is any Rhino 8, rh8_36 needs 8.36 or later.
+function Test-HopsPackageFits {
+    param (
+        [Parameter(Mandatory=$true)][string] $rhinoLabel,
+        [Parameter(Mandatory=$true)][System.Version] $rhinoVersion
+    )
+    if ($rhinoLabel -notmatch '^rh(\d+)_(\d+)$') { return $false }
+    return ([int]$Matches[1] -eq $rhinoVersion.Major) -and ([int]$Matches[2] -le $rhinoVersion.Minor)
+}
+# The newest release of Hops this Rhino can load, from the package server, or $null.
+function Find-LatestHops {
+    param ([Parameter(Mandatory=$true)][System.Version] $rhinoVersion)
+    $latest = $null
+    foreach ($release in (Invoke-RestMethod -Method Get -Uri $hopsVersionsUrl)) {
+        if ($release.prerelease) { continue }
+        $version = $null
+        if (-not [System.Version]::TryParse($release.version, [ref]$version)) { continue }
+        $package = $release.distributions | Where-Object { $_.platform -in "any", "win" -and (Test-HopsPackageFits $_.rhino_version $rhinoVersion) } | Select-Object -First 1
+        if (-not $package) { continue }
+        if (-not $latest -or $version -gt $latest.Version) {
+            $latest = [pscustomobject]@{ Version = $version; Name = $release.version; Url = $package.url }
+        }
+    }
+    return $latest
+}
+# Unpacks the newest Hops the installed Rhino can load into the user's packages folder, as the package manager
+# would, rather than running Yak.exe as the user. Returns the version installed.
+function Install-Hops {
+    param ([Parameter(Mandatory=$true)][string] $profilePath)
+    $rhinoVersion = [System.Version](Get-ItemProperty -Path $rhinoRegistryKey -Name "Version").Version
+    $latest = Find-LatestHops $rhinoVersion
+    if (-not $latest) { throw "The package server has no Hops release for Rhino $rhinoVersion." }
+    $packagePath = "$profilePath\AppData\Roaming\McNeel\Rhinoceros\packages\8.0\Hops"
+    $target = "$packagePath\$($latest.Name)"
+    if (Test-Path $target) { Remove-Item -Recurse -Force $target }
+    New-Item -ItemType Directory -Path $target | Out-Null
+    # Expand-Archive only takes .zip files; a .yak is a zip.
+    $zip = Join-Path $tmpFullPath "Hops-$($latest.Name).zip"
+    Download $latest.Url $zip
+    Expand-Archive $zip -DestinationPath $target
+    Remove-Item $zip -Force
+    if (-not (Test-Path "$target\Hops.gha")) { throw "The Hops $($latest.Name) package has no Hops.gha." }
+    [System.IO.File]::WriteAllText("$packagePath\manifest.txt", "$($latest.Name)`n")
+    return $latest.Name
+}
 #EndRegion funcs
 
 Write-Step "Creating a new user identity"
@@ -93,8 +156,6 @@ Write-Step "Adding user to RDP user group"
 Add-LocalGroupMember -Group "Remote Desktop Users" -Member $localUserName
 
 $localUserPassword = (New-Object PSCredential $localUserName,$securePassword).GetNetworkCredential().Password
-$securePassword = ConvertTo-SecureString $localUserPassword -AsPlainText -Force
-$credential = New-Object System.Management.Automation.PSCredential($localUserName, $securePassword)
 
 # The main script shows these after its transcript stops; restricted before the password is written.
 Write-Step "Saving the $localUserName credentials to $credentialFile (Administrators only)"
@@ -105,18 +166,17 @@ Set-Content -Path $credentialFile -Value @("User Name: $localUserName", "Passwor
 
 if ($SkipHopsInstall) {
     Write-Step "Skipping Hops plugin install (set by -SkipHopsInstall switch or BOOTSTRAP_SKIP_HOPS=1)"
-    Write-Host "  Users who need Hops can install it after deployment via 'yak install hops'"
+    Write-Host "  Users who need Hops can install it after deployment from the Package Manager, signed in as $localUserName"
 } else {
-    Write-Step "Installing the Hops plugin"
-
-    $yakPath = "C:\Program Files\Rhino 8\System\Yak.exe"
-    $arguments = "install hops"
-
-    # Use Start-Process with properly quoted arguments
-    $process = Start-Process -FilePath $yakPath -ArgumentList $arguments -Credential $credential -WorkingDirectory "C:\Program Files\Rhino 8\System" -PassThru -Wait
-
-    if ($process.ExitCode -ne 0) {
-        throw "Failed to install the Hops plugin. Exit code: $($process.ExitCode)"
+    Write-Step "Installing the Hops plugin for $localUserName"
+    # Hops is optional, so a failure here doesn't stop the rest of the server being set up.
+    try {
+        $profilePath = New-UserProfile $localUserName
+        $hopsVersion = Install-Hops $profilePath
+        Write-Host "Installed Hops $hopsVersion in $profilePath"
+    }
+    catch {
+        Write-Warning "Hops wasn't installed: $($_.Exception.Message) Install it from the Package Manager, signed in as $localUserName."
     }
 }
 
