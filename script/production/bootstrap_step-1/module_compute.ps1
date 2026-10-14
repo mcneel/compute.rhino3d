@@ -18,6 +18,12 @@ function Download {
 }
 #EndRegion funcs
 
+# A second run keeps the build already installed; module_update_compute.ps1 updates it.
+if ((Test-Path "$appDirectory\rhino.compute\rhino.compute.exe") -and (Test-Path "$appDirectory\compute.geometry\compute.geometry.exe")) {
+    Write-Step "rhino.compute and compute.geometry are already installed in $appDirectory"
+    return
+}
+
 $gitPrefix = 'https://api.github.com/repos'
 $nightlyPrefix = 'https://nightly.link'
 $actionurl = 'mcneel/compute.rhino3d/actions/artifacts'
@@ -47,6 +53,10 @@ if (-Not (Test-Path -Path $appDirectory)){
 
 if ((Test-Path $appDirectory)) {
     Write-Step "Download and unzip latest build of compute from $downloadurl"
+    # What an interrupted run left behind.
+    foreach ($folder in "rhino.compute", "compute.geometry") {
+        if (Test-Path "$appDirectory\$folder") { Remove-Item -Recurse -Force "$appDirectory\$folder" }
+    }
     Download $downloadurl "$appDirectory/compute.zip"
     Expand-Archive "$appDirectory/compute.zip" -DestinationPath $appDirectory
     Remove-Item "$appDirectory/compute.zip"
