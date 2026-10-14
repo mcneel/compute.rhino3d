@@ -1,5 +1,5 @@
 # This script installs and configures everything needed to run rhino.compute under IIS:
-# Rhino, firewall/URL ACLs, the IIS feature set, the compute artifact, the ASP.NET Core
+# Rhino, firewall rules, the IIS feature set, the compute artifact, the ASP.NET Core
 # Hosting Bundle, and IIS site/app-pool configuration.
 #
 # * Make sure you run this script from a Powershell Admin Prompt!
@@ -116,7 +116,8 @@ finally {
     }
     Write-Step "Bootstrap installation ended at: $endTime"
     Stop-Transcript
-    Hide-Secrets $logFullPath @($ApiKey, $RhinoToken)
+    try { Hide-Secrets $logFullPath @($ApiKey, $RhinoToken) }
+    catch { Write-Warning "Couldn't remove the API key and Rhino token from ${logFullPath}: $($_.Exception.Message)" }
 }
 
 # Shown once the transcript has stopped, so the password isn't in the log.
