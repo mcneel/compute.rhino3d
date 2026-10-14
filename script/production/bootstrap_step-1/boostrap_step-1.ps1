@@ -28,9 +28,7 @@ if (-not (Test-Path -Path $tmpFullPath -PathType Container)) {
     Write-Host "'$tmpFullPath' already exists."
 }
 
-$ErrorActionPreference="SilentlyContinue"
-Stop-Transcript | out-null
-$ErrorActionPreference = "Continue"
+try { Stop-Transcript | Out-Null } catch { }
 Start-Transcript -path $logFullPath -append
 
 $startTime = Get-Date -Format "dddd, MMMM dd yyyy hh:mm:ss tt"
@@ -51,25 +49,41 @@ Write-Host @"
 
 "@
 
-# check os is server
-$os = (Get-CimInstance -ClassName 'Win32_OperatingSystem').Caption
-if ($os -notlike '*server*') {
-    Write-Host "The script is intended for use on Windows Server. Detected '$os'" -ForegroundColor Red
-    exit 1
+# Any error stops the bootstrap (the modules inherit this), so it never carries on past a failed step.
+$ErrorActionPreference = "Stop"
+$modules = @("module_rhino.ps1", "module_firewall.ps1", "module_iis_install.ps1", "module_compute.ps1", "module_hostingbundle.ps1", "module_iis_configure.ps1")
+$currentModule = $null
+$failure = $null
+try {
+    # check os is server
+    $os = (Get-CimInstance -ClassName 'Win32_OperatingSystem').Caption
+    if ($os -notlike '*server*') {
+        throw "The script is intended for use on Windows Server. Detected '$os'"
+    }
+
+    Write-Host
+    Write-Host "Root Script Path:" $PSScriptRoot
+
+    # Run modules in order.
+    foreach ($module in $modules) {
+        $currentModule = $module
+        & "$PSScriptRoot\$module"
+    }
 }
+catch {
+    $failure = $_
+}
+finally {
+    $endTime = Get-Date -Format "dddd, MMMM dd yyyy hh:mm:ss tt"
+    if ($failure) {
+        Write-Host
+        $where = if ($currentModule) { " in $currentModule" } else { "" }
+        Write-Host "Bootstrap FAILED$($where): $($failure.Exception.Message)" -ForegroundColor Red
+        Write-Host $failure.InvocationInfo.PositionMessage
+        Write-Host "Log file: $logFullPath"
+    }
+    Write-Step "Bootstrap installation ended at: $endTime"
+    Stop-Transcript
+}
+if ($failure) { exit 1 }
 
-Write-Host
-Write-Host "Root Script Path:" $PSScriptRoot
-
-# Run modules in order. 
-& "$PSScriptRoot\module_rhino.ps1"
-& "$PSScriptRoot\module_firewall.ps1"
-& "$PSScriptRoot\module_iis_install.ps1"
-& "$PSScriptRoot\module_compute.ps1"
-& "$PSScriptRoot\module_hostingbundle.ps1"
-& "$PSScriptRoot\module_iis_configure.ps1"
-
-$endTime = Get-Date -Format "dddd, MMMM dd yyyy hh:mm:ss tt"
-Write-Step "Bootstrap installation ended at: $endTime"
-
-Stop-Transcript

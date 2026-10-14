@@ -55,7 +55,6 @@ function Install-ProcessWithTimeout {
         }
     }
 
-    Write-Error "Installer failed after $MaxRetries attempts."
     return $false
 }
 # The newest hosting bundle of a .NET version, from Microsoft's release list, so new servers get its security fixes.
@@ -75,13 +74,7 @@ $dotnetChannel = "10.0"
 # Download and install .NET Hosting Bundle
 Write-Step "Download ASP.NET Core $dotnetChannel Hosting Bundle"
 
-try {
-    $bundle = Find-HostingBundle $dotnetChannel
-}
-catch {
-    Write-Host "Couldn't find the ASP.NET Core $dotnetChannel Hosting Bundle: $($_.Exception.Message)" -ForegroundColor Red
-    return
-}
+$bundle = Find-HostingBundle $dotnetChannel
 $hbInstallerURL = $bundle.Url
 $hbInstallerFilename = "dotnet-hosting-$($bundle.Version)-win.exe"
 $hbInstallerFilepath = Join-Path -Path $tmpFullPath -ChildPath $hbInstallerFilename
@@ -90,20 +83,18 @@ Write-Host $hbInstallerURL
 Download $hbInstallerURL $hbInstallerFilepath
 
 if ((Get-FileHash -Path $hbInstallerFilepath -Algorithm SHA512).Hash -ne $bundle.Hash) {
-    Write-Host "The downloaded $hbInstallerFilename doesn't match Microsoft's checksum; not installing it." -ForegroundColor Red
     Remove-Item $hbInstallerFilepath -Force -ErrorAction SilentlyContinue
-    return
+    throw "The downloaded $hbInstallerFilename doesn't match Microsoft's checksum; not installing it."
 }
 
 Write-Step "Installing ASP.NET Core $($bundle.Version) Hosting Bundle"
 
 $success = Install-ProcessWithTimeout -ExePath $hbInstallerFilepath -Arguments @('/repair','/quiet','/norestart') -TimeoutSeconds 600 -MaxRetries 2
 
-if ($success) {
-    Write-Output "$hbInstallerFilename successfully installed"
-    Write-Step 'Restarting IIS services'
-    net stop was /y
-    net start w3svc
-} else {
-    Write-Output "Something went wrong with the hosting bundle installation after retries."
+if (-not $success) {
+    throw "The hosting bundle didn't install; the installer's exit codes are above."
 }
+Write-Output "$hbInstallerFilename successfully installed"
+Write-Step 'Restarting IIS services'
+net stop was /y
+net start w3svc
