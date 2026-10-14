@@ -244,8 +244,10 @@ foreach ($path in $rhinoComputePath, $computeGeometryPath) {
     if ($LASTEXITCODE -ne 0) { throw "Couldn't grant $appPoolName access to $path (icacls exit code $LASTEXITCODE)." }
 }
 
-Write-Step "Setting environment variable for log paths"
+Write-Step "Setting environment variables for logging"
 SetEnvVar 'RHINO_COMPUTE_LOG_PATH' "$rhinoComputePath\logs"
+# Debug-level logs, so the detail support asks for is already there; unlike RHINO_COMPUTE_DEBUG it doesn't change answers.
+SetEnvVar 'RHINO_COMPUTE_LOG_LEVEL' 'Debug'
 
 Write-Step "Starting rhino.compute site" 
 Start-IISSite -Name $websiteName
