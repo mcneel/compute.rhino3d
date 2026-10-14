@@ -19,6 +19,7 @@ $actionurl = 'mcneel/compute.rhino3d/actions/artifacts'
 $giturl = "$gitPrefix/$actionurl"
 
 $artifactID = -1
+$artifactDigest = $null
 $matchingBranch = "9.x"
 $artifactName = "rhino.compute"
 
@@ -27,6 +28,7 @@ $response = Invoke-RestMethod -Method Get -Uri "$($giturl)?name=$artifactName&pe
 foreach ($artifact in $response.artifacts) {
     if ($artifact.expired -or $artifact.workflow_run.head_branch -ne $matchingBranch) { continue }
     $artifactID = $artifact.id
+    $artifactDigest = $artifact.digest
     break
 }
 
@@ -47,6 +49,11 @@ if ((Test-Path $appDirectory)) {
         if (Test-Path "$appDirectory\$folder") { Remove-Item -Recurse -Force "$appDirectory\$folder" }
     }
     Download $downloadurl "$appDirectory/compute.zip"
+    # nightly.link passes on GitHub's artifact; check it's the file GitHub lists (older artifacts have no digest).
+    if ($artifactDigest -and ("sha256:" + (Get-FileHash "$appDirectory/compute.zip" -Algorithm SHA256).Hash) -ne $artifactDigest) {
+        Remove-Item "$appDirectory/compute.zip" -Force -ErrorAction SilentlyContinue
+        throw "The downloaded build doesn't match GitHub's checksum for artifact $artifactID; not installing it."
+    }
     Expand-Archive "$appDirectory/compute.zip" -DestinationPath $appDirectory
     Remove-Item "$appDirectory/compute.zip"
 }

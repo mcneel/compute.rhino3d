@@ -55,6 +55,14 @@ if ($installedVersion -and $installedVersion -ge $package.Version) {
 $setupFullPath = Join-Path -Path $TempPath -ChildPath $package.FileName
 Download $package.Url $setupFullPath
 
+# Only run an installer McNeel signed.
+$signature = Get-AuthenticodeSignature -FilePath $setupFullPath
+if ($signature.Status -ne "Valid" -or $signature.SignerCertificate.Subject -notmatch 'O="?ROBERT MCNEEL & ASSOCIATES') {
+    Remove-Item $setupFullPath -Force -ErrorAction SilentlyContinue
+    $signer = if ($signature.SignerCertificate) { $signature.SignerCertificate.GetNameInfo("SimpleName", $false) } else { "nobody" }
+    throw "The downloaded $($package.FileName) isn't signed by Robert McNeel & Associates (signature $($signature.Status), signed by $signer); not running it."
+}
+
 # Set firewall rule to allow installation
 New-NetFirewallRule -DisplayName "Rhino 9 Installer" -Direction Inbound -Program $setupFullPath -Action Allow
 
