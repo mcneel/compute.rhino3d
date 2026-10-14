@@ -46,9 +46,6 @@ if (-not (Test-Path -Path $tmpFullPath -PathType Container)) {
     Write-Host "'$tmpFullPath' already exists."
 }
 
-#In case $PSScriptRoot is empty (version of powershell V.2).
-if(!$PSScriptRoot){ $PSScriptRoot = Split-Path $MyInvocation.MyCommand.Path -Parent }
-
 Write-Host @"
 
   # # # # # # # # # # # # # # # # # # # # #

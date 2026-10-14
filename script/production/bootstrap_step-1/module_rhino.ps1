@@ -5,8 +5,7 @@ param (
     [Parameter(Mandatory=$true)][string] $EmailAddress,
     [Parameter(Mandatory=$true)][string] $ApiKey,
     [Parameter(Mandatory=$true)][string] $RhinoToken,
-    [Parameter(Mandatory=$true)][string] $TempPath,
-    [switch] $install = $false
+    [Parameter(Mandatory=$true)][string] $TempPath
 )
 
 #Region funcs
@@ -37,14 +36,12 @@ function Resolve-RhinoInstaller {
 
 Write-Step 'Set environment variables'
 SetEnvVar 'RHINO_TOKEN' $RhinoToken -secret
-if ($PSBoundParameters.ContainsKey('ApiKey')) {
-    SetEnvVar 'RHINO_COMPUTE_KEY' $ApiKey -secret
-}
+SetEnvVar 'RHINO_COMPUTE_KEY' $ApiKey -secret
 SetEnvVar 'RHINO_COMPUTE_URLS' 'http://+:80'
 
 # Download and install Rhino
 Write-Step 'Download latest Rhino 8'
-$rhinoDownloadUrl = "https://www.rhino3d.com/www-api/download/direct/?slug=rhino-for-windows/8/latest/?email=$EmailAddress"
+$rhinoDownloadUrl = "https://www.rhino3d.com/www-api/download/direct/?slug=rhino-for-windows/8/latest/?email=" + [uri]::EscapeDataString($EmailAddress)
 $package = Resolve-RhinoInstaller
 $installedVersion = Get-InstalledRhinoVersion
 # A second run (after fixing whatever stopped the first) doesn't install the same Rhino again.
@@ -62,9 +59,6 @@ if ($signature.Status -ne "Valid" -or $signature.SignerCertificate.Subject -notm
     $signer = if ($signature.SignerCertificate) { $signature.SignerCertificate.GetNameInfo("SimpleName", $false) } else { "nobody" }
     throw "The downloaded $($package.FileName) isn't signed by Robert McNeel & Associates (signature $($signature.Status), signed by $signer); not running it."
 }
-
-# Set firewall rule to allow installation
-New-NetFirewallRule -DisplayName "Rhino 8 Installer" -Direction Inbound -Program $setupFullPath -Action Allow
 
 Write-Step 'Installing Rhino'
 # Automated install (https://wiki.mcneel.com/rhino/installingrhino/8)

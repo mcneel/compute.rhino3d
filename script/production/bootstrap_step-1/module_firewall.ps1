@@ -1,15 +1,11 @@
-# Configure firewall and URL reservations
+# Configure the firewall
 #Requires -RunAsAdministrator
 
 #Region funcs
 . "$PSScriptRoot\common.ps1"
 #EndRegion funcs
 
-# Setup URL reservations with firewall
-Write-Step 'Configuring URL reservation (80 and 443)'
-Start-Process "netsh" -ArgumentList "http", "add", "urlacl", "url='http://+:80/'", "user='Everyone'"
-Start-Process "netsh" -ArgumentList "http", "add", "urlacl", "url='https://+:443/'", "user='Everyone'"
-
+Write-Step 'Allowing ping'
 # Add firewall rules for ICMP communication (ping); a second run finds them already there.
 $pingRules = @(
     @{ DisplayName = "ICMP Allow incoming V4 echo request"; Protocol = "ICMPv4"; IcmpType = 8 },
