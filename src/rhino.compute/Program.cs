@@ -176,7 +176,7 @@ namespace rhino.compute
 
             var path = System.IO.Path.Combine(Config.LogPath, "log-rhino-compute-.txt");
             var limit = Config.LogRetainDays;
-            var level = Config.Debug ? LogEventLevel.Debug : LogEventLevel.Information;
+            var level = Config.LogLevel;
 
             var loggerConfig = new LoggerConfiguration()
                 .MinimumLevel.Is(level)
@@ -270,6 +270,7 @@ namespace rhino.compute
             Log.Debug("  Block Private URLs = {BlockPrivateUrls}", blockPrivateUrls.ToString());
             Log.Debug("  Compression = {Compression}", Config.Compression.ToString());
             Log.Debug("  Log Path = {LogPath}", Config.LogPath);
+            Log.Debug("  Log Level = {LogLevel}", Config.LogLevel);
 
             var logger = host.Services.GetRequiredService<ILogger<ReverseProxyModule>>();
             ReverseProxyModule.InitializeConcurrentRequestLogging(logger);

@@ -48,7 +48,7 @@ namespace compute.geometry
 
             var path = Path.Combine(Config.LogPath, "log-compute-geometry-.txt"); // log-geometry-20180925.txt, etc.
             var limit = Config.LogRetainDays;
-            var level = Config.Debug ? LogEventLevel.Debug : LogEventLevel.Information;
+            var level = Config.LogLevel;
 
             // Seed the dynamic enricher when the port is already known; otherwise leave it at 0
             // so {Port} renders empty until something calls DynamicPortEnricher.SetPort (e.g.
