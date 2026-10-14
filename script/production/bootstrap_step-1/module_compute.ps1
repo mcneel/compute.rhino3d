@@ -23,18 +23,16 @@ $nightlyPrefix = 'https://nightly.link'
 $actionurl = 'mcneel/compute.rhino3d/actions/artifacts'
 $giturl = "$gitPrefix/$actionurl"
 
-$response = Invoke-RestMethod -Method Get -Uri $giturl
-$artifacts = $response.artifacts
 $artifactID = -1
 $matchingBranch = "8.x"
+$artifactName = "rhino.compute"
 
-for($i=0; $i -lt $artifacts.Length; $i++){
-    $latest = $artifacts[$i]
-    $artifactID = $latest.id
-    $artifactBranch = $latest.workflow_run.head_branch 
-    if ($artifactBranch -eq $matchingBranch) {
-        break
-    }
+# Newest first, all branches; skip other branches' builds and expired ones rather than settle for them.
+$response = Invoke-RestMethod -Method Get -Uri "$($giturl)?name=$artifactName&per_page=100"
+foreach ($artifact in $response.artifacts) {
+    if ($artifact.expired -or $artifact.workflow_run.head_branch -ne $matchingBranch) { continue }
+    $artifactID = $artifact.id
+    break
 }
 
 if ($artifactID -lt 0){
