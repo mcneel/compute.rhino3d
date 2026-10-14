@@ -33,39 +33,44 @@ function SetEnvVar {
 }
 function Install-ProcessWithTimeout {
     param (
-        [string]$ExePath,
+        [Parameter(Mandatory=$true)][string]$ExePath,
         [string[]]$Arguments,
-        [System.Management.Automation.PSCredential]$Credential = $null,
         [int]$TimeoutSeconds = 600,   # default 10 min timeout
         [int]$MaxRetries = 2
     )
-
-    for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
+    $busyWaits = 0
+    $attempt = 0
+    while ($attempt -lt $MaxRetries) {
+        $attempt++
         Write-Host "Starting attempt {$attempt}: $ExePath $Arguments"
 
-        $params = @{
-            FilePath = $ExePath
-            ArgumentList = $Arguments
-            WorkingDirectory = (Split-Path $ExePath)
-            PassThru = $true
+        # Process.Start rather than Start-Process -PassThru, whose ExitCode Windows PowerShell can leave empty.
+        $startInfo = New-Object System.Diagnostics.ProcessStartInfo($ExePath, ($Arguments -join ' '))
+        $startInfo.WorkingDirectory = Split-Path $ExePath
+        $process = [System.Diagnostics.Process]::Start($startInfo)
+
+        # Stopping an installer that's still working would leave Windows Installer busy for the next try.
+        if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
+            throw "$(Split-Path $ExePath -Leaf) was still running after $($TimeoutSeconds / 60) minutes. Let it finish, then run the bootstrap again."
         }
-        if ($Credential) { $params.Credential = $Credential }
-
-        $process = Start-Process @params
-
-        if ($process.WaitForExit($TimeoutSeconds * 1000)) {
-            # Process ended, check exit code
-            if ($process.ExitCode -eq 0) {
-                Write-Host "Installer finished successfully on attempt $attempt"
-                return $true
-            } else {
-                Write-Warning "Installer exited with code $($process.ExitCode) on attempt $attempt"
-            }
-        } else {
-            Write-Warning "Installer timed out after $TimeoutSeconds seconds on attempt $attempt"
-            try { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue } catch {}
+        $exitCode = $process.ExitCode
+        if ($exitCode -eq 0) {
+            Write-Host "Installer finished successfully on attempt $attempt"
+            return $true
         }
-
+        if ($exitCode -eq 3010 -or $exitCode -eq 1641) {
+            Write-Warning "Installer finished, but Windows needs a restart to complete it (exit code $exitCode)"
+            return $true
+        }
+        # Another installation is running (often Windows Update on a new server): wait for it without using up a try.
+        if ($exitCode -eq 1618 -and $busyWaits -lt 10) {
+            $busyWaits++
+            $attempt--
+            Write-Host "Another installation is in progress (exit code 1618); trying again in a minute"
+            Start-Sleep -Seconds 60
+            continue
+        }
+        Write-Warning "Installer exited with code $exitCode on attempt $attempt"
         if ($attempt -lt $MaxRetries) {
             Write-Host "Retrying..."
             Start-Sleep -Seconds 5
@@ -123,7 +128,7 @@ New-NetFirewallRule -DisplayName "Rhino 9 Installer" -Direction Inbound -Program
 
 Write-Step 'Installing Rhino'
 # Automated install (https://wiki.mcneel.com/rhino/installingrhino/9)
-$success = Install-ProcessWithTimeout -ExePath $setupFullPath -Arguments @('-passive','-norestart') -TimeoutSeconds 600 -MaxRetries 2
+$success = Install-ProcessWithTimeout -ExePath $setupFullPath -Arguments @('-passive','-norestart') -TimeoutSeconds 1200 -MaxRetries 2
 
 if (-not $success) {
     throw "Rhino didn't install; the installer's exit codes are above."
