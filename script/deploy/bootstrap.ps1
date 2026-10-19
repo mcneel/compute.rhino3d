@@ -21,8 +21,8 @@ $scriptVersion = "dev"
 
 # What differs between Rhino versions. The first download link that leads to an installer is used.
 $rhinoVersions = @{
-    "7" = @{ DownloadSlugs = @("rhino-for-windows/7/latest"); BuildBranch = "7.x"; DotnetChannel = "5.0"
-             Note = "out of support: Rhino 7 gets no more updates, and its Rhino.Compute runs on .NET 5, which gets no security fixes" }
+    "7" = @{ DownloadSlugs = @("rhino-for-windows/7/latest"); BuildBranch = "7.x"; DotnetChannel = "5.0"; Status = "out of support, no security fixes"
+             Warning = "Rhino 7 is out of support: it gets no more updates, and its Rhino.Compute runs on .NET 5, which gets no security fixes." }
     "8" = @{ DownloadSlugs = @("rhino-for-windows/8/latest"); BuildBranch = "8.x"; DotnetChannel = "10.0" }
     # The release link answers once Rhino 9 is released; until then the beta's does.
     "9" = @{ DownloadSlugs = @("rhino-for-windows/9/latest", "rhino-for-windows/9/beta"); BuildBranch = "9.x"; DotnetChannel = "10.0" }
@@ -81,16 +81,22 @@ function Read-Required {
 }
 function Read-RhinoVersion {
     param ([Parameter(Mandatory=$true)][string] $default)
+    Write-Host
     Write-Host "Which Rhino should this server run?"
+    Write-Host
     foreach ($version in $rhinoVersions.Keys | Sort-Object) {
-        $note = if ($rhinoVersions[$version].Note) { " ($($rhinoVersions[$version].Note))" } else { "" }
-        Write-Host "  $version  Rhino $version$note"
+        Write-Host "  [$version] " -ForegroundColor Cyan -NoNewline
+        Write-Host "Rhino $version" -NoNewline
+        if ($version -eq $default) { Write-Host "  (default)" -NoNewline }
+        if ($rhinoVersions[$version].Status) { Write-Host "  $($rhinoVersions[$version].Status)" -ForegroundColor Yellow -NoNewline }
+        Write-Host
     }
+    Write-Host
     while ($true) {
-        $value = (Read-Host "Rhino version [$default]").Trim()
+        $value = (Read-Host "Type 7, 8 or 9, or press Enter for $default").Trim()
         if (-not $value) { return $default }
         if ($rhinoVersions.ContainsKey($value)) { return $value }
-        Write-Host "Please answer 7, 8 or 9."
+        Write-Host "Please type 7, 8 or 9." -ForegroundColor Red
     }
 }
 # Writes a file only Administrators and SYSTEM can read; restricted before anything is written to it.
@@ -531,7 +537,7 @@ try { Stop-Transcript | Out-Null } catch { }
 Start-Transcript -Path $logFile -Append | Out-Null
 Write-Step "Setting up Rhino.Compute for Rhino $RhinoVersion, $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
 Write-Host "bootstrap.ps1 version $scriptVersion ($scriptHash)"
-if ($rhinoVersions[$RhinoVersion].Note) { Write-Warning "Rhino $RhinoVersion is $($rhinoVersions[$RhinoVersion].Note)." }
+if ($rhinoVersions[$RhinoVersion].Warning) { Write-Warning $rhinoVersions[$RhinoVersion].Warning }
 
 # Any error stops the bootstrap, so it never carries on past a failed step.
 $ErrorActionPreference = "Stop"

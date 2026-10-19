@@ -27,8 +27,8 @@ $scriptVersion = "dev"
 
 # What differs between Rhino versions; the same table as bootstrap.ps1's.
 $rhinoVersions = @{
-    "7" = @{ DownloadSlugs = @("rhino-for-windows/7/latest"); BuildBranch = "7.x"; DotnetChannel = "5.0"
-             Note = "out of support: Rhino 7 gets no more updates, and its Rhino.Compute runs on .NET 5, which gets no security fixes" }
+    "7" = @{ DownloadSlugs = @("rhino-for-windows/7/latest"); BuildBranch = "7.x"; DotnetChannel = "5.0"; Status = "out of support, no security fixes"
+             Warning = "Rhino 7 is out of support: it gets no more updates, and its Rhino.Compute runs on .NET 5, which gets no security fixes." }
     "8" = @{ DownloadSlugs = @("rhino-for-windows/8/latest"); BuildBranch = "8.x"; DotnetChannel = "10.0" }
     # The release link answers once Rhino 9 is released; until then the beta's does.
     "9" = @{ DownloadSlugs = @("rhino-for-windows/9/latest", "rhino-for-windows/9/beta"); BuildBranch = "9.x"; DotnetChannel = "10.0" }
@@ -859,7 +859,7 @@ try {
     if (-not $RhinoVersion -and $settings -and $rhinoVersions.ContainsKey("$($settings.rhinoVersion)")) { $RhinoVersion = "$($settings.rhinoVersion)" }
     if (-not $RhinoVersion) { $RhinoVersion = Find-RhinoVersion }
     Write-Host "This server runs Rhino $RhinoVersion."
-    if ($rhinoVersions[$RhinoVersion].Note) { Write-Warning "Rhino $RhinoVersion is $($rhinoVersions[$RhinoVersion].Note)." }
+    if ($rhinoVersions[$RhinoVersion].Warning) { Write-Warning $rhinoVersions[$RhinoVersion].Warning }
     Show-Installed
 
     $updateRhino = -not $SkipRhino
