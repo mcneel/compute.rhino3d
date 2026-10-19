@@ -1,0 +1,66 @@
+name: workflow scripts
+on:
+  push:
+    branches:
+      - 9.x
+    paths:
+      - script/deploy/**
+      - .github/workflows/workflow_scripts.yml
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency: publish-scripts
+
+jobs:
+  publish:
+    name: publish deploy scripts
+    runs-on: ubuntu-latest
+    # Required reviewers and the 9.x-only branch rule live on the environment; the AWS role trusts only it.
+    environment: publish-scripts
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      BUCKET: compute-installer
+      SCRIPTS_URL: https://d14rasnu1ewozd.cloudfront.net
+    steps:
+      - name: checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: stamp and check
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory "$PWD/publish" | Out-Null
+          foreach ($name in "bootstrap.ps1", "update.ps1") {
+              $path = "script/deploy/$name"
+              # The last commit that changed the file, so the version leads back to its source.
+              $version = git log -1 --format=%cd-%h --date=format:%Y.%m.%d --abbrev=9 -- $path
+              if (-not $version) { throw "No commit found for $path." }
+              $text = [IO.File]::ReadAllText("$PWD/$path")
+              if ($text -match '[^\x00-\x7F]') { throw "$name has non-ASCII characters, which Windows PowerShell 5.1 misreads." }
+              $stamped = $text.Replace('$scriptVersion = "dev"', "`$scriptVersion = `"$version`"")
+              if ($stamped -eq $text) { throw "$name has no `$scriptVersion = `"dev`" line to stamp." }
+              $errors = $null
+              [void][System.Management.Automation.Language.Parser]::ParseInput($stamped, [ref]$null, [ref]$errors)
+              if ($errors) { throw "$name doesn't parse: $($errors[0].Message) (line $($errors[0].Extent.StartLineNumber))" }
+              [IO.File]::WriteAllText("$PWD/publish/$name", $stamped)
+              "$name $version" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          }
+      - name: aws credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.COMPUTE_INSTALLER_ROLE_ARN }}
+          aws-region: us-east-1
+      - name: upload
+        run: |
+          for f in bootstrap.ps1 update.ps1; do
+            aws s3 cp "publish/$f" "s3://$BUCKET/$f" --content-type "text/plain; charset=utf-8"
+          done
+      - name: verify
+        run: |
+          for f in bootstrap.ps1 update.ps1; do
+            curl -fsS "$SCRIPTS_URL/$f" -o "served-$f"
+            cmp "publish/$f" "served-$f"
+          done
