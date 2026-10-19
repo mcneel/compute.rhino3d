@@ -82,7 +82,7 @@ function Read-Required {
 function Read-RhinoVersion {
     param ([Parameter(Mandatory=$true)][string] $default)
     Write-Host
-    Write-Host "Which Rhino should this server run?"
+    Write-Host "Which version of Rhino should this server run?"
     Write-Host
     foreach ($version in $rhinoVersions.Keys | Sort-Object) {
         Write-Host "  [$version] " -ForegroundColor Cyan -NoNewline
