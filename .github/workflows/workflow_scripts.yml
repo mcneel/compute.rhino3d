@@ -23,7 +23,7 @@ jobs:
       id-token: write
     env:
       BUCKET: compute-installer
-      SCRIPTS_URL: https://d14rasnu1ewozd.cloudfront.net
+      SCRIPTS_URL: https://get.compute.rhino3d.com
     steps:
       - name: checkout
         uses: actions/checkout@v6
