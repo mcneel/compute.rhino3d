@@ -16,6 +16,7 @@ param (
     # Reinstall the compute build and Hops even when they're current.
     [switch] $Force,
     # Which Rhino this server runs; bootstrap.ps1 recorded it, so it's only needed on servers set up before that.
+    # It can't move a server to another Rhino.
     [ValidateSet("7", "8", "9")][string] $RhinoVersion,
     # Rhino's download link asks for one; the bootstrap's is used when this isn't passed.
     [string] $EmailAddress
@@ -856,8 +857,16 @@ try {
         try { $settings = Get-Content $settingsFile -Raw | ConvertFrom-Json }
         catch { Write-Warning "Couldn't read ${settingsFile}: $($_.Exception.Message)" }
     }
-    if (-not $RhinoVersion -and $settings -and $rhinoVersions.ContainsKey("$($settings.rhinoVersion)")) { $RhinoVersion = "$($settings.rhinoVersion)" }
-    if (-not $RhinoVersion) { $RhinoVersion = Find-RhinoVersion }
+    $recordedVersion = if ($settings -and $rhinoVersions.ContainsKey("$($settings.rhinoVersion)")) { "$($settings.rhinoVersion)" }
+    if ($RhinoVersion -and $recordedVersion -and $RhinoVersion -ne $recordedVersion) {
+        throw "This server was set up for Rhino $recordedVersion, and the update keeps it on Rhino $recordedVersion. To move to Rhino $RhinoVersion, set up a new server with the bootstrap script."
+    }
+    if (-not $RhinoVersion) { $RhinoVersion = if ($recordedVersion) { $recordedVersion } else { Find-RhinoVersion } }
+    # Without its Rhino, a compute build for it can't start.
+    if (-not (Get-InstalledRhinoVersion $RhinoVersion)) {
+        if ($recordedVersion) { throw "Rhino $RhinoVersion isn't installed. Run the bootstrap script again to put it back." }
+        throw "Rhino $RhinoVersion isn't installed. The update keeps a server on the Rhino it runs; to move to Rhino $RhinoVersion, set up a new server with the bootstrap script."
+    }
     Write-Host "This server runs Rhino $RhinoVersion."
     if ($rhinoVersions[$RhinoVersion].Warning) { Write-Warning $rhinoVersions[$RhinoVersion].Warning }
     Show-Installed
