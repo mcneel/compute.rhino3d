@@ -1454,16 +1454,16 @@ namespace Hops
                     }
                     break;
                 case GH_ParamAccess.tree:
-                    if (DA.GetDataTree(inputName, out GH_Structure<IGH_Goo> tree))
+                    // GetDataTree only hands out the input's own structure type (GH_Structure<GH_Number>,
+                    // <ModelObject>, ...), never GH_Structure<IGH_Goo>, so read the input's data directly.
+                    if (paramIndex > -1)
                     {
-                        foreach (var treePath in tree.Paths)
+                        var data = component.Params.Input[paramIndex.Value].VolatileData;
+                        foreach (var treePath in data.Paths)
                         {
-                            path = treePath;
-                            var items = tree[treePath];
-                            foreach (var item in items)
-                            {
-                                dataTree.Append(item, path);
-                            }
+                            var branch = dataTree.EnsurePath(treePath);
+                            foreach (var item in data.get_Branch(treePath))
+                                branch.Add(item as IGH_Goo);
                         }
                     }
                     break;
