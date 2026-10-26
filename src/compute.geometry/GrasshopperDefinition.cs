@@ -692,10 +692,13 @@ namespace compute.geometry
 
                 if (format == SchemaDataFormat.Grasshopper)
                 {
+                    // Branch by branch, so the answer keeps the output's tree, empty branches and null items included.
                     var data = new GH_Structure<IGH_Goo>();
-                    foreach (var item in param.VolatileData.AllData(false))
+                    foreach (var path in param.VolatileData.Paths)
                     {
-                        data.Append(item);
+                        var branch = data.EnsurePath(path);
+                        foreach (var item in param.VolatileData.get_Branch(path))
+                            branch.Add(item as IGH_Goo);
                     }
 
                     outputSchema.GrasshopperValues.Values.Add(kvp.Key, data);
