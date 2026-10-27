@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.18.0] - 2026-10-26
+## [9.0.0] - 2026-10-27
 
 ### Added
 
@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Both sides need Rhino 9, because the format relies on changes to how Grasshopper in Rhino 9 saves data.
     - Model objects that reference the Rhino document are sent as copies, since the server doesn't have the document.
     - The Hops component can now show Model Object inputs and outputs.
+
+### Changed
+
+- Hops version numbers now start with the version of Rhino they're designed to work with, so this release, the first for Rhino 9, is 9.0.0 rather than 0.18.0. 
 
 ## [0.17.1] - 2026-10-13
 
