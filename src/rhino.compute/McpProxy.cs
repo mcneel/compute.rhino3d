@@ -62,14 +62,15 @@ namespace rhino.compute
         sealed class McpSession
         {
             public string Id;
-            public int ChildPort;      // the compute.geometry child hosting the document
+            public int ChildPort;      // the compute.geometry child hosting the document...
+            public int ChildPid;       // ...and its process id: a replacement child reuses the port
             public int ListenerPort;   // the document's listener in that child
             public DateTime LastSeen;
         }
 
         static HttpClient client;
         static readonly ConcurrentDictionary<string, McpSession> sessions = new ConcurrentDictionary<string, McpSession>(StringComparer.Ordinal);
-        // Child port -> that child's startup-document listener, once it has answered a ping.
+        // Child process id -> that child's startup-document listener, once it has answered a ping.
         static readonly ConcurrentDictionary<int, int> baseListeners = new ConcurrentDictionary<int, int>();
         // The plug-in's listener table is not thread-safe on a headless host: one control call at a time.
         static readonly SemaphoreSlim controlLock = new SemaphoreSlim(1, 1);
@@ -204,7 +205,7 @@ namespace rhino.compute
                 if (sessionId != null)
                 {
                     // 404 is the spec's signal to start over with a new initialize.
-                    if (!sessions.TryGetValue(sessionId, out session) || !ComputeChildren.TryLeaseChild(session.ChildPort, out lease))
+                    if (!sessions.TryGetValue(sessionId, out session) || !ComputeChildren.TryLeaseChild(session.ChildPort, session.ChildPid, out lease))
                     {
                         if (session != null && sessions.TryRemove(sessionId, out _))
                             Log.Information("MCP session {Session} dropped: its compute.geometry child on port {Port} is gone", Abbrev(sessionId), session.ChildPort);
@@ -231,7 +232,8 @@ namespace rhino.compute
                         return;
                     }
 
-                    int basePort = await WaitForBaseListenerAsync(lease.Port, ct);
+                    int childPid = ComputeChildren.ChildProcessId(lease.Port);
+                    int basePort = childPid == 0 ? 0 : await WaitForBaseListenerAsync(lease.Port, childPid, ct);
                     if (basePort == 0)
                     {
                         await WriteRpcErrorAsync(res, StatusCodes.Status503ServiceUnavailable, requestId, -32000,
@@ -270,6 +272,7 @@ namespace rhino.compute
                         {
                             Id = NewSessionId(),
                             ChildPort = lease.Port,
+                            ChildPid = childPid,
                             ListenerPort = port,
                             LastSeen = DateTime.Now,
                         };
@@ -323,7 +326,7 @@ namespace rhino.compute
                 if (newSession)
                     sessions.TryRemove(session.Id, out _);
                 if (lease != null)
-                    baseListeners.TryRemove(lease.Port, out _);
+                    baseListeners.TryRemove(ComputeChildren.ChildProcessId(lease.Port), out _);
                 await WriteRpcErrorAsync(res, StatusCodes.Status502BadGateway, requestId, -32000,
                     $"compute.geometry did not answer: {ex.Message}");
             }
@@ -336,9 +339,9 @@ namespace rhino.compute
         // ---------------------------------------------------------------- listeners
 
         // The child's startup-document listener, waiting for it after a fresh spawn.
-        static async Task<int> WaitForBaseListenerAsync(int childPort, CancellationToken ct)
+        static async Task<int> WaitForBaseListenerAsync(int childPort, int childPid, CancellationToken ct)
         {
-            if (baseListeners.TryGetValue(childPort, out int known))
+            if (baseListeners.TryGetValue(childPid, out int known))
                 return known;
 
             int expected = ListenerPortFor(childPort);
@@ -352,11 +355,11 @@ namespace rhino.compute
             while (DateTime.Now < deadline)
             {
                 ct.ThrowIfCancellationRequested();
-                if (!ComputeChildren.IsChildAlive(childPort))
+                if (!ComputeChildren.IsChildAlive(childPort, childPid))
                     return 0;
                 if (await PingAsync(expected, ct))
                 {
-                    baseListeners[childPort] = expected;
+                    baseListeners[childPid] = expected;
                     return expected;
                 }
                 await Task.Delay(1000, ct);
@@ -408,7 +411,7 @@ namespace rhino.compute
         {
             Log.Information("MCP session {Session} closed ({Reason}); {Count} open", Abbrev(session.Id), reason, sessions.Count);
             // The document dies with its child; only a live child needs telling.
-            if (!baseListeners.TryGetValue(session.ChildPort, out int basePort) || !ComputeChildren.IsChildAlive(session.ChildPort))
+            if (!baseListeners.TryGetValue(session.ChildPid, out int basePort) || !ComputeChildren.IsChildAlive(session.ChildPort, session.ChildPid))
                 return;
             await controlLock.WaitAsync(ct);
             try
@@ -447,17 +450,19 @@ namespace rhino.compute
 
         static async Task HousekeepAsync()
         {
-            foreach (int childPort in baseListeners.Keys.ToArray())
+            foreach (var entry in baseListeners.ToArray())
             {
-                if (!ComputeChildren.IsChildAlive(childPort))
-                    baseListeners.TryRemove(childPort, out _);
+                // Key is the child's process id; the listener port tells us which child port it had.
+                int childPort = FirstChildPort + (entry.Value - Config.McpPort) / PortsPerChild;
+                if (!ComputeChildren.IsChildAlive(childPort, entry.Key))
+                    baseListeners.TryRemove(entry.Key, out _);
             }
 
             var now = DateTime.Now;
             var timeout = TimeSpan.FromSeconds(Config.McpSessionTimeout);
             foreach (var session in sessions.Values.ToArray())
             {
-                if (!ComputeChildren.IsChildAlive(session.ChildPort))
+                if (!ComputeChildren.IsChildAlive(session.ChildPort, session.ChildPid))
                 {
                     if (sessions.TryRemove(session.Id, out _))
                         Log.Information("MCP session {Session} dropped: its compute.geometry child on port {Port} is gone", Abbrev(session.Id), session.ChildPort);

@@ -112,15 +112,17 @@ namespace rhino.compute
 
         /// <summary>
         /// Lease one particular child, for requests bound to it (an MCP session's document
-        /// lives in one child). False when that child is no longer in the pool.
+        /// lives in one child). The child is identified by port and process id: a replacement
+        /// child reuses the port, and a request bound to the old one must not reach it.
+        /// False when that child is no longer in the pool.
         /// </summary>
-        public static bool TryLeaseChild(int port, out ChildLease lease)
+        public static bool TryLeaseChild(int port, int processId, out ChildLease lease)
         {
             lease = null;
             lock (lockObject)
             {
                 var child = computeProcesses.FirstOrDefault(t => t.Item2 == port);
-                if (child == null || child.Item1.HasExited)
+                if (child == null || child.Item1.Id != processId || child.Item1.HasExited)
                     return false;
                 activeRequests.TryGetValue(port, out int count);
                 activeRequests[port] = count + 1;
@@ -129,11 +131,21 @@ namespace rhino.compute
             return true;
         }
 
-        /// <summary>True while the child on this port is in the pool and running.</summary>
-        public static bool IsChildAlive(int port)
+        /// <summary>True while this child (port and process id) is in the pool and running.</summary>
+        public static bool IsChildAlive(int port, int processId)
         {
             lock (lockObject)
-                return computeProcesses.Any(t => t.Item2 == port && !t.Item1.HasExited);
+                return computeProcesses.Any(t => t.Item2 == port && t.Item1.Id == processId && !t.Item1.HasExited);
+        }
+
+        /// <summary>Process id of the pooled child on this port, 0 when there is none.</summary>
+        public static int ChildProcessId(int port)
+        {
+            lock (lockObject)
+            {
+                var child = computeProcesses.FirstOrDefault(t => t.Item2 == port);
+                return child == null || child.Item1.HasExited ? 0 : child.Item1.Id;
+            }
         }
 
         public sealed class ChildLease : IDisposable
