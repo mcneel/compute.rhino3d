@@ -110,6 +110,44 @@ namespace rhino.compute
             return new ChildLease(url, port);
         }
 
+        /// <summary>
+        /// Lease one particular child, for requests bound to it (an MCP session's document
+        /// lives in one child). The child is identified by port and process id: a replacement
+        /// child reuses the port, and a request bound to the old one must not reach it.
+        /// False when that child is no longer in the pool.
+        /// </summary>
+        public static bool TryLeaseChild(int port, int processId, out ChildLease lease)
+        {
+            lease = null;
+            lock (lockObject)
+            {
+                var child = computeProcesses.FirstOrDefault(t => t.Item2 == port);
+                if (child == null || child.Item1.Id != processId || child.Item1.HasExited)
+                    return false;
+                activeRequests.TryGetValue(port, out int count);
+                activeRequests[port] = count + 1;
+            }
+            lease = new ChildLease($"http://localhost:{port}", port);
+            return true;
+        }
+
+        /// <summary>True while this child (port and process id) is in the pool and running.</summary>
+        public static bool IsChildAlive(int port, int processId)
+        {
+            lock (lockObject)
+                return computeProcesses.Any(t => t.Item2 == port && t.Item1.Id == processId && !t.Item1.HasExited);
+        }
+
+        /// <summary>Process id of the pooled child on this port, 0 when there is none.</summary>
+        public static int ChildProcessId(int port)
+        {
+            lock (lockObject)
+            {
+                var child = computeProcesses.FirstOrDefault(t => t.Item2 == port);
+                return child == null || child.Item1.HasExited ? 0 : child.Item1.Id;
+            }
+        }
+
         public sealed class ChildLease : IDisposable
         {
             bool released;
@@ -427,6 +465,13 @@ namespace rhino.compute
         {
             var startInfo = new ProcessStartInfo(pathToCompute);
             startInfo.EnvironmentVariables["ASPNETCORE_HOSTINGSTARTUPASSEMBLIES"] = "";
+            // The RhinoAI plug-in binds its MCP listener on this port. One per child, derived
+            // from the child's own port, so /mcp knows where each child's listener is.
+            int mcpListenerPort = Config.McpEnabled ? McpProxyModule.ListenerPortFor(port) : 0;
+            if (mcpListenerPort > 0)
+                startInfo.Environment[McpProxyModule.ListenerPortEnvVar] = mcpListenerPort.ToString(CultureInfo.InvariantCulture);
+            else
+                startInfo.Environment.Remove(McpProxyModule.ListenerPortEnvVar);
             // Redirect the child's stdout/stderr so we can re-emit them through the parent's
             // single Console.Out. Multiple children writing to the OS stdout handle directly
             // would interleave at byte level (visible when SpawnCount >= 3 spawns siblings in

@@ -135,6 +135,26 @@ All rhino-compute command-line options can be used in the systemd service:
 - `--max-request-size <bytes>`: Max request body size (default: 52428800)
 - `--load-grasshopper <true|false>`: Load Grasshopper plugin (default: true)
 
+## MCP Endpoint
+
+With `RHINO_MCP_AUTOSTART_PORT` set in `/etc/rhino-compute/environment`, rhino.compute serves the
+RhinoAI MCP server at `POST /mcp` (MCP Streamable HTTP, JSON responses only, no SSE stream; `GET /mcp`
+answers 405). Point an MCP client at `http://<host>:5000/mcp` and send `RhinoComputeKey` as a header.
+Each compute.geometry child binds its listeners on loopback in a block of 100 ports (first child at
+that port, second at +100, ...), so the range `port .. port + 100 * childcount` must be free.
+
+- `initialize` without an `Mcp-Session-Id` header opens a session: a fresh headless document in one of
+  the pool's compute.geometry children (started on demand like any other request), with the id returned
+  in the `Mcp-Session-Id` response header. Send that header on every later request; each session only
+  sees its own document.
+- `DELETE /mcp` with the header closes the session and its document. Sessions idle longer than
+  `RHINO_COMPUTE_MCP_SESSION_TIMEOUT` seconds (default 3600) are closed as well.
+- MCP requests count as activity for `--idlespan`. When the pool has been idle for that long, or on
+  `/recycle-children`, the children exit and take their sessions with them; an unknown or expired id
+  answers 404 and the client starts a new session with `initialize`.
+- Requests without a session header go to a round-robin child's shared startup document.
+- Documents are in-memory only: use the `save_doc` tool before closing a session.
+
 ## Security Considerations
 
 The service runs as a dedicated `rhino-compute` user with limited privileges:
