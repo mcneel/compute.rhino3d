@@ -1,4 +1,4 @@
-namespace rhino.compute
+﻿namespace rhino.compute
 {
     using System;
     using Microsoft.AspNetCore.Hosting;
@@ -256,6 +256,9 @@ requests while the child processes are launching.")]
             bool blockPrivateUrls = Boolean.TryParse(Environment.GetEnvironmentVariable("RHINO_COMPUTE_BLOCK_PRIVATE_URLS"), out var blockPrivate) && blockPrivate;
             Log.Debug("  Block Private URLs = {BlockPrivateUrls}", blockPrivateUrls.ToString());
             Log.Debug("  Compression = {Compression}", Config.Compression.ToString());
+            Log.Debug("  MCP = {Mcp}", Config.McpEnabled
+                ? $"on (listener port {Config.McpPort}, session timeout {FormatTimeout(Config.McpSessionTimeout)}, max sessions {Config.McpMaxSessions})"
+                : "off (set RHINO_MCP_AUTOSTART_PORT to serve POST /mcp)");
             Log.Debug("  Log Level = {LogLevel}", Config.LogLevel);
             Log.Debug("  Log Path = {LogPath}", Config.LogPath);
 

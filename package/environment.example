@@ -19,6 +19,15 @@ RHINO_COMPUTE_CREATE_HEADLESS_DOC=true
 # RHINO_COMPUTE_MAX_REQUEST_SIZE=52428800
 # RHINO_COMPUTE_TIMEOUT=100
 
+# Optional: serve the RhinoAI MCP server at POST /mcp (Streamable HTTP, JSON responses).
+# Each compute.geometry child binds its MCP listeners on loopback in a block of 100 ports starting
+# here (first child = this port, second = +100, ...), so keep that range free. Leave unset to keep /mcp off.
+# RHINO_MCP_AUTOSTART_PORT=10500
+# Seconds an MCP session (one headless document in a child) may sit idle before it is closed (default 3600)
+# RHINO_COMPUTE_MCP_SESSION_TIMEOUT=3600
+# Maximum concurrent MCP sessions (default 32)
+# RHINO_COMPUTE_MCP_MAX_SESSIONS=32
+
 # Optional: Write out logs
 RHINO_COMPUTE_LOG_PATH=/var/log/rhino-compute
 # RHINO_COMPUTE_LOG_RETAIN_DAYS=30

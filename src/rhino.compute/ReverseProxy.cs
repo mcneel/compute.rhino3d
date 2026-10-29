@@ -126,6 +126,10 @@ namespace rhino.compute
                 });
             });
 
+            // The MCP server: session routing onto pool children. Registered before the
+            // catch-all so /mcp is not forwarded verbatim to a round-robin child.
+            McpProxyModule.MapEndpoints(app);
+
             // routes that are proxied to compute.geometry
             app.MapGet("/{*uri}", ReverseProxyGet);
             app.MapPost("/grasshopper", ReverseProxyPost);
@@ -292,7 +296,7 @@ namespace rhino.compute
             }
         }
 
-        static async Task AwaitInitTask()
+        internal static async Task AwaitInitTask()
         {
             var task = initTask;
             if (task == null)

@@ -59,6 +59,27 @@ namespace rhino.compute
         public static bool Compression { get; private set; }
 
         /// <summary>
+        /// RHINO_MCP_AUTOSTART_PORT: turns on the /mcp route. The value is the loopback port the
+        /// dedicated MCP child's RhinoAI listener is asked to bind; the plug-in reads the same
+        /// variable. Unset or 0: /mcp is off and no child starts an MCP listener.
+        /// </summary>
+        public static int McpPort { get; private set; }
+
+        /// <summary>True when <see cref="McpPort"/> is set, i.e. POST /mcp is served.</summary>
+        public static bool McpEnabled => McpPort > 0;
+
+        /// <summary>
+        /// RHINO_COMPUTE_MCP_SESSION_TIMEOUT: seconds an MCP session (one headless document in
+        /// the MCP child) may sit idle before it is closed. Default 3600.
+        /// </summary>
+        public static int McpSessionTimeout { get; private set; }
+
+        /// <summary>
+        /// RHINO_COMPUTE_MCP_MAX_SESSIONS: cap on concurrent MCP sessions. Default 32.
+        /// </summary>
+        public static int McpMaxSessions { get; private set; }
+
+        /// <summary>
         /// Loads config from environment variables (or uses defaults).
         /// </summary>
         public static void Load()
@@ -70,6 +91,15 @@ namespace rhino.compute
             LogRetainDays = GetEnvironmentVariable(RHINO_COMPUTE_LOG_RETAIN_DAYS, 10);
 
             Compression = GetEnvironmentVariable(RHINO_COMPUTE_COMPRESSION, true);
+
+            McpPort = GetEnvironmentVariable(RHINO_MCP_AUTOSTART_PORT, 0);
+            if (McpPort < 0 || McpPort > 65535)
+            {
+                warnings.Add($"{RHINO_MCP_AUTOSTART_PORT} set to '{McpPort}'; use a port in range 1-65535. /mcp is off.");
+                McpPort = 0;
+            }
+            McpSessionTimeout = GetEnvironmentVariable(RHINO_COMPUTE_MCP_SESSION_TIMEOUT, 3600);
+            McpMaxSessions = GetEnvironmentVariable(RHINO_COMPUTE_MCP_MAX_SESSIONS, 32);
 
 #if DEBUG
             Debug = true;
@@ -90,6 +120,11 @@ namespace rhino.compute
         const string RHINO_COMPUTE_DEBUG = "RHINO_COMPUTE_DEBUG";
         const string RHINO_COMPUTE_LOG_LEVEL = "RHINO_COMPUTE_LOG_LEVEL";
         const string RHINO_COMPUTE_COMPRESSION = "RHINO_COMPUTE_COMPRESSION";
+        // Shared with the RhinoAI plug-in (MCPSpawnCommand.PortEnvVar): it is the variable the
+        // plug-in reads to start its listener, so one setting opts the whole stack in.
+        const string RHINO_MCP_AUTOSTART_PORT = "RHINO_MCP_AUTOSTART_PORT";
+        const string RHINO_COMPUTE_MCP_SESSION_TIMEOUT = "RHINO_COMPUTE_MCP_SESSION_TIMEOUT";
+        const string RHINO_COMPUTE_MCP_MAX_SESSIONS = "RHINO_COMPUTE_MCP_MAX_SESSIONS";
 
         readonly static List<string> warnings = new List<string>();
 
