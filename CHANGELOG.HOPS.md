@@ -4,11 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.17.2] - 2026-10-30
 
 ### Added
 
 - New `RHINO_COMPUTE_LOG_LEVEL` environment variable (`Verbose`, `Debug`, `Information`, `Warning`, `Error` or `Fatal`) sets how much rhino.compute, compute.geometry and Hops write to their logs. Unlike `RHINO_COMPUTE_DEBUG`, it doesn't change what callers get back (stack traces in errors, Grasshopper warnings in answers). At `Debug`, the logs also record each definition's Grasshopper warnings and remarks.
+
+### Security
+
+- rhino.compute now ships with .NET 10.0.14 instead of .NET 8.0.0, which fixes a Brotli decompression vulnerability (CVE-2026-111497) in the runtime it bundled. compute.geometry is unchanged and still runs on the .NET installed on the computer.
+- rhino.compute and compute.geometry now accept only gzip-compressed uploads. Uploads compressed any other way, such as with Brotli, are no longer unpacked.
 
 ## [0.17.1] - 2026-10-13
 
