@@ -31,8 +31,10 @@
 
             [Option("childcount",
              Required = false,
-             HelpText = "Number of child compute.geometry processes to manage")]
-            public int ChildCount { get; set; } = 4;
+             HelpText = "Number of child compute.geometry processes to manage (default 4). Also settable " +
+                        "via RHINO_COMPUTE_CHILDCOUNT, which can be changed on an already-deployed server " +
+                        "without editing web.config.")]
+            public int ChildCount { get; set; } = -1;
 
             [Option("childof",
              Required = false,
@@ -54,12 +56,13 @@ of this handle and will shut down when this process has exited")]
             [Option("idlespan",
              Required = false,
              HelpText =
-@"Seconds that child compute.geometry processes should remain open between requests. (Default 1 hour)
+@"Seconds that child compute.geometry processes should remain open between requests. (Default 3600 = 1 hour)
 When rhino.compute.exe does not receive requests to solve over a period of 'idlespan' seconds, child
 compute.geometry.exe processes will shut down and stop incurring core hour billing. At some date in the
 future when a new request is received, the child processes will be relaunched which will cause a delay on
-requests while the child processes are launching.")]
-            public int IdleSpanSeconds { get; set; } = 60 * 60;
+requests while the child processes are launching. Also settable via RHINO_COMPUTE_IDLESPAN, which can be
+changed on an already-deployed server without editing web.config.")]
+            public int IdleSpanSeconds { get; set; } = -1;
             
             [Option("load-grasshopper",
               Required = false,
@@ -98,6 +101,16 @@ requests while the child processes are launching.")]
               HelpText = "Request timeout in seconds (default: 100)")]
             public int TimeoutSeconds { get; set; } = -1;
 
+            [Option("child-startup-timeout",
+              Required = false,
+              HelpText =
+                @"Seconds to wait for a spawned compute.geometry child to open its port before giving up on it
+                (default 300). A child does not listen until Rhino, Grasshopper and the compute plug-ins have all
+                finished loading, so on a cold server this can exceed the default and make the first request fail
+                even though nothing is actually wrong. Also settable via RHINO_COMPUTE_CHILD_STARTUP_TIMEOUT,
+                which can be changed on an already-deployed server without editing web.config.")]
+            public int ChildStartupTimeoutSeconds { get; set; } = -1;
+
             [Option("urls", Required = false, HelpText = "Set the listening URLs for ASP.NET Core (handled by ASP.NET Core, not this app)")]
             public string Urls { get; set; }
 
@@ -109,31 +122,6 @@ requests while the child processes are launching.")]
         public static void Main(string[] args)
         {
             Thread.CurrentThread.CurrentCulture = new CultureInfo("en-US");
-            Config.Load();
-
-            var path = System.IO.Path.Combine(Config.LogPath, "log-rhino-compute-.txt");
-            var limit = Config.LogRetainDays;
-            var level = Config.LogLevel;
-
-            var loggerConfig = new LoggerConfiguration()
-            .MinimumLevel.Is(level)
-            .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-            // Silence ASP.NET Core's built-in "An unhandled exception has occurred while
-            // executing the request." log emitted by ExceptionHandlerMiddleware. Our own
-            // app.UseExceptionHandler handler logs a categorized, formatted version with
-            // the same stack trace, so without this override the same exception shows up
-            // twice on the console.
-            .MinimumLevel.Override("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogEventLevel.Fatal)
-            .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico']")
-            .WriteTo.Console(
-                outputTemplate: "RC  [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
-                theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Literate)
-            .WriteTo.File(new ExpressionTemplate("RC   [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
-            Log.Logger = loggerConfig.CreateLogger();
-
-            // Config.Load() runs before the logger exists, so anything it rejected was buffered; log it now.
-            foreach (var warning in Config.Warnings)
-                Log.Warning("Configuration: {Warning}", warning);
 
             int port = -1;
             Parser.Default.ParseArguments<Options>(args).WithParsed(o =>
@@ -148,6 +136,12 @@ requests while the child processes are launching.")]
                 if (o.TimeoutSeconds > 0)
                     Environment.SetEnvironmentVariable("RHINO_COMPUTE_TIMEOUT", o.TimeoutSeconds.ToString());
 
+                // Only set when the flag was actually passed, so an operator who set
+                // RHINO_COMPUTE_CHILD_STARTUP_TIMEOUT in the environment (the path that
+                // needs no web.config edit) is not silently overridden by the default.
+                if (o.ChildStartupTimeoutSeconds > 0)
+                    Environment.SetEnvironmentVariable("RHINO_COMPUTE_CHILD_STARTUP_TIMEOUT", o.ChildStartupTimeoutSeconds.ToString());
+
                 if (o.LoadGrasshopper.HasValue)
                     Environment.SetEnvironmentVariable("RHINO_COMPUTE_LOAD_GRASSHOPPER", o.LoadGrasshopper.Value ? "true" : "false");
 
@@ -161,20 +155,18 @@ requests while the child processes are launching.")]
                 if (o.BlockPrivateUrls)
                     Environment.SetEnvironmentVariable("RHINO_COMPUTE_BLOCK_PRIVATE_URLS", "true");
 
-                // Set runtime options. ChildCount is capped at ComputeChildren.MaxChildren
-                // (same cap that protects the /launch?children=N endpoint) so the Config
-                // block below prints the actual-effective value and downstream code never
-                // sees an unsafe value.
-                int requestedChildren = o.ChildCount;
-                if (requestedChildren > ComputeChildren.MaxChildren)
-                {
-                    Log.Warning("--childcount capped from {Requested} to {Cap}", requestedChildren, ComputeChildren.MaxChildren);
-                    requestedChildren = ComputeChildren.MaxChildren;
-                }
-                ComputeChildren.SpawnCount = requestedChildren;
+                // --childcount and --idlespan take the same env-var path as
+                // --child-startup-timeout: set the env var from the flag only when it was
+                // actually passed (default is -1), so an operator who set the env var directly
+                // (no web.config edit) is not silently overridden by a default. Config.Load
+                // clamps and resolves the effective value, applied to ComputeChildren below.
+                if (o.ChildCount > 0)
+                    Environment.SetEnvironmentVariable("RHINO_COMPUTE_CHILDCOUNT", o.ChildCount.ToString());
+                if (o.IdleSpanSeconds > 0)
+                    Environment.SetEnvironmentVariable("RHINO_COMPUTE_IDLESPAN", o.IdleSpanSeconds.ToString());
+
                 ComputeChildren.SpawnOnStartup = o.SpawnOnStartup;
                 ComputeChildren.LoadChildrenSequentially = o.LoadChildrenSequentially;
-                ComputeChildren.ChildIdleSpan = new System.TimeSpan(0, 0, o.IdleSpanSeconds);
                 ComputeChildren.RhinoSysDir = o.RhinoSysDir;
                 int parentProcessId = o.ChildOf;
                 if (parentProcessId > 0)
@@ -192,8 +184,40 @@ requests while the child processes are launching.")]
                 Environment.Exit(1);
             });
 
-            // The options above set environment variables (--apikey, --timeout, --max-request-size), so load again.
+            // Now load config (will use environment variables set above)
             Config.Load();
+
+            // Apply the child-pool settings Config.Load resolved (flag -> env var -> clamped
+            // default). SpawnCount is already within [1, MaxChildren] and IdleSpan within its
+            // bounds, so downstream code never sees an unsafe value.
+            ComputeChildren.SpawnCount = Config.ChildCount;
+            ComputeChildren.ChildIdleSpan = System.TimeSpan.FromSeconds(Config.IdleSpanSeconds);
+
+            var path = System.IO.Path.Combine(Config.LogPath, "log-rhino-compute-.txt");
+            var limit = Config.LogRetainDays;
+            var level = Config.LogLevel;
+
+            var loggerConfig = new LoggerConfiguration()
+                .MinimumLevel.Is(level)
+                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+                // Silence ASP.NET Core's built-in "An unhandled exception has occurred while
+                // executing the request." log emitted by ExceptionHandlerMiddleware. Our own
+                // app.UseExceptionHandler handler logs a categorized, formatted version with
+                // the same stack trace, so without this override the same exception shows up
+                // twice on the console.
+                .MinimumLevel.Override("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogEventLevel.Fatal)
+                .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico']")
+                .WriteTo.Console(
+                    outputTemplate: "RC  [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
+                    theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Literate)
+                .WriteTo.File(new ExpressionTemplate("RC   [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
+            Log.Logger = loggerConfig.CreateLogger();
+
+            // Config.Load() runs before the logger exists, so anything it rejected
+            // (unparseable or out-of-range env vars) was buffered. Emit it now —
+            // otherwise an operator who typos a value gets silent fallback behaviour.
+            foreach (var warning in Config.Warnings)
+                Log.Warning("Configuration: {Warning}", warning);
 
             var host = Host.CreateDefaultBuilder(args)
                 .UseSerilog()
@@ -235,6 +259,14 @@ requests while the child processes are launching.")]
             if (string.IsNullOrWhiteSpace(Config.ApiKey))
                 Log.Warning("RHINO_COMPUTE_KEY is not set; API authentication is disabled. All endpoints are open to any caller.");
 
+            // The full config dump below is Debug-level, which is off in production — but a
+            // tuned child startup timeout is exactly the sort of thing you need to see in a
+            // production log when diagnosing first-call failures. Announce it at Information
+            // when it differs from the default, and stay quiet when it does not.
+            if (Config.ChildStartupTimeout != Config.DefaultChildStartupTimeout)
+                Log.Information("Child startup timeout is {Timeout} (default is {Default})",
+                    FormatTimeout(Config.ChildStartupTimeout), FormatTimeout(Config.DefaultChildStartupTimeout));
+
             if (Config.Compression)
                 Log.Information("Compression is on: gzip request bodies are accepted, and answers of {Minimum} bytes or more are gzipped for clients that ask (RHINO_COMPUTE_COMPRESSION=false turns it off)",
                     Compute.Http.CompressionMiddleware.MinimumBytes);
@@ -244,6 +276,7 @@ requests while the child processes are launching.")]
             Log.Debug($"Config:");
             Log.Debug("  Max Request Size = {RequestSize}", (Config.MaxRequestSize / 1024.0 / 1024.0).ToString("F2") + " MB");
             Log.Debug("  Timeout = {Timeout}", FormatTimeout(Config.ReverseProxyRequestTimeout));
+            Log.Debug("  Child Startup Timeout = {ChildStartupTimeout}", FormatTimeout(Config.ChildStartupTimeout));
             Log.Debug("  Child Count = {ChildCount}", ComputeChildren.SpawnCount.ToString());
             Log.Debug("  Spawn Children At Startup = {SpawnChild}", ComputeChildren.SpawnOnStartup.ToString());
             Log.Debug("  Load Children Sequentially = {LoadSequentially}", ComputeChildren.LoadChildrenSequentially.ToString());

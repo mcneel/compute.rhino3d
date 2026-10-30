@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [9.0.1] - 2026-10-30
+
+### Fixed
+
+- rhino.compute no longer sends requests to a compute.geometry child whose Rhino failed to start, for example because of a licensing problem. Such a child kept running and answered every request with an "An error occurred while starting the application" page until the server was restarted. rhino.compute now checks each new child's `/healthcheck` before using it, stops a child that fails, logs why, and starts a replacement with the next request.
+
+### Security
+
+- rhino.compute now ships with .NET 10.0.14, which fixes a Brotli decompression vulnerability (CVE-2026-111497) in the .NET 10.0.0 runtime it bundled.
+- rhino.compute and compute.geometry now accept only gzip-compressed uploads. Uploads compressed any other way, such as with Brotli, are no longer unpacked.
+
 ## [9.0.0] - 2026-10-27
 
 ### Added

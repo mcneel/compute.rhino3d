@@ -3,7 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <AssemblyName>rhino.compute</AssemblyName>
     <OutputType>Exe</OutputType>
-    <RuntimeFrameworkVersion>10.0.0</RuntimeFrameworkVersion>
+    <RuntimeFrameworkVersion>10.0.14</RuntimeFrameworkVersion>
     <RollForward>Major</RollForward>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <ApplicationIcon>favicon.ico</ApplicationIcon>

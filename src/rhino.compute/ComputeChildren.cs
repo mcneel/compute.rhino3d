@@ -226,7 +226,10 @@ namespace rhino.compute
             {
                 // Bootstrap: no running children — launch one synchronously (outside the lock
                 // so we don't hold lockObject for the full startup wait) then pick it up.
-                LaunchCompute();
+                // bootstrapOnly so a concurrent caller (typically a client retrying during a
+                // slow cold load) joins this spawn via the Monitor.Wait below rather than
+                // starting a second parallel Rhino load.
+                LaunchCompute(bootstrapOnly: true);
 
                 lock (lockObject)
                 {
@@ -294,7 +297,19 @@ namespace rhino.compute
             }
         }
 
-        public static void LaunchCompute()
+        /// <summary>
+        /// Spawn one compute.geometry child up to the SpawnCount cap. Reserves a port under a
+        /// brief lock, performs the actual Process.Start + startup wait outside the lock (so
+        /// other threads can continue serving requests through already-ready children), then
+        /// re-locks to enqueue. Cleans up the port reservation on failure. No-op when the pool
+        /// is already at or above SpawnCount.
+        /// <para>When <paramref name="bootstrapOnly"/> is true (the cold-start path in
+        /// <see cref="GetComputeServerBaseUrl"/>), spawns only when the pool AND the pending
+        /// set are completely empty, so concurrent first-request callers join the one in-flight
+        /// spawn (via the Monitor.Wait in GetComputeServerBaseUrl) instead of each starting a
+        /// parallel Rhino load that would contend for first-touch disk I/O on a cold instance.</para>
+        /// </summary>
+        public static void LaunchCompute(bool bootstrapOnly = false)
         {
             // Resolve path before acquiring the lock to keep lock duration short.
             string pathToCompute = FindComputeExecutablePath();
@@ -308,7 +323,11 @@ namespace rhino.compute
             int port;
             lock (lockObject)
             {
-                if (computeProcesses.Count + pendingSpawnPorts.Count >= SpawnCount)
+                // Check + reserve under the one lock so there is no check-then-act race:
+                // bootstrapOnly spawns only into a completely empty pool (join semantics);
+                // the normal top-up path fills up to SpawnCount.
+                int inFlight = computeProcesses.Count + pendingSpawnPorts.Count;
+                if (inFlight >= (bootstrapOnly ? 1 : SpawnCount))
                     return;
 
                 var usedPorts = new HashSet<int>(computeProcesses.Select(t => t.Item2));
@@ -329,11 +348,11 @@ namespace rhino.compute
         static void StartChildOnReservedPort(string pathToCompute, int port)
         {
             Process process = null;
-            bool started = false;
+            var startup = ChildStartup.Failed;
             bool errored = false;
             try
             {
-                started = TryStartChild(pathToCompute, port, out process);
+                startup = StartChild(pathToCompute, port, out process);
             }
             catch (Exception ex) when (ex is System.ComponentModel.Win32Exception ||
                                        ex is InvalidOperationException)
@@ -343,6 +362,7 @@ namespace rhino.compute
             }
             finally
             {
+                bool started = startup == ChildStartup.Ready;
                 bool cancelled;
                 lock (lockObject)
                 {
@@ -360,9 +380,13 @@ namespace rhino.compute
                     if (process != null)
                         KillStartingChild(process, port);
                 }
-                else if (!started && !errored)
+                else if (startup == ChildStartup.Failed && !errored)
                 {
-                    Log.Warning("compute.geometry on port {Port} failed to start within 60 seconds", port);
+                    Log.Warning("compute.geometry on port {Port} failed to start within {Timeout} seconds. " +
+                                "A cold server can legitimately need longer than this to load Rhino, Grasshopper " +
+                                "and the compute plug-ins; raise --child-startup-timeout or " +
+                                "RHINO_COMPUTE_CHILD_STARTUP_TIMEOUT if that is the case here.",
+                                port, Config.ChildStartupTimeout);
                 }
             }
         }
@@ -393,9 +417,12 @@ namespace rhino.compute
             return path;
         }
 
+        // How a child's startup ended. Unhealthy: its port opened, but Rhino didn't load.
+        enum ChildStartup { Ready, Unhealthy, Failed }
+
         // Shared helper: creates the start info, starts the process on the given port, and waits
-        // for the port to open. Returns true on success, false if the port never opened (timeout).
-        static bool TryStartChild(string pathToCompute, int port, out Process process)
+        // for it to be ready (see WaitForChildProcess).
+        static ChildStartup StartChild(string pathToCompute, int port, out Process process)
         {
             var startInfo = CreateComputeStartInfo(pathToCompute, port);
             process = Process.Start(startInfo);
@@ -428,7 +455,7 @@ namespace rhino.compute
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
             }
-            return WaitForChildProcess(process, port);
+            return WaitForChildProcess(process, port, Config.ChildStartupTimeout);
         }
 
         // Wraps raw stdout/stderr lines from child processes (e.g. Grasshopper's plugin-load
@@ -501,27 +528,57 @@ namespace rhino.compute
             return startInfo;
         }
 
-        // Polls until the child process port is confirmed open, or kills the process after timeout.
-        // Returns true if the port opened within the timeout, false otherwise.
-        static bool WaitForChildProcess(Process process, int port, int timeoutSeconds = 60)
+        // Polls until the child's port is open and its /healthcheck answers 200, or kills the process
+        // after timeout. A child whose Rhino failed to load still opens its port, but answers 500.
+        // timeoutSeconds is deliberately required rather than defaulted: the only call site
+        // passes Config.ChildStartupTimeout, and a default here would silently reintroduce a
+        // hardcoded value for any future caller that forgot to pass one.
+        static ChildStartup WaitForChildProcess(Process process, int port, int timeoutSeconds)
         {
             var start = DateTime.Now;
             while (true)
             {
                 if (process == null || process.HasExited)
-                    return false;
+                    return ChildStartup.Failed;
 
                 if (IsPortOpen(port))
-                    return true;
+                {
+                    int status = HealthStatus(port);
+                    if (status == 200)
+                        return ChildStartup.Ready;
+                    if (status != 0)
+                    {
+                        Log.Error("compute.geometry on port {Port} started, but its /healthcheck answered {Status}, so Rhino most likely " +
+                                  "failed to load (its log has the reason). Stopping it so it isn't sent requests.", port, status);
+                        KillStartingChild(process, port);
+                        return ChildStartup.Unhealthy;
+                    }
+                }
 
                 if ((DateTime.Now - start).TotalSeconds > timeoutSeconds)
                 {
                     try { process.Kill(); } catch (Exception ex) { Log.Debug(ex, "Exception killing timed-out compute.geometry process on port {Port}", port); }
                     process.Dispose();
-                    return false;
+                    return ChildStartup.Failed;
                 }
 
                 Thread.Sleep(100);
+            }
+        }
+
+        static readonly HttpClient healthClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+
+        // The child's /healthcheck status code, or 0 when it didn't answer.
+        static int HealthStatus(int port)
+        {
+            try
+            {
+                using var response = healthClient.GetAsync($"http://localhost:{port}/healthcheck").GetAwaiter().GetResult();
+                return (int)response.StatusCode;
+            }
+            catch (Exception ex) when (ex is HttpRequestException || ex is OperationCanceledException)
+            {
+                return 0;
             }
         }
 
@@ -816,7 +873,7 @@ namespace rhino.compute
             {
                 if (!computeProcesses.Any(t => t.Item2 == port))
                     throw new InvalidOperationException(
-                        $"Failed to spawn child on port {port} (startup timed out or process exited).");
+                        $"Failed to spawn child on port {port} (startup timed out, the process exited, or Rhino failed to load).");
             }
             return port;
         }
