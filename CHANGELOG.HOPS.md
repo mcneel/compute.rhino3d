@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- rhino.compute no longer sends requests to a compute.geometry child whose Rhino failed to start, for example because of a licensing problem. Such a child kept running and answered every request with an "An error occurred while starting the application" page until the server was restarted. rhino.compute now checks each new child's `/healthcheck` before using it, stops a child that fails, logs why, and starts a replacement with the next request.
+
 ## [9.0.0] - 2026-10-27
 
 ### Added
