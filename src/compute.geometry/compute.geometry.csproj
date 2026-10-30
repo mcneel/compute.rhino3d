@@ -25,6 +25,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <DefineConstants>LINUX</DefineConstants>
     <RuntimeIdentifiers>linux-x64;linux-arm64</RuntimeIdentifiers>
+    <RuntimeFrameworkVersion Condition="'$(SelfContained)' == 'true'">10.0.14</RuntimeFrameworkVersion>
   </PropertyGroup>
 
   <PropertyGroup>
