@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - New `RHINO_COMPUTE_LOG_LEVEL` environment variable (`Verbose`, `Debug`, `Information`, `Warning`, `Error` or `Fatal`) sets how much rhino.compute, compute.geometry and Hops write to their logs. Unlike `RHINO_COMPUTE_DEBUG`, it doesn't change what callers get back (stack traces in errors, Grasshopper warnings in answers). At `Debug`, the logs also record each definition's Grasshopper warnings and remarks.
 
+### Fixed
+
+- rhino.compute no longer sends requests to a compute.geometry child whose Rhino failed to start, for example because of a licensing problem. Such a child kept running and answered every request with an "An error occurred while starting the application" page until the server was restarted. rhino.compute now checks each new child's `/healthcheck` before using it, stops a child that fails, logs why, and starts a replacement with the next request.
+
 ### Security
 
 - rhino.compute now ships with .NET 10.0.14 instead of .NET 8.0.0, which fixes a Brotli decompression vulnerability (CVE-2026-111497) in the runtime it bundled. compute.geometry is unchanged and still runs on the .NET installed on the computer.
