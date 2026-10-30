@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -12,13 +13,21 @@ namespace Compute.Http
 {
     /// <summary>
     /// HTTP compression shared by rhino.compute and compute.geometry, on unless
-    /// RHINO_COMPUTE_COMPRESSION=false: gzip request bodies are accepted, and answers of at least
+    /// RHINO_COMPUTE_COMPRESSION=false: only gzip request bodies are accepted, and answers of at least
     /// <see cref="CompressionMiddleware.MinimumBytes"/> are gzipped for clients that send Accept-Encoding: gzip.
     /// </summary>
     public static class HttpCompression
     {
         public static IServiceCollection AddHttpCompression(this IServiceCollection services)
-            => services.AddRequestDecompression();
+            => services.AddRequestDecompression(options =>
+            {
+                // ASP.NET Core also decodes Brotli and deflate by default; Brotli decoding was CVE-2026-111497.
+                foreach (string encoding in options.DecompressionProviders.Keys.ToList())
+                {
+                    if (!string.Equals(encoding, "gzip", StringComparison.OrdinalIgnoreCase))
+                        options.DecompressionProviders.Remove(encoding);
+                }
+            });
 
         public static IApplicationBuilder UseHttpCompression(this IApplicationBuilder app)
             => app.UseRequestDecompression().UseMiddleware<CompressionMiddleware>();
