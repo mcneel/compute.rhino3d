@@ -227,6 +227,10 @@ changed on an already-deployed server without editing web.config.")]
                     {
                         // Handle requests up to 50 MB
                         options.Limits.MaxRequestBodySize = Config.MaxRequestSize;
+                        // Metadata a client didn't escape is read as UTF-8 rather than refusing the request.
+                        if (ReverseProxyModule.UsageLogPath != null)
+                            options.RequestHeaderEncodingSelector = name =>
+                                string.Equals(name, ReverseProxyModule.METADATA_HEADER, StringComparison.OrdinalIgnoreCase) ? System.Text.Encoding.UTF8 : null;
                     })
                     .UseIISIntegration()
                     .UseStartup<Startup>()

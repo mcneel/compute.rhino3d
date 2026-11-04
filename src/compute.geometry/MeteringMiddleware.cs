@@ -110,6 +110,8 @@ namespace compute.geometry
         static readonly int[] self = { Environment.ProcessId };
         static readonly object FROM_SELF = new object();
 
+        public static bool IsHeader(string name) => string.Equals(name, HEADER, StringComparison.OrdinalIgnoreCase);
+
         public static JsonElement? For(HttpContext context)
         {
             if (!FromSelf(context))

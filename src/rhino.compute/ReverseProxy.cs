@@ -18,7 +18,7 @@ namespace rhino.compute
         static Task initTask;
         static HttpClient client;
         private const string API_KEY_HEADER = "RhinoComputeKey";
-        private const string METADATA_HEADER = "Rhino-Compute-Metadata";
+        public const string METADATA_HEADER = "Rhino-Compute-Metadata";
         // HttpContext.Items keys for the client's request encoding and its CountingReadStream, set before compression unpacks it.
         public static readonly object REQUEST_ENCODING = new object();
         public static readonly object REQUEST_RECEIVED = new object();
@@ -399,12 +399,29 @@ namespace rhino.compute
                     items[NESTED_CALL_PORT] = port;
             }
             if (port == 0)
-                return req.Headers[METADATA_HEADER].ToString();
+                return EscapedJson(req.Headers[METADATA_HEADER].ToString());
             string caller = req.Headers[LocalConnections.CALLER_HEADER].ToString();
             return caller.Length > 0 ? caller : ComputeChildren.MetadataServedBy(port);
         }
 
         static readonly object NESTED_CALL_PORT = new object();
+
+        // Headers sent to a child must be ASCII, so metadata goes on as JSON with anything else escaped. What isn't JSON
+        // is left out, as the child would leave it out of the record.
+        static string EscapedJson(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+            try
+            {
+                using var json = System.Text.Json.JsonDocument.Parse(value);
+                return System.Text.Json.JsonSerializer.Serialize(json.RootElement);
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                return null;
+            }
+        }
 
         // GET and POST routes both delegate to the shared handler; the /grasshopper route
         // is intentionally mapped to ReverseProxyPost as it requires no special handling.

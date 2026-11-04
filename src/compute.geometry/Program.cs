@@ -75,6 +75,9 @@ namespace compute.geometry
                         // and exhaust server memory. The env var name matches rhino.compute's
                         // so child processes inherit the parent's configured value automatically.
                         options.Limits.MaxRequestBodySize = Config.MaxRequestSize;
+                        // Metadata a client didn't escape is read as UTF-8 rather than refusing the request.
+                        if (Config.UsageLogPath != null)
+                            options.RequestHeaderEncodingSelector = name => RequestMetadata.IsHeader(name) ? System.Text.Encoding.UTF8 : null;
                         if (Config.LocalhostPort > 0)
                             options.ListenLocalhost(Config.LocalhostPort);
                     })
