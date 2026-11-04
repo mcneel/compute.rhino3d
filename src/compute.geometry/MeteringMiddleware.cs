@@ -199,6 +199,24 @@ namespace compute.geometry
         }
     }
 
+    // What an /mcp call was, set by McpEndpoint for its usage record: the JSON-RPC method (or session/close), the tool a
+    // tools/call ran, its session (McpForwarding.SessionKey), and why it failed when the answer was a JSON-RPC error or
+    // a tool's error, which come back with status 200.
+    static class RequestMcp
+    {
+        public sealed record Use(string Session, string Method, string Tool, string Error);
+
+        static readonly object KEY = new object();
+
+        public static void Set(HttpContext context, string session, string method, string tool, string error)
+        {
+            if (CpuLedger.IsMetered)
+                context.Items[KEY] = new Use(RequestOutcome.Clean(session), RequestOutcome.Clean(method), RequestOutcome.Clean(tool), RequestOutcome.Clean(error));
+        }
+
+        public static Use Get(HttpContext context) => context.Items.TryGetValue(KEY, out object use) ? use as Use : null;
+    }
+
     // What went wrong with a billable request, for its usage record: why it failed, and the Grasshopper errors and
     // warnings of a solve or of a definition /io loaded, the first MAX_MESSAGES of each with how many there were. Messages can hold paths and input values,
     // so each is kept to one short line.
@@ -293,7 +311,7 @@ namespace compute.geometry
             return Clean(text.Split('\n').FirstOrDefault(line => line.Trim().Length > 0));
         }
 
-        static string Clean(string message)
+        public static string Clean(string message)
         {
             if (string.IsNullOrWhiteSpace(message))
                 return null;
@@ -369,7 +387,7 @@ namespace compute.geometry
                         requestBytes = client.Bytes ?? usage.RequestBytes;
                     }
                     UsageLog.WriteRequest(startUtc, Guid.NewGuid().ToString("N"), cpu.Metadata, context.Request.Method, context.Request.Path.Value,
-                        context.Response.StatusCode, RequestDefinitions.Get(context), RequestOutcome.Get(context, answer.Head),
+                        context.Response.StatusCode, RequestDefinitions.Get(context), RequestMcp.Get(context), RequestOutcome.Get(context, answer.Head),
                         usage.RequestBytes, requestBytes, requestEncoding, answer.BytesWritten, sent.BytesWritten, responseEncoding, cpu,
                         Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds);
                 }

@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using compute.geometry;
 using Serilog;
 
 namespace rhino.compute
@@ -66,7 +67,11 @@ namespace rhino.compute
             public int ChildPid;       // ...and its process id: a replacement child reuses the port
             public int ListenerPort;   // the document's listener in that child
             public DateTime LastSeen;
+            public string Metadata;    // while the usage log is on: initialize's, for calls that send none
         }
+
+        // While the usage log is on, calls go through the child's compute.geometry, which measures and records them.
+        static bool Metered => ReverseProxyModule.UsageLogPath != null;
 
         static HttpClient client;
         static readonly ConcurrentDictionary<string, McpSession> sessions = new ConcurrentDictionary<string, McpSession>(StringComparer.Ordinal);
@@ -142,7 +147,7 @@ namespace rhino.compute
                 await res.WriteAsJsonAsync(new { error = "Session not found." });
                 return;
             }
-            await CloseSessionAsync(session, "closed by client", req.HttpContext.RequestAborted);
+            await CloseSessionAsync(session, "closed by client", req.HttpContext.RequestAborted, req);
             res.StatusCode = StatusCodes.Status200OK;
             await res.WriteAsJsonAsync(new { closed = sessionId });
         }
@@ -195,8 +200,10 @@ namespace rhino.compute
 
             bool isInitialize = method == "initialize";
             string sessionId = GetSessionId(req);
+            string metadata = Metered ? ReverseProxyModule.Metadata(req) : null;
             McpSession session = null;
             bool newSession = false;
+            bool openInChild = false;
             ComputeChildren.ChildLease lease = null;
             int targetPort;
 
@@ -215,6 +222,8 @@ namespace rhino.compute
                     }
                     session.LastSeen = DateTime.Now;
                     targetPort = session.ListenerPort;
+                    if (string.IsNullOrEmpty(metadata))
+                        metadata = session.Metadata;
                 }
                 else
                 {
@@ -256,31 +265,36 @@ namespace rhino.compute
                                 $"compute.geometry on port {childPort} already hosts {PortsPerChild - 1} sessions. Close a session with DELETE /mcp or retry.");
                             return;
                         }
-                        int port;
-                        try
-                        {
-                            port = await SpawnListenerAsync(basePort, ct);
-                        }
-                        catch (Exception ex) when (ex is not OperationCanceledException)
-                        {
-                            Log.Error(ex, "Opening an MCP session document in compute.geometry on port {Port} failed", lease.Port);
-                            await WriteRpcErrorAsync(res, StatusCodes.Status503ServiceUnavailable, requestId, -32000,
-                                $"Could not open a document for the session: {ex.Message}");
-                            return;
-                        }
                         session = new McpSession
                         {
                             Id = NewSessionId(),
                             ChildPort = lease.Port,
                             ChildPid = childPid,
-                            ListenerPort = port,
                             LastSeen = DateTime.Now,
+                            Metadata = metadata,
                         };
-                        sessions[session.Id] = session;
-                        newSession = true;
-                        targetPort = port;
-                        Log.Information("MCP session {Session} opened in compute.geometry on port {ChildPort}, listener port {Port} ({Count} open)",
-                            Abbrev(session.Id), lease.Port, port, sessions.Count);
+                        targetPort = 0;
+                        if (Metered)
+                        {
+                            // The child opens the session's document as part of the call, so it's that client's work.
+                            openInChild = true;
+                        }
+                        else
+                        {
+                            try
+                            {
+                                targetPort = await SpawnListenerAsync(basePort, ct);
+                            }
+                            catch (Exception ex) when (ex is not OperationCanceledException)
+                            {
+                                Log.Error(ex, "Opening an MCP session document in compute.geometry on port {Port} failed", lease.Port);
+                                await WriteRpcErrorAsync(res, StatusCodes.Status503ServiceUnavailable, requestId, -32000,
+                                    $"Could not open a document for the session: {ex.Message}");
+                                return;
+                            }
+                            OpenSession(session, targetPort);
+                            newSession = true;
+                        }
                     }
                     else
                     {
@@ -291,18 +305,37 @@ namespace rhino.compute
                 // Counts as pool activity, like any proxied request, so the idle span sees it.
                 ComputeChildren.UpdateLastCall();
 
-                using var upstream = new HttpRequestMessage(HttpMethod.Post, $"http://localhost:{targetPort}/");
-                var content = new ByteArrayContent(body);
-                content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
-                upstream.Content = content;
-                if (req.Headers.TryGetValue("Accept", out var accept))
-                    upstream.Headers.TryAddWithoutValidation("Accept", accept.ToArray());
+                using var upstream = Metered
+                    ? ChildCall(req, lease.Port, body, metadata, session?.Id, targetPort, open: openInChild)
+                    : new HttpRequestMessage(HttpMethod.Post, $"http://localhost:{targetPort}/");
+                if (!Metered)
+                {
+                    var content = new ByteArrayContent(body);
+                    content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+                    upstream.Content = content;
+                    if (req.Headers.TryGetValue("Accept", out var accept))
+                        upstream.Headers.TryAddWithoutValidation("Accept", accept.ToArray());
+                }
 
                 using var proxyResponse = await client.SendAsync(upstream, ct);
                 byte[] payload = await proxyResponse.Content.ReadAsByteArrayAsync(ct);
                 ComputeChildren.UpdateLastCall();
 
-                if (method == "tools/list" && proxyResponse.IsSuccessStatusCode)
+                if (openInChild)
+                {
+                    // The child answers with the new document's listener, or says why it couldn't open one.
+                    if (proxyResponse.Headers.TryGetValues(McpForwarding.LISTENER_HEADER, out var opened)
+                        && int.TryParse(opened.FirstOrDefault(), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int port) && port > 0)
+                    {
+                        OpenSession(session, port);
+                        newSession = true;
+                    }
+                    else
+                        session = null;
+                }
+
+                // A metered answer comes from compute.geometry with the router tools taken out, packed when the client takes gzip.
+                if (!Metered && method == "tools/list" && proxyResponse.IsSuccessStatusCode)
                     payload = StripRouterTools(payload);
 
                 res.StatusCode = (int)proxyResponse.StatusCode;
@@ -312,6 +345,8 @@ namespace rhino.compute
                     return;
                 if (proxyResponse.Content.Headers.ContentType != null)
                     res.ContentType = proxyResponse.Content.Headers.ContentType.ToString();
+                if (Metered && proxyResponse.Content.Headers.ContentEncoding.Count > 0)
+                    res.Headers.ContentEncoding = string.Join(", ", proxyResponse.Content.Headers.ContentEncoding);
                 await res.Body.WriteAsync(payload, ct);
             }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested)
@@ -334,6 +369,37 @@ namespace rhino.compute
             {
                 lease?.Dispose();
             }
+        }
+
+        static void OpenSession(McpSession session, int listenerPort)
+        {
+            session.ListenerPort = listenerPort;
+            sessions[session.Id] = session;
+            Log.Information("MCP session {Session} opened in compute.geometry on port {ChildPort}, listener port {Port} ({Count} open)",
+                Abbrev(session.Id), session.ChildPort, listenerPort, sessions.Count);
+        }
+
+        // While the usage log is on: a call as the child's compute.geometry takes it (see McpForwarding), for the
+        // listener on listenerPort, or opening a session first, or closing the session on close. From is the client's
+        // request, or null for a call rhino.compute makes itself.
+        static HttpRequestMessage ChildCall(HttpRequest from, int childPort, byte[] body, string metadata, string sessionId, int listenerPort, bool open = false, int close = 0)
+        {
+            var message = new HttpRequestMessage(HttpMethod.Post, $"http://localhost:{childPort}{McpForwarding.PATH}") { Content = new ByteArrayContent(body) };
+            message.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+            if (!string.IsNullOrEmpty(Config.ApiKey))
+                message.Headers.TryAddWithoutValidation("RhinoComputeKey", Config.ApiKey);
+            if (from != null && from.Headers.TryGetValue("Accept", out var accept))
+                message.Headers.TryAddWithoutValidation("Accept", accept.ToArray());
+            ReverseProxyModule.AddUsageHeaders(from, message, metadata);
+            if (sessionId != null)
+                message.Headers.TryAddWithoutValidation(McpForwarding.SESSION_HEADER, McpForwarding.SessionKey(sessionId));
+            if (open)
+                message.Headers.TryAddWithoutValidation(McpForwarding.OPEN_HEADER, "1");
+            else if (close > 0)
+                message.Headers.TryAddWithoutValidation(McpForwarding.CLOSE_HEADER, close.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            else
+                message.Headers.TryAddWithoutValidation(McpForwarding.LISTENER_HEADER, listenerPort.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            return message;
         }
 
         // ---------------------------------------------------------------- listeners
@@ -407,9 +473,31 @@ namespace rhino.compute
             }
         }
 
-        static async Task CloseSessionAsync(McpSession session, string reason, CancellationToken ct)
+        // From is the client's DELETE, or null when rhino.compute closes the session itself.
+        static async Task CloseSessionAsync(McpSession session, string reason, CancellationToken ct, HttpRequest from = null)
         {
             Log.Information("MCP session {Session} closed ({Reason}); {Count} open", Abbrev(session.Id), reason, sessions.Count);
+            if (Metered)
+            {
+                // Closing the document is work for the session's client, so the child does it and records it.
+                if (!ComputeChildren.IsChildAlive(session.ChildPort, session.ChildPid))
+                    return;
+                string metadata = from == null ? null : ReverseProxyModule.Metadata(from);
+                try
+                {
+                    using var close = ChildCall(from, session.ChildPort, Array.Empty<byte>(), string.IsNullOrEmpty(metadata) ? session.Metadata : metadata,
+                        session.Id, 0, close: session.ListenerPort);
+                    using var response = await client.SendAsync(close, ct);
+                    if (!response.IsSuccessStatusCode)
+                        Log.Warning("Closing the document of MCP session {Session} failed: {Status} {Body}", Abbrev(session.Id), (int)response.StatusCode,
+                            await response.Content.ReadAsStringAsync(ct));
+                }
+                catch (HttpRequestException ex)
+                {
+                    Log.Warning("Closing the document of MCP session {Session} failed: {Message}", Abbrev(session.Id), ex.Message);
+                }
+                return;
+            }
             // The document dies with its child; only a live child needs telling.
             if (!baseListeners.TryGetValue(session.ChildPid, out int basePort) || !ComputeChildren.IsChildAlive(session.ChildPort, session.ChildPid))
                 return;

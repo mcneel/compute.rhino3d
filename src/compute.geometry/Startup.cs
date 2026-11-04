@@ -105,6 +105,8 @@ namespace compute.geometry
                 FixedEndPointsModule.MapEndpoints(builder);
                 ResthopperEndpointsModule.MapEndpoints(builder);
                 ScriptEndpointsModule.MapEndpoints(builder);
+                if (Config.UsageLogPath != null)
+                    McpEndpoint.MapEndpoints(builder);
                 RhinoGetModule.MapEndpoints(builder);
                 RhinoPostModule.MapEndpoints(builder);
             });

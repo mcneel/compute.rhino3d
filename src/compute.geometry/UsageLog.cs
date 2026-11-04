@@ -110,7 +110,7 @@ namespace compute.geometry
         // Body sizes, unpacked and as sent; the encodings say how each was sent ("gzip", or "none", when both sizes are the
         // same).
         public static void WriteRequest(DateTime startUtc, string requestId, JsonElement? metadata, string method, string path, int status,
-            RequestDefinitions.Use definition, RequestOutcome.Result outcome, long uncompressedRequestBytes, long compressedRequestBytes,
+            RequestDefinitions.Use definition, RequestMcp.Use mcp, RequestOutcome.Result outcome, long uncompressedRequestBytes, long compressedRequestBytes,
             string requestEncoding, long uncompressedResponseBytes, long compressedResponseBytes, string responseEncoding, CpuLedger.Entry cpu,
             double wallSeconds)
         {
@@ -131,6 +131,7 @@ namespace compute.geometry
                 definition = definition?.Id,
                 definitionName = definition?.Name,
                 cached = definition?.Cached,
+                mcp = mcp == null ? null : new { session = mcp.Session, method = mcp.Method, tool = mcp.Tool, error = mcp.Error },
                 error = outcome?.Error,
                 errors = outcome?.Errors,
                 warnings = outcome?.Warnings,

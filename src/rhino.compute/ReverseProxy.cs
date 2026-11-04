@@ -366,24 +366,30 @@ namespace rhino.compute
         {
             if (from.Headers.TryGetValue(API_KEY_HEADER, out var key))
                 to.Headers.TryAddWithoutValidation(API_KEY_HEADER, key.ToString());
+            AddUsageHeaders(from, to, metadata);
+        }
+
+        // While the usage log is on, what a child needs for a request's usage record: its metadata, and the client's
+        // side of it. From is null for a call rhino.compute makes itself.
+        internal static void AddUsageHeaders(HttpRequest from, HttpRequestMessage to, string metadata)
+        {
             if (!string.IsNullOrEmpty(metadata))
                 to.Headers.TryAddWithoutValidation(METADATA_HEADER, metadata);
-            if (UsageLogPath != null)
-            {
-                // The child packs the answer, so the size it records is the size sent; ReverseProxyHandler passes it on as is.
-                if (Config.Compression && CompressionMiddleware.AcceptsGzip(from.Headers.AcceptEncoding))
-                    to.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip");
-                string encoding = from.HttpContext.Items[REQUEST_ENCODING] as string ?? "none";
-                long bytes = (from.HttpContext.Items[REQUEST_RECEIVED] as CountingReadStream)?.BytesRead ?? 0;
-                to.Headers.TryAddWithoutValidation(HttpCompression.CLIENT_REQUEST_HEADER, $"encoding={encoding}; bytes={bytes}");
-            }
+            if (UsageLogPath == null)
+                return;
+            // The child packs the answer, so the size it records is the size sent; the answer is passed on as is.
+            if (from != null && Config.Compression && CompressionMiddleware.AcceptsGzip(from.Headers.AcceptEncoding))
+                to.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip");
+            string encoding = from?.HttpContext.Items[REQUEST_ENCODING] as string ?? "none";
+            long bytes = (from?.HttpContext.Items[REQUEST_RECEIVED] as CountingReadStream)?.BytesRead ?? 0;
+            to.Headers.TryAddWithoutValidation(HttpCompression.CLIENT_REQUEST_HEADER, $"encoding={encoding}; bytes={bytes}");
         }
 
         // The Rhino-Compute-Metadata a request's usage record gets: a nested call carries that of the request it was made
         // for, which its child names in LocalConnections.CALLER_HEADER, else that of the request its child is serving,
         // whatever Rhino-Compute-Metadata it has. Which child opened a connection can't change, so it's looked up once
         // per connection, and only while the usage log is on.
-        static string Metadata(HttpRequest req)
+        internal static string Metadata(HttpRequest req)
         {
             if (UsageLogPath == null)
                 return null;
