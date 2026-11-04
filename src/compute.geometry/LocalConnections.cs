@@ -11,6 +11,12 @@ namespace compute.geometry
     // from the TCP table on Windows and the socket's inode in /proc on Linux. Also compiled into rhino.compute.
     static class LocalConnections
     {
+        /// <summary>
+        /// Set by compute.geometry, while the usage log is on, on each call it makes to a server on this machine: the
+        /// metadata of the request the call was made for ("{}" when it had none). See NestedCalls.
+        /// </summary>
+        public const string CALLER_HEADER = "Rhino-Compute-Caller";
+
         public static bool FromThisMachine(IPAddress remote)
         {
             if (remote == null)

@@ -379,9 +379,10 @@ namespace rhino.compute
             }
         }
 
-        // The Rhino-Compute-Metadata a request's usage record gets: a nested call carries that of the request its child
-        // is serving, whatever header it has. Which child opened a connection can't change, so it's looked up once per
-        // connection, and only while the usage log is on.
+        // The Rhino-Compute-Metadata a request's usage record gets: a nested call carries that of the request it was made
+        // for, which its child names in LocalConnections.CALLER_HEADER, else that of the request its child is serving,
+        // whatever Rhino-Compute-Metadata it has. Which child opened a connection can't change, so it's looked up once
+        // per connection, and only while the usage log is on.
         static string Metadata(HttpRequest req)
         {
             if (UsageLogPath == null)
@@ -397,7 +398,10 @@ namespace rhino.compute
                 if (items != null)
                     items[NESTED_CALL_PORT] = port;
             }
-            return port > 0 ? ComputeChildren.MetadataServedBy(port) : req.Headers[METADATA_HEADER].ToString();
+            if (port == 0)
+                return req.Headers[METADATA_HEADER].ToString();
+            string caller = req.Headers[LocalConnections.CALLER_HEADER].ToString();
+            return caller.Length > 0 ? caller : ComputeChildren.MetadataServedBy(port);
         }
 
         static readonly object NESTED_CALL_PORT = new object();

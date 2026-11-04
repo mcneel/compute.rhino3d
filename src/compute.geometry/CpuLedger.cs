@@ -47,6 +47,9 @@ namespace compute.geometry
         // True for a request that arrived while metering was on.
         public static bool IsMetered => current.Value != null;
 
+        // The request this code runs for, including on threads and tasks it started; null outside a metered request.
+        public static Entry Current => current.Value;
+
         public static void Start()
         {
             lock (ledgerLock)

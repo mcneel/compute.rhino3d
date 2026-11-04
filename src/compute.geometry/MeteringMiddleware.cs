@@ -98,7 +98,7 @@ namespace compute.geometry
     // Labels a caller attaches to a billable request in the Rhino-Compute-Metadata header, recorded as is in its usage
     // record for the caller's own use: a JSON object of up to MAX_KEYS string, number or true/false values. Anything
     // else is left out. A nested call, opened by this process or one it started while serving a request, carries that
-    // request's metadata.
+    // request's metadata: from NestedCalls' header, else that of the oldest request this process is serving.
     static class RequestMetadata
     {
         public const string HEADER = "Rhino-Compute-Metadata";
@@ -110,8 +110,14 @@ namespace compute.geometry
         static readonly int[] self = { Environment.ProcessId };
         static readonly object FROM_SELF = new object();
 
-        public static JsonElement? For(HttpContext context) =>
-            FromSelf(context) ? CpuLedger.OldestBillableMetadata() : Parse(context.Request.Headers[HEADER].ToString());
+        public static JsonElement? For(HttpContext context)
+        {
+            if (!FromSelf(context))
+                return Parse(context.Request.Headers[HEADER].ToString());
+            return context.Request.Headers.TryGetValue(LocalConnections.CALLER_HEADER, out var caller)
+                ? Parse(caller.ToString())
+                : CpuLedger.OldestBillableMetadata();
+        }
 
         public static JsonElement? Parse(string header)
         {
@@ -312,6 +318,7 @@ namespace compute.geometry
             CpuLedger.Start();
             UsageLog.Start();
             AgentLink.Start();
+            NestedCalls.Start();
         }
 
         // How non-billable requests are grouped in the usage log's overhead records.
