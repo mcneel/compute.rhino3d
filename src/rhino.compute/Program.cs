@@ -74,12 +74,6 @@ changed on an already-deployed server without editing web.config.")]
               HelpText = "Maximum request body size in bytes (default: 52428800 = 50MB)")]
             public long MaxRequestSize { get; set; } = -1;
 
-            [Option("metering-headers",
-              Required = false,
-              Default = false,
-              HelpText = "Add metering headers to every response: Rhino-Compute-Ingress-Bytes and -Egress-Bytes (request and response body sizes), -Cpu-Seconds (on billable requests: CPU time the request used, including processes it started) and -Pid (the compute.geometry process that served it). Off by default.")]
-            public bool MeteringHeaders { get; set; }
-
             [Option("port",
               Required = false,
               HelpText = "Port number to run rhino.compute on")]
@@ -160,9 +154,6 @@ changed on an already-deployed server without editing web.config.")]
                 // before launching rhino.compute) still takes effect without the flag.
                 if (o.BlockPrivateUrls)
                     Environment.SetEnvironmentVariable("RHINO_COMPUTE_BLOCK_PRIVATE_URLS", "true");
-
-                if (o.MeteringHeaders)
-                    Environment.SetEnvironmentVariable("RHINO_COMPUTE_METERING_HEADERS", "true");
 
                 // --childcount and --idlespan take the same env-var path as
                 // --child-startup-timeout: set the env var from the flag only when it was
@@ -297,9 +288,8 @@ changed on an already-deployed server without editing web.config.")]
             Log.Debug("  Create Headless Document = {CreateHeadlessDoc}", createHeadlessDoc.ToString());
             bool blockPrivateUrls = Boolean.TryParse(Environment.GetEnvironmentVariable("RHINO_COMPUTE_BLOCK_PRIVATE_URLS"), out var blockPrivate) && blockPrivate;
             Log.Debug("  Block Private URLs = {BlockPrivateUrls}", blockPrivateUrls.ToString());
-            bool meteringHeaders = Boolean.TryParse(Environment.GetEnvironmentVariable("RHINO_COMPUTE_METERING_HEADERS"), out var metering) && metering;
-            Log.Debug("  Metering Headers = {MeteringHeaders}", meteringHeaders.ToString());
             Log.Debug("  Compression = {Compression}", Config.Compression.ToString());
+            Log.Debug("  Usage Log Path = {UsageLogPath}", ReverseProxyModule.UsageLogPath ?? "off (set RHINO_COMPUTE_USAGE_LOG_PATH to record usage)");
             Log.Debug("  MCP = {Mcp}", Config.McpEnabled
                 ? $"on (listener port {Config.McpPort}, session timeout {FormatTimeout(Config.McpSessionTimeout)}, max sessions {Config.McpMaxSessions})"
                 : "off (set RHINO_MCP_AUTOSTART_PORT to serve POST /mcp)");

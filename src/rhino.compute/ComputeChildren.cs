@@ -105,10 +105,21 @@ namespace rhino.compute
         /// Choose a child for a request. The request counts against that child until the
         /// returned lease is disposed, so concurrent requests go to other children.
         /// </summary>
-        public static ChildLease AcquireChild(string client, string path)
+        public static ChildLease AcquireChild()
         {
             var (url, port) = SelectChild(reserve: true);
-            var lease = new ChildLease(url, port, client, path);
+            return new ChildLease(url, port);
+        }
+
+        /// <summary>
+        /// For the usage log: as <see cref="AcquireChild()"/>, also noting the request's metadata header and path,
+        /// which nested calls from the child serving it carry (see <see cref="MetadataServedBy"/>).
+        /// </summary>
+        public static ChildLease AcquireChild(string metadata, string path)
+        {
+            var lease = AcquireChild();
+            lease.Metadata = metadata;
+            lease.Path = path;
             lock (lockObject)
                 activeLeases.Add(lease);
             return lease;
@@ -130,9 +141,8 @@ namespace rhino.compute
                     return false;
                 activeRequests.TryGetValue(port, out int count);
                 activeRequests[port] = count + 1;
-                lease = new ChildLease($"http://localhost:{port}", port, client: null, path: "/mcp");
-                activeLeases.Add(lease);
             }
+            lease = new ChildLease($"http://localhost:{port}", port);
             return true;
         }
 
@@ -157,18 +167,16 @@ namespace rhino.compute
         {
             bool released;
 
-            public ChildLease(string baseUrl, int port, string client, string path)
+            public ChildLease(string baseUrl, int port)
             {
                 BaseUrl = baseUrl;
                 Port = port;
-                Client = client;
-                Path = path;
             }
 
             public string BaseUrl { get; }
             public int Port { get; }
-            public string Client { get; }
-            public string Path { get; }
+            public string Metadata { get; internal set; }
+            public string Path { get; internal set; }
 
             public void Dispose()
             {
@@ -210,10 +218,10 @@ namespace rhino.compute
         }
 
         /// <summary>
-        /// The client of the request the child on this port is serving, which its nested calls belong to;
+        /// The metadata header of the request the child on this port is serving, which its nested calls carry;
         /// null when it isn't serving one.
         /// </summary>
-        public static string ClientServedBy(int port)
+        public static string MetadataServedBy(int port)
         {
             lock (lockObject)
             {
@@ -224,7 +232,7 @@ namespace rhino.compute
                     if (lease.Port == port && (serving == null || (lease.Path == "/grasshopper" && serving.Path != "/grasshopper")))
                         serving = lease;
                 }
-                return serving?.Client;
+                return serving?.Metadata;
             }
         }
 

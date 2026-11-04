@@ -222,7 +222,7 @@ namespace rhino.compute
                     await ReverseProxyModule.AwaitInitTask();
                     try
                     {
-                        lease = ComputeChildren.AcquireChild(client: null, path: "/mcp");
+                        lease = ComputeChildren.AcquireChild();
                     }
                     catch (Exception ex)
                     {

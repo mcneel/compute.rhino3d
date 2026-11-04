@@ -17,12 +17,11 @@ namespace rhino.compute
         static Task initTask;
         static HttpClient client;
         private const string API_KEY_HEADER = "RhinoComputeKey";
-        private const string CLIENT_HEADER = "Rhino-Compute-Client";
-        private const string REQUEST_ID_HEADER = "Rhino-Compute-Request-Id";
-        public static readonly string[] MeteringHeaders =
-        {
-            "Rhino-Compute-Ingress-Bytes", "Rhino-Compute-Egress-Bytes", "Rhino-Compute-Cpu-Seconds", "Rhino-Compute-Pid", REQUEST_ID_HEADER,
-        };
+        private const string METADATA_HEADER = "Rhino-Compute-Metadata";
+
+        // The children write usage records when this is set; otherwise nothing here takes part in usage logging.
+        public static readonly string UsageLogPath = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RHINO_COMPUTE_USAGE_LOG_PATH"))
+            ? null : Environment.GetEnvironmentVariable("RHINO_COMPUTE_USAGE_LOG_PATH");
 
         static void Initialize()
         {
@@ -324,7 +323,7 @@ namespace rhino.compute
             }
         }
 
-        static async Task<HttpResponseMessage> SendProxyRequest(HttpRequest initialRequest, HttpMethod method, string baseurl, string clientId)
+        static async Task<HttpResponseMessage> SendProxyRequest(HttpRequest initialRequest, HttpMethod method, string baseurl, string metadata)
         {
             string proxyUrl = $"{baseurl}{initialRequest.Path}{initialRequest.QueryString}";
 
@@ -334,7 +333,7 @@ namespace rhino.compute
             if (method == HttpMethod.Post)
             {
                 using var req = new HttpRequestMessage(HttpMethod.Post, proxyUrl);
-                CopyRequestHeaders(initialRequest, req, clientId);
+                CopyRequestHeaders(initialRequest, req, metadata);
 
                 // Read in full first, so the timeout covers the child's work and not the client's upload.
                 var body = new System.IO.MemoryStream((int)Math.Clamp(initialRequest.ContentLength ?? 0, 0, int.MaxValue));
@@ -352,29 +351,28 @@ namespace rhino.compute
             if (method == HttpMethod.Get)
             {
                 using var req = new HttpRequestMessage(HttpMethod.Get, proxyUrl);
-                CopyRequestHeaders(initialRequest, req, clientId);
+                CopyRequestHeaders(initialRequest, req, metadata);
                 return await client.SendAsync(req);
             }
 
             throw new System.NotSupportedException("Only GET and POST are currently supported for reverse proxy");
         }
 
-        static void CopyRequestHeaders(HttpRequest from, HttpRequestMessage to, string clientId)
+        static void CopyRequestHeaders(HttpRequest from, HttpRequestMessage to, string metadata)
         {
             if (from.Headers.TryGetValue(API_KEY_HEADER, out var key))
                 to.Headers.TryAddWithoutValidation(API_KEY_HEADER, key.ToString());
-            if (!string.IsNullOrEmpty(clientId))
-                to.Headers.TryAddWithoutValidation(CLIENT_HEADER, clientId);
-            if (from.Headers.TryGetValue(REQUEST_ID_HEADER, out var requestId))
-                to.Headers.TryAddWithoutValidation(REQUEST_ID_HEADER, requestId.ToString());
+            if (!string.IsNullOrEmpty(metadata))
+                to.Headers.TryAddWithoutValidation(METADATA_HEADER, metadata);
         }
 
-        // Nested calls belong to the client their child is serving, whatever header they carry. Which child
-        // opened a connection can't change, so it's looked up once per connection, and only while metering can be on.
-        static string ClientId(HttpRequest req)
+        // The Rhino-Compute-Metadata a request's usage record gets: a nested call carries that of the request its child
+        // is serving, whatever header it has. Which child opened a connection can't change, so it's looked up once per
+        // connection, and only while the usage log is on.
+        static string Metadata(HttpRequest req)
         {
-            if (!MeteringPossible())
-                return req.Headers[CLIENT_HEADER].ToString();
+            if (UsageLogPath == null)
+                return null;
             var connection = req.HttpContext.Connection;
             var items = req.HttpContext.Features.Get<Microsoft.AspNetCore.Connections.Features.IConnectionItemsFeature>()?.Items;
             int port;
@@ -386,34 +384,10 @@ namespace rhino.compute
                 if (items != null)
                     items[NESTED_CALL_PORT] = port;
             }
-            return port > 0 ? ComputeChildren.ClientServedBy(port) : req.Headers[CLIENT_HEADER].ToString();
+            return port > 0 ? ComputeChildren.MetadataServedBy(port) : req.Headers[METADATA_HEADER].ToString();
         }
 
         static readonly object NESTED_CALL_PORT = new object();
-
-        // Children meter only with metering headers, a usage log, or compute.meter.agent running; the agent is looked for
-        // at most every few seconds, as the children do.
-        static bool MeteringPossible()
-        {
-            long now = Environment.TickCount64;
-            if (meteringCheckedAt != 0 && now - meteringCheckedAt < METERING_CHECK_MS)
-                return meteringPossible;
-            meteringPossible = bool.TryParse(Environment.GetEnvironmentVariable("RHINO_COMPUTE_METERING_HEADERS"), out bool headers) && headers
-                || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RHINO_COMPUTE_USAGE_LOG_PATH"))
-                || MeterAgentPipe.Listening();
-            meteringCheckedAt = now;
-            return meteringPossible;
-        }
-
-        const long METERING_CHECK_MS = 5000;
-        static long meteringCheckedAt;
-        static volatile bool meteringPossible;
-
-        static void CopyResponseHeader(HttpResponseMessage from, HttpResponse to, string name)
-        {
-            if (from.Headers.TryGetValues(name, out var values))
-                to.Headers[name] = values.ToArray();
-        }
 
         // GET and POST routes both delegate to the shared handler; the /grasshopper route
         // is intentionally mapped to ReverseProxyPost as it requires no special handling.
@@ -434,9 +408,9 @@ namespace rhino.compute
             {
                 using (new ConcurrentRequestTracker())
                 {
-                    string clientId = ClientId(req);
-                    using (var child = ComputeChildren.AcquireChild(clientId, req.Path))
-                    using (var proxyResponse = await SendProxyRequest(req, method, child.BaseUrl, clientId))
+                    string metadata = Metadata(req);
+                    using (var child = UsageLogPath == null ? ComputeChildren.AcquireChild() : ComputeChildren.AcquireChild(metadata, req.Path))
+                    using (var proxyResponse = await SendProxyRequest(req, method, child.BaseUrl, metadata))
                     {
                         ComputeChildren.UpdateLastCall();
                         if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
@@ -447,8 +421,6 @@ namespace rhino.compute
                         // as application/json rather than the ASP.NET Core default text/plain.
                         if (proxyResponse.Content.Headers.ContentType != null)
                             res.ContentType = proxyResponse.Content.Headers.ContentType.ToString();
-                        foreach (string header in MeteringHeaders)
-                            CopyResponseHeader(proxyResponse, res, header);
                         responseString = await proxyResponse.Content.ReadAsStringAsync();
                     }
                 }

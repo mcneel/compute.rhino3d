@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -53,7 +51,7 @@ namespace compute.geometry
                 context.Request.EnableBuffering(REQUEST_MEMORY_BUFFER);
                 await context.Request.Body.DrainAsync(context.RequestAborted);
                 context.Request.Body.Position = 0;
-                using (CpuLedger.EnterBillable(RequestClients.For(context)))
+                using (CpuLedger.EnterBillable(RequestMetadata.For(context)))
                     await next(context);
             }
             catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
@@ -62,65 +60,69 @@ namespace compute.geometry
         }
     }
 
-    // Who a billable request is for. A nested call, opened by this process or one it started while serving a
-    // request, is for that request's client. Otherwise Rhino-Compute-Client names the client: trusted from a
-    // gateway when compute.geometry runs on its own, and only from rhino.compute when it is one of its children.
-    // Without it, the API key's fingerprint (never the key), else "default".
-    static class RequestClients
+    // Labels a caller attaches to a billable request in the Rhino-Compute-Metadata header, recorded as is in its usage
+    // record for the caller's own use: a JSON object of up to MAX_KEYS string, number or true/false values. Anything
+    // else is left out. A nested call, opened by this process or one it started while serving a request, carries that
+    // request's metadata.
+    static class RequestMetadata
     {
-        public const string CLIENT_HEADER = "Rhino-Compute-Client";
-        const int MAX_CLIENT_LENGTH = 128;
+        public const string HEADER = "Rhino-Compute-Metadata";
+        const int MAX_LENGTH = 4096;
+        const int MAX_KEYS = 16;
+        const int MAX_KEY_LENGTH = 40;
+        const int MAX_VALUE_LENGTH = 500;
 
         static readonly int[] self = { Environment.ProcessId };
-        static readonly Lazy<string> defaultClient = new Lazy<string>(() =>
-            string.IsNullOrEmpty(Config.ApiKey) ? "default" : "key:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Config.ApiKey)), 0, 4).ToLowerInvariant());
+        static readonly object FROM_SELF = new object();
 
-        enum Origin { Parent, Self, Other }
+        public static JsonElement? For(HttpContext context) =>
+            FromSelf(context) ? CpuLedger.OldestBillableMetadata() : Parse(context.Request.Headers[HEADER].ToString());
 
-        static readonly object ORIGIN = new object();
-
-        public static string For(HttpContext context)
+        public static JsonElement? Parse(string header)
         {
-            bool child = Shutdown.ParentProcesses?.Count > 0;
-            switch (OriginOf(context))
+            if (string.IsNullOrWhiteSpace(header) || header.Length > MAX_LENGTH)
+                return null;
+            try
             {
-                case Origin.Parent:
-                    return FromHeader(context);
-                case Origin.Self:
-                    return CpuLedger.OldestBillableClient() ?? defaultClient.Value;
-                default:
-                    return child ? defaultClient.Value : FromHeader(context);
+                using var document = JsonDocument.Parse(header);
+                var root = document.RootElement;
+                if (root.ValueKind != JsonValueKind.Object)
+                    return null;
+                var names = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var property in root.EnumerateObject())
+                {
+                    if (names.Count == MAX_KEYS || property.Name.Length == 0 || property.Name.Length > MAX_KEY_LENGTH || !names.Add(property.Name))
+                        return null;
+                    var value = property.Value;
+                    bool allowed = value.ValueKind switch
+                    {
+                        JsonValueKind.String => value.GetString().Length <= MAX_VALUE_LENGTH,
+                        JsonValueKind.Number or JsonValueKind.True or JsonValueKind.False => true,
+                        _ => false,
+                    };
+                    if (!allowed)
+                        return null;
+                }
+                return names.Count == 0 ? null : root.Clone();
+            }
+            catch (JsonException)
+            {
+                return null;
             }
         }
 
         // Which process opened a connection can't change, so it's looked up once per connection.
-        static Origin OriginOf(HttpContext context)
+        static bool FromSelf(HttpContext context)
         {
             var items = context.Features.Get<Microsoft.AspNetCore.Connections.Features.IConnectionItemsFeature>()?.Items;
-            if (items != null && items.TryGetValue(ORIGIN, out object cached))
-                return (Origin)cached;
-
-            var origin = Origin.Other;
+            if (items != null && items.TryGetValue(FROM_SELF, out object cached))
+                return (bool)cached;
             var connection = context.Connection;
-            if (LocalConnections.FromThisMachine(connection.RemoteIpAddress))
-            {
-                int[] parents = Shutdown.ParentProcesses?.Keys.ToArray() ?? Array.Empty<int>();
-                if (parents.Length > 0 && LocalConnections.OpenedBy(connection.RemotePort, connection.LocalPort, parents, orStartedBy: false) != null)
-                    origin = Origin.Parent;
-                else if (LocalConnections.OpenedBy(connection.RemotePort, connection.LocalPort, self, orStartedBy: true) != null)
-                    origin = Origin.Self;
-            }
+            bool fromSelf = LocalConnections.FromThisMachine(connection.RemoteIpAddress) &&
+                LocalConnections.OpenedBy(connection.RemotePort, connection.LocalPort, self, orStartedBy: true) != null;
             if (items != null)
-                items[ORIGIN] = origin;
-            return origin;
-        }
-
-        static string FromHeader(HttpContext context)
-        {
-            string client = context.Request.Headers[CLIENT_HEADER].ToString().Trim();
-            if (client.Length == 0)
-                return defaultClient.Value;
-            return client.Length > MAX_CLIENT_LENGTH ? client.Substring(0, MAX_CLIENT_LENGTH) : client;
+                items[FROM_SELF] = fromSelf;
+            return fromSelf;
         }
     }
 
@@ -161,9 +163,10 @@ namespace compute.geometry
     {
         public sealed record Result(string Error, string[] Errors, string[] Warnings, int? ErrorCount, int? WarningCount);
 
+        // The start of a response kept for its error message.
+        public const int MAX_BODY_READ = 64 * 1024;
         const int MAX_MESSAGE_LENGTH = 300;
         const int MAX_MESSAGES = 20;
-        const int MAX_BODY_READ = 64 * 1024;
         static readonly object KEY = new object();
 
         sealed class Notes
@@ -206,12 +209,13 @@ namespace compute.geometry
         }
 
         // A failed request says why in what was noted while it ran, else in its response: a JSON message, errors or
-        // error, or the first line of text.
+        // error, or the first line of text. A compressed response isn't read.
         public static Result Get(HttpContext context, MemoryStream body)
         {
             var notes = context.Items.TryGetValue(KEY, out object value) ? value as Notes : null;
             bool failed = context.Response.StatusCode >= 400;
-            string error = failed ? notes?.Error ?? FromBody(body, context.Response.ContentType) : null;
+            bool readable = string.IsNullOrEmpty(context.Response.Headers.ContentEncoding);
+            string error = failed ? notes?.Error ?? (readable ? FromBody(body, context.Response.ContentType) : null) : null;
             if (notes == null && error == null)
                 return null;
             return new Result(error, notes?.Errors, notes?.Warnings, notes?.ErrorCount, notes?.WarningCount);
@@ -260,30 +264,19 @@ namespace compute.geometry
     }
 
     /// <summary>
-    /// Measures each request's body sizes, CPU time (including processes compute.geometry starts, divided
-    /// between requests by <see cref="CpuLedger"/>) and wall time, and attributes billable requests to a
-    /// client. Reports it in response headers and/or the usage log.
+    /// In the pipeline only while the usage log is on. Measures each request's body sizes, CPU time (including
+    /// processes compute.geometry starts, divided between requests by <see cref="CpuLedger"/>) and wall time, and
+    /// writes a usage record for each billable one.
     /// </summary>
     public class MeteringMiddleware
     {
-        public const string INGRESS_BYTES_HEADER = "Rhino-Compute-Ingress-Bytes";
-        public const string EGRESS_BYTES_HEADER = "Rhino-Compute-Egress-Bytes";
-        public const string CPU_SECONDS_HEADER = "Rhino-Compute-Cpu-Seconds";
-        public const string PID_HEADER = "Rhino-Compute-Pid";
-        public const string REQUEST_ID_HEADER = "Rhino-Compute-Request-Id";
-        const int MAX_REQUEST_ID_LENGTH = 128;
-
-        public static readonly string[] Headers = { INGRESS_BYTES_HEADER, EGRESS_BYTES_HEADER, CPU_SECONDS_HEADER, PID_HEADER, REQUEST_ID_HEADER };
-
         private readonly RequestDelegate next;
 
         public MeteringMiddleware(RequestDelegate next)
         {
             this.next = next;
-            if (Config.MeteringHeaders || !string.IsNullOrEmpty(Config.UsageLogPath))
-                CpuLedger.Start();
-            if (!string.IsNullOrEmpty(Config.UsageLogPath))
-                UsageLog.Start();
+            CpuLedger.Start();
+            UsageLog.Start();
             AgentLink.Start();
         }
 
@@ -299,33 +292,17 @@ namespace compute.geometry
             return "not found";
         }
 
-        // The caller's own ID when it sends one, so its records match its logs; otherwise a new one.
-        static string RequestId(HttpContext context)
-        {
-            string id = context.Request.Headers[REQUEST_ID_HEADER].ToString().Trim();
-            if (id.Length > 0 && id.Length <= MAX_REQUEST_ID_LENGTH && id.All(c => c >= ' ' && c <= '~'))
-                return id;
-            return Guid.NewGuid().ToString("N");
-        }
-
         public async Task InvokeAsync(HttpContext context)
         {
-            if (!CpuLedger.Started)
-            {
-                await next(context);
-                return;
-            }
             var startUtc = DateTime.UtcNow;
             long startTimestamp = Stopwatch.GetTimestamp();
             var cpu = CpuLedger.Begin();
             var originalRequestBody = context.Request.Body;
             var originalResponseBody = context.Response.Body;
             var requestBody = new CountingReadStream(originalRequestBody);
-
-            // Buffered so the response size is known before the headers are sent.
-            using var responseBuffer = new MemoryStream();
+            var responseBody = new CountingWriteStream(originalResponseBody, RequestOutcome.MAX_BODY_READ);
             context.Request.Body = requestBody;
-            context.Response.Body = responseBuffer;
+            context.Response.Body = responseBody;
             try
             {
                 await next(context);
@@ -335,29 +312,15 @@ namespace compute.geometry
                 context.Request.Body = originalRequestBody;
                 context.Response.Body = originalResponseBody;
                 CpuLedger.End(cpu, cpu.Billable ? null : OverheadLabel(context));
-            }
-
-            string requestId = cpu.Billable ? RequestId(context) : null;
-            if (Config.MeteringHeaders)
-            {
-                context.Response.Headers[INGRESS_BYTES_HEADER] = requestBody.BytesRead.ToString(CultureInfo.InvariantCulture);
-                context.Response.Headers[EGRESS_BYTES_HEADER] = responseBuffer.Length.ToString(CultureInfo.InvariantCulture);
-                if (cpu.Billable)
+                // Also when the client left before the answer was sent: the work was done.
+                if (cpu.Billable && UsageLog.Recording)
                 {
-                    context.Response.Headers[CPU_SECONDS_HEADER] = cpu.CpuSeconds.ToString("0.000", CultureInfo.InvariantCulture);
-                    context.Response.Headers[REQUEST_ID_HEADER] = requestId;
+                    UsageLog.WriteRequest(startUtc, Guid.NewGuid().ToString("N"), cpu.Metadata, context.Request.Method, context.Request.Path.Value,
+                        context.Response.StatusCode, RequestDefinitions.Get(context), RequestOutcome.Get(context, responseBody.Head), requestBody.BytesRead,
+                        responseBody.BytesWritten, cpu,
+                        Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds);
                 }
-                context.Response.Headers[PID_HEADER] = Environment.ProcessId.ToString(CultureInfo.InvariantCulture);
             }
-            if (cpu.Billable && UsageLog.Recording)
-            {
-                UsageLog.WriteRequest(startUtc, requestId, cpu.Client, context.Request.Method, context.Request.Path.Value,
-                    context.Response.StatusCode, RequestDefinitions.Get(context), RequestOutcome.Get(context, responseBuffer), requestBody.BytesRead,
-                    responseBuffer.Length, cpu,
-                    Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds);
-            }
-            responseBuffer.Position = 0;
-            await responseBuffer.CopyToAsync(originalResponseBody, context.RequestAborted);
         }
 
         sealed class CountingReadStream : Stream
@@ -413,6 +376,70 @@ namespace compute.geometry
             public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
             public override void SetLength(long value) => throw new NotSupportedException();
             public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        }
+
+        // Passes the response through as it's written, counting it and keeping its start for the error message.
+        sealed class CountingWriteStream : Stream
+        {
+            private readonly Stream inner;
+            private readonly int headLength;
+
+            public CountingWriteStream(Stream inner, int headLength)
+            {
+                this.inner = inner;
+                this.headLength = headLength;
+            }
+
+            public long BytesWritten { get; private set; }
+            public MemoryStream Head { get; } = new MemoryStream();
+
+            void Count(ReadOnlySpan<byte> buffer)
+            {
+                BytesWritten += buffer.Length;
+                int keep = Math.Min(buffer.Length, headLength - (int)Head.Length);
+                if (keep > 0)
+                    Head.Write(buffer.Slice(0, keep));
+            }
+
+            public override bool CanRead => false;
+            public override bool CanSeek => false;
+            public override bool CanWrite => true;
+            public override long Length => throw new NotSupportedException();
+            public override long Position
+            {
+                get => throw new NotSupportedException();
+                set => throw new NotSupportedException();
+            }
+
+            public override void Write(byte[] buffer, int offset, int count)
+            {
+                Count(buffer.AsSpan(offset, count));
+                inner.Write(buffer, offset, count);
+            }
+
+            public override void Write(ReadOnlySpan<byte> buffer)
+            {
+                Count(buffer);
+                inner.Write(buffer);
+            }
+
+            public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+            {
+                Count(buffer.AsSpan(offset, count));
+                return inner.WriteAsync(buffer, offset, count, cancellationToken);
+            }
+
+            public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+            {
+                Count(buffer.Span);
+                return inner.WriteAsync(buffer, cancellationToken);
+            }
+
+            public override void Flush() => inner.Flush();
+            public override Task FlushAsync(CancellationToken cancellationToken) => inner.FlushAsync(cancellationToken);
+            public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+            public override void SetLength(long value) => throw new NotSupportedException();
         }
     }
 }

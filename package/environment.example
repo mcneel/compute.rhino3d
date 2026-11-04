@@ -18,8 +18,11 @@ RHINO_COMPUTE_CREATE_HEADLESS_DOC=true
 # RHINO_COMPUTE_LOAD_GRASSHOPPER=true
 # RHINO_COMPUTE_MAX_REQUEST_SIZE=52428800
 # RHINO_COMPUTE_TIMEOUT=100
-# RHINO_COMPUTE_METERING_HEADERS=false
+
+# Optional: record usage, one JSON line per request in a file per process per day (UTC). Leave unset to keep it off.
 # RHINO_COMPUTE_USAGE_LOG_PATH=/var/lib/rhino-compute/usage
+# Free space (MB) to keep on that drive; below it the oldest usage files are deleted (default 1024)
+# RHINO_COMPUTE_USAGE_LOG_MIN_FREE_MB=1024
 
 # Optional: serve the RhinoAI MCP server at POST /mcp (Streamable HTTP, JSON responses).
 # Each compute.geometry child binds its MCP listeners on loopback in a block of 100 ports starting

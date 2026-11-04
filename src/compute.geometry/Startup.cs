@@ -27,8 +27,7 @@ namespace compute.geometry
                 options.AddDefaultPolicy(
                     builder =>
                     {
-                        builder.AllowAnyOrigin().AllowAnyHeader()
-                            .WithExposedHeaders(MeteringMiddleware.Headers);
+                        builder.AllowAnyOrigin().AllowAnyHeader();
                     });
             });
             services.AddHealthChecks();
@@ -40,8 +39,9 @@ namespace compute.geometry
         {
             RhinoCoreStartup();
 
-            // Always in the pipeline, doing nothing until metering starts (possibly later, when the agent appears).
-            app.UseMiddleware<MeteringMiddleware>();
+            bool usageLog = Config.UsageLogPath != null;
+            if (usageLog)
+                app.UseMiddleware<MeteringMiddleware>();
 
             // Global exception handler. Sits at the very top of the pipeline so it catches
             // anything thrown by downstream middleware or endpoint handlers. Logs the
@@ -96,7 +96,8 @@ namespace compute.geometry
             app.UseCors();
             if (!string.IsNullOrEmpty(Config.ApiKey))
                 app.UseMiddleware<ApiKeyMiddleware>();
-            app.UseMiddleware<BillableMiddleware>();
+            if (usageLog)
+                app.UseMiddleware<BillableMiddleware>();
             app.UseEndpoints(builder =>
             {
                 builder.MapHealthChecks("/healthcheck");

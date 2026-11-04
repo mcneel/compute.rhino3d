@@ -15,10 +15,9 @@ using Serilog;
 
 namespace compute.geometry
 {
-    // Sends usage records to compute.meter.agent when one runs on this machine: a named pipe on Windows, a Unix
-    // domain socket on Linux. Records wait in memory until the agent says it has stored them and are sent again
-    // after a reconnect; the agent ignores ones it already has. Finding the agent turns the usage log on, even in
-    // a process that started before it.
+    // While the usage log is on, sends its records to compute.meter.agent when one runs on this machine: a named pipe
+    // on Windows, a Unix domain socket on Linux. Records wait in memory until the agent says it has stored them and are
+    // sent again after a reconnect; the agent ignores ones it already has. Without the agent they go to the usage files.
     static class AgentLink
     {
         const string AGENT_PROCESS_NAME = "compute.meter.agent";
@@ -36,8 +35,6 @@ namespace compute.geometry
 
         // Set once the agent has been found; from then on records go to it.
         public static bool Attached { get; private set; }
-        // Where records go when the agent can't take them: the agent's own usage log directory.
-        public static string FallbackPath { get; private set; }
 
         public static void Start()
         {
@@ -148,11 +145,8 @@ namespace compute.geometry
             var root = reply.RootElement;
             if (!root.TryGetProperty("ok", out var ok) || ok.ValueKind != JsonValueKind.True)
             {
-                // Metering is off on this machine, or this process mustn't meter (e.g. it was started by another
-                // compute.geometry, whose CPU already includes it). Keep looking in case that changes.
+                // Records keep going to the usage files. Keep looking in case that changes.
                 string reason = root.TryGetProperty("error", out var error) ? error.GetString() : "no reason given";
-                if (UsageLog.Recording)
-                    UsageLog.Pause();
                 if (reason != declinedFor)
                     Log.Information("Usage records: compute.meter.agent declined this process: {Reason}", reason);
                 declinedFor = reason;
@@ -168,11 +162,7 @@ namespace compute.geometry
                     waiting.RemoveFirst();
                 sentThrough = 0;
             }
-            if (FallbackPath == null && root.TryGetProperty("usageLogPath", out var path) && path.ValueKind == JsonValueKind.String)
-                FallbackPath = path.GetString();
             Attached = true;
-            CpuLedger.Start();
-            UsageLog.Start();
             Log.Information("Usage records: sending to compute.meter.agent (process {Pid})", serverPid);
             return (stream, reader);
         }

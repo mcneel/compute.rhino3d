@@ -18,7 +18,7 @@ namespace compute.geometry
             internal double OverheadCpuSeconds;
 
             public bool Billable { get; internal set; }
-            public string Client { get; internal set; }
+            public System.Text.Json.JsonElement? Metadata { get; internal set; }
             // All CPU billed to this request, including SharedCpuSeconds.
             public double CpuSeconds { get; internal set; }
             // The part of CpuSeconds that is an even share of CPU used while other billable requests were running.
@@ -41,7 +41,7 @@ namespace compute.geometry
         static double idleCpuSeconds;
         static Dictionary<string, OverheadTotal> overhead = new Dictionary<string, OverheadTotal>();
 
-        // Metering is dormant until something starts it: the metering headers, a usage log path, or finding the agent.
+        // Started with the usage log.
         public static bool Started { get; private set; }
 
         // True for a request that arrived while metering was on.
@@ -99,8 +99,8 @@ namespace compute.geometry
             }
         }
 
-        // Marks the current request billable to client; it stops counting as running when the scope is disposed.
-        public static BillableScope EnterBillable(string client)
+        // Marks the current request billable, with the caller's metadata; it stops counting as running when the scope is disposed.
+        public static BillableScope EnterBillable(System.Text.Json.JsonElement? metadata)
         {
             var entry = current.Value;
             if (entry != null)
@@ -109,21 +109,21 @@ namespace compute.geometry
                 {
                     Advance();
                     entry.Billable = true;
-                    entry.Client = client;
+                    entry.Metadata = metadata;
                 }
             }
             return new BillableScope(entry);
         }
 
-        // The client of the oldest billable request still running, which a nested call belongs to.
-        public static string OldestBillableClient()
+        // The metadata of the oldest billable request still running, which a nested call belongs to.
+        public static System.Text.Json.JsonElement? OldestBillableMetadata()
         {
             lock (ledgerLock)
             {
                 foreach (var entry in inFlight)
                 {
                     if (entry.Billable && !entry.Finished)
-                        return entry.Client;
+                        return entry.Metadata;
                 }
             }
             return null;

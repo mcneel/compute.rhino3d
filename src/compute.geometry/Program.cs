@@ -116,13 +116,15 @@ namespace compute.geometry
                 }
             });
 
-            // The host stops gracefully on these; note which one it was.
-            using var interrupt = PosixSignalRegistration.Create(PosixSignal.SIGINT, _ => Shutdown.SetReason("interrupt"));
-            using var quit = PosixSignalRegistration.Create(PosixSignal.SIGQUIT, _ => Shutdown.SetReason("interrupt"));
-            using var terminate = PosixSignalRegistration.Create(PosixSignal.SIGTERM, _ => Shutdown.SetReason("terminate"));
+            // The host stops gracefully on these; the usage log's shutdown record notes which one it was.
+            bool usageLog = Config.UsageLogPath != null;
+            using var interrupt = usageLog ? PosixSignalRegistration.Create(PosixSignal.SIGINT, _ => Shutdown.SetReason("interrupt")) : null;
+            using var quit = usageLog ? PosixSignalRegistration.Create(PosixSignal.SIGQUIT, _ => Shutdown.SetReason("interrupt")) : null;
+            using var terminate = usageLog ? PosixSignalRegistration.Create(PosixSignal.SIGTERM, _ => Shutdown.SetReason("terminate")) : null;
             Shutdown.StartTimer(host);
             host.Run();
-            UsageLog.Stop(Shutdown.Reason);
+            if (usageLog)
+                UsageLog.Stop(Shutdown.Reason);
 
             if (RhinoCore != null)
                 RhinoCore.Dispose();
@@ -185,12 +187,6 @@ namespace compute.geometry
                         {
                             Config.LoadGrasshopper = value == "1" || value.Equals("true", StringComparison.OrdinalIgnoreCase);
                             Log.Information($"Grasshopper loading set to: {Config.LoadGrasshopper}");
-                        }
-                        break;
-                    case "metering-headers":
-                        {
-                            Config.MeteringHeaders = value == "1" || value.Equals("true", StringComparison.OrdinalIgnoreCase);
-                            Log.Information($"Metering headers set to: {Config.MeteringHeaders}");
                         }
                         break;
                     case "apikey":
