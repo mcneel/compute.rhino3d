@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Linq;
+using Compute.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Serilog;
+using Serilog.Events;
 
 namespace compute.geometry
 {
@@ -30,6 +32,8 @@ namespace compute.geometry
                     });
             });
             services.AddHealthChecks();
+            if (Config.Compression)
+                services.AddHttpCompression();
         }
 
         public void Configure(IApplicationBuilder app)
@@ -86,6 +90,8 @@ namespace compute.geometry
                 await ctx.Response.WriteAsync(JsonConvert.SerializeObject(body));
             }));
 
+            if (Config.Compression)
+                app.UseHttpCompression();
             app.UseRouting();
             app.UseCors();
             if (!string.IsNullOrEmpty(Config.ApiKey))
@@ -142,7 +148,7 @@ namespace compute.geometry
         {
             Program.RhinoCore = new Rhino.Runtime.InProcess.RhinoCore(null, Rhino.Runtime.InProcess.WindowStyle.NoWindow);
 
-            if (Config.Debug)
+            if (Config.Debug || Config.LogLevel <= LogEventLevel.Debug)
                 Rhino.RhinoApp.SendWriteToConsole = true;
             
             Environment.SetEnvironmentVariable("RHINO_TOKEN", null, EnvironmentVariableTarget.Process);

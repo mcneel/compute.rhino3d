@@ -135,33 +135,35 @@ namespace rhino.compute
                 });
             });
 
+            // The MCP server: session routing onto pool children. Registered before the
+            // catch-all so /mcp is not forwarded verbatim to a round-robin child.
+            McpProxyModule.MapEndpoints(app);
+
             // routes that are proxied to compute.geometry
             app.MapGet("/{*uri}", ReverseProxyGet);
             app.MapPost("/grasshopper", ReverseProxyPost);
             app.MapPost("/{*uri}", ReverseProxyPost);
         }
 
-        // GET /activechildren and GET /active-children — return the count of active compute.geometry
-        // child processes. ?initialize=true (default) spawns up to SpawnCount children if none are
-        // running, then returns the count. ?initialize=false just reports the count without spawning,
-        // useful for passive monitoring that shouldn't trigger billing.
+        // GET /activechildren and GET /active-children — report the number of compute.geometry
+        // children READY TO SERVE (port open, in the pool) as a plain integer body. Always 200:
+        // this is a query that always succeeds and "0" is a valid answer (no children ready yet),
+        // so a 503 would wrongly imply the endpoint itself failed. Callers treat > 0 as ready.
+        // Pure report, NO side effects: it never spawns a child, so polling it can never start
+        // the metered software charge. To launch children use POST /launch-children (fill to
+        // SpawnCount) or POST /launch-child (add one).
+        //
+        // NOTE: the count is the READY pool (ComputeChildren.CurrentChildCount), not the raw OS
+        // process count — a child still loading Rhino is not counted until its port is open.
         static async Task ActiveChildrenEndpoint(HttpContext context)
         {
-            bool initialize = true;
-            if (context.Request.Query.TryGetValue("initialize", out var initValue)
-                && bool.TryParse(initValue, out var parsed))
-            {
-                initialize = parsed;
-            }
-            if (initialize)
-                InitializeChildren();
-            await context.Response.WriteAsync($"{ComputeChildren.ActiveComputeCount}");
+            await context.Response.WriteAsync($"{ComputeChildren.CurrentChildCount}");
         }
 
         // POST /shutdown-children — gracefully shut down children. No params = all; ?port=N
         // = just that one. Does not respawn. After shutdown-all, the next /grasshopper request
-        // triggers an auto-spawn back to SpawnCount; to confirm count without re-spawning, poll
-        // /activechildren?initialize=false.
+        // triggers an auto-spawn back to SpawnCount; to confirm the ready count, poll
+        // /activechildren (it never spawns).
         static async Task ShutdownChildrenEndpoint(HttpRequest req, HttpResponse res)
         {
             if (!TryParsePortFilter(req, out int? portFilter, out string parseError))
@@ -301,7 +303,7 @@ namespace rhino.compute
             }
         }
 
-        static async Task AwaitInitTask()
+        internal static async Task AwaitInitTask()
         {
             var task = initTask;
             if (task == null)
@@ -334,17 +336,16 @@ namespace rhino.compute
                 using var req = new HttpRequestMessage(HttpMethod.Post, proxyUrl);
                 CopyRequestHeaders(initialRequest, req, clientId);
 
-                // Stream the request body directly to the child process rather than
-                // buffering it as a string, avoiding a full in-memory copy of the payload.
-                var streamContent = new StreamContent(initialRequest.BodyReader.AsStream(leaveOpen: false));
+                // Read in full first, so the timeout covers the child's work and not the client's upload.
+                var body = new System.IO.MemoryStream((int)Math.Clamp(initialRequest.ContentLength ?? 0, 0, int.MaxValue));
+                await initialRequest.Body.CopyToAsync(body, initialRequest.HttpContext.RequestAborted);
+                var content = new ByteArrayContent(body.GetBuffer(), 0, (int)body.Length);
                 if (!string.IsNullOrWhiteSpace(initialRequest.ContentType) &&
                     System.Net.Http.Headers.MediaTypeHeaderValue.TryParse(initialRequest.ContentType, out var parsedContentType))
-                    streamContent.Headers.ContentType = parsedContentType;
+                    content.Headers.ContentType = parsedContentType;
                 else
-                    streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
-                req.Content = streamContent;
-                // SendAsync fully consumes the request body before returning, so disposing
-                // req (and its owned StreamContent) here is safe.
+                    content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+                req.Content = content;
                 return await client.SendAsync(req);
             }
 

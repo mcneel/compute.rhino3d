@@ -164,6 +164,11 @@ namespace Hops
             return string.IsNullOrWhiteSpace(url) ? null : url.TrimEnd('/');
         }
 
+        internal static bool IsParentServer(Uri uri)
+            => uri != null
+                && Uri.TryCreate(ParentServerUrl(), UriKind.Absolute, out Uri parent)
+                && Uri.Compare(uri, parent, UriComponents.SchemeAndServer, UriFormat.SafeUnescaped, StringComparison.OrdinalIgnoreCase) == 0;
+
         public static void LaunchChildComputeGeometry(int childCount)
         {
             if (childCount < 1)
@@ -171,7 +176,7 @@ namespace Hops
             string baseUrl = GetComputeServerBaseUrl();
             int thisProc = Process.GetCurrentProcess().Id;
             string address = $"{baseUrl}/launch?children={childCount}&parent={thisProc}";
-            RemoteDefinition.HttpClient.GetAsync(address);
+            RemoteDefinition.HttpClientFor(address).GetAsync(address);
         }
 
         const int RhinoComputePort = 6500;

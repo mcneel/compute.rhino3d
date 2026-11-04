@@ -17,6 +17,7 @@ using Resthopper.IO;
 using Newtonsoft.Json;
 using System.Linq;
 using Serilog;
+using Serilog.Events;
 using System.Reflection;
 
 namespace compute.geometry
@@ -709,10 +710,13 @@ namespace compute.geometry
 
                 if (format == SchemaDataFormat.Grasshopper)
                 {
+                    // Branch by branch, so the answer keeps the output's tree, empty branches and null items included.
                     var data = new GH_Structure<IGH_Goo>();
-                    foreach (var item in param.VolatileData.AllData(false))
+                    foreach (var path in param.VolatileData.Paths)
                     {
-                        data.Append(item);
+                        var branch = data.EnsurePath(path);
+                        foreach (var item in param.VolatileData.get_Branch(path))
+                            branch.Add(item as IGH_Goo);
                     }
 
                     outputSchema.GrasshopperValues.Values.Add(kvp.Key, data);
@@ -808,13 +812,21 @@ namespace compute.geometry
                     schema.Errors.Add(errorMsg);
                     HasErrors = true;
                 }
-                if (Config.Debug)
+                // Warnings go back to callers only in debug mode; debug logging records them either way.
+                if (Config.Debug || Log.IsEnabled(LogEventLevel.Debug))
                 {
                     foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Warning))
                     {
                         string warningMsg = $"{msg}: component \"{obj.Name}\" ({obj.InstanceGuid})";
-                        Log.Warning(warningMsg);
-                        schema.Warnings.Add(warningMsg);
+                        if (Config.Debug)
+                        {
+                            Log.Warning(warningMsg);
+                            schema.Warnings.Add(warningMsg);
+                        }
+                        else
+                        {
+                            LogDebug($"Warning in grasshopper component: {warningMsg}");
+                        }
                     }
                     foreach (var msg in obj.RuntimeMessages(GH_RuntimeMessageLevel.Remark))
                     {

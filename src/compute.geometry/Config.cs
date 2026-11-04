@@ -1,4 +1,5 @@
 ﻿using Serilog;
+using Serilog.Events;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -108,12 +109,25 @@ namespace compute.geometry
         /// </summary>
         public static string UsageLogPath { get; private set; }
 
+        /// <summary>
+        /// RHINO_COMPUTE_COMPRESSION: accept gzip request bodies and gzip answers for clients
+        /// that ask (Accept-Encoding: gzip). On by default; false turns it off.
+        /// </summary>
+        public static bool Compression { get; private set; }
+
         public static string[] GetDeprecationWarnings() => warnings.ToArray();
 
         /// <summary>
         /// RHINO_COMPUTE_DEBUG: enables debug logging (defaults to true in DEBUG).
         /// </summary>
         public static bool Debug { get; private set; }
+
+        /// <summary>
+        /// RHINO_COMPUTE_LOG_LEVEL: the lowest level the logs record (Verbose, Debug, Information,
+        /// Warning, Error or Fatal). Unlike RHINO_COMPUTE_DEBUG, it doesn't change what callers get
+        /// back. Defaults to Debug when RHINO_COMPUTE_DEBUG is on, otherwise Information.
+        /// </summary>
+        public static LogEventLevel LogLevel { get; private set; }
 
         /// <summary>
         /// Loads config from environment variables (or uses defaults).
@@ -136,6 +150,7 @@ namespace compute.geometry
             // Processes started from here must not meter themselves: their CPU is already counted in this one.
             Environment.SetEnvironmentVariable(RHINO_COMPUTE_METERING_HEADERS, null);
             Environment.SetEnvironmentVariable(RHINO_COMPUTE_USAGE_LOG_PATH, null);
+            Compression = GetEnvironmentVariable<bool>(RHINO_COMPUTE_COMPRESSION, true);
 
 #if DEBUG
             Debug = true;
@@ -143,6 +158,7 @@ namespace compute.geometry
             Debug = false;
 #endif
             Debug = GetEnvironmentVariable(RHINO_COMPUTE_DEBUG, Debug);
+            LogLevel = GetLogLevel(RHINO_COMPUTE_LOG_LEVEL, Debug ? LogEventLevel.Debug : LogEventLevel.Information);
 
             foreach (var name in ignored)
             {
@@ -163,11 +179,13 @@ namespace compute.geometry
         const string RHINO_COMPUTE_LOG_PATH = "RHINO_COMPUTE_LOG_PATH";
         const string RHINO_COMPUTE_LOG_RETAIN_DAYS = "RHINO_COMPUTE_LOG_RETAIN_DAYS";
         const string RHINO_COMPUTE_DEBUG = "RHINO_COMPUTE_DEBUG";
+        const string RHINO_COMPUTE_LOG_LEVEL = "RHINO_COMPUTE_LOG_LEVEL";
         const string RHINO_COMPUTE_CREATE_HEADLESS_DOC = "RHINO_COMPUTE_CREATE_HEADLESS_DOC";
         const string RHINO_COMPUTE_LOAD_GRASSHOPPER = "RHINO_COMPUTE_LOAD_GRASSHOPPER";
         const string RHINO_COMPUTE_ENABLE_SCRIPTING = "RHINO_COMPUTE_ENABLE_SCRIPTING";
         const string RHINO_COMPUTE_METERING_HEADERS = "RHINO_COMPUTE_METERING_HEADERS";
         const string RHINO_COMPUTE_USAGE_LOG_PATH = "RHINO_COMPUTE_USAGE_LOG_PATH";
+        const string RHINO_COMPUTE_COMPRESSION = "RHINO_COMPUTE_COMPRESSION";
 
         // deprecated
         const string COMPUTE_BIND_URLS = "COMPUTE_BIND_URLS";
@@ -177,6 +195,17 @@ namespace compute.geometry
         readonly static string[] ignored = new string[] { "COMPUTE_BACKEND_PORT" };
 
         readonly static List<string> warnings = new List<string>();
+
+        static LogEventLevel GetLogLevel(string name, LogEventLevel defaultValue)
+        {
+            string value = Environment.GetEnvironmentVariable(name);
+            if (string.IsNullOrWhiteSpace(value))
+                return defaultValue;
+            if (Enum.TryParse(value.Trim(), true, out LogEventLevel level) && Enum.IsDefined(typeof(LogEventLevel), level))
+                return level;
+            warnings.Add($"{name} set to '{value}'; use Verbose, Debug, Information, Warning, Error or Fatal. Using {defaultValue}.");
+            return defaultValue;
+        }
 
         static T GetEnvironmentVariable<T>(string name, T defaultValue, string deprecatedName = null)
         {
