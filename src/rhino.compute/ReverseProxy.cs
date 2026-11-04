@@ -19,8 +19,9 @@ namespace rhino.compute
         static HttpClient client;
         private const string API_KEY_HEADER = "RhinoComputeKey";
         private const string METADATA_HEADER = "Rhino-Compute-Metadata";
-        // HttpContext.Items key for the client's request encoding, noted before compression unpacks it.
+        // HttpContext.Items keys for the client's request encoding and its CountingReadStream, set before compression unpacks it.
         public static readonly object REQUEST_ENCODING = new object();
+        public static readonly object REQUEST_RECEIVED = new object();
 
         // The children write usage records when this is set; otherwise nothing here takes part in usage logging.
         public static readonly string UsageLogPath = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RHINO_COMPUTE_USAGE_LOG_PATH"))
@@ -336,11 +337,11 @@ namespace rhino.compute
             if (method == HttpMethod.Post)
             {
                 using var req = new HttpRequestMessage(HttpMethod.Post, proxyUrl);
-                CopyRequestHeaders(initialRequest, req, metadata);
 
                 // Read in full first, so the timeout covers the child's work and not the client's upload.
                 var body = new System.IO.MemoryStream((int)Math.Clamp(initialRequest.ContentLength ?? 0, 0, int.MaxValue));
                 await initialRequest.Body.CopyToAsync(body, initialRequest.HttpContext.RequestAborted);
+                CopyRequestHeaders(initialRequest, req, metadata);
                 var content = new ByteArrayContent(body.GetBuffer(), 0, (int)body.Length);
                 if (!string.IsNullOrWhiteSpace(initialRequest.ContentType) &&
                     System.Net.Http.Headers.MediaTypeHeaderValue.TryParse(initialRequest.ContentType, out var parsedContentType))
@@ -369,9 +370,12 @@ namespace rhino.compute
                 to.Headers.TryAddWithoutValidation(METADATA_HEADER, metadata);
             if (UsageLogPath != null)
             {
-                string request = from.HttpContext.Items[REQUEST_ENCODING] as string ?? "none";
-                string accept = Config.Compression && CompressionMiddleware.AcceptsGzip(from.Headers.AcceptEncoding) ? "gzip" : "none";
-                to.Headers.TryAddWithoutValidation(HttpCompression.CLIENT_ENCODING_HEADER, $"request={request}; accept={accept}");
+                // The child packs the answer, so the size it records is the size sent; ReverseProxyHandler passes it on as is.
+                if (Config.Compression && CompressionMiddleware.AcceptsGzip(from.Headers.AcceptEncoding))
+                    to.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip");
+                string encoding = from.HttpContext.Items[REQUEST_ENCODING] as string ?? "none";
+                long bytes = (from.HttpContext.Items[REQUEST_RECEIVED] as CountingReadStream)?.BytesRead ?? 0;
+                to.Headers.TryAddWithoutValidation(HttpCompression.CLIENT_REQUEST_HEADER, $"encoding={encoding}; bytes={bytes}");
             }
         }
 
@@ -412,7 +416,8 @@ namespace rhino.compute
         private static async Task ReverseProxyHandler(HttpRequest req, HttpResponse res, HttpMethod method)
         {
             await AwaitInitTask();
-            string responseString;
+            string responseString = null;
+            byte[] responseBytes = null;
             try
             {
                 using (new ConcurrentRequestTracker())
@@ -430,11 +435,22 @@ namespace rhino.compute
                         // as application/json rather than the ASP.NET Core default text/plain.
                         if (proxyResponse.Content.Headers.ContentType != null)
                             res.ContentType = proxyResponse.Content.Headers.ContentType.ToString();
-                        responseString = await proxyResponse.Content.ReadAsStringAsync();
+                        if (UsageLogPath == null)
+                            responseString = await proxyResponse.Content.ReadAsStringAsync();
+                        else
+                        {
+                            // Packed by the child when the client takes gzip; compression leaves an encoded answer as it is.
+                            if (proxyResponse.Content.Headers.ContentEncoding.Count > 0)
+                                res.Headers.ContentEncoding = string.Join(", ", proxyResponse.Content.Headers.ContentEncoding);
+                            responseBytes = await proxyResponse.Content.ReadAsByteArrayAsync();
+                        }
                     }
                 }
                 // The child is free once its response is read; a slow client shouldn't hold it.
-                await res.WriteAsync(responseString);
+                if (responseBytes != null)
+                    await res.Body.WriteAsync(responseBytes, req.HttpContext.RequestAborted);
+                else
+                    await res.WriteAsync(responseString);
             }
             catch (Exception ex) when (ex is Microsoft.AspNetCore.Connections.ConnectionResetException ||
                                        ex is OperationCanceledException)

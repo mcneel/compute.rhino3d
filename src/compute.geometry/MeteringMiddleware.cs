@@ -332,8 +332,10 @@ namespace compute.geometry
             long startTimestamp = Stopwatch.GetTimestamp();
             var cpu = CpuLedger.Begin();
             var usage = RequestUsage.Begin(context);
-            // Before compression unpacks it, and the answer as it's sent.
+            // The request before compression unpacks it, and the answer as it's sent.
             string requestEncoding = HttpCompression.EncodingName(context.Request.Headers.ContentEncoding);
+            var received = new CountingReadStream(context.Request.Body);
+            context.Request.Body = received;
             var originalResponseBody = context.Response.Body;
             var sent = new CountingWriteStream(originalResponseBody, RequestOutcome.MAX_BODY_READ);
             context.Response.Body = sent;
@@ -351,40 +353,41 @@ namespace compute.geometry
                     string responseEncoding = HttpCompression.EncodingName(context.Response.Headers.ContentEncoding);
                     // An answer that wasn't packed, such as an error written after compression gave up, is as sent.
                     var answer = responseEncoding == "none" || usage.Response == null ? sent : usage.Response;
-                    if (ClientEncoding(context) is (string clientRequest, bool clientAcceptsGzip))
+                    long requestBytes = received.BytesRead;
+                    if (ClientRequest(context) is { } client)
                     {
-                        requestEncoding = clientRequest;
-                        responseEncoding = clientAcceptsGzip && answer.BytesWritten >= CompressionMiddleware.MinimumBytes ? "gzip" : "none";
+                        requestEncoding = client.Encoding;
+                        requestBytes = client.Bytes ?? usage.RequestBytes;
                     }
                     UsageLog.WriteRequest(startUtc, Guid.NewGuid().ToString("N"), cpu.Metadata, context.Request.Method, context.Request.Path.Value,
                         context.Response.StatusCode, RequestDefinitions.Get(context), RequestOutcome.Get(context, answer.Head),
-                        usage.RequestBytes, requestEncoding, answer.BytesWritten, responseEncoding, cpu,
+                        usage.RequestBytes, requestBytes, requestEncoding, answer.BytesWritten, sent.BytesWritten, responseEncoding, cpu,
                         Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds);
                 }
             }
         }
 
-        // Behind rhino.compute, which unpacks the client's request and packs the answer itself, its note on the
-        // client's side of the request (see HttpCompression.CLIENT_ENCODING_HEADER). Only a child takes it.
-        static (string Request, bool AcceptsGzip)? ClientEncoding(HttpContext context)
+        // Behind rhino.compute, which unpacks the client's request itself, its note on the request as the client sent
+        // it (see HttpCompression.CLIENT_REQUEST_HEADER). Only a child takes it.
+        static (string Encoding, long? Bytes)? ClientRequest(HttpContext context)
         {
-            string note = context.Request.Headers[HttpCompression.CLIENT_ENCODING_HEADER].ToString();
+            string note = context.Request.Headers[HttpCompression.CLIENT_REQUEST_HEADER].ToString();
             if (note.Length == 0 || !(Shutdown.ParentProcesses?.Count > 0))
                 return null;
-            string request = "none";
-            bool acceptsGzip = false;
+            string encoding = "none";
+            long? bytes = null;
             foreach (string part in note.Split(';'))
             {
                 string[] pair = part.Split('=', 2);
                 if (pair.Length != 2)
                     continue;
                 string value = pair[1].Trim().ToLowerInvariant();
-                if (pair[0].Trim() == "request" && value.Length > 0)
-                    request = value;
-                else if (pair[0].Trim() == "accept")
-                    acceptsGzip = value == "gzip";
+                if (pair[0].Trim() == "encoding" && value.Length > 0)
+                    encoding = value;
+                else if (pair[0].Trim() == "bytes" && long.TryParse(value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out long count))
+                    bytes = count;
             }
-            return (request, acceptsGzip);
+            return (encoding, bytes);
         }
     }
 

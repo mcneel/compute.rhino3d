@@ -107,11 +107,12 @@ namespace compute.geometry
             }
         }
 
-        // Body sizes are uncompressed whether or not the client sent or got them compressed; the encodings say whether it
-        // did ("gzip", or "none").
+        // Body sizes, unpacked and as sent; the encodings say how each was sent ("gzip", or "none", when both sizes are the
+        // same).
         public static void WriteRequest(DateTime startUtc, string requestId, JsonElement? metadata, string method, string path, int status,
-            RequestDefinitions.Use definition, RequestOutcome.Result outcome, long uncompressedRequestBytes, string requestEncoding,
-            long uncompressedResponseBytes, string responseEncoding, CpuLedger.Entry cpu, double wallSeconds)
+            RequestDefinitions.Use definition, RequestOutcome.Result outcome, long uncompressedRequestBytes, long compressedRequestBytes,
+            string requestEncoding, long uncompressedResponseBytes, long compressedResponseBytes, string responseEncoding, CpuLedger.Entry cpu,
+            double wallSeconds)
         {
             Append(seq => new
             {
@@ -136,8 +137,10 @@ namespace compute.geometry
                 errorCount = outcome?.ErrorCount,
                 warningCount = outcome?.WarningCount,
                 uncompressedRequestBytes,
+                compressedRequestBytes,
                 requestEncoding,
                 uncompressedResponseBytes,
+                compressedResponseBytes,
                 responseEncoding,
                 cpuSeconds = Math.Round(cpu.CpuSeconds, 3),
                 sharedCpuSeconds = Math.Round(cpu.SharedCpuSeconds, 3),

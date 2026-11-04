@@ -34,10 +34,9 @@ namespace Compute.Http
 
         /// <summary>
         /// For the usage log: sent by rhino.compute to a child with each request, since it unpacks the client's
-        /// request and packs the answer itself. "request=gzip; accept=gzip": how the client's request was encoded, and
-        /// whether answers of at least <see cref="CompressionMiddleware.MinimumBytes"/> go back to it gzipped.
+        /// request itself. "encoding=gzip; bytes=1234": how the client's request body was encoded, and its size as sent.
         /// </summary>
-        public const string CLIENT_ENCODING_HEADER = "Rhino-Compute-Client-Encoding";
+        public const string CLIENT_REQUEST_HEADER = "Rhino-Compute-Client-Request";
 
         /// <summary>A Content-Encoding as the usage log records it: the coding in lower case, or "none".</summary>
         public static string EncodingName(StringValues contentEncoding)
@@ -45,6 +44,47 @@ namespace Compute.Http
             string name = contentEncoding.ToString().Trim().ToLowerInvariant();
             return name.Length == 0 ? "none" : name;
         }
+    }
+
+    /// <summary>A request body that counts the bytes read from it, for the usage log's size as sent.</summary>
+    public sealed class CountingReadStream : Stream
+    {
+        readonly Stream inner;
+
+        public CountingReadStream(Stream inner)
+        {
+            this.inner = inner;
+        }
+
+        public long BytesRead { get; private set; }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) => Counted(inner.Read(buffer, offset, count));
+        public override int Read(Span<byte> buffer) => Counted(inner.Read(buffer));
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken) =>
+            Counted(await inner.ReadAsync(buffer, offset, count, cancellationToken));
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, System.Threading.CancellationToken cancellationToken = default) =>
+            Counted(await inner.ReadAsync(buffer, cancellationToken));
+
+        int Counted(int read)
+        {
+            BytesRead += read;
+            return read;
+        }
+
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 
     public sealed class CompressionMiddleware
