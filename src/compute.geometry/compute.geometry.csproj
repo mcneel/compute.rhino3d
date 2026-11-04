@@ -63,7 +63,10 @@
   </ItemGroup>
 
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform(linux))">
-      <PackageReference Include="System.Drawing.Common" Version="10.0.12" />
+      <!-- Compile against the reference assembly only: at runtime Rhino's own System.Drawing.Common
+           (the Linux shim shipped next to RhinoCore) must be the one that loads, so no NuGet
+           runtime copy may land in the app directory. -->
+      <PackageReference Include="System.Drawing.Common" Version="10.0.12" ExcludeAssets="runtime" />
   </ItemGroup>
 
 </Project>
