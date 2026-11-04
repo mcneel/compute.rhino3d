@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Compute.Http;
 using compute.geometry;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -18,6 +19,8 @@ namespace rhino.compute
         static HttpClient client;
         private const string API_KEY_HEADER = "RhinoComputeKey";
         private const string METADATA_HEADER = "Rhino-Compute-Metadata";
+        // HttpContext.Items key for the client's request encoding, noted before compression unpacks it.
+        public static readonly object REQUEST_ENCODING = new object();
 
         // The children write usage records when this is set; otherwise nothing here takes part in usage logging.
         public static readonly string UsageLogPath = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RHINO_COMPUTE_USAGE_LOG_PATH"))
@@ -364,6 +367,12 @@ namespace rhino.compute
                 to.Headers.TryAddWithoutValidation(API_KEY_HEADER, key.ToString());
             if (!string.IsNullOrEmpty(metadata))
                 to.Headers.TryAddWithoutValidation(METADATA_HEADER, metadata);
+            if (UsageLogPath != null)
+            {
+                string request = from.HttpContext.Items[REQUEST_ENCODING] as string ?? "none";
+                string accept = Config.Compression && CompressionMiddleware.AcceptsGzip(from.Headers.AcceptEncoding) ? "gzip" : "none";
+                to.Headers.TryAddWithoutValidation(HttpCompression.CLIENT_ENCODING_HEADER, $"request={request}; accept={accept}");
+            }
         }
 
         // The Rhino-Compute-Metadata a request's usage record gets: a nested call carries that of the request its child

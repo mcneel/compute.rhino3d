@@ -13,7 +13,7 @@ using Serilog;
 namespace compute.geometry
 {
     // Usage records as JSON lines: one per billable request, a startup record, an overhead record every minute and
-    // a final one at shutdown, each with the billing group from RHINO_TOKEN. They go to compute.meter.agent when it's
+    // a final one at shutdown, each with the billing group and user (sub) from RHINO_TOKEN. They go to compute.meter.agent when it's
     // running, otherwise (or when it can't take them) to this process's own file for the day (UTC), so processes never
     // share a file; a later day's file starts with a "continued" record. Each record has a sequence number, so the
     // agent stores a record once whichever way it arrives.
@@ -81,6 +81,7 @@ namespace compute.geometry
                     seq,
                     time = processStartUtc,
                     groupId = Config.GroupId,
+                    sub = Config.TokenSubject,
                     pid = Environment.ProcessId,
                     wallSeconds = Math.Round((DateTime.UtcNow - processStartUtc).TotalSeconds, 3),
                     cpuSeconds = Math.Round(cpuBefore, 3),
@@ -106,8 +107,11 @@ namespace compute.geometry
             }
         }
 
+        // Body sizes are uncompressed whether or not the client sent or got them compressed; the encodings say whether it
+        // did ("gzip", or "none").
         public static void WriteRequest(DateTime startUtc, string requestId, JsonElement? metadata, string method, string path, int status,
-            RequestDefinitions.Use definition, RequestOutcome.Result outcome, long ingressBytes, long egressBytes, CpuLedger.Entry cpu, double wallSeconds)
+            RequestDefinitions.Use definition, RequestOutcome.Result outcome, long uncompressedRequestBytes, string requestEncoding,
+            long uncompressedResponseBytes, string responseEncoding, CpuLedger.Entry cpu, double wallSeconds)
         {
             Append(seq => new
             {
@@ -116,6 +120,7 @@ namespace compute.geometry
                 seq,
                 time = startUtc,
                 groupId = Config.GroupId,
+                sub = Config.TokenSubject,
                 requestId,
                 pid = Environment.ProcessId,
                 method,
@@ -130,8 +135,10 @@ namespace compute.geometry
                 warnings = outcome?.Warnings,
                 errorCount = outcome?.ErrorCount,
                 warningCount = outcome?.WarningCount,
-                ingressBytes,
-                egressBytes,
+                uncompressedRequestBytes,
+                requestEncoding,
+                uncompressedResponseBytes,
+                responseEncoding,
                 cpuSeconds = Math.Round(cpu.CpuSeconds, 3),
                 sharedCpuSeconds = Math.Round(cpu.SharedCpuSeconds, 3),
                 waitSeconds = Math.Round(cpu.WaitSeconds, 3),
@@ -158,6 +165,7 @@ namespace compute.geometry
                     seq,
                     time = periodStartUtc,
                     groupId = Config.GroupId,
+                    sub = Config.TokenSubject,
                     pid = Environment.ProcessId,
                     wallSeconds = Math.Round(Stopwatch.GetElapsedTime(periodStartTimestamp).TotalSeconds, 3),
                     idleCpuSeconds = Math.Round(idleCpuSeconds, 3),
@@ -204,6 +212,7 @@ namespace compute.geometry
                     seq,
                     time = now,
                     groupId = Config.GroupId,
+                    sub = Config.TokenSubject,
                     pid = Environment.ProcessId,
                     processStart = processStartUtc,
                     machine = Environment.MachineName,
@@ -248,6 +257,7 @@ namespace compute.geometry
                         seq,
                         time = now,
                         groupId = Config.GroupId,
+                        sub = Config.TokenSubject,
                         pid = Environment.ProcessId,
                         files = removed.Files,
                         bytes = removed.Bytes,
@@ -278,6 +288,7 @@ namespace compute.geometry
                     seq,
                     time = skippedSinceUtc,
                     groupId = Config.GroupId,
+                    sub = Config.TokenSubject,
                     pid = Environment.ProcessId,
                     wallSeconds = Math.Round((now - skippedSinceUtc).TotalSeconds, 3),
                     skipped,

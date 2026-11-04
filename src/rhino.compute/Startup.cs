@@ -64,6 +64,13 @@
                 await ctx.Response.WriteAsync(JsonSerializer.Serialize(body));
             }));
 
+            // For the usage log, the client's request encoding, before compression unpacks the request.
+            if (ReverseProxyModule.UsageLogPath != null)
+                app.Use((context, next) =>
+                {
+                    context.Items[ReverseProxyModule.REQUEST_ENCODING] = HttpCompression.EncodingName(context.Request.Headers.ContentEncoding);
+                    return next(context);
+                });
             if (Config.Compression)
                 app.UseHttpCompression();
             app.UseSerilogRequestLogging();

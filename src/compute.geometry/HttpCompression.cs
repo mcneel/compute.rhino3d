@@ -31,6 +31,20 @@ namespace Compute.Http
 
         public static IApplicationBuilder UseHttpCompression(this IApplicationBuilder app)
             => app.UseRequestDecompression().UseMiddleware<CompressionMiddleware>();
+
+        /// <summary>
+        /// For the usage log: sent by rhino.compute to a child with each request, since it unpacks the client's
+        /// request and packs the answer itself. "request=gzip; accept=gzip": how the client's request was encoded, and
+        /// whether answers of at least <see cref="CompressionMiddleware.MinimumBytes"/> go back to it gzipped.
+        /// </summary>
+        public const string CLIENT_ENCODING_HEADER = "Rhino-Compute-Client-Encoding";
+
+        /// <summary>A Content-Encoding as the usage log records it: the coding in lower case, or "none".</summary>
+        public static string EncodingName(StringValues contentEncoding)
+        {
+            string name = contentEncoding.ToString().Trim().ToLowerInvariant();
+            return name.Length == 0 ? "none" : name;
+        }
     }
 
     public sealed class CompressionMiddleware

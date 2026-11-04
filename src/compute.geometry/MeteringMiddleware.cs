@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Compute.Http;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -51,13 +52,47 @@ namespace compute.geometry
                 context.Request.EnableBuffering(REQUEST_MEMORY_BUFFER);
                 await context.Request.Body.DrainAsync(context.RequestAborted);
                 context.Request.Body.Position = 0;
-                using (CpuLedger.EnterBillable(RequestMetadata.For(context)))
-                    await next(context);
+                // Inside compression, so these are the request as unpacked and the answer before it's packed.
+                var usage = RequestUsage.For(context);
+                var originalResponseBody = context.Response.Body;
+                if (usage != null)
+                {
+                    usage.RequestBytes = context.Request.Body.Length;
+                    usage.Response = new CountingWriteStream(originalResponseBody, RequestOutcome.MAX_BODY_READ);
+                    context.Response.Body = usage.Response;
+                }
+                try
+                {
+                    using (CpuLedger.EnterBillable(RequestMetadata.For(context)))
+                        await next(context);
+                }
+                finally
+                {
+                    context.Response.Body = originalResponseBody;
+                }
             }
             catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
             {
             }
         }
+    }
+
+    // A billable request's sizes, measured by BillableMiddleware inside compression for its usage record.
+    sealed class RequestUsage
+    {
+        static readonly object KEY = new object();
+
+        public long RequestBytes;
+        public CountingWriteStream Response;
+
+        public static RequestUsage Begin(HttpContext context)
+        {
+            var usage = new RequestUsage();
+            context.Items[KEY] = usage;
+            return usage;
+        }
+
+        public static RequestUsage For(HttpContext context) => context.Items.TryGetValue(KEY, out object usage) ? usage as RequestUsage : null;
     }
 
     // Labels a caller attaches to a billable request in the Rhino-Compute-Metadata header, recorded as is in its usage
@@ -208,14 +243,13 @@ namespace compute.geometry
             return kept?.Length > 0 ? kept : null;
         }
 
-        // A failed request says why in what was noted while it ran, else in its response: a JSON message, errors or
-        // error, or the first line of text. A compressed response isn't read.
+        // A failed request says why in what was noted while it ran, else in its response (the start of it, uncompressed):
+        // a JSON message, errors or error, or the first line of text.
         public static Result Get(HttpContext context, MemoryStream body)
         {
             var notes = context.Items.TryGetValue(KEY, out object value) ? value as Notes : null;
             bool failed = context.Response.StatusCode >= 400;
-            bool readable = string.IsNullOrEmpty(context.Response.Headers.ContentEncoding);
-            string error = failed ? notes?.Error ?? (readable ? FromBody(body, context.Response.ContentType) : null) : null;
+            string error = failed ? notes?.Error ?? FromBody(body, context.Response.ContentType) : null;
             if (notes == null && error == null)
                 return null;
             return new Result(error, notes?.Errors, notes?.Warnings, notes?.ErrorCount, notes?.WarningCount);
@@ -297,149 +331,124 @@ namespace compute.geometry
             var startUtc = DateTime.UtcNow;
             long startTimestamp = Stopwatch.GetTimestamp();
             var cpu = CpuLedger.Begin();
-            var originalRequestBody = context.Request.Body;
+            var usage = RequestUsage.Begin(context);
+            // Before compression unpacks it, and the answer as it's sent.
+            string requestEncoding = HttpCompression.EncodingName(context.Request.Headers.ContentEncoding);
             var originalResponseBody = context.Response.Body;
-            var requestBody = new CountingReadStream(originalRequestBody);
-            var responseBody = new CountingWriteStream(originalResponseBody, RequestOutcome.MAX_BODY_READ);
-            context.Request.Body = requestBody;
-            context.Response.Body = responseBody;
+            var sent = new CountingWriteStream(originalResponseBody, RequestOutcome.MAX_BODY_READ);
+            context.Response.Body = sent;
             try
             {
                 await next(context);
             }
             finally
             {
-                context.Request.Body = originalRequestBody;
                 context.Response.Body = originalResponseBody;
                 CpuLedger.End(cpu, cpu.Billable ? null : OverheadLabel(context));
                 // Also when the client left before the answer was sent: the work was done.
                 if (cpu.Billable && UsageLog.Recording)
                 {
+                    string responseEncoding = HttpCompression.EncodingName(context.Response.Headers.ContentEncoding);
+                    // An answer that wasn't packed, such as an error written after compression gave up, is as sent.
+                    var answer = responseEncoding == "none" || usage.Response == null ? sent : usage.Response;
+                    if (ClientEncoding(context) is (string clientRequest, bool clientAcceptsGzip))
+                    {
+                        requestEncoding = clientRequest;
+                        responseEncoding = clientAcceptsGzip && answer.BytesWritten >= CompressionMiddleware.MinimumBytes ? "gzip" : "none";
+                    }
                     UsageLog.WriteRequest(startUtc, Guid.NewGuid().ToString("N"), cpu.Metadata, context.Request.Method, context.Request.Path.Value,
-                        context.Response.StatusCode, RequestDefinitions.Get(context), RequestOutcome.Get(context, responseBody.Head), requestBody.BytesRead,
-                        responseBody.BytesWritten, cpu,
+                        context.Response.StatusCode, RequestDefinitions.Get(context), RequestOutcome.Get(context, answer.Head),
+                        usage.RequestBytes, requestEncoding, answer.BytesWritten, responseEncoding, cpu,
                         Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds);
                 }
             }
         }
 
-        sealed class CountingReadStream : Stream
+        // Behind rhino.compute, which unpacks the client's request and packs the answer itself, its note on the
+        // client's side of the request (see HttpCompression.CLIENT_ENCODING_HEADER). Only a child takes it.
+        static (string Request, bool AcceptsGzip)? ClientEncoding(HttpContext context)
         {
-            private readonly Stream inner;
-
-            public CountingReadStream(Stream inner)
+            string note = context.Request.Headers[HttpCompression.CLIENT_ENCODING_HEADER].ToString();
+            if (note.Length == 0 || !(Shutdown.ParentProcesses?.Count > 0))
+                return null;
+            string request = "none";
+            bool acceptsGzip = false;
+            foreach (string part in note.Split(';'))
             {
-                this.inner = inner;
+                string[] pair = part.Split('=', 2);
+                if (pair.Length != 2)
+                    continue;
+                string value = pair[1].Trim().ToLowerInvariant();
+                if (pair[0].Trim() == "request" && value.Length > 0)
+                    request = value;
+                else if (pair[0].Trim() == "accept")
+                    acceptsGzip = value == "gzip";
             }
+            return (request, acceptsGzip);
+        }
+    }
 
-            public long BytesRead { get; private set; }
+    // Passes the response through as it's written, counting it and keeping its start for the error message.
+    sealed class CountingWriteStream : Stream
+    {
+        private readonly Stream inner;
+        private readonly int headLength;
 
-            public override bool CanRead => true;
-            public override bool CanSeek => false;
-            public override bool CanWrite => false;
-            public override long Length => throw new NotSupportedException();
-            public override long Position
-            {
-                get => throw new NotSupportedException();
-                set => throw new NotSupportedException();
-            }
-
-            public override int Read(byte[] buffer, int offset, int count)
-            {
-                int read = inner.Read(buffer, offset, count);
-                BytesRead += read;
-                return read;
-            }
-
-            public override int Read(Span<byte> buffer)
-            {
-                int read = inner.Read(buffer);
-                BytesRead += read;
-                return read;
-            }
-
-            public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-            {
-                int read = await inner.ReadAsync(buffer, offset, count, cancellationToken);
-                BytesRead += read;
-                return read;
-            }
-
-            public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
-            {
-                int read = await inner.ReadAsync(buffer, cancellationToken);
-                BytesRead += read;
-                return read;
-            }
-
-            public override void Flush() { }
-            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-            public override void SetLength(long value) => throw new NotSupportedException();
-            public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public CountingWriteStream(Stream inner, int headLength)
+        {
+            this.inner = inner;
+            this.headLength = headLength;
         }
 
-        // Passes the response through as it's written, counting it and keeping its start for the error message.
-        sealed class CountingWriteStream : Stream
+        public long BytesWritten { get; private set; }
+        public MemoryStream Head { get; } = new MemoryStream();
+
+        void Count(ReadOnlySpan<byte> buffer)
         {
-            private readonly Stream inner;
-            private readonly int headLength;
-
-            public CountingWriteStream(Stream inner, int headLength)
-            {
-                this.inner = inner;
-                this.headLength = headLength;
-            }
-
-            public long BytesWritten { get; private set; }
-            public MemoryStream Head { get; } = new MemoryStream();
-
-            void Count(ReadOnlySpan<byte> buffer)
-            {
-                BytesWritten += buffer.Length;
-                int keep = Math.Min(buffer.Length, headLength - (int)Head.Length);
-                if (keep > 0)
-                    Head.Write(buffer.Slice(0, keep));
-            }
-
-            public override bool CanRead => false;
-            public override bool CanSeek => false;
-            public override bool CanWrite => true;
-            public override long Length => throw new NotSupportedException();
-            public override long Position
-            {
-                get => throw new NotSupportedException();
-                set => throw new NotSupportedException();
-            }
-
-            public override void Write(byte[] buffer, int offset, int count)
-            {
-                Count(buffer.AsSpan(offset, count));
-                inner.Write(buffer, offset, count);
-            }
-
-            public override void Write(ReadOnlySpan<byte> buffer)
-            {
-                Count(buffer);
-                inner.Write(buffer);
-            }
-
-            public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-            {
-                Count(buffer.AsSpan(offset, count));
-                return inner.WriteAsync(buffer, offset, count, cancellationToken);
-            }
-
-            public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
-            {
-                Count(buffer.Span);
-                return inner.WriteAsync(buffer, cancellationToken);
-            }
-
-            public override void Flush() => inner.Flush();
-            public override Task FlushAsync(CancellationToken cancellationToken) => inner.FlushAsync(cancellationToken);
-            public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-            public override void SetLength(long value) => throw new NotSupportedException();
+            BytesWritten += buffer.Length;
+            int keep = Math.Min(buffer.Length, headLength - (int)Head.Length);
+            if (keep > 0)
+                Head.Write(buffer.Slice(0, keep));
         }
+
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => true;
+        public override long Length => throw new NotSupportedException();
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            Count(buffer.AsSpan(offset, count));
+            inner.Write(buffer, offset, count);
+        }
+
+        public override void Write(ReadOnlySpan<byte> buffer)
+        {
+            Count(buffer);
+            inner.Write(buffer);
+        }
+
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            Count(buffer.AsSpan(offset, count));
+            return inner.WriteAsync(buffer, offset, count, cancellationToken);
+        }
+
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            Count(buffer.Span);
+            return inner.WriteAsync(buffer, cancellationToken);
+        }
+
+        public override void Flush() => inner.Flush();
+        public override Task FlushAsync(CancellationToken cancellationToken) => inner.FlushAsync(cancellationToken);
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
     }
 }

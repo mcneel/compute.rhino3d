@@ -111,10 +111,16 @@ namespace compute.geometry
         public static long UsageLogMinFreeBytes { get; private set; }
 
         /// <summary>
-        /// The core-hour billing group in RHINO_TOKEN, recorded with every usage record; null without a token.
-        /// Read only when the usage log is on.
+        /// The core-hour billing group (team) in RHINO_TOKEN, recorded with every usage record; null without a token
+        /// or for a token of one user's own. Read only when the usage log is on.
         /// </summary>
         public static string GroupId { get; private set; }
+
+        /// <summary>
+        /// The "sub" claim of RHINO_TOKEN's OpenID token: the user who created the token, which is who's billed when
+        /// there's no <see cref="GroupId"/>. Recorded with every usage record. Read only when the usage log is on.
+        /// </summary>
+        public static string TokenSubject { get; private set; }
 
         /// <summary>
         /// RHINO_COMPUTE_COMPRESSION: accept gzip request bodies and gzip answers for clients
@@ -158,7 +164,7 @@ namespace compute.geometry
             if (UsageLogPath != null)
             {
                 UsageLogMinFreeBytes = Math.Max(0, GetEnvironmentVariable<long>(RHINO_COMPUTE_USAGE_LOG_MIN_FREE_MB, 1024)) * 1024 * 1024;
-                GroupId = ReadGroupId();
+                ReadToken();
             }
             Compression = GetEnvironmentVariable<bool>(RHINO_COMPUTE_COMPRESSION, true);
 
@@ -207,32 +213,55 @@ namespace compute.geometry
 
         readonly static List<string> warnings = new List<string>();
 
-        // RHINO_TOKEN is base64 JSON: { "RawOpenIdToken", "RawOAuth2Token", "Scope", "GroupId" }. Only GroupId is
-        // read; the tokens are never kept. Read before Rhino starts, which clears the variable from this process.
-        static string ReadGroupId()
+        // RHINO_TOKEN is base64 JSON: { "RawOpenIdToken", "RawOAuth2Token", "Scope", "GroupId" }. Only GroupId and the
+        // OpenID token's sub claim are read (its signature isn't checked); the tokens are never kept. Read before Rhino
+        // starts, which clears the variable from this process.
+        static void ReadToken()
         {
-            string raw = Environment.GetEnvironmentVariable(RHINO_TOKEN)?.Trim();
-            if (string.IsNullOrEmpty(raw))
-                return null;
+            GroupId = null;
+            TokenSubject = null;
+            string raw = Environment.GetEnvironmentVariable(RHINO_TOKEN);
+            if (string.IsNullOrWhiteSpace(raw))
+                return;
             try
             {
-                raw = raw.PadRight(raw.Length + (4 - raw.Length % 4) % 4, '=');
-                using var token = System.Text.Json.JsonDocument.Parse(Convert.FromBase64String(raw));
-                if (token.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object &&
-                    token.RootElement.TryGetProperty("GroupId", out var group))
+                using var token = System.Text.Json.JsonDocument.Parse(FromBase64(raw));
+                var root = token.RootElement;
+                if (root.ValueKind == System.Text.Json.JsonValueKind.Object)
                 {
-                    if (group.ValueKind == System.Text.Json.JsonValueKind.String && !string.IsNullOrWhiteSpace(group.GetString()))
-                        return group.GetString();
-                    if (group.ValueKind == System.Text.Json.JsonValueKind.Number)
-                        return group.GetRawText();
+                    GroupId = JsonText(root, "GroupId");
+                    string openId = JsonText(root, "RawOpenIdToken");
+                    string[] parts = openId?.Split('.');
+                    if (parts?.Length >= 2)
+                    {
+                        using var claims = System.Text.Json.JsonDocument.Parse(FromBase64(parts[1]));
+                        if (claims.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object)
+                            TokenSubject = JsonText(claims.RootElement, "sub");
+                    }
                 }
-                warnings.Add($"{RHINO_TOKEN} has no GroupId; usage records won't say which group they bill to");
+                if (GroupId == null && TokenSubject == null)
+                    warnings.Add($"{RHINO_TOKEN} has neither a GroupId nor a user (sub); usage records won't say who they bill to");
             }
             catch (Exception ex) when (ex is FormatException || ex is System.Text.Json.JsonException)
             {
-                warnings.Add($"{RHINO_TOKEN} couldn't be read ({ex.GetType().Name}); usage records won't say which group they bill to");
+                warnings.Add($"{RHINO_TOKEN} couldn't be read ({ex.GetType().Name}); usage records may not say who they bill to");
             }
-            return null;
+        }
+
+        // Base64 or base64url, with or without padding.
+        static byte[] FromBase64(string text)
+        {
+            text = text.Trim().Replace('-', '+').Replace('_', '/');
+            return Convert.FromBase64String(text.PadRight(text.Length + (4 - text.Length % 4) % 4, '='));
+        }
+
+        static string JsonText(System.Text.Json.JsonElement element, string name)
+        {
+            if (!element.TryGetProperty(name, out var value))
+                return null;
+            if (value.ValueKind == System.Text.Json.JsonValueKind.String)
+                return string.IsNullOrWhiteSpace(value.GetString()) ? null : value.GetString();
+            return value.ValueKind == System.Text.Json.JsonValueKind.Number ? value.GetRawText() : null;
         }
 
         static LogEventLevel GetLogLevel(string name, LogEventLevel defaultValue)
