@@ -60,9 +60,12 @@ namespace compute.geometry
 
         static System.Net.Http.HttpClient httpClient;
         static DateTime lastSpanCheck = DateTime.Now;
+        static bool stopping;
 
         private async static void TimerTask(object timerState)
         {
+            if (stopping)
+                return;
             bool shutdown = false;
 
             if (ParentProcesses != null)
@@ -77,17 +80,14 @@ namespace compute.geometry
 
             if (!shutdown && parentPort > 0 && idleSpan > 0)
             {
-                // Don't check the server every timer tick. Just check when we start approaching
-                // what we think is our span limit.
+                // Ask the parent often enough that a child stops soon after the pool has been idle for the span.
                 var shouldCheckSpan = DateTime.Now - lastSpanCheck;
-                //Serilog.Log.Debug($"Idle span value is {idleSpan}. Elapsed time {shouldCheckSpan.TotalSeconds} seconds. Last span check {lastSpanCheck.ToLocalTime()}.");
-                if (shouldCheckSpan.TotalSeconds > idleSpan)
+                if (shouldCheckSpan.TotalSeconds >= Math.Clamp(idleSpan / 10, 5, 60))
                 {
                     if (httpClient == null)
                         httpClient = new System.Net.Http.HttpClient();
                     string url = $"http://localhost:{parentPort}/idlespan";
                     lastSpanCheck = DateTime.Now;
-                    Serilog.Log.Debug($"The elapsed time has exceeded the idle span limit");
                     Serilog.Log.Debug($"Checking with parent process at {url}.");
                     try
                     {
@@ -100,7 +100,7 @@ namespace compute.geometry
                         {
                             int serverIdleSpan = int.Parse(span);
                             Serilog.Log.Debug($"Response received. Parent process idle span is {serverIdleSpan} seconds.");
-                            if (serverIdleSpan + (serverIdleSpan * 0.1) > idleSpan)
+                            if (serverIdleSpan >= idleSpan)
                             {
                                 Serilog.Log.Debug("Idle span limit reached");
                                 shutdown = true;
@@ -120,6 +120,7 @@ namespace compute.geometry
 
             if (shutdown)
             {
+                stopping = true;
                 Serilog.Log.Debug("Shutting down child process");
                 var elapsedTime = DateTime.Now - startTime;
                 Serilog.Log.Information("Total elapsed time for child process is " + string.Format("{0:D2} days, {1:D2} hrs, {2:D2} mins, {3:D2} secs", elapsedTime.Days, elapsedTime.Hours, elapsedTime.Minutes, elapsedTime.Seconds));
