@@ -298,7 +298,7 @@ jobs:
 
           aws s3 sync ${AWS_S3_BUCKET}/${DIST_PATH}/repodata/ ${OLD}/repodata/
 
-          mergerepo_c --repo ${OLD} --repo ${NEW} -o ${MERGED} --omit-baseurl
+          mergerepo_c --all --repo ${OLD} --repo ${NEW} -o ${MERGED} --omit-baseurl
 
           echo "copying rpm to s3"
           aws s3 sync ${NEW}/ ${AWS_S3_BUCKET}/${DIST_PATH}/ --exclude "repodata/*"
