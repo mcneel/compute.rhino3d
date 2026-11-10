@@ -251,6 +251,13 @@ changed on an already-deployed server without editing web.config.")]
                 {
                     ComputeChildren.RhinoSysDir = Directory.GetParent(parentPath).FullName;
                 }
+                // Rhino.app/Contents/MacOS/Rhinoceros -> Rhino.app/Contents/Frameworks
+                else if (OperatingSystem.IsMacOS() && Path.GetFileName(parentPath) == "Rhinoceros")
+                {
+                    var frameworks = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(parentPath)), "Frameworks");
+                    if (Directory.Exists(frameworks))
+                        ComputeChildren.RhinoSysDir = frameworks;
+                }
             }
 
             Log.Information($"Rhino compute started at {DateTime.Now.ToLocalTime()}");

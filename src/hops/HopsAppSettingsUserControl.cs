@@ -16,6 +16,7 @@ namespace Hops
         readonly System.Windows.Forms.Timer autoTestTimer;
         CancellationTokenSource testCts;
         bool suppressUrlChange;
+        bool syncingServerSource;
 
         // Measure a label's text in its actual font and resize the label to fit, with a small
         // padding so anti-aliased glyphs don't clip. Used on macOS where the system font is
@@ -108,8 +109,17 @@ namespace Hops
             // don't fire Click, so initialization stays clean.
             _rdoUseLocal.AutoCheck = false;
             _rdoUseRemote.AutoCheck = false;
-            _rdoUseLocal.Click += UseLocalClicked;
-            _rdoUseRemote.Click += UseRemoteClicked;
+            if (Rhino.Runtime.HostUtils.RunningOnOSX)
+            {
+                // The macOS shim toggles the box natively and only raises CheckedChanged, never Click.
+                _rdoUseLocal.CheckedChanged += (s, e) => ServerSourceBoxChanged(_rdoUseLocal, UseLocalClicked);
+                _rdoUseRemote.CheckedChanged += (s, e) => ServerSourceBoxChanged(_rdoUseRemote, UseRemoteClicked);
+            }
+            else
+            {
+                _rdoUseLocal.Click += UseLocalClicked;
+                _rdoUseRemote.Click += UseRemoteClicked;
+            }
             _serverUrlTextbox.TextChanged += ServerUrlChanged;
             // Advanced gear button — IconPanel handles icon rendering (DPI-aware via
             // GH_GraphicsUtil.RenderIcon) and hover highlight. Tooltip uses Grasshopper's
@@ -163,19 +173,6 @@ namespace Hops
                     BeginInvoke((Action)(() => _serverUrlTextbox.Parent?.Focus()));
             };
 
-            if (Rhino.Runtime.HostUtils.RunningOnOSX)
-            {
-                _rdoUseLocal.Enabled = false;
-                toolTip1.SetToolTip(_rdoUseLocal, "Local rhino.compute is not supported on macOS");
-                // Defense in depth: the macOS WinForms shim doesn't reliably honor
-                // CheckBox.Enabled=false (it still fires clicks) nor AutoCheck=false (it auto-flips
-                // Checked). Snap Local back to false if anything manages to flip it.
-                _rdoUseLocal.CheckedChanged += (s, e) =>
-                {
-                    if (_rdoUseLocal.Checked && !_rdoUseLocal.Enabled) _rdoUseLocal.Checked = false;
-                };
-            }
-
             InitServerSourceFromSettings();
 
             _apiKeyTextbox.Text = HopsAppSettings.APIKey;
@@ -213,23 +210,20 @@ namespace Hops
 
             if (Rhino.Runtime.HostUtils.RunningOnOSX)
             {
-                // Show the local-only controls grayed out so users can see what's available
-                // on Windows and where the disabled state lives, instead of an empty gap.
+                // There's no console window to hide on Mac.
                 _hideWorkerWindows.Enabled = false;
                 _hideWorkerWindows.Checked = HopsAppSettings.HideWorkerWindows;
-                _launchWorkerAtStart.Enabled = false;
-                _launchWorkerAtStart.Checked = HopsAppSettings.LaunchWorkerAtStart;
-                _childComputeCount.Enabled = false;
-                _childComputeCount.Value = HopsAppSettings.LocalWorkerCount;
-                _updateChildCountButton.Enabled = false;
             }
-            else if (Rhino.Runtime.HostUtils.RunningOnWindows)
+            if (Rhino.Runtime.HostUtils.RunningOnWindows || Rhino.Runtime.HostUtils.RunningOnOSX)
             {
-                _hideWorkerWindows.Checked = HopsAppSettings.HideWorkerWindows;
-                _hideWorkerWindows.CheckedChanged += (s, e) =>
+                if (Rhino.Runtime.HostUtils.RunningOnWindows)
                 {
-                    HopsAppSettings.HideWorkerWindows = _hideWorkerWindows.Checked;
-                };
+                    _hideWorkerWindows.Checked = HopsAppSettings.HideWorkerWindows;
+                    _hideWorkerWindows.CheckedChanged += (s, e) =>
+                    {
+                        HopsAppSettings.HideWorkerWindows = _hideWorkerWindows.Checked;
+                    };
+                }
                 _launchWorkerAtStart.Checked = HopsAppSettings.LaunchWorkerAtStart;
                 _launchWorkerAtStart.CheckedChanged += (s, e) =>
                 {
@@ -321,9 +315,6 @@ namespace Hops
             _hideWorkerWindows.AutoSize = false; _hideWorkerWindows.Size = new Size(240, 22);
             _launchWorkerAtStart.AutoSize = false; _launchWorkerAtStart.Size = new Size(240, 22);
 
-            // Local checkbox text — make the disabled state self-explanatory.
-            _rdoUseLocal.Text = "Local rhino.compute (Windows only)";
-
             // Grow the Compute server source group so the URL row sits inside it. Then lay
             // out every row below the group at a consistent 5px gap. Function-sources group
             // also needs a few extra px so its button isn't clipped. Finally size the
@@ -382,20 +373,12 @@ namespace Hops
             // up to the host's layout engine — worth trying first as a no-cost mitigation.
             MinimumSize = new Size(280, _gpboxFunctionMgr.Bottom + 4);
 
-            // The shim ignores Enabled=false / AutoCheck=false on Remote (just like Local).
-            // Local should always be off, Remote should always be on. Snap back if user clicks.
-            _rdoUseRemote.CheckedChanged += (s, e) =>
-            {
-                if (!_rdoUseRemote.Checked) _rdoUseRemote.Checked = true;
-            };
-
-            // The shim also ignores Enabled=false on NumericUpDown — its arrows still fire.
-            // Snap the value back if it changes while disabled.
-            decimal initialChildCount = HopsAppSettings.LocalWorkerCount;
+            // The shim ignores Enabled=false on NumericUpDown — its arrows still fire.
+            // Snap the value back to the saved count if it changes while disabled.
             _childComputeCount.ValueChanged += (s, e) =>
             {
-                if (!_childComputeCount.Enabled && _childComputeCount.Value != initialChildCount)
-                    _childComputeCount.Value = initialChildCount;
+                if (!_childComputeCount.Enabled && _childComputeCount.Value != HopsAppSettings.LocalWorkerCount)
+                    _childComputeCount.Value = HopsAppSettings.LocalWorkerCount;
             };
         }
 
@@ -413,8 +396,7 @@ namespace Hops
             {
                 // The URL is always populated from saved Servers so toggling local/remote preserves it.
                 _serverUrlTextbox.Text = servers.Length > 0 ? servers[0] : "";
-                _rdoUseLocal.Checked = HopsAppSettings.UseLocalServer;
-                _rdoUseRemote.Checked = !HopsAppSettings.UseLocalServer;
+                SyncServerSourceBoxes();
             }
             finally
             {
@@ -434,11 +416,17 @@ namespace Hops
             // identical to the surrounding group. With ReadOnly we keep BackColor honored
             // and the textbox still rejects keyboard input.
             _serverUrlTextbox.ReadOnly = !remote;
-            // Color.White explicitly (not SystemColors.Window) — the macOS WinForms shim
-            // maps SystemColors.Window to a light grey, which made the enabled state look
-            // identical to the disabled state on Mac. White renders consistently on both.
-            _serverUrlTextbox.BackColor = remote ? Color.White : Color.FromArgb(0xF9, 0xF9, 0xF9);
-            _serverUrlTextbox.ForeColor = remote ? SystemColors.WindowText : Color.FromArgb(0xA0, 0xA0, 0xA0);
+            if (Rhino.Runtime.HostUtils.RunningOnOSX)
+            {
+                // Fixed colours ignore dark mode on Mac; keep the system background and grey the text instead.
+                _serverUrlTextbox.BackColor = Color.Empty;
+                _serverUrlTextbox.ForeColor = remote ? Color.Empty : SystemColors.GrayText;
+            }
+            else
+            {
+                _serverUrlTextbox.BackColor = remote ? Color.White : Color.FromArgb(0xF9, 0xF9, 0xF9);
+                _serverUrlTextbox.ForeColor = remote ? SystemColors.WindowText : Color.FromArgb(0xA0, 0xA0, 0xA0);
+            }
             // Arrow cursor in disabled state signals "non-interactive"; clear any active
             // selection so the textbox doesn't carry highlight state into the disabled view.
             _serverUrlTextbox.Cursor = remote ? Cursors.IBeam : Cursors.Default;
@@ -491,39 +479,53 @@ namespace Hops
 
         void UpdateLocalOnlyControlsEnabled()
         {
-            // macOS hides these entirely (set in the constructor); on Windows, gray them out
-            // when Use Remote is selected so the relationship to the radio is obvious.
-            if (Rhino.Runtime.HostUtils.RunningOnOSX) return;
+            // Gray these out when Use Remote is selected so the relationship to the radio is obvious.
             bool local = _rdoUseLocal.Checked;
-            _hideWorkerWindows.Enabled = local;
+            _hideWorkerWindows.Enabled = local && !Rhino.Runtime.HostUtils.RunningOnOSX;
             _launchWorkerAtStart.Enabled = local;
             _childComputeCount.Enabled = local;
             _updateChildCountButton.Enabled = local;
         }
 
+        // Mac only: ticking a box switches to it; unticking the active one just puts its tick back.
+        void ServerSourceBoxChanged(CheckBox box, EventHandler clicked)
+        {
+            if (syncingServerSource) return;
+            if (box.Checked)
+                clicked(box, EventArgs.Empty);
+            SyncServerSourceBoxes();
+        }
+
+        void SyncServerSourceBoxes()
+        {
+            syncingServerSource = true;
+            try
+            {
+                _rdoUseLocal.Checked = HopsAppSettings.UseLocalServer;
+                _rdoUseRemote.Checked = !HopsAppSettings.UseLocalServer;
+            }
+            finally
+            {
+                syncingServerSource = false;
+            }
+        }
+
         void UseLocalClicked(object sender, EventArgs e)
         {
-            // macOS shim doesn't reliably block Click on disabled CheckBoxes; bail and force-revert.
-            if (!_rdoUseLocal.Enabled)
-            {
-                if (_rdoUseLocal.Checked) _rdoUseLocal.Checked = false;
-                return;
-            }
-            if (_rdoUseLocal.Checked) return;
-            _rdoUseLocal.Checked = true;
-            _rdoUseRemote.Checked = false;
-            autoTestTimer.Stop();
+            // Check the setting, not the box: on Mac the box has already flipped by the time this runs.
+            if (HopsAppSettings.UseLocalServer) return;
             HopsAppSettings.UseLocalServer = true;
+            SyncServerSourceBoxes();
+            autoTestTimer.Stop();
             UpdateUrlControlsEnabled();
             UpdateLocalOnlyControlsEnabled();
         }
 
         void UseRemoteClicked(object sender, EventArgs e)
         {
-            if (_rdoUseRemote.Checked) return;
-            _rdoUseRemote.Checked = true;
-            _rdoUseLocal.Checked = false;
+            if (!HopsAppSettings.UseLocalServer) return;
             HopsAppSettings.UseLocalServer = false;
+            SyncServerSourceBoxes();
             UpdateUrlControlsEnabled();
             UpdateLocalOnlyControlsEnabled();
             string url = _serverUrlTextbox.Text.Trim();
