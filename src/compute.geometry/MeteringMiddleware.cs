@@ -336,8 +336,8 @@ namespace compute.geometry
         {
             this.next = next;
             CpuLedger.Start();
+            RhinoMeter.Start();
             UsageLog.Start();
-            AgentLink.Start();
             NestedCalls.Start();
         }
 
@@ -386,7 +386,7 @@ namespace compute.geometry
                         requestEncoding = client.Encoding;
                         requestBytes = client.Bytes ?? usage.RequestBytes;
                     }
-                    UsageLog.WriteRequest(startUtc, Guid.NewGuid().ToString("N"), cpu.Metadata, context.Request.Method, context.Request.Path.Value,
+                    UsageLog.WriteRequest(startUtc, cpu.RequestId, cpu.Metadata, context.Request.Method, context.Request.Path.Value,
                         context.Response.StatusCode, RequestDefinitions.Get(context), RequestMcp.Get(context), RequestOutcome.Get(context, answer.Head),
                         usage.RequestBytes, requestBytes, requestEncoding, answer.BytesWritten, sent.BytesWritten, responseEncoding, cpu,
                         Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds);

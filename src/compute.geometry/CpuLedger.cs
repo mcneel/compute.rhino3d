@@ -8,7 +8,8 @@ namespace compute.geometry
     // Divides this process's CPU (including processes it starts) between requests. Each time a request
     // starts, ends, becomes billable, or starts or stops waiting for a lock, the CPU used since the last
     // such moment goes to the one billable request running, is shared evenly when several are running,
-    // or is overhead: the non-billable requests running, else idle.
+    // or is overhead: the non-billable requests running, else idle. With Rhino's usage meter on, a billable
+    // request is also a unit of work in Rhino's ledger (RhinoMeter), and its CPU is taken from there.
     static class CpuLedger
     {
         public sealed class Entry
@@ -16,6 +17,13 @@ namespace compute.geometry
             internal bool Waiting;
             internal bool Finished;
             internal double OverheadCpuSeconds;
+            // The request's unit of work in Rhino's ledger, or 0.
+            internal long Work;
+
+            // Names the request in its usage record and, as its unit of work, in Rhino's.
+            public string RequestId { get; } = Guid.NewGuid().ToString("N");
+            // True when Rhino's usage meter measured CpuSeconds and SharedCpuSeconds.
+            public bool FromRhino { get; internal set; }
 
             public bool Billable { get; internal set; }
             public System.Text.Json.JsonElement? Metadata { get; internal set; }
@@ -114,6 +122,7 @@ namespace compute.geometry
                     entry.Billable = true;
                     entry.Metadata = metadata;
                 }
+                entry.Work = RhinoMeter.BeginWork(entry.RequestId);
             }
             return new BillableScope(entry);
         }
@@ -149,6 +158,15 @@ namespace compute.geometry
                 {
                     Advance();
                     entry.Finished = true;
+                }
+                if (RhinoMeter.EndWork(entry.Work, out double cpuSeconds, out double sharedCpuSeconds))
+                {
+                    lock (ledgerLock)
+                    {
+                        entry.CpuSeconds = cpuSeconds;
+                        entry.SharedCpuSeconds = sharedCpuSeconds;
+                        entry.FromRhino = true;
+                    }
                 }
             }
         }
@@ -207,6 +225,7 @@ namespace compute.geometry
                 Advance();
                 entry.Waiting = waiting;
             }
+            RhinoMeter.SetWaiting(entry.Work, waiting);
         }
 
         // Called under ledgerLock.

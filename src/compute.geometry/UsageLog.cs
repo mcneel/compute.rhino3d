@@ -13,10 +13,9 @@ using Serilog;
 namespace compute.geometry
 {
     // Usage records as JSON lines: one per billable request, a startup record, an overhead record every minute and
-    // a final one at shutdown, each with the billing group and user (sub) from RHINO_TOKEN. They go to compute.meter.agent when it's
-    // running, otherwise (or when it can't take them) to this process's own file for the day (UTC), so processes never
-    // share a file; a later day's file starts with a "continued" record. Each record has a sequence number, so the
-    // agent stores a record once whichever way it arrives.
+    // a final one at shutdown, each with the billing group and user (sub) from RHINO_TOKEN. They go to this process's own
+    // file for the day (UTC), so processes never share a file; a later day's file starts with a "continued" record. Each
+    // record has a sequence number, so a reader stores a record once however often it reads the file.
     // When the drive runs low, the oldest files are deleted to keep the newest records, and if that isn't enough,
     // records are skipped until there's space again; a "removed" or "gap" record says what was lost.
     // Fields are only ever added (bumping VERSION), never renamed, so readers can handle every version.
@@ -24,7 +23,6 @@ namespace compute.geometry
     {
         public const int VERSION = 1;
         static readonly TimeSpan OVERHEAD_INTERVAL = TimeSpan.FromMinutes(1);
-        static readonly TimeSpan SHUTDOWN_FLUSH_TIMEOUT = TimeSpan.FromSeconds(2);
         static readonly TimeSpan RETRY_INTERVAL = TimeSpan.FromSeconds(30);
         static readonly TimeSpan DISK_CHECK_INTERVAL = TimeSpan.FromMinutes(1);
         // Every process writes at least once a minute, so a file written more recently may still be in use.
@@ -57,7 +55,7 @@ namespace compute.geometry
         static long periodStartTimestamp;
         static DateTime processStartUtc;
 
-        // Identifies this process's records, with its pid, in file names and to the agent.
+        // Identifies this process's records, with its pid, in file names.
         public static string ProcessStart => Program.StartTime.ToUniversalTime().ToString("yyyyMMddTHHmmss", CultureInfo.InvariantCulture);
 
         public static bool Recording { get; private set; }
@@ -98,8 +96,6 @@ namespace compute.geometry
         public static void Stop(string reason)
         {
             WriteOverhead("shutdown", reason);
-            foreach (string line in AgentLink.Flush(SHUTDOWN_FLUSH_TIMEOUT))
-                WriteToFile(line);
             lock (appendLock)
             {
                 if (unwritten.Count > 0 && !TryWrite(force: true))
@@ -147,6 +143,8 @@ namespace compute.geometry
                 sharedCpuSeconds = Math.Round(cpu.SharedCpuSeconds, 3),
                 waitSeconds = Math.Round(cpu.WaitSeconds, 3),
                 wallSeconds = Math.Round(wallSeconds, 3),
+                // Rhino's usage meter measured the CPU, in the unit of work its log names by requestId.
+                cpuFrom = cpu.FromRhino ? "rhino" : null,
             });
         }
 
@@ -183,20 +181,15 @@ namespace compute.geometry
             }
         }
 
-        // Numbered and queued under one lock, so records reach the agent in sequence order.
+        // Numbered and queued under one lock, so records reach the file in sequence order.
         static void Append(Func<long, object> build)
         {
             lock (appendLock)
             {
-                if (!Recording)
-                    return;
-                if (!AgentLink.Attached && !PrepareFile())
+                if (!Recording || !PrepareFile())
                     return;
                 long seq = ++nextSeq;
-                string line = JsonSerializer.Serialize(build(seq), JSON_OPTIONS);
-                if (AgentLink.Attached && AgentLink.Send(seq, line))
-                    return;
-                WriteToFile(line);
+                WriteToFile(JsonSerializer.Serialize(build(seq), JSON_OPTIONS));
             }
         }
 
@@ -383,7 +376,7 @@ namespace compute.geometry
         }
 
         // Under appendLock. Records written twice, when a failure comes after some reached the file, are stored once,
-        // since the agent keys them by sequence number.
+        // since readers key them by sequence number.
         static bool TryWrite(bool force)
         {
             string directory = Config.UsageLogPath;
