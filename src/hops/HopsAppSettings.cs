@@ -199,10 +199,8 @@ namespace Hops
         {
             get
             {
-                // Mac can't auto-spawn local — always false there regardless of the saved value.
-                if (Rhino.Runtime.HostUtils.RunningOnOSX)
-                    return false;
-                return Grasshopper.Instances.Settings.GetValue(HOPS_USE_LOCAL_SERVER, true);
+                // Off by default on Mac, where local wasn't available before, so existing remote setups keep working.
+                return Grasshopper.Instances.Settings.GetValue(HOPS_USE_LOCAL_SERVER, !Rhino.Runtime.HostUtils.RunningOnOSX);
             }
             set
             {
