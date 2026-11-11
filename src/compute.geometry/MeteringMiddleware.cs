@@ -336,7 +336,6 @@ namespace compute.geometry
         {
             this.next = next;
             CpuLedger.Start();
-            RhinoMeter.Start();
             UsageLog.Start();
             NestedCalls.Start();
         }

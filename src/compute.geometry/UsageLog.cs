@@ -143,8 +143,6 @@ namespace compute.geometry
                 sharedCpuSeconds = Math.Round(cpu.SharedCpuSeconds, 3),
                 waitSeconds = Math.Round(cpu.WaitSeconds, 3),
                 wallSeconds = Math.Round(wallSeconds, 3),
-                // Rhino's usage meter measured the CPU, in the unit of work its log names by requestId.
-                cpuFrom = cpu.FromRhino ? "rhino" : null,
             });
         }
 
