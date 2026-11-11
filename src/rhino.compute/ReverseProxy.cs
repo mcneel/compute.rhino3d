@@ -23,9 +23,9 @@ namespace rhino.compute
         public static readonly object REQUEST_ENCODING = new object();
         public static readonly object REQUEST_RECEIVED = new object();
 
-        // The children write usage records when this is set; otherwise nothing here takes part in usage logging.
-        public static readonly string UsageLogPath = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RHINO_COMPUTE_USAGE_LOG_PATH"))
-            ? null : Environment.GetEnvironmentVariable("RHINO_COMPUTE_USAGE_LOG_PATH");
+        // On once a child's /healthcheck says its usage log is on, which it is while Rhino's usage meter meters it: the
+        // children then write usage records. Until then nothing here takes part in usage logging.
+        public static volatile bool UsageLog;
 
         static void Initialize()
         {
@@ -375,7 +375,7 @@ namespace rhino.compute
         {
             if (!string.IsNullOrEmpty(metadata))
                 to.Headers.TryAddWithoutValidation(METADATA_HEADER, metadata);
-            if (UsageLogPath == null)
+            if (!UsageLog)
                 return;
             // The child packs the answer, so the size it records is the size sent; the answer is passed on as is.
             if (from != null && Config.Compression && CompressionMiddleware.AcceptsGzip(from.Headers.AcceptEncoding))
@@ -391,7 +391,7 @@ namespace rhino.compute
         // per connection, and only while the usage log is on.
         internal static string Metadata(HttpRequest req)
         {
-            if (UsageLogPath == null)
+            if (!UsageLog)
                 return null;
             var connection = req.HttpContext.Connection;
             var items = req.HttpContext.Features.Get<Microsoft.AspNetCore.Connections.Features.IConnectionItemsFeature>()?.Items;
@@ -450,7 +450,7 @@ namespace rhino.compute
                 using (new ConcurrentRequestTracker())
                 {
                     string metadata = Metadata(req);
-                    using (var child = UsageLogPath == null ? ComputeChildren.AcquireChild() : ComputeChildren.AcquireChild(metadata, req.Path))
+                    using (var child = UsageLog ? ComputeChildren.AcquireChild(metadata, req.Path) : ComputeChildren.AcquireChild())
                     using (var proxyResponse = await SendProxyRequest(req, method, child.BaseUrl, metadata))
                     {
                         ComputeChildren.UpdateLastCall();
@@ -462,7 +462,7 @@ namespace rhino.compute
                         // as application/json rather than the ASP.NET Core default text/plain.
                         if (proxyResponse.Content.Headers.ContentType != null)
                             res.ContentType = proxyResponse.Content.Headers.ContentType.ToString();
-                        if (UsageLogPath == null)
+                        if (!UsageLog)
                             responseString = await proxyResponse.Content.ReadAsStringAsync();
                         else
                         {

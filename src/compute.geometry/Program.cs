@@ -75,9 +75,10 @@ namespace compute.geometry
                         // and exhaust server memory. The env var name matches rhino.compute's
                         // so child processes inherit the parent's configured value automatically.
                         options.Limits.MaxRequestBodySize = Config.MaxRequestSize;
-                        // Metadata a client didn't escape is read as UTF-8 rather than refusing the request.
-                        if (Config.UsageLogPath != null)
-                            options.RequestHeaderEncodingSelector = name => RequestMetadata.IsHeader(name) ? System.Text.Encoding.UTF8 : null;
+                        // While the usage log is on, metadata a client didn't escape is read as UTF-8 rather than refusing the
+                        // request. Checked per request, since the usage log is on only once Rhino has started.
+                        options.RequestHeaderEncodingSelector = name =>
+                            Config.UsageLogPath != null && RequestMetadata.IsHeader(name) ? System.Text.Encoding.UTF8 : null;
                         if (Config.LocalhostPort > 0)
                             options.ListenLocalhost(Config.LocalhostPort);
                     })
@@ -119,14 +120,9 @@ namespace compute.geometry
                 }
             });
 
-            // The host stops gracefully on these; the usage log's shutdown record notes which one it was.
-            bool usageLog = Config.UsageLogPath != null;
-            using var interrupt = usageLog ? PosixSignalRegistration.Create(PosixSignal.SIGINT, _ => Shutdown.SetReason("interrupt")) : null;
-            using var quit = usageLog ? PosixSignalRegistration.Create(PosixSignal.SIGQUIT, _ => Shutdown.SetReason("interrupt")) : null;
-            using var terminate = usageLog ? PosixSignalRegistration.Create(PosixSignal.SIGTERM, _ => Shutdown.SetReason("terminate")) : null;
             Shutdown.StartTimer(host);
             host.Run();
-            if (usageLog)
+            if (Config.UsageLogPath != null)
                 UsageLog.Stop(Shutdown.Reason);
 
             if (RhinoCore != null)

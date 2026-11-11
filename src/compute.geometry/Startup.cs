@@ -38,10 +38,21 @@ namespace compute.geometry
         public void Configure(IApplicationBuilder app)
         {
             RhinoCoreStartup();
+            Config.LoadUsageLog();
 
             bool usageLog = Config.UsageLogPath != null;
             if (usageLog)
+            {
+                Shutdown.RecordSignals();
                 app.UseMiddleware<MeteringMiddleware>();
+                // rhino.compute waits for /healthcheck before sending a child requests; this tells it the usage log is on.
+                app.Use((context, next) =>
+                {
+                    if (context.Request.Path == "/healthcheck")
+                        context.Response.Headers[LocalConnections.USAGE_LOG_HEADER] = "on";
+                    return next(context);
+                });
+            }
 
             // Global exception handler. Sits at the very top of the pipeline so it catches
             // anything thrown by downstream middleware or endpoint handlers. Logs the

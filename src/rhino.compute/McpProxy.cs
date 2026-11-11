@@ -71,7 +71,7 @@ namespace rhino.compute
         }
 
         // While the usage log is on, calls go through the child's compute.geometry, which measures and records them.
-        static bool Metered => ReverseProxyModule.UsageLogPath != null;
+        static bool Metered => ReverseProxyModule.UsageLog;
 
         static HttpClient client;
         static readonly ConcurrentDictionary<string, McpSession> sessions = new ConcurrentDictionary<string, McpSession>(StringComparer.Ordinal);

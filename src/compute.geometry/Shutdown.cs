@@ -19,6 +19,19 @@ namespace compute.geometry
 
         public static void SetReason(string value) => System.Threading.Interlocked.CompareExchange(ref reason, value, null);
 
+        static System.Runtime.InteropServices.PosixSignalRegistration[] signals;
+
+        // While the usage log is on: the host stops gracefully on these, and the shutdown record notes which one it was.
+        public static void RecordSignals()
+        {
+            signals = new[]
+            {
+                System.Runtime.InteropServices.PosixSignalRegistration.Create(System.Runtime.InteropServices.PosixSignal.SIGINT, _ => SetReason("interrupt")),
+                System.Runtime.InteropServices.PosixSignalRegistration.Create(System.Runtime.InteropServices.PosixSignal.SIGQUIT, _ => SetReason("interrupt")),
+                System.Runtime.InteropServices.PosixSignalRegistration.Create(System.Runtime.InteropServices.PosixSignal.SIGTERM, _ => SetReason("terminate")),
+            };
+        }
+
         public static void RegisterParentProcess(int processId)
         {
             var process = System.Diagnostics.Process.GetProcessById(processId);

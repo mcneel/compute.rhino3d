@@ -627,6 +627,13 @@ namespace rhino.compute
             try
             {
                 using var response = healthClient.GetAsync($"http://localhost:{port}/healthcheck").GetAwaiter().GetResult();
+                if (response.IsSuccessStatusCode)
+                {
+                    bool usageLog = response.Headers.Contains(LocalConnections.USAGE_LOG_HEADER);
+                    if (usageLog && !ReverseProxyModule.UsageLog)
+                        Log.Information("Usage log: on, since Rhino's usage meter is; the children record usage beside Rhino's log");
+                    ReverseProxyModule.UsageLog = usageLog;
+                }
                 return (int)response.StatusCode;
             }
             catch (Exception ex) when (ex is HttpRequestException || ex is OperationCanceledException)

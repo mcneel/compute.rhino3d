@@ -65,15 +65,17 @@
             }));
 
             // For the usage log, the client's request as sent, before compression unpacks it.
-            if (ReverseProxyModule.UsageLogPath != null)
-                app.Use((context, next) =>
+            app.Use((context, next) =>
+            {
+                if (ReverseProxyModule.UsageLog)
                 {
                     context.Items[ReverseProxyModule.REQUEST_ENCODING] = HttpCompression.EncodingName(context.Request.Headers.ContentEncoding);
                     var received = new CountingReadStream(context.Request.Body);
                     context.Items[ReverseProxyModule.REQUEST_RECEIVED] = received;
                     context.Request.Body = received;
-                    return next(context);
-                });
+                }
+                return next(context);
+            });
             if (Config.Compression)
                 app.UseHttpCompression();
             app.UseSerilogRequestLogging();

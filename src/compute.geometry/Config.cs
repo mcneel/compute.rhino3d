@@ -3,6 +3,7 @@ using Serilog.Events;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace compute.geometry
 {
@@ -98,17 +99,18 @@ namespace compute.geometry
         public static bool EnableScripting { get; private set; }
 
         /// <summary>
-        /// RHINO_COMPUTE_USAGE_LOG_PATH: turns usage logging on. The directory for usage records: one JSON line per
-        /// billable request plus startup, overhead and shutdown records, in a file per process per day (UTC).
-        /// When unset, none of the usage-logging code runs.
+        /// The usage log's folder, or null while it's off. It's on when Rhino's usage meter meters this process: Rhino
+        /// then names its log's folder in RHINO_USAGE_LOG_FOLDER as it starts (see <see cref="LoadUsageLog"/>), and the
+        /// usage records go beside Rhino's: one JSON line per billable request plus startup, overhead and shutdown
+        /// records, in a file per process per day (UTC). While it's off, none of the usage-logging code runs.
         /// </summary>
         public static string UsageLogPath { get; private set; }
 
         /// <summary>
-        /// RHINO_COMPUTE_USAGE_LOG_MIN_FREE_MB: free space to keep on the usage log's drive (defaults to 1024).
-        /// Below it, the oldest usage files are deleted to make room for new records.
+        /// Free space to keep on the usage log's drive, as Rhino's own log does by default. Below it, the oldest usage
+        /// files are deleted to make room for new records.
         /// </summary>
-        public static long UsageLogMinFreeBytes { get; private set; }
+        public static long UsageLogMinFreeBytes { get; } = 1024L * 1024 * 1024;
 
         /// <summary>
         /// The core-hour billing group (team) in RHINO_TOKEN, recorded with every usage record; null without a token
@@ -158,14 +160,10 @@ namespace compute.geometry
             CreateHeadlessDoc = GetEnvironmentVariable<bool>(RHINO_COMPUTE_CREATE_HEADLESS_DOC, false);
             LoadGrasshopper = GetEnvironmentVariable<bool>(RHINO_COMPUTE_LOAD_GRASSHOPPER, true);
             EnableScripting = GetEnvironmentVariable<bool>(RHINO_COMPUTE_ENABLE_SCRIPTING, false);
-            UsageLogPath = GetEnvironmentVariable<string>(RHINO_COMPUTE_USAGE_LOG_PATH, null);
-            // Processes started from here must not meter themselves: their CPU is already counted in this one.
-            Environment.SetEnvironmentVariable(RHINO_COMPUTE_USAGE_LOG_PATH, null);
-            if (UsageLogPath != null)
-            {
-                UsageLogMinFreeBytes = Math.Max(0, GetEnvironmentVariable<long>(RHINO_COMPUTE_USAGE_LOG_MIN_FREE_MB, 1024)) * 1024 * 1024;
-                ReadToken();
-            }
+            // Set already when a metered Rhino started this process, which then counts this one's CPU too.
+            startedByMeteredRhino = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(RHINO_USAGE_LOG_FOLDER));
+            // Kept for LoadUsageLog, since RHINO_TOKEN is cleared once Rhino has started.
+            token = Environment.GetEnvironmentVariable(RHINO_TOKEN);
             Compression = GetEnvironmentVariable<bool>(RHINO_COMPUTE_COMPRESSION, true);
 
 #if DEBUG
@@ -199,8 +197,8 @@ namespace compute.geometry
         const string RHINO_COMPUTE_CREATE_HEADLESS_DOC = "RHINO_COMPUTE_CREATE_HEADLESS_DOC";
         const string RHINO_COMPUTE_LOAD_GRASSHOPPER = "RHINO_COMPUTE_LOAD_GRASSHOPPER";
         const string RHINO_COMPUTE_ENABLE_SCRIPTING = "RHINO_COMPUTE_ENABLE_SCRIPTING";
-        const string RHINO_COMPUTE_USAGE_LOG_PATH = "RHINO_COMPUTE_USAGE_LOG_PATH";
-        const string RHINO_COMPUTE_USAGE_LOG_MIN_FREE_MB = "RHINO_COMPUTE_USAGE_LOG_MIN_FREE_MB";
+        // Set by Rhino's usage meter, when it meters, to its log's folder.
+        const string RHINO_USAGE_LOG_FOLDER = "RHINO_USAGE_LOG_FOLDER";
         const string RHINO_COMPUTE_COMPRESSION = "RHINO_COMPUTE_COMPRESSION";
         const string RHINO_TOKEN = "RHINO_TOKEN";
 
@@ -212,15 +210,33 @@ namespace compute.geometry
         readonly static string[] ignored = new string[] { "COMPUTE_BACKEND_PORT" };
 
         readonly static List<string> warnings = new List<string>();
+        static bool startedByMeteredRhino;
+        static string token;
+
+        /// <summary>
+        /// Called once Rhino has started: turns the usage log on when Rhino's usage meter meters this process.
+        /// </summary>
+        public static void LoadUsageLog()
+        {
+            string folder = Environment.GetEnvironmentVariable(RHINO_USAGE_LOG_FOLDER);
+            if (!startedByMeteredRhino && !string.IsNullOrEmpty(folder))
+            {
+                UsageLogPath = folder;
+                int logged = warnings.Count;
+                ReadToken(token);
+                foreach (string warning in warnings.Skip(logged))
+                    Log.Warning(warning);
+            }
+            token = null;
+        }
 
         // RHINO_TOKEN is base64 JSON: { "RawOpenIdToken", "RawOAuth2Token", "Scope", "GroupId" }. Only GroupId and the
-        // OpenID token's sub claim are read (its signature isn't checked); the tokens are never kept. Read before Rhino
-        // starts, which clears the variable from this process.
-        static void ReadToken()
+        // OpenID token's sub claim are read (its signature isn't checked), and the token is let go once Rhino has started,
+        // which clears the variable from this process.
+        static void ReadToken(string raw)
         {
             GroupId = null;
             TokenSubject = null;
-            string raw = Environment.GetEnvironmentVariable(RHINO_TOKEN);
             if (string.IsNullOrWhiteSpace(raw))
                 return;
             try

@@ -17,6 +17,12 @@ namespace compute.geometry
         /// </summary>
         public const string CALLER_HEADER = "Rhino-Compute-Caller";
 
+        /// <summary>
+        /// On compute.geometry's /healthcheck answer while its usage log is on, so rhino.compute, which waits for that
+        /// answer before sending a child requests, passes on what usage records need.
+        /// </summary>
+        public const string USAGE_LOG_HEADER = "Rhino-Compute-Usage-Log";
+
         public static bool FromThisMachine(IPAddress remote)
         {
             if (remote == null)
