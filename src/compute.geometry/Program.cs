@@ -8,7 +8,6 @@ using Serilog;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using System.IO;
-using System.Runtime.InteropServices;
 
 
 namespace compute.geometry

@@ -40,6 +40,5 @@
     </Compile>
     <Compile Include="..\compute.geometry\HttpCompression.cs" Link="HttpCompression.cs" />
     <Compile Include="..\compute.geometry\McpForwarding.cs" Link="McpForwarding.cs" />
-
   </ItemGroup>
 </Project>
