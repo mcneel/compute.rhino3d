@@ -3,6 +3,7 @@ using Serilog.Events;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace compute.geometry
 {
@@ -98,6 +99,32 @@ namespace compute.geometry
         public static bool EnableScripting { get; private set; }
 
         /// <summary>
+        /// The usage log's folder, or null while it's off. It's on when Rhino's usage meter meters this process: Rhino
+        /// then names its log's folder in RHINO_USAGE_LOG_FOLDER as it starts (see <see cref="LoadUsageLog"/>), and the
+        /// usage records go beside Rhino's: one JSON line per billable request plus startup, overhead and shutdown
+        /// records, in a file per process per day (UTC). While it's off, none of the usage-logging code runs.
+        /// </summary>
+        public static string UsageLogPath { get; private set; }
+
+        /// <summary>
+        /// Free space to keep on the usage log's drive, as Rhino's own log does by default. Below it, the oldest usage
+        /// files are deleted to make room for new records.
+        /// </summary>
+        public static long UsageLogMinFreeBytes { get; } = 1024L * 1024 * 1024;
+
+        /// <summary>
+        /// The core-hour billing group (team) in RHINO_TOKEN, recorded with every usage record; null without a token
+        /// or for a token of one user's own. Read only when the usage log is on.
+        /// </summary>
+        public static string GroupId { get; private set; }
+
+        /// <summary>
+        /// The "sub" claim of RHINO_TOKEN's OpenID token: the user who created the token, which is who's billed when
+        /// there's no <see cref="GroupId"/>. Recorded with every usage record. Read only when the usage log is on.
+        /// </summary>
+        public static string TokenSubject { get; private set; }
+
+        /// <summary>
         /// RHINO_COMPUTE_COMPRESSION: accept gzip request bodies and gzip answers for clients
         /// that ask (Accept-Encoding: gzip). On by default; false turns it off.
         /// </summary>
@@ -133,6 +160,10 @@ namespace compute.geometry
             CreateHeadlessDoc = GetEnvironmentVariable<bool>(RHINO_COMPUTE_CREATE_HEADLESS_DOC, false);
             LoadGrasshopper = GetEnvironmentVariable<bool>(RHINO_COMPUTE_LOAD_GRASSHOPPER, true);
             EnableScripting = GetEnvironmentVariable<bool>(RHINO_COMPUTE_ENABLE_SCRIPTING, false);
+            // Set already when a metered Rhino started this process, which then counts this one's CPU too.
+            startedByMeteredRhino = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(RHINO_USAGE_LOG_FOLDER));
+            // Kept for LoadUsageLog, since RHINO_TOKEN is cleared once Rhino has started.
+            token = Environment.GetEnvironmentVariable(RHINO_TOKEN);
             Compression = GetEnvironmentVariable<bool>(RHINO_COMPUTE_COMPRESSION, true);
 
 #if DEBUG
@@ -166,7 +197,10 @@ namespace compute.geometry
         const string RHINO_COMPUTE_CREATE_HEADLESS_DOC = "RHINO_COMPUTE_CREATE_HEADLESS_DOC";
         const string RHINO_COMPUTE_LOAD_GRASSHOPPER = "RHINO_COMPUTE_LOAD_GRASSHOPPER";
         const string RHINO_COMPUTE_ENABLE_SCRIPTING = "RHINO_COMPUTE_ENABLE_SCRIPTING";
+        // Set by Rhino's usage meter, when it meters, to its log's folder.
+        const string RHINO_USAGE_LOG_FOLDER = "RHINO_USAGE_LOG_FOLDER";
         const string RHINO_COMPUTE_COMPRESSION = "RHINO_COMPUTE_COMPRESSION";
+        const string RHINO_TOKEN = "RHINO_TOKEN";
 
         // deprecated
         const string COMPUTE_BIND_URLS = "COMPUTE_BIND_URLS";
@@ -176,6 +210,75 @@ namespace compute.geometry
         readonly static string[] ignored = new string[] { "COMPUTE_BACKEND_PORT" };
 
         readonly static List<string> warnings = new List<string>();
+        static bool startedByMeteredRhino;
+        static string token;
+
+        /// <summary>
+        /// Called once Rhino has started: turns the usage log on when Rhino's usage meter meters this process.
+        /// </summary>
+        public static void LoadUsageLog()
+        {
+            string folder = Environment.GetEnvironmentVariable(RHINO_USAGE_LOG_FOLDER);
+            if (!startedByMeteredRhino && !string.IsNullOrEmpty(folder))
+            {
+                UsageLogPath = folder;
+                int logged = warnings.Count;
+                ReadToken(token);
+                foreach (string warning in warnings.Skip(logged))
+                    Log.Warning(warning);
+            }
+            token = null;
+        }
+
+        // RHINO_TOKEN is base64 JSON: { "RawOpenIdToken", "RawOAuth2Token", "Scope", "GroupId" }. Only GroupId and the
+        // OpenID token's sub claim are read (its signature isn't checked), and the token is let go once Rhino has started,
+        // which clears the variable from this process.
+        static void ReadToken(string raw)
+        {
+            GroupId = null;
+            TokenSubject = null;
+            if (string.IsNullOrWhiteSpace(raw))
+                return;
+            try
+            {
+                using var token = System.Text.Json.JsonDocument.Parse(FromBase64(raw));
+                var root = token.RootElement;
+                if (root.ValueKind == System.Text.Json.JsonValueKind.Object)
+                {
+                    GroupId = JsonText(root, "GroupId");
+                    string openId = JsonText(root, "RawOpenIdToken");
+                    string[] parts = openId?.Split('.');
+                    if (parts?.Length >= 2)
+                    {
+                        using var claims = System.Text.Json.JsonDocument.Parse(FromBase64(parts[1]));
+                        if (claims.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object)
+                            TokenSubject = JsonText(claims.RootElement, "sub");
+                    }
+                }
+                if (GroupId == null && TokenSubject == null)
+                    warnings.Add($"{RHINO_TOKEN} has neither a GroupId nor a user (sub); usage records won't say who they bill to");
+            }
+            catch (Exception ex) when (ex is FormatException || ex is System.Text.Json.JsonException)
+            {
+                warnings.Add($"{RHINO_TOKEN} couldn't be read ({ex.GetType().Name}); usage records may not say who they bill to");
+            }
+        }
+
+        // Base64 or base64url, with or without padding.
+        static byte[] FromBase64(string text)
+        {
+            text = text.Trim().Replace('-', '+').Replace('_', '/');
+            return Convert.FromBase64String(text.PadRight(text.Length + (4 - text.Length % 4) % 4, '='));
+        }
+
+        static string JsonText(System.Text.Json.JsonElement element, string name)
+        {
+            if (!element.TryGetProperty(name, out var value))
+                return null;
+            if (value.ValueKind == System.Text.Json.JsonValueKind.String)
+                return string.IsNullOrWhiteSpace(value.GetString()) ? null : value.GetString();
+            return value.ValueKind == System.Text.Json.JsonValueKind.Number ? value.GetRawText() : null;
+        }
 
         static LogEventLevel GetLogLevel(string name, LogEventLevel defaultValue)
         {

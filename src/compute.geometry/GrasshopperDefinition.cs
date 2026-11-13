@@ -100,6 +100,7 @@ namespace compute.geometry
                 rc = Construct(archive);
                 rc.sourceBytes = contents;
                 rc.CacheKey = url;
+                rc.Name = NameFromUrl(url);
                 rc.IsLocalFileDefinition = !UrlGuard.IsWebUrl(url) && File.Exists(url);
             }
             if (cache)
@@ -133,6 +134,7 @@ namespace compute.geometry
             {
                 rc.sourceBytes = contents;
                 rc.CacheKey = cacheKey;
+                rc.id = rc.CacheKey;
                 if (cache)
                 {
                     DataCache.SetCachedDefinition(rc.CacheKey, rc, data);
@@ -170,6 +172,8 @@ namespace compute.geometry
             GrasshopperDefinition rc = new GrasshopperDefinition(definition, null);
             rc.sourceComponentId = componentId;
             rc.singularComponent = component;
+            rc.id = "component:" + componentId.ToString("D");
+            rc.Name = component.Name;
             foreach(var input in component.Params.Input)
             {
                 rc.input[input.NickName] = new InputGroup(input);
@@ -212,6 +216,7 @@ namespace compute.geometry
         private static GrasshopperDefinition Construct(GH_Archive archive)
         {
             string icon = null;
+            string savedName = null;
             var chunk = archive.GetRootNode.FindChunk("Definition");
             if (chunk!=null)
             {
@@ -223,6 +228,10 @@ namespace compute.geometry
                     {
                         icon = s;
                     }
+                    // The file name it was saved as, which names a definition sent without one, such as one internalized in Hops.
+                    string name = String.Empty;
+                    if (chunk.TryGetString("Name", ref name) && !String.IsNullOrWhiteSpace(name))
+                        savedName = name;
                 }
             }
 
@@ -242,6 +251,7 @@ namespace compute.geometry
             }
 
             GrasshopperDefinition rc = new GrasshopperDefinition(definition, icon);
+            rc.Name = savedName;
             foreach( var obj in definition.Objects)
             {
                 IGH_ContextualParameter contextualParam = obj as IGH_ContextualParameter;
@@ -347,6 +357,8 @@ namespace compute.geometry
             if (copy == null)
                 throw new Exception("Unable to load another copy of the grasshopper definition");
             copy.CacheKey = CacheKey;
+            copy.copiedFrom = this;
+            copy.Name = Name;
             copy.IsLocalFileDefinition = IsLocalFileDefinition;
             copy.isCopy = true;
             return copy;
@@ -393,6 +405,12 @@ namespace compute.geometry
         public bool IsLocalFileDefinition { get; set; } // default: false
         public uint FileRuntimeCacheSerialNumber { get; private set; }
         public string CacheKey { get; set; }
+        // For usage records: the same key for a file whether it's uploaded or loaded from a URL, and never a path. A file's
+        // key is worked out when a record first needs it, so loading one costs nothing extra while metering is off.
+        public string Id => id ??= copiedFrom?.Id ?? (sourceBytes == null ? null : DataCache.CreateCacheKey(Convert.ToBase64String(sourceBytes)));
+        string id;
+        GrasshopperDefinition copiedFrom;
+        public string Name { get; private set; }
         string iconString;
         GH_Component singularComponent;
         Dictionary<string, InputGroup> input = new Dictionary<string, InputGroup>();
@@ -964,6 +982,14 @@ namespace compute.geometry
                     return xmlArchive;
             }
             return null;
+        }
+
+        // The file name only: a URL's query can hold access tokens and a path can hold a user name.
+        static string NameFromUrl(string url)
+        {
+            if (UrlGuard.IsWebUrl(url) && Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
+                url = Uri.UnescapeDataString(uri.AbsolutePath);
+            return url.Substring(url.LastIndexOfAny(new[] { '/', '\\' }) + 1);
         }
 
         public static GH_Archive ArchiveFromBase64String(string blob, out byte[] contents)

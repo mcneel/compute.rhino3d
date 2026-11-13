@@ -74,6 +74,10 @@ namespace compute.geometry
                         // and exhaust server memory. The env var name matches rhino.compute's
                         // so child processes inherit the parent's configured value automatically.
                         options.Limits.MaxRequestBodySize = Config.MaxRequestSize;
+                        // While the usage log is on, metadata a client didn't escape is read as UTF-8 rather than refusing the
+                        // request. Checked per request, since the usage log is on only once Rhino has started.
+                        options.RequestHeaderEncodingSelector = name =>
+                            Config.UsageLogPath != null && RequestMetadata.IsHeader(name) ? System.Text.Encoding.UTF8 : null;
                         if (Config.LocalhostPort > 0)
                             options.ListenLocalhost(Config.LocalhostPort);
                     })
@@ -117,6 +121,8 @@ namespace compute.geometry
 
             Shutdown.StartTimer(host);
             host.Run();
+            if (Config.UsageLogPath != null)
+                UsageLog.Stop(Shutdown.Reason);
 
             if (RhinoCore != null)
                 RhinoCore.Dispose();
@@ -313,7 +319,7 @@ namespace compute.geometry
         {
             foreach (var endpoint in GeometryEndPoint.AllEndPoints)
             {
-                app.MapPost(endpoint.PathURL, endpoint.Post);
+                app.MapPost(endpoint.PathURL, endpoint.Post).Billable();
             }
         }
     }

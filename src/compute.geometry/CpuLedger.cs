@@ -1,0 +1,270 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Threading;
+
+namespace compute.geometry
+{
+    // Divides this process's CPU (including processes it starts) between requests. Each time a request
+    // starts, ends, becomes billable, or starts or stops waiting for a lock, the CPU used since the last
+    // such moment goes to the one billable request running, is shared evenly when several are running,
+    // or is overhead: the non-billable requests running, else idle.
+    static class CpuLedger
+    {
+        public sealed class Entry
+        {
+            internal bool Waiting;
+            internal bool Finished;
+            internal double OverheadCpuSeconds;
+
+            // Names the request in its usage record.
+            public string RequestId { get; } = Guid.NewGuid().ToString("N");
+
+            public bool Billable { get; internal set; }
+            public System.Text.Json.JsonElement? Metadata { get; internal set; }
+            // All CPU billed to this request, including SharedCpuSeconds.
+            public double CpuSeconds { get; internal set; }
+            // The part of CpuSeconds that is an even share of CPU used while other billable requests were running.
+            public double SharedCpuSeconds { get; internal set; }
+            public double WaitSeconds { get; internal set; }
+
+            internal bool Running => Billable && !Waiting && !Finished;
+        }
+
+        public sealed class OverheadTotal
+        {
+            public int Count;
+            public double CpuSeconds;
+        }
+
+        static readonly object ledgerLock = new object();
+        static readonly List<Entry> inFlight = new List<Entry>();
+        static readonly AsyncLocal<Entry> current = new AsyncLocal<Entry>();
+        static TimeSpan lastCpu;
+        static double idleCpuSeconds;
+        static Dictionary<string, OverheadTotal> overhead = new Dictionary<string, OverheadTotal>();
+
+        // Started with the usage log.
+        public static bool Started { get; private set; }
+
+        // True for a request that arrived while metering was on.
+        public static bool IsMetered => current.Value != null;
+
+        // The request this code runs for, including on threads and tasks it started; null outside a metered request.
+        public static Entry Current => current.Value;
+
+        public static void Start()
+        {
+            lock (ledgerLock)
+            {
+                if (Started)
+                    return;
+                ProcessTreeCpu.Initialize();
+                lastCpu = ProcessTreeCpu.Total();
+                Started = true;
+            }
+        }
+
+        // The CPU used so far, for a usage log starting now: idle and overhead from before it are part of that
+        // total, so they're cleared, and every later total is this plus what the ledger divides from here on.
+        public static double BeginLog()
+        {
+            lock (ledgerLock)
+            {
+                Advance();
+                idleCpuSeconds = 0;
+                overhead = new Dictionary<string, OverheadTotal>();
+                return lastCpu.TotalSeconds;
+            }
+        }
+
+        public static Entry Begin()
+        {
+            var entry = new Entry();
+            current.Value = entry;
+            lock (ledgerLock)
+            {
+                Advance();
+                inFlight.Add(entry);
+            }
+            return entry;
+        }
+
+        public static void End(Entry entry, string overheadLabel)
+        {
+            lock (ledgerLock)
+            {
+                Advance();
+                inFlight.Remove(entry);
+                // A billable request's CPU before it became billable (routing, the key check, receiving its body) is overhead.
+                string label = entry.Billable ? "receiving billable requests" : overheadLabel;
+                if (!overhead.TryGetValue(label, out var total))
+                    overhead[label] = total = new OverheadTotal();
+                total.Count++;
+                total.CpuSeconds += entry.OverheadCpuSeconds;
+            }
+        }
+
+        // Marks the current request billable, with the caller's metadata; it stops counting as running when the scope is disposed.
+        public static BillableScope EnterBillable(System.Text.Json.JsonElement? metadata)
+        {
+            var entry = current.Value;
+            if (entry != null)
+            {
+                lock (ledgerLock)
+                {
+                    Advance();
+                    entry.Billable = true;
+                    entry.Metadata = metadata;
+                }
+            }
+            return new BillableScope(entry);
+        }
+
+        // The metadata of the oldest billable request still running, which a nested call belongs to.
+        public static System.Text.Json.JsonElement? OldestBillableMetadata()
+        {
+            lock (ledgerLock)
+            {
+                foreach (var entry in inFlight)
+                {
+                    if (entry.Billable && !entry.Finished)
+                        return entry.Metadata;
+                }
+            }
+            return null;
+        }
+
+        public readonly struct BillableScope : IDisposable
+        {
+            readonly Entry entry;
+
+            public BillableScope(Entry entry)
+            {
+                this.entry = entry;
+            }
+
+            public void Dispose()
+            {
+                if (entry == null)
+                    return;
+                lock (ledgerLock)
+                {
+                    Advance();
+                    entry.Finished = true;
+                }
+            }
+        }
+
+        // Takes lockObject; the current request doesn't count as running while it waits for it.
+        public static LockScope Lock(object lockObject)
+        {
+            if (Monitor.TryEnter(lockObject))
+                return new LockScope(lockObject);
+
+            var entry = current.Value;
+            if (entry == null)
+            {
+                Monitor.Enter(lockObject);
+                return new LockScope(lockObject);
+            }
+            long start = Stopwatch.GetTimestamp();
+            SetWaiting(entry, true);
+            Monitor.Enter(lockObject);
+            SetWaiting(entry, false);
+            lock (ledgerLock)
+                entry.WaitSeconds += Stopwatch.GetElapsedTime(start).TotalSeconds;
+            return new LockScope(lockObject);
+        }
+
+        public readonly struct LockScope : IDisposable
+        {
+            readonly object lockObject;
+
+            public LockScope(object lockObject)
+            {
+                this.lockObject = lockObject;
+            }
+
+            public void Dispose() => Monitor.Exit(lockObject);
+        }
+
+        // Idle CPU and non-billable requests by label since the last call, and the process's CPU so far
+        // (including processes it started) at the same moment.
+        public static (double IdleCpuSeconds, Dictionary<string, OverheadTotal> Requests, double TotalCpuSeconds) TakeOverhead()
+        {
+            lock (ledgerLock)
+            {
+                Advance();
+                var result = (idleCpuSeconds, overhead, lastCpu.TotalSeconds);
+                idleCpuSeconds = 0;
+                overhead = new Dictionary<string, OverheadTotal>();
+                return result;
+            }
+        }
+
+        static void SetWaiting(Entry entry, bool waiting)
+        {
+            lock (ledgerLock)
+            {
+                Advance();
+                entry.Waiting = waiting;
+            }
+        }
+
+        // Called under ledgerLock.
+        static void Advance()
+        {
+            var now = ProcessTreeCpu.Total();
+            double delta = (now - lastCpu).TotalSeconds;
+            lastCpu = now;
+            if (delta <= 0)
+                return;
+
+            int running = 0;
+            Entry only = null;
+            foreach (var entry in inFlight)
+            {
+                if (entry.Running)
+                {
+                    running++;
+                    only = entry;
+                }
+            }
+            if (running == 1)
+            {
+                only.CpuSeconds += delta;
+                return;
+            }
+            if (running > 1)
+            {
+                foreach (var entry in inFlight)
+                {
+                    if (entry.Running)
+                    {
+                        entry.CpuSeconds += delta / running;
+                        entry.SharedCpuSeconds += delta / running;
+                    }
+                }
+                return;
+            }
+
+            int others = 0;
+            foreach (var entry in inFlight)
+            {
+                if (!entry.Billable && !entry.Waiting)
+                    others++;
+            }
+            if (others == 0)
+            {
+                idleCpuSeconds += delta;
+                return;
+            }
+            foreach (var entry in inFlight)
+            {
+                if (!entry.Billable && !entry.Waiting)
+                    entry.OverheadCpuSeconds += delta / others;
+            }
+        }
+    }
+}

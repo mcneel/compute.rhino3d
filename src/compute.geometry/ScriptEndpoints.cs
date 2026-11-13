@@ -82,10 +82,10 @@ namespace compute.geometry
             }
 
             app.MapGet("/script/languages", Languages);
-            app.MapPost("/script/evaluate", EvaluateAny);
-            app.MapPost("/script/python3", EvaluatePython3);
-            app.MapPost("/script/python2", EvaluatePython2);
-            app.MapPost("/script/csharp", EvaluateCSharp);
+            app.MapPost("/script/evaluate", EvaluateAny).Billable();
+            app.MapPost("/script/python3", EvaluatePython3).Billable();
+            app.MapPost("/script/python2", EvaluatePython2).Billable();
+            app.MapPost("/script/csharp", EvaluateCSharp).Billable();
         }
 
         // Aliases accepted in the "language" field / route, mapped to LanguageSpec property names.
@@ -466,7 +466,7 @@ namespace compute.geometry
 
             public static bool TryInitialize(out string error)
             {
-                lock (s_lock)
+                using (CpuLedger.Lock(s_lock))
                 {
                     if (s_initialized)
                     {
@@ -507,7 +507,7 @@ namespace compute.geometry
 
             public static bool IsLanguageStarted(string specName)
             {
-                lock (s_lock)
+                using (CpuLedger.Lock(s_lock))
                 {
                     if (s_startedLanguages.Contains(specName))
                         return true;
@@ -526,7 +526,7 @@ namespace compute.geometry
 
             public static RunResult Run(string specName, string script, Dictionary<string, object> inputs, IList<string> outputNames)
             {
-                lock (s_lock)
+                using (CpuLedger.Lock(s_lock))
                 {
                     object spec = GetSpec(specName);
                     EnsureLanguageStarted(specName, spec);

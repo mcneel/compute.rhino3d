@@ -227,6 +227,10 @@ changed on an already-deployed server without editing web.config.")]
                     {
                         // Handle requests up to 50 MB
                         options.Limits.MaxRequestBodySize = Config.MaxRequestSize;
+                        // While the usage log is on, metadata a client didn't escape is read as UTF-8 rather than refusing the
+                        // request. Checked per request, since the children say whether it's on as they start.
+                        options.RequestHeaderEncodingSelector = name => ReverseProxyModule.UsageLog
+                            && string.Equals(name, ReverseProxyModule.METADATA_HEADER, StringComparison.OrdinalIgnoreCase) ? System.Text.Encoding.UTF8 : null;
                     })
                     .UseIISIntegration()
                     .UseStartup<Startup>()
@@ -289,6 +293,7 @@ changed on an already-deployed server without editing web.config.")]
             bool blockPrivateUrls = Boolean.TryParse(Environment.GetEnvironmentVariable("RHINO_COMPUTE_BLOCK_PRIVATE_URLS"), out var blockPrivate) && blockPrivate;
             Log.Debug("  Block Private URLs = {BlockPrivateUrls}", blockPrivateUrls.ToString());
             Log.Debug("  Compression = {Compression}", Config.Compression.ToString());
+            Log.Debug("  Usage Log = on while Rhino's usage meter is, as the children say when they start");
             Log.Debug("  MCP = {Mcp}", Config.McpEnabled
                 ? $"on (listener port {Config.McpPort}, session timeout {FormatTimeout(Config.McpSessionTimeout)}, max sessions {Config.McpMaxSessions})"
                 : "off (set RHINO_MCP_AUTOSTART_PORT to serve POST /mcp)");
@@ -306,7 +311,7 @@ changed on an already-deployed server without editing web.config.")]
             lifetime.ApplicationStopping.Register(() =>
             {
                 Log.Information("rhino.compute shutting down; signaling compute.geometry children");
-                try { ComputeChildren.ShutdownChildren(); }
+                try { ComputeChildren.ShutdownChildren("parent-stopping"); }
                 catch (Exception ex) { Log.Warning("Error during child shutdown: {Message}", ex.Message); }
             });
 

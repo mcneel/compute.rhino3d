@@ -1,6 +1,9 @@
 ﻿using System;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Compute.Http;
+using compute.geometry;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -15,6 +18,15 @@ namespace rhino.compute
         static Task initTask;
         static HttpClient client;
         private const string API_KEY_HEADER = "RhinoComputeKey";
+        public const string METADATA_HEADER = "Rhino-Compute-Metadata";
+        // HttpContext.Items keys for the client's request encoding and its CountingReadStream, set before compression unpacks it.
+        public static readonly object REQUEST_ENCODING = new object();
+        public static readonly object REQUEST_RECEIVED = new object();
+
+        // On once a child's /healthcheck says its usage log is on, which it is while Rhino's usage meter meters it: the
+        // children then write usage records. Until then nothing here takes part in usage logging.
+        public static volatile bool UsageLog;
+
         static void Initialize()
         {
             // Use an atomic compare-and-swap so that concurrent first requests cannot
@@ -163,7 +175,7 @@ namespace rhino.compute
                 await res.WriteAsJsonAsync(new { error = parseError });
                 return;
             }
-            var (shutdown, _) = ComputeChildren.ShutdownChildren(portFilter, respawn: false);
+            var (shutdown, _) = ComputeChildren.ShutdownChildren("shutdown-children", portFilter, respawn: false);
             await res.WriteAsJsonAsync(new
             {
                 shutdown,
@@ -182,7 +194,7 @@ namespace rhino.compute
                 await res.WriteAsJsonAsync(new { error = parseError });
                 return;
             }
-            var (shutdown, spawned) = ComputeChildren.ShutdownChildren(portFilter, respawn: true);
+            var (shutdown, spawned) = ComputeChildren.ShutdownChildren("recycle-children", portFilter, respawn: true);
             await res.WriteAsJsonAsync(new
             {
                 shutdown,
@@ -315,7 +327,7 @@ namespace rhino.compute
             }
         }
 
-        static async Task<HttpResponseMessage> SendProxyRequest(HttpRequest initialRequest, HttpMethod method, string baseurl)
+        static async Task<HttpResponseMessage> SendProxyRequest(HttpRequest initialRequest, HttpMethod method, string baseurl, string metadata)
         {
             string proxyUrl = $"{baseurl}{initialRequest.Path}{initialRequest.QueryString}";
 
@@ -324,14 +336,12 @@ namespace rhino.compute
 
             if (method == HttpMethod.Post)
             {
-                // include RhinoComputeKey header in request to compute child process
                 using var req = new HttpRequestMessage(HttpMethod.Post, proxyUrl);
-                if (initialRequest.Headers.TryGetValue(API_KEY_HEADER, out var keyHeader))
-                    req.Headers.Add(API_KEY_HEADER, keyHeader.ToString());
 
                 // Read in full first, so the timeout covers the child's work and not the client's upload.
                 var body = new System.IO.MemoryStream((int)Math.Clamp(initialRequest.ContentLength ?? 0, 0, int.MaxValue));
                 await initialRequest.Body.CopyToAsync(body, initialRequest.HttpContext.RequestAborted);
+                CopyRequestHeaders(initialRequest, req, metadata);
                 var content = new ByteArrayContent(body.GetBuffer(), 0, (int)body.Length);
                 if (!string.IsNullOrWhiteSpace(initialRequest.ContentType) &&
                     System.Net.Http.Headers.MediaTypeHeaderValue.TryParse(initialRequest.ContentType, out var parsedContentType))
@@ -344,10 +354,79 @@ namespace rhino.compute
 
             if (method == HttpMethod.Get)
             {
-                return await client.GetAsync(proxyUrl);
+                using var req = new HttpRequestMessage(HttpMethod.Get, proxyUrl);
+                CopyRequestHeaders(initialRequest, req, metadata);
+                return await client.SendAsync(req);
             }
 
             throw new System.NotSupportedException("Only GET and POST are currently supported for reverse proxy");
+        }
+
+        static void CopyRequestHeaders(HttpRequest from, HttpRequestMessage to, string metadata)
+        {
+            if (from.Headers.TryGetValue(API_KEY_HEADER, out var key))
+                to.Headers.TryAddWithoutValidation(API_KEY_HEADER, key.ToString());
+            AddUsageHeaders(from, to, metadata);
+        }
+
+        // While the usage log is on, what a child needs for a request's usage record: its metadata, and the client's
+        // side of it. From is null for a call rhino.compute makes itself.
+        internal static void AddUsageHeaders(HttpRequest from, HttpRequestMessage to, string metadata)
+        {
+            if (!string.IsNullOrEmpty(metadata))
+                to.Headers.TryAddWithoutValidation(METADATA_HEADER, metadata);
+            if (!UsageLog)
+                return;
+            // The child packs the answer, so the size it records is the size sent; the answer is passed on as is.
+            if (from != null && Config.Compression && CompressionMiddleware.AcceptsGzip(from.Headers.AcceptEncoding))
+                to.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip");
+            string encoding = from?.HttpContext.Items[REQUEST_ENCODING] as string ?? "none";
+            long bytes = (from?.HttpContext.Items[REQUEST_RECEIVED] as CountingReadStream)?.BytesRead ?? 0;
+            to.Headers.TryAddWithoutValidation(HttpCompression.CLIENT_REQUEST_HEADER, $"encoding={encoding}; bytes={bytes}");
+        }
+
+        // The Rhino-Compute-Metadata a request's usage record gets: a nested call carries that of the request it was made
+        // for, which its child names in LocalConnections.CALLER_HEADER, else that of the request its child is serving,
+        // whatever Rhino-Compute-Metadata it has. Which child opened a connection can't change, so it's looked up once
+        // per connection, and only while the usage log is on.
+        internal static string Metadata(HttpRequest req)
+        {
+            if (!UsageLog)
+                return null;
+            var connection = req.HttpContext.Connection;
+            var items = req.HttpContext.Features.Get<Microsoft.AspNetCore.Connections.Features.IConnectionItemsFeature>()?.Items;
+            int port;
+            if (items != null && items.TryGetValue(NESTED_CALL_PORT, out object cached))
+                port = (int)cached;
+            else
+            {
+                port = ComputeChildren.NestedCallPort(connection.RemoteIpAddress, connection.RemotePort, connection.LocalPort);
+                if (items != null)
+                    items[NESTED_CALL_PORT] = port;
+            }
+            if (port == 0)
+                return EscapedJson(req.Headers[METADATA_HEADER].ToString());
+            string caller = req.Headers[LocalConnections.CALLER_HEADER].ToString();
+            return caller.Length > 0 ? caller : ComputeChildren.MetadataServedBy(port);
+        }
+
+        static readonly object NESTED_CALL_PORT = new object();
+
+        // Headers sent to a child must be ASCII, so metadata goes on as JSON with anything else escaped. What isn't JSON
+        // is left out, as the child would leave it out of the record.
+        static string EscapedJson(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return null;
+            try
+            {
+                using var json = System.Text.Json.JsonDocument.Parse(value);
+                return System.Text.Json.JsonSerializer.Serialize(json.RootElement);
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                return null;
+            }
         }
 
         // GET and POST routes both delegate to the shared handler; the /grasshopper route
@@ -364,13 +443,15 @@ namespace rhino.compute
         private static async Task ReverseProxyHandler(HttpRequest req, HttpResponse res, HttpMethod method)
         {
             await AwaitInitTask();
-            string responseString;
+            string responseString = null;
+            byte[] responseBytes = null;
             try
             {
                 using (new ConcurrentRequestTracker())
                 {
-                    using (var child = ComputeChildren.AcquireChild())
-                    using (var proxyResponse = await SendProxyRequest(req, method, child.BaseUrl))
+                    string metadata = Metadata(req);
+                    using (var child = UsageLog ? ComputeChildren.AcquireChild(metadata, req.Path) : ComputeChildren.AcquireChild())
+                    using (var proxyResponse = await SendProxyRequest(req, method, child.BaseUrl, metadata))
                     {
                         ComputeChildren.UpdateLastCall();
                         if (proxyResponse.StatusCode == System.Net.HttpStatusCode.OK)
@@ -381,11 +462,22 @@ namespace rhino.compute
                         // as application/json rather than the ASP.NET Core default text/plain.
                         if (proxyResponse.Content.Headers.ContentType != null)
                             res.ContentType = proxyResponse.Content.Headers.ContentType.ToString();
-                        responseString = await proxyResponse.Content.ReadAsStringAsync();
+                        if (!UsageLog)
+                            responseString = await proxyResponse.Content.ReadAsStringAsync();
+                        else
+                        {
+                            // Packed by the child when the client takes gzip; compression leaves an encoded answer as it is.
+                            if (proxyResponse.Content.Headers.ContentEncoding.Count > 0)
+                                res.Headers.ContentEncoding = string.Join(", ", proxyResponse.Content.Headers.ContentEncoding);
+                            responseBytes = await proxyResponse.Content.ReadAsByteArrayAsync();
+                        }
                     }
                 }
                 // The child is free once its response is read; a slow client shouldn't hold it.
-                await res.WriteAsync(responseString);
+                if (responseBytes != null)
+                    await res.Body.WriteAsync(responseBytes, req.HttpContext.RequestAborted);
+                else
+                    await res.WriteAsync(responseString);
             }
             catch (Exception ex) when (ex is Microsoft.AspNetCore.Connections.ConnectionResetException ||
                                        ex is OperationCanceledException)
