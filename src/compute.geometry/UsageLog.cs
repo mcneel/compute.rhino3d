@@ -31,7 +31,9 @@ namespace compute.geometry
         const long FREE_MARGIN = 256L * 1024 * 1024;
         // Records kept while the file can't be written, about 40 MB; past that the oldest are dropped.
         const int MAX_UNWRITTEN = 100_000;
-        const string FILE_PATTERN = "usage-*.jsonl";
+        // Beside Rhino's rhino-*.jsonl files. When the drive runs low, each deletes only its own.
+        const string FILE_PREFIX = "compute-";
+        const string FILE_PATTERN = FILE_PREFIX + "*.jsonl";
         // A field that doesn't apply, such as a script request's definition, is left out.
         static readonly JsonSerializerOptions JSON_OPTIONS = new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
 
@@ -431,7 +433,7 @@ namespace compute.geometry
         static StreamWriter Open(string directory)
         {
             Directory.CreateDirectory(directory);
-            string file = Path.Combine(directory, $"usage-{fileDay.ToString("yyyyMMdd", CultureInfo.InvariantCulture)}-{Environment.ProcessId}-{ProcessStart}.jsonl");
+            string file = Path.Combine(directory, $"{FILE_PREFIX}{fileDay.ToString("yyyyMMdd", CultureInfo.InvariantCulture)}-{Environment.ProcessId}-{ProcessStart}.jsonl");
             var stream = new FileStream(file, FileMode.Append, FileAccess.Write, FileShare.Read);
             writerPath = Path.GetFullPath(file);
             Log.Information("Usage log: writing usage records to {File}", file);
