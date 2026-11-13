@@ -260,6 +260,34 @@ namespace compute.geometry
 
             if (Config.LoadGrasshopper)
                 WarmGrasshopperTypeCache();
+
+            StartMcpListener();
+        }
+
+        // rhino.compute serves /mcp through the RhinoAI plug-in's listener in each child, on the port it passes in
+        // RHINO_MCP_AUTOSTART_PORT. The plug-in starts the listener in its MCPSpawn command, which nothing runs in a
+        // headless child, so it runs here, on a headless document the listener keeps as its startup document.
+        static void StartMcpListener()
+        {
+            if (!int.TryParse(Environment.GetEnvironmentVariable("RHINO_MCP_AUTOSTART_PORT"), out int port) || port <= 0)
+                return;
+            if (System.Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners().Any(listener => listener.Port == port))
+            {
+                Log.Information("The RhinoAI MCP listener is already on port {Port}", port);
+                return;
+            }
+            try
+            {
+                var result = Rhino.RhinoApp.ExecuteCommand(Rhino.RhinoDoc.CreateHeadless(null), "MCPSpawn");
+                if (result == Rhino.Commands.Result.Success)
+                    Log.Information("Started the RhinoAI MCP listener on port {Port}", port);
+                else
+                    Log.Warning("RhinoAI's MCPSpawn command returned {Result}, so /mcp can't reach this process. Is the RhinoAI plug-in installed?", result);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Starting the RhinoAI MCP listener failed, so /mcp can't reach this process");
+            }
         }
 
         // Grasshopper's GH_TypeCache fills its tables without a lock, and nested requests read Grasshopper data on
