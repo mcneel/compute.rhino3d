@@ -57,8 +57,10 @@ namespace compute.geometry
         static long periodStartTimestamp;
         static DateTime processStartUtc;
 
-        // Identifies this process's records, with its pid, in file names.
-        public static string ProcessStart => Program.StartTime.ToUniversalTime().ToString("yyyyMMddTHHmmss", CultureInfo.InvariantCulture);
+        // Identifies this process's records, with its pid, in file names. It's when the operating system started the process,
+        // to the second, as in the names of Rhino's usage log files, so that both logs of a process carry the same name.
+        // (Main starts a moment later, sometimes in the next second.)
+        public static string ProcessStart => processStartUtc.ToString("yyyyMMddTHHmmss", CultureInfo.InvariantCulture);
 
         public static bool Recording { get; private set; }
 
