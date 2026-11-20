@@ -207,9 +207,11 @@ changed on an already-deployed server without editing web.config.")]
                 // twice on the console.
                 .MinimumLevel.Override("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogEventLevel.Fatal)
                 .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico']")
+                // Colour even when redirected, like the CG lines, so Hops' log window on Mac can show it.
                 .WriteTo.Console(
                     outputTemplate: "RC  [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
-                    theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Literate)
+                    theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Literate,
+                    applyThemeToRedirectedOutput: true)
                 .WriteTo.File(new ExpressionTemplate("RC   [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
             Log.Logger = loggerConfig.CreateLogger();
 

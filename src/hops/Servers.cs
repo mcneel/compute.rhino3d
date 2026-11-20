@@ -249,7 +249,10 @@ namespace Hops
             startInfo.UseShellExecute = !onMac;
             startInfo.CreateNoWindow = Hops.HopsAppSettings.HideWorkerWindows;
             startInfo.WorkingDirectory = Path.GetDirectoryName(pathToRhinoCompute);
-            var process = Process.Start(startInfo);
+            // Mac has no console window, so Hops shows the worker's output itself.
+            var process = onMac && !Hops.HopsAppSettings.HideWorkerWindows
+                ? WorkerLogWindow.Start(startInfo)
+                : Process.Start(startInfo);
             var start = DateTime.Now;
 
             if (waitUntilServing)
