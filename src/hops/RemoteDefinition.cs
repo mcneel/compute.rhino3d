@@ -179,6 +179,77 @@ namespace Hops
             return System.IO.File.ReadAllBytes(path);
         }
 
+        // The file of the same name as a missing definition next to the file that refers to it, or null.
+        public static string FindNextTo(string missingPath, string containingFile)
+        {
+            if (string.IsNullOrWhiteSpace(missingPath) || string.IsNullOrEmpty(containingFile) || IsWebUrl(missingPath))
+                return null;
+            // Split on both separators: the path may have been saved on another OS.
+            string name = missingPath.Substring(missingPath.LastIndexOfAny(new[] { '/', '\\' }) + 1);
+            string folder = System.IO.Path.GetDirectoryName(containingFile);
+            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(folder))
+                return null;
+            string candidate = System.IO.Path.Combine(folder, name);
+            return File.Exists(candidate) ? candidate : null;
+        }
+
+        // The server has no folder to look in, so nested Hops paths are fixed before the definition leaves this machine.
+        static byte[] ReadDefinitionForUpload(string path)
+        {
+            var bytes = ReadLocalFileWithSizeCap(path);
+            try
+            {
+                var archive = new GH_IO.Serialization.GH_Archive();
+                bool read = string.Equals(System.IO.Path.GetExtension(path), ".ghx", StringComparison.OrdinalIgnoreCase)
+                    ? archive.Deserialize_Xml(Encoding.UTF8.GetString(bytes))
+                    : archive.Deserialize_Binary(bytes);
+                if (read && FixNestedPaths(archive.GetRootNode, path))
+                    return archive.Serialize_Binary();
+            }
+            catch (Exception ex)
+            {
+                HopsLog.Log.Debug($"Could not check nested Hops paths in {path}: {ex.Message}");
+            }
+            return bytes;
+        }
+
+        static bool FixNestedPaths(GH_IO.Serialization.GH_Chunk chunk, string definitionPath)
+        {
+            bool changed = false;
+            if (chunk.ItemExists(HopsComponent.TagVersion) && chunk.ItemExists(HopsComponent.TagPath))
+            {
+                string nested = chunk.GetString(HopsComponent.TagPath);
+                if (IsGrasshopperDefinition(nested) && !File.Exists(nested))
+                {
+                    string nextTo = FindNextTo(nested, definitionPath);
+                    if (nextTo != null)
+                    {
+                        HopsLog.Log.Debug($"Nested definition {nested} not found. Using {nextTo} instead.");
+                        chunk.RemoveItem(HopsComponent.TagPath);
+                        chunk.SetString(HopsComponent.TagPath, nextTo);
+                        changed = true;
+                    }
+                }
+            }
+            foreach (var child in chunk.Chunks)
+            {
+                if (child is GH_IO.Serialization.GH_Chunk childChunk && FixNestedPaths(childChunk, definitionPath))
+                    changed = true;
+            }
+            return changed;
+        }
+
+        const string UnloadableDefinitionMessage = "Unable to load grasshopper definition";
+
+        // compute.geometry answered 500 before COMPUTE-392 and 400 since; both mean "send the file".
+        static bool ServerCouldNotLoadDefinition(System.Net.Http.HttpResponseMessage response, Schema schema, string body)
+        {
+            if (response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                return schema == null;
+            return response.StatusCode == System.Net.HttpStatusCode.BadRequest
+                && ExtractServerErrorMessage(body) == UnloadableDefinitionMessage;
+        }
+
         // Builds the debug envelope captured into HttpRecord.{IoRequest,SolveRequest}.
         // Using a JObject (Newtonsoft is already a dependency) instead of hand-rolled string
         // concat gives a consistent shape across all sites and proper JSON escaping for free.
@@ -366,7 +437,7 @@ namespace Hops
                         {
                             try
                             {
-                                var bytes = ReadLocalFileWithSizeCap(address);
+                                var bytes = ReadDefinitionForUpload(address);
                                 schema.Algo = Convert.ToBase64String(bytes);
                             }
                             catch (InvalidOperationException ex)
@@ -826,16 +897,16 @@ namespace Hops
                 var stringResult = remoteSolvedData.ReadAsStringAsync().Result;
                 parentComponent.HttpRecord.SolveResponse = stringResult;
                 Schema schema = SafeSchemaDeserialize(stringResult);
-                if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                if (ServerCouldNotLoadDefinition(responseMessage, schema, stringResult))
                 {
                     bool fileExists = File.Exists(Path);
                     if (fileExists && string.IsNullOrEmpty(inputSchema.Algo))
                     {
-                        string autoUploadMessage = $"Server returned HTTP 500. Uploaded local file '{System.IO.Path.GetFileName(Path)}' to {solveUrl} as a fallback.";
+                        string autoUploadMessage = $"Server returned HTTP {(int)responseMessage.StatusCode}. Uploaded local file '{System.IO.Path.GetFileName(Path)}' to {solveUrl} as a fallback.";
                         byte[] bytes;
                         try
                         {
-                            bytes = ReadLocalFileWithSizeCap(Path);
+                            bytes = ReadDefinitionForUpload(Path);
                         }
                         catch (InvalidOperationException ex)
                         {
@@ -868,10 +939,12 @@ namespace Hops
                         stringResult = remoteSolvedData.ReadAsStringAsync().Result;
                         parentComponent.HttpRecord.SolveResponse = stringResult;
                         schema = SafeSchemaDeserialize(stringResult);
-                        if (schema == null && responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                        if (ServerCouldNotLoadDefinition(responseMessage, schema, stringResult))
                         {
                             var badSchema = new Schema();
-                            var errorMsg = "Unable to solve on compute.\r\n" + ServerInternalErrorHint;
+                            var errorMsg = "Unable to solve on compute.\r\n" + (responseMessage.StatusCode == System.Net.HttpStatusCode.InternalServerError
+                                ? ServerInternalErrorHint
+                                : $"The server could not load '{System.IO.Path.GetFileName(Path)}'.");
                             HopsLog.Log.Error(errorMsg);
                             badSchema.Errors.Add(errorMsg);
                             badSchema.Warnings.Add(autoUploadMessage);
