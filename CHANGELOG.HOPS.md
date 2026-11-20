@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Hops components inside a definition that compute solves now find their definitions when the stored path doesn't exist on that machine. They look next to the definition that contains them, as Hops already does when Grasshopper opens a definition, so definitions with nested Hops now work on machines other than the one that saved them.
+- Hops again re-sends a local definition when the server can't load it, for example after a compute.geometry child restarts and loses its cache. This stopped working when compute.geometry began answering such requests with 400 instead of 500.
+
 ## [9.0.1] - 2026-10-30
 
 ### Fixed
