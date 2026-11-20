@@ -328,8 +328,8 @@ namespace Hops
             }
         }
 
-        const string TagVersion = "RemoteSolveVersion";
-        const string TagPath = "RemoteDefinitionLocation";
+        internal const string TagVersion = "RemoteSolveVersion";
+        internal const string TagPath = "RemoteDefinitionLocation";
         const string TagCacheResultsOnServer = "CacheSolveResults";
         const string TagCacheResultsInMemory = "CacheResultsInMemory";
         const string TagSynchronousSolve = "SynchronousSolve";
@@ -416,31 +416,12 @@ namespace Hops
                             if (!File.Exists(path) && !RemoteDefinition.IsWebUrl(path))
                             {
                                 HopsLog.Log.Debug($"{path} does not exist. Trying to find it in the same directory as the definition.");
-                                // See if the file is in the same directory as this definition. If it
-                                // is then use that file. NOTE: This will change the saved path for
-                                // for this component when we save the GH definition again. That may or
-                                // may not be a problem; I'm not sure yet.
-                                string parentDirectory = Path.GetDirectoryName(reader.ArchiveLocation);
-                                if (!String.IsNullOrEmpty(parentDirectory) && Directory.Exists(parentDirectory))
-                                {
-                                    string remoteFileName = Path.GetFileName(path);
-                                    if (!string.IsNullOrEmpty(remoteFileName))
-                                    {
-                                        string filePath = Path.Combine(parentDirectory, remoteFileName);
-                                        if (File.Exists(filePath))
-                                        {
-                                            path = filePath;
-                                        }
-                                        else
-                                        {
-                                            HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Warning, $"Remote definition not found: {path}. Check that the file path exists.");
-                                        }
-                                    }
-                                }
+                                // NOTE: This changes the saved path for this component when the definition is saved again.
+                                string nextTo = RemoteDefinition.FindNextTo(path, reader.ArchiveLocation);
+                                if (nextTo != null)
+                                    path = nextTo;
                                 else
-                                {
                                     HopsAddRuntimeMessage(GH_RuntimeMessageLevel.Warning, $"Remote definition not found: {path}. Check that the file path exists.");
-                                }
                             }
                         }
                         RemoteDefinitionLocation = path;
