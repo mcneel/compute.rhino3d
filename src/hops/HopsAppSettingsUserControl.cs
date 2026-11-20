@@ -208,22 +208,13 @@ namespace Hops
             };
             _lblCacheCount.Text = $"({Hops.MemoryCache.EntryCount} items in cache)";
 
-            if (Rhino.Runtime.HostUtils.RunningOnOSX)
-            {
-                // There's no console window to hide on Mac.
-                _hideWorkerWindows.Enabled = false;
-                _hideWorkerWindows.Checked = HopsAppSettings.HideWorkerWindows;
-            }
             if (Rhino.Runtime.HostUtils.RunningOnWindows || Rhino.Runtime.HostUtils.RunningOnOSX)
             {
-                if (Rhino.Runtime.HostUtils.RunningOnWindows)
+                _hideWorkerWindows.Checked = HopsAppSettings.HideWorkerWindows;
+                _hideWorkerWindows.CheckedChanged += (s, e) =>
                 {
-                    _hideWorkerWindows.Checked = HopsAppSettings.HideWorkerWindows;
-                    _hideWorkerWindows.CheckedChanged += (s, e) =>
-                    {
-                        HopsAppSettings.HideWorkerWindows = _hideWorkerWindows.Checked;
-                    };
-                }
+                    HopsAppSettings.HideWorkerWindows = _hideWorkerWindows.Checked;
+                };
                 _launchWorkerAtStart.Checked = HopsAppSettings.LaunchWorkerAtStart;
                 _launchWorkerAtStart.CheckedChanged += (s, e) =>
                 {
@@ -312,7 +303,8 @@ namespace Hops
             // would otherwise re-flow them and break the designed row geometry.
             _rdoUseLocal.AutoSize = false; _rdoUseLocal.Size = new Size(280, 22);
             _rdoUseRemote.AutoSize = false; _rdoUseRemote.Size = new Size(180, 22);
-            _hideWorkerWindows.AutoSize = false; _hideWorkerWindows.Size = new Size(240, 22);
+            // Fills the row: its label is the longest and gets trimmed at 240.
+            _hideWorkerWindows.AutoSize = false; _hideWorkerWindows.Size = new Size(_gpboxComputeServer.Width - _hideWorkerWindows.Left - 4, 22);
             _launchWorkerAtStart.AutoSize = false; _launchWorkerAtStart.Size = new Size(240, 22);
 
             // Grow the Compute server source group so the URL row sits inside it. Then lay
@@ -481,7 +473,7 @@ namespace Hops
         {
             // Gray these out when Use Remote is selected so the relationship to the radio is obvious.
             bool local = _rdoUseLocal.Checked;
-            _hideWorkerWindows.Enabled = local && !Rhino.Runtime.HostUtils.RunningOnOSX;
+            _hideWorkerWindows.Enabled = local;
             _launchWorkerAtStart.Enabled = local;
             _childComputeCount.Enabled = local;
             _updateChildCountButton.Enabled = local;
