@@ -28,6 +28,10 @@
     <RuntimeFrameworkVersion Condition="'$(SelfContained)' == 'true'">10.0.14</RuntimeFrameworkVersion>
   </PropertyGroup>
 
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform(osx))">
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
   <PropertyGroup>
     <OutputPath>..\bin\$(Configuration)\$(AssemblyName)</OutputPath>
   </PropertyGroup>
@@ -55,14 +59,14 @@
     <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
     <PackageReference Include="System.Runtime.Caching" Version="10.0.12" />
     <PackageReference Include="System.Runtime.Serialization.Formatters" Version="10.0.12" />
-    <PackageReference Include="Rhino.Inside" Version="9.0.26084.13070-beta" />
+    <PackageReference Include="Rhino.Inside" Version="9.0.26321.3440-beta" />
   </ItemGroup>
 
   <ItemGroup Condition="$([MSBuild]::IsOSPlatform(windows))">
       <PackageReference Include="Microsoft.Windows.Compatibility" Version="10.0.12" />
   </ItemGroup>
 
-  <ItemGroup Condition="$([MSBuild]::IsOSPlatform(linux))">
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform(linux)) OR $([MSBuild]::IsOSPlatform(osx))">
       <!-- Compile against the reference assembly only: at runtime Rhino's own System.Drawing.Common
            (the Linux shim shipped next to RhinoCore) must be the one that loads, so no NuGet
            runtime copy may land in the app directory. -->

@@ -5,40 +5,17 @@
             "name": "Launch Hops",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "Build Hops",
-            "program": "/Applications/RhinoWIP.app/Contents/MacOS/Rhinoceros",
+            "preLaunchTask": "Build Hops and compute",
             "args": [],
             "env": {
-                "GRASSHOPPER_PLUGINS": "${workspaceFolder}/src/hops/bin/Debug/Hops.gha"
+                "GRASSHOPPER_PLUGINS": "${workspaceFolder}/src/bin/Debug/Hops.gha"
             },
             "cwd": "${workspaceFolder}",
-            "console": "internalConsole"
-        },
-        {
-            "name": "Launch Hops (v7.17)",
-            "type": "rhino",
-            "request": "launch",
-            "preLaunchTask": "Build Hops",
-            "program": "/Applications/Rhino 7.17.app/Contents/MacOS/Rhinoceros",
-            "args": [],
-            "env": {
-                "GRASSHOPPER_PLUGINS": "${workspaceFolder}/src/hops/bin/Debug/Hops.gha"
+            "console": "internalConsole",
+            "program": "C:\\Program Files\\Rhino 9\\System\\Rhino.exe",
+            "osx": {
+                "program": "/Applications/Rhino 9.app/Contents/MacOS/Rhinoceros",
             },
-            "cwd": "${workspaceFolder}",
-            "console": "internalConsole"
-        },
-        {
-            "name": "Launch Hops (v7)",
-            "type": "rhino",
-            "request": "launch",
-            "preLaunchTask": "Build Hops",
-            "program": "/Applications/Rhino 7.app/Contents/MacOS/Rhinoceros",
-            "args": [],
-            "env": {
-                "GRASSHOPPER_PLUGINS": "${workspaceFolder}/src/hops/bin/Debug/Hops.gha"
-            },
-            "cwd": "${workspaceFolder}",
-            "console": "internalConsole"
         },
         {
             "name": "Launch compute.geometry",
@@ -49,8 +26,9 @@
             "args": [],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",
-            "windows": {
-                "program": "${workspaceFolder}/src/bin/Debug/compute.geometry/compute.geometry.exe"
+            "program": "${workspaceFolder}/src/bin/Debug/compute.geometry/compute.geometry.exe",
+            "osx": {
+                "program": "${workspaceFolder}/src/bin/Debug/compute.geometry/compute.geometry"
             },
             "linux": {
                 "program": "${workspaceFolder}/src/bin/Debug/compute.geometry/compute.geometry",
@@ -67,8 +45,12 @@
             "justMyCode": false,
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",
+            "program": "${workspaceFolder}/src/bin/Debug/rhino.compute/rhino.compute.exe",
             "windows": {
-                "program": "${workspaceFolder}/src/bin/Debug/rhino.compute/rhino.compute.exe",
+                "args": []
+            },
+            "osx": {
+                "program": "${workspaceFolder}/src/bin/Debug/rhino.compute/rhino.compute",
                 "args": []
             },
             "linux": {

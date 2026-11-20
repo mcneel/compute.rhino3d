@@ -132,7 +132,13 @@ namespace compute.geometry
             // Skip native DLL teardown, where RhinoCore calls into managed code after .NET has shut down (RH-98958).
             if (OperatingSystem.IsWindows())
                 TerminateProcess(GetCurrentProcess(), 0);
+            // On Mac, RhinoCode's pipe server thread also keeps the process alive after Main returns.
+            else if (OperatingSystem.IsMacOS())
+                _exit(0);
         }
+
+        [System.Runtime.InteropServices.DllImport("libc")]
+        static extern void _exit(int status);
 
         [System.Runtime.InteropServices.DllImport("kernel32.dll")]
         static extern IntPtr GetCurrentProcess();
