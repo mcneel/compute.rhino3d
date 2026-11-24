@@ -23,7 +23,7 @@ namespace rhino.compute
         /// </summary>
         public const int MaxChildren = 64;
 
-        static DateTime lastCall = DateTime.MinValue;
+        static DateTime lastCall = DateTime.Now;
         public static void UpdateLastCall()
         {
             lastCall = DateTime.Now;
@@ -69,19 +69,17 @@ namespace rhino.compute
         /// figure out if they should exit.
         /// </summary>
         /// <returns>
-        /// -1 if a child process has never been called; 0 while a request is in
-        /// progress; otherwise span in seconds since the last call to a child process
+        /// 0 while a request is in progress or a child is starting; otherwise seconds since
+        /// the last call to a child process, a child joining the pool, or rhino.compute's start
         /// </returns>
         public static int IdleSpan()
         {
-            // A request that outlasts the idle span must not make the children shut down under it.
+            // A request that outlasts the idle span, or a child still loading Rhino, must not make the children shut down.
             lock (lockObject)
             {
-                if (activeRequests.Count > 0)
+                if (activeRequests.Count > 0 || pendingSpawnPorts.Count > 0)
                     return 0;
             }
-            if (lastCall == DateTime.MinValue)
-                return -1;
             var span = DateTime.Now - lastCall;
             return (int)span.TotalSeconds;
         }
@@ -181,9 +179,8 @@ namespace rhino.compute
 
             lock (lockObject)
             {
-                // Prune any dead processes; the bootstrap launch below starts one if none are left
-                if (computeProcesses.Any(tuple => tuple.Item1.HasExited))
-                    computeProcesses = new Queue<Tuple<Process, int>>(computeProcesses.Where(tuple => !tuple.Item1.HasExited));
+                // The bootstrap launch below starts a child if none are left
+                PruneExited();
                 activePort = TakeChild(reserve);
             }
 
@@ -291,6 +288,7 @@ namespace rhino.compute
                 // Check + reserve under the one lock so there is no check-then-act race:
                 // bootstrapOnly spawns only into a completely empty pool (join semantics);
                 // the normal top-up path fills up to SpawnCount.
+                PruneExited();
                 int inFlight = computeProcesses.Count + pendingSpawnPorts.Count;
                 if (inFlight >= (bootstrapOnly ? 1 : SpawnCount))
                     return;
@@ -334,7 +332,10 @@ namespace rhino.compute
                     pendingSpawnProcesses.Remove(port);
                     cancelled = cancelledSpawnPorts.Remove(port);
                     if (started && !cancelled && process != null && !process.HasExited)
+                    {
                         computeProcesses.Enqueue(Tuple.Create(process, port));
+                        UpdateLastCall();
+                    }
                     // Wake any threads waiting in GetComputeServerBaseUrl for this spawn to finish.
                     Monitor.PulseAll(lockObject);
                 }
@@ -590,7 +591,8 @@ namespace rhino.compute
         /// (others are left running). When null, all children are shut down.</param>
         /// <param name="respawn">When true, spawn one fresh replacement per shut-down child,
         /// sequentially (one at a time) so the queue is never empty mid-recycle if other
-        /// children are handling traffic. Respects SpawnCount.</param>
+        /// children are handling traffic. Respects SpawnCount. Without a port filter, also
+        /// refills the pool to SpawnCount when children had already exited.</param>
         /// <returns>Ports that were shut down, and ports of any newly-spawned replacements.</returns>
         public static (int[] shutdown, int[] spawned) ShutdownChildren(
             int? portFilter = null,
@@ -602,6 +604,7 @@ namespace rhino.compute
             var startingChildren = new List<(Process Process, int Port)>();
             lock (lockObject)
             {
+                PruneExited();
                 if (portFilter.HasValue)
                 {
                     var match = new List<Tuple<Process, int>>();
@@ -640,7 +643,7 @@ namespace rhino.compute
                     KillStartingChild(starting, port);
             }
             if (toShutdown.Length == 0)
-                return (cancelledPorts, Array.Empty<int>());
+                return (cancelledPorts, respawn && !portFilter.HasValue ? LaunchChildren() : Array.Empty<int>());
 
             Log.Information("Shutting down {Count} compute.geometry child process(es)", toShutdown.Length);
 
@@ -690,7 +693,8 @@ namespace rhino.compute
             if (respawn)
             {
                 var spawned = new List<int>();
-                foreach (var _ in shutdownPorts)
+                int replacements = portFilter.HasValue ? shutdownPorts.Length : Math.Max(shutdownPorts.Length, SpawnCount);
+                for (int i = 0; i < replacements; i++)
                 {
                     int countBefore;
                     lock (lockObject)
@@ -731,6 +735,7 @@ namespace rhino.compute
             int[] existingPortsSnapshot;
             lock (lockObject)
             {
+                PruneExited();
                 int currentCount = computeProcesses.Count + pendingSpawnPorts.Count;
                 targetSpawns = Math.Max(0, SpawnCount - currentCount);
                 existingPortsSnapshot = computeProcesses.Select(t => t.Item2).ToArray();
@@ -790,6 +795,7 @@ namespace rhino.compute
             int port;
             lock (lockObject)
             {
+                PruneExited();
                 if (computeProcesses.Count + pendingSpawnPorts.Count >= MaxChildren)
                     throw new InvalidOperationException($"Maximum child count reached ({MaxChildren}).");
 
@@ -841,8 +847,18 @@ namespace rhino.compute
             get
             {
                 lock (lockObject)
+                {
+                    PruneExited();
                     return computeProcesses.Count;
+                }
             }
+        }
+
+        // Called under lockObject. A child that exits on its own (idle shutdown, crash) stays queued until pruned.
+        static void PruneExited()
+        {
+            if (computeProcesses.Any(child => child.Item1.HasExited))
+                computeProcesses = new Queue<Tuple<Process, int>>(computeProcesses.Where(child => !child.Item1.HasExited));
         }
 
         static object lockObject = new object();

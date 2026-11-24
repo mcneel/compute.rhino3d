@@ -59,7 +59,7 @@ namespace compute.geometry
         }
 
         static System.Net.Http.HttpClient httpClient;
-        static DateTime lastSpanCheck = DateTime.Now;
+        static DateTime nextSpanCheck = DateTime.Now;
         static bool stopping;
 
         private async static void TimerTask(object timerState)
@@ -80,14 +80,12 @@ namespace compute.geometry
 
             if (!shutdown && parentPort > 0 && idleSpan > 0)
             {
-                // Ask the parent often enough that a child stops soon after the pool has been idle for the span.
-                var shouldCheckSpan = DateTime.Now - lastSpanCheck;
-                if (shouldCheckSpan.TotalSeconds >= Math.Clamp(idleSpan / 10, 5, 60))
+                if (DateTime.Now >= nextSpanCheck)
                 {
                     if (httpClient == null)
                         httpClient = new System.Net.Http.HttpClient();
                     string url = $"http://localhost:{parentPort}/idlespan";
-                    lastSpanCheck = DateTime.Now;
+                    nextSpanCheck = DateTime.Now.AddSeconds(Math.Clamp(idleSpan / 10, 5, 60));
                     Serilog.Log.Debug($"Checking with parent process at {url}.");
                     try
                     {
@@ -99,11 +97,16 @@ namespace compute.geometry
                         if (!string.IsNullOrEmpty(span))
                         {
                             int serverIdleSpan = int.Parse(span);
-                            Serilog.Log.Debug($"Response received. Parent process idle span is {serverIdleSpan} seconds.");
+                            Serilog.Log.Debug($"Response received. Parent process has been idle for {serverIdleSpan} seconds (limit {idleSpan}).");
                             if (serverIdleSpan >= idleSpan)
                             {
                                 Serilog.Log.Debug("Idle span limit reached");
                                 shutdown = true;
+                            }
+                            else
+                            {
+                                // The pool can't reach the span sooner than this; a request starting meanwhile only pushes it later.
+                                nextSpanCheck = DateTime.Now.AddSeconds(Math.Max(idleSpan - serverIdleSpan, 5));
                             }
                         }
                         else
