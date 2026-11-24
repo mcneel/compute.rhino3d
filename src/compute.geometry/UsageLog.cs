@@ -400,7 +400,7 @@ namespace compute.geometry
                 if (failing)
                 {
                     if (dropped > 0)
-                        Log.Warning("Usage log: writing to {Path} again; {Dropped} usage records were dropped while it couldn't", directory, dropped);
+                        Log.Warning("Usage log: writing to {Path} again; {Dropped} usage records were lost while writing was failing", directory, dropped);
                     else
                         Log.Information("Usage log: writing to {Path} again; no usage records were lost", directory);
                     failing = false;
@@ -413,7 +413,7 @@ namespace compute.geometry
                 CloseWriter();
                 retryUtc = DateTime.UtcNow + RETRY_INTERVAL;
                 if (!failing)
-                    Log.Error(ex, "Usage log: writing to {Path} failed; keeping usage records and trying again every {Seconds} s", directory, RETRY_INTERVAL.TotalSeconds);
+                    Log.Error(ex, "Usage log: couldn't write to {Path}; holding usage records in memory and retrying every {Seconds} seconds", directory, RETRY_INTERVAL.TotalSeconds);
                 failing = true;
                 return false;
             }

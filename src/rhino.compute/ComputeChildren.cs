@@ -632,7 +632,7 @@ namespace rhino.compute
                 {
                     bool usageLog = response.Headers.Contains(LocalConnections.USAGE_LOG_HEADER);
                     if (usageLog && !ReverseProxyModule.UsageLog)
-                        Log.Information("Usage log: on, since Rhino's usage meter is; the children record usage beside Rhino's log");
+                        Log.Information("Usage log: on, because Rhino's usage meter is on");
                     ReverseProxyModule.UsageLog = usageLog;
                 }
                 return (int)response.StatusCode;

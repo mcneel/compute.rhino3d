@@ -294,7 +294,6 @@ changed on an already-deployed server without editing web.config.")]
             bool blockPrivateUrls = Boolean.TryParse(Environment.GetEnvironmentVariable("RHINO_COMPUTE_BLOCK_PRIVATE_URLS"), out var blockPrivate) && blockPrivate;
             Log.Debug("  Block Private URLs = {BlockPrivateUrls}", blockPrivateUrls.ToString());
             Log.Debug("  Compression = {Compression}", Config.Compression.ToString());
-            Log.Debug("  Usage Log = on while Rhino's usage meter is, as the children say when they start");
             Log.Debug("  MCP = {Mcp}", Config.McpEnabled
                 ? $"on (listener port {Config.McpPort}, session timeout {FormatTimeout(Config.McpSessionTimeout)}, max sessions {Config.McpMaxSessions})"
                 : "off (set RHINO_MCP_AUTOSTART_PORT to serve POST /mcp)");
