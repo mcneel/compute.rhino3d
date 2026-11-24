@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "compute.geometry", "compute.geometry\compute.geometry.csproj", "{01757ED0-58C4-47DA-926A-70ACD31B93E1}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "rhino.compute", "rhino.compute\rhino.compute.csproj", "{CC91F57C-9A5D-42C8-9D87-3A229A62BCBA}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "compute.geometry", "compute.geometry\compute.geometry.csproj", "{01757ED0-58C4-47DA-926A-70ACD31B93E1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
