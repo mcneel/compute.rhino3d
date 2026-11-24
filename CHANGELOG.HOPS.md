@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Hops components inside a definition that compute solves now find their definitions when the stored path doesn't exist on that machine. They look next to the definition that contains them, as Hops already does when Grasshopper opens a definition, so definitions with nested Hops now work on machines other than the one that saved them.
 - Hops again re-sends a local definition when the server can't load it, for example after a compute.geometry child restarts and loses its cache. This stopped working when compute.geometry began answering such requests with 400 instead of 500.
+- rhino.compute's compute.geometry children now shut down on time once the idle span (`--idlespan` or `RHINO_COMPUTE_IDLESPAN`, 1 hour by default) passes without requests. Children used to linger for up to almost twice the span, and children started with `/launch-children` or `/launch-child` before any request never shut down. Each child now checks only when the span could have run out, instead of once a minute, and `/activechildren`, `/launch-children` and `/launch-child` no longer count children that have already shut down.
 
 ## [0.17.2] - 2026-10-30
 
