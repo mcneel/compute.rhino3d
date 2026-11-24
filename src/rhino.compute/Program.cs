@@ -206,7 +206,7 @@ changed on an already-deployed server without editing web.config.")]
                 // the same stack trace, so without this override the same exception shows up
                 // twice on the console.
                 .MinimumLevel.Override("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogEventLevel.Fatal)
-                .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico']")
+                .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico', '/idlespan']")
                 .WriteTo.Console(
                     outputTemplate: "RC  [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
                     theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Literate)
@@ -279,7 +279,8 @@ changed on an already-deployed server without editing web.config.")]
 
             Log.Debug($"Config:");
             Log.Debug("  Max Request Size = {RequestSize}", (Config.MaxRequestSize / 1024.0 / 1024.0).ToString("F2") + " MB");
-            Log.Debug("  Timeout = {Timeout}", FormatTimeout(Config.ReverseProxyRequestTimeout));
+            Log.Debug("  Per-request Proxy Timeout = {Timeout}", FormatTimeout(Config.ReverseProxyRequestTimeout));
+            Log.Debug("  Idle Span = {IdleSpan}", FormatTimeout(Config.IdleSpanSeconds));
             Log.Debug("  Child Startup Timeout = {ChildStartupTimeout}", FormatTimeout(Config.ChildStartupTimeout));
             Log.Debug("  Child Count = {ChildCount}", ComputeChildren.SpawnCount.ToString());
             Log.Debug("  Spawn Children At Startup = {SpawnChild}", ComputeChildren.SpawnOnStartup.ToString());
@@ -293,7 +294,6 @@ changed on an already-deployed server without editing web.config.")]
             bool blockPrivateUrls = Boolean.TryParse(Environment.GetEnvironmentVariable("RHINO_COMPUTE_BLOCK_PRIVATE_URLS"), out var blockPrivate) && blockPrivate;
             Log.Debug("  Block Private URLs = {BlockPrivateUrls}", blockPrivateUrls.ToString());
             Log.Debug("  Compression = {Compression}", Config.Compression.ToString());
-            Log.Debug("  Usage Log = on while Rhino's usage meter is, as the children say when they start");
             Log.Debug("  MCP = {Mcp}", Config.McpEnabled
                 ? $"on (listener port {Config.McpPort}, session timeout {FormatTimeout(Config.McpSessionTimeout)}, max sessions {Config.McpMaxSessions})"
                 : "off (set RHINO_MCP_AUTOSTART_PORT to serve POST /mcp)");
