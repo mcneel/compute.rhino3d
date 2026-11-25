@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Hops on Mac can now start its own local rhino.compute, as it does on Windows. This requires Rhino 9.2 or later. It's off by default on Mac so existing remote setups keep working; choose "Local rhino.compute" in the Hops settings to use it.
+- On Mac, rhino.compute's output shows in a log window that floats with Grasshopper. "Hide rhino.compute console window" hides it, and closing it stops rhino.compute, as closing the console window does on Windows.
+
+### Changed
+
+- Hops now ships as separate packages for Windows and Mac. The Mac package includes rhino.compute, signed and notarized by Apple.
+
 ### Fixed
 
 - Hops components inside a definition that compute solves now find their definitions when the stored path doesn't exist on that machine. They look next to the definition that contains them, as Hops already does when Grasshopper opens a definition, so definitions with nested Hops now work on machines other than the one that saved them.
