@@ -58,10 +58,11 @@ jobs:
       contents: read
     needs: [check_workflow, check_src]
     if: ${{ needs.check_src.outputs.any_changed == 'true' || needs.check_workflow.outputs.any_changed == 'true' }}
-    # Matrix over both runners so the csproj OS-conditionals produce a Windows-targeted build
-    # on windows-latest (net10.0-windows + win-x64 + web.config) and a Linux-targeted build on
-    # ubuntu-latest (net10.0 + linux-x64). The "rhino.compute" artifact name is preserved for
-    # the Windows variant since it's the historical deliverable that downstream consumers
+    # Matrix over the runners so the csproj OS-conditionals produce a Windows-targeted build
+    # on windows-latest (net10.0-windows + win-x64 + web.config), a Linux-targeted build on
+    # ubuntu-latest (net10.0 + linux-x64) and a Mac build on macos-latest (net10.0 + osx-arm64,
+    # the runtime Hops launches locally on Mac). The "rhino.compute" artifact name is preserved
+    # for the Windows variant since it's the historical deliverable that downstream consumers
     # (e.g. the VM bootstrap script) reference by that exact name.
     strategy:
       fail-fast: false
@@ -71,6 +72,8 @@ jobs:
             artifact_name: rhino.compute
           - os: ubuntu-latest
             artifact_name: rhino.compute-linux-x64
+          - os: macos-latest
+            artifact_name: rhino.compute-osx-arm64
     steps:
       - name: checkout
         uses: actions/checkout@v6

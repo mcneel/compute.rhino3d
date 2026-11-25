@@ -14,6 +14,33 @@
             "group": "build"
         },
         {
+            "label": "Build Hops and compute",
+            "command": "dotnet build ${workspaceFolder}/src/hops.sln",
+            "type": "shell",
+            "args": [],
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "reveal": "always",
+                "clear": true
+            },
+            "group": "build"
+        },
+        {
+            "label": "Build Hops package",
+            "command": "python ${workspaceFolder}/src/build_hops_dist.py",
+            "osx": {
+                "command": "python3 ${workspaceFolder}/src/build_hops_dist.py"
+            },
+            "type": "shell",
+            "args": [],
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "reveal": "always",
+                "clear": true
+            },
+            "group": "build"
+        },
+        {
             "label": "Build",
             "command": "dotnet build ${workspaceFolder}/src/Hops.sln",
             "type": "shell",

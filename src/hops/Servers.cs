@@ -127,7 +127,7 @@ namespace Hops
                     }
                 }
 
-                if (string.IsNullOrEmpty(url) && Rhino.Runtime.HostUtils.RunningOnWindows)
+                if (string.IsNullOrEmpty(url) && (Rhino.Runtime.HostUtils.RunningOnWindows || Rhino.Runtime.HostUtils.RunningOnOSX))
                 {
                     computeServerQueue = new Queue<ComputeServer>();
                     if (computeServerQueue.Count == 0)
@@ -146,10 +146,7 @@ namespace Hops
 
             if (string.IsNullOrEmpty(url))
             {
-                string message = "No compute server found";
-                if (Rhino.Runtime.HostUtils.RunningOnOSX)
-                    message += ": Mac Rhino only supports external compute servers";
-                throw new Exception(message);
+                throw new Exception("No compute server found");
             }
 
             return url;
@@ -225,14 +222,12 @@ namespace Hops
                 string pathToGha = typeof(Servers).Assembly.Location;
                 dir = System.IO.Path.GetDirectoryName(pathToGha);
             }
-            string pathToRhinoCompute = System.IO.Path.Combine(dir, "rhino.compute", "rhino.compute.exe");
-            if (!System.IO.File.Exists(pathToRhinoCompute))
-            {
-                // debug builds are in net5.0 directory
-                pathToRhinoCompute = System.IO.Path.Combine(dir, "net5.0", "rhino.compute.exe");
-                if (!System.IO.File.Exists(pathToRhinoCompute))
-                    return;
-            }
+            bool onMac = Rhino.Runtime.HostUtils.RunningOnOSX;
+            string pathToRhinoCompute = FindRhinoCompute(dir);
+            if (pathToRhinoCompute == null)
+                return;
+            if (onMac)
+                MakeExecutable(pathToRhinoCompute);
 
             var startInfo = new ProcessStartInfo(pathToRhinoCompute);
             int childCount = Hops.HopsAppSettings.LocalWorkerCount;
@@ -249,19 +244,15 @@ namespace Hops
             // all of it's files were read-only. If we want to go with UseShellExecute = false
             // then we need to write a pInvoke to CreateProcess with the copyFileHandles
             // set to false.
-            startInfo.UseShellExecute = true;
+            // On Mac, shell execute goes through `open`, which drops the arguments and returns no process.
+            // Unix file descriptors don't lock files, so inheriting them doesn't cause the problem above.
+            startInfo.UseShellExecute = !onMac;
             startInfo.CreateNoWindow = Hops.HopsAppSettings.HideWorkerWindows;
-            string assemblyPath = Assembly.GetExecutingAssembly().Location;
-            // 6 April 2022 - S. Baer (COMPUTE-241)
-            // When grasshopper memory loads assemblies, the above line results in an
-            // empty string. In this case use the assemblyinfo location property.
-            if (string.IsNullOrWhiteSpace(assemblyPath))
-            {
-                assemblyPath = GhaAssemblyInfo.TheAssemblyInfo.Location;
-            }
-            string parentPath = Path.GetDirectoryName(assemblyPath);
-            startInfo.WorkingDirectory = Path.Combine(parentPath, "rhino.compute");
-            var process = Process.Start(startInfo);
+            startInfo.WorkingDirectory = Path.GetDirectoryName(pathToRhinoCompute);
+            // Mac has no console window, so Hops shows the worker's output itself.
+            var process = onMac && !Hops.HopsAppSettings.HideWorkerWindows
+                ? WorkerLogWindow.Start(startInfo)
+                : Process.Start(startInfo);
             var start = DateTime.Now;
 
             if (waitUntilServing)
@@ -295,6 +286,29 @@ namespace Hops
             }
         }
 
+
+        // Builds and the package both put rhino.compute in a folder next to Hops.gha.
+        static string FindRhinoCompute(string hopsDirectory)
+        {
+            string exe = Rhino.Runtime.HostUtils.RunningOnOSX ? "rhino.compute" : "rhino.compute.exe";
+            string path = Path.Combine(hopsDirectory, "rhino.compute", exe);
+            return File.Exists(path) ? path : null;
+        }
+
+        // Zip packages don't always keep the executable bit, and rhino.compute also launches compute.geometry.
+        static void MakeExecutable(string pathToRhinoCompute)
+        {
+            const int mode755 = 0x1ED;
+            string platformDir = Path.GetDirectoryName(Path.GetDirectoryName(pathToRhinoCompute));
+            foreach (var path in new[] { pathToRhinoCompute, Path.Combine(platformDir, "compute.geometry", "compute.geometry") })
+            {
+                if (File.Exists(path))
+                    chmod(path, mode755);
+            }
+        }
+
+        [System.Runtime.InteropServices.DllImport("libc", SetLastError = true)]
+        static extern int chmod(string path, int mode);
 
         static bool IsPortOpen(string host, int port, TimeSpan timeout)
         {

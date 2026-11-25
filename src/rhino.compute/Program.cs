@@ -207,9 +207,11 @@ changed on an already-deployed server without editing web.config.")]
                 // twice on the console.
                 .MinimumLevel.Override("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", LogEventLevel.Fatal)
                 .Filter.ByExcluding("RequestPath in ['/healthcheck', '/favicon.ico', '/idlespan']")
+                // Colour even when redirected, like the CG lines, so Hops' log window on Mac can show it.
                 .WriteTo.Console(
                     outputTemplate: "RC  [{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
-                    theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Literate)
+                    theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Literate,
+                    applyThemeToRedirectedOutput: true)
                 .WriteTo.File(new ExpressionTemplate("RC   [{@t:HH:mm:ss} {@l:u3}] {@m}\n{@x}"), path, rollingInterval: RollingInterval.Day, retainedFileCountLimit: limit);
             Log.Logger = loggerConfig.CreateLogger();
 
@@ -250,6 +252,13 @@ changed on an already-deployed server without editing web.config.")]
                 if (Path.GetFileName(parentPath) == "Rhino.exe")
                 {
                     ComputeChildren.RhinoSysDir = Directory.GetParent(parentPath).FullName;
+                }
+                // Rhino.app/Contents/MacOS/Rhinoceros -> Rhino.app/Contents/Frameworks
+                else if (OperatingSystem.IsMacOS() && Path.GetFileName(parentPath) == "Rhinoceros")
+                {
+                    var frameworks = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(parentPath)), "Frameworks");
+                    if (Directory.Exists(frameworks))
+                        ComputeChildren.RhinoSysDir = frameworks;
                 }
             }
 

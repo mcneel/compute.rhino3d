@@ -1,0 +1,119 @@
+# Builds the Hops yak package for Windows and Mac. Pushes to 9.x (and manual runs on 9.x) are signed, and the Mac build notarized.
+#
+# Secrets used for signing:
+#   Windows: AZURE_CODE_SIGNING_URI (key vault URL), AZURE_CODE_SIGNING_APP_ID, AZURE_CODE_SIGNING_CLIENT_SECRET,
+#            AZURE_CODE_SIGNING_TENANT_ID, AZURE_CODE_SIGNING_CERT_NAME
+#   Mac:     APPLE_INSTALLER_CERTIFICATE_P12 (base64 Developer ID Application .p12), APPLE_INSTALLER_CERTIFICATE_PASSWORD,
+#            APPLE_NOTARIZATION_USERNAME, APPLE_NOTARIZATION_TEAMID,
+#            APPLE_NOTARIZATION_PASSWORD (app-specific password for notarytool)
+
+name: workflow hops
+on:
+  push:
+    paths:
+      - src/**
+      - .github/workflows/workflow_hops.yml
+  pull_request:
+    paths:
+      - src/**
+      - .github/workflows/workflow_hops.yml
+  workflow_dispatch:
+
+permissions: {}
+
+env:
+  YAK_URL: https://files.mcneel.com/yak/tools/0.13.0
+  SIGN: ${{ github.ref == 'refs/heads/9.x' && github.event_name != 'pull_request' }}
+
+jobs:
+  build_windows:
+    name: build hops (windows)
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: checkout
+        uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: build
+        run: python src/build_hops_dist.py --no-package
+      - name: sign
+        if: env.SIGN == 'true'
+        env:
+          AZURE_CODE_SIGNING_URI: ${{ secrets.AZURE_CODE_SIGNING_URI }}
+          AZURE_CODE_SIGNING_APP_ID: ${{ secrets.AZURE_CODE_SIGNING_APP_ID }}
+          AZURE_CODE_SIGNING_CLIENT_SECRET: ${{ secrets.AZURE_CODE_SIGNING_CLIENT_SECRET }}
+          AZURE_CODE_SIGNING_TENANT_ID: ${{ secrets.AZURE_CODE_SIGNING_TENANT_ID }}
+          AZURE_CODE_SIGNING_CERT_NAME: ${{ secrets.AZURE_CODE_SIGNING_CERT_NAME }}
+        run: |
+          dotnet tool install --global AzureSignTool
+          AzureSignTool sign -mdop 1 -fd sha256 -td sha256 -tr http://rfc3161timestamp.globalsign.com/advanced `
+            -kvu $env:AZURE_CODE_SIGNING_URI -kvi $env:AZURE_CODE_SIGNING_APP_ID -kvs $env:AZURE_CODE_SIGNING_CLIENT_SECRET `
+            -kvt $env:AZURE_CODE_SIGNING_TENANT_ID -kvc $env:AZURE_CODE_SIGNING_CERT_NAME `
+            src\dist\rhino.compute\rhino.compute.exe src\dist\compute.geometry\compute.geometry.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: package
+        run: |
+          curl.exe -fSLo yak.exe "$env:YAK_URL/yak.exe"
+          .\yak.exe version
+          cd src\dist
+          ..\..\yak.exe build --platform win
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: hops-win
+          path: src/dist/*.yak
+
+  build_mac:
+    name: build hops (mac)
+    # Apple Silicon runner; compute is built for osx-arm64.
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    env:
+      NOTARIZATION_LOG: ${{ github.workspace }}/notarization_log.json
+    steps:
+      - name: checkout
+        uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: build
+        run: python3 src/build_hops_dist.py --no-package
+      - name: import signing certificate
+        if: env.SIGN == 'true'
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_P12 }}
+          p12-password: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
+      - name: store notarization credentials
+        if: env.SIGN == 'true'
+        env:
+          AC_USERNAME: ${{ secrets.APPLE_NOTARIZATION_USERNAME }}
+          AC_TEAMID: ${{ secrets.APPLE_NOTARIZATION_TEAMID }}
+          AC_PASSWORD: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
+        run: xcrun notarytool store-credentials AC_PASSWORD --apple-id "$AC_USERNAME" --team-id "$AC_TEAMID" --password "$AC_PASSWORD"
+      - name: sign and notarize
+        if: env.SIGN == 'true'
+        env:
+          NOTARY_PROFILE: AC_PASSWORD
+        run: src/sign_hops_mac.sh src/dist
+      - name: package
+        run: |
+          curl -fSLo yak "$YAK_URL/mac/yak"
+          chmod +x yak
+          ./yak version
+          cd src/dist
+          ../../yak build --platform mac
+      - name: artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: hops-mac
+          path: |
+            src/dist/*.yak
+            notarization_log.json
+          if-no-files-found: ignore
